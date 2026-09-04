@@ -1,0 +1,90 @@
+package com.trung.bookingservice.controller;
+
+import com.trung.bookingservice.dto.request.BookingRequest;
+import com.trung.bookingservice.dto.response.ApiResponse;
+import com.trung.bookingservice.dto.response.BookingResponse;
+import com.trung.bookingservice.entity.Booking;
+import com.trung.bookingservice.exception.BadRequestException;
+import com.trung.bookingservice.exception.ResourceNotFoundException;
+import com.trung.bookingservice.service.impl.BookingServiceImpl;
+import com.trung.bookingservice.util.enums.BookingStatus;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1/bookings")
+@RequiredArgsConstructor
+public class BookingController {
+
+    private final BookingServiceImpl bookingService;
+
+    @PostMapping
+    public ResponseEntity<BookingResponse> createBooking(
+            @RequestHeader("X-User-Id") Long customerId,
+            @Valid @RequestBody BookingRequest request) throws BadRequestException {
+
+        return ResponseEntity.ok(bookingService.createBooking(customerId, request));
+    }
+
+    @PutMapping("/{bookingId}/accept")
+    public ResponseEntity<BookingResponse> acceptBooking(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long bookingId) throws BadRequestException, ResourceNotFoundException {
+
+        BookingResponse response = bookingService.acceptBooking(driverId, bookingId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{bookingId}/arrived")
+    public ResponseEntity<BookingResponse> arriveAtPickup(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long bookingId) throws BadRequestException, ResourceNotFoundException {
+        return ResponseEntity.ok(bookingService.updateBookingStatus(driverId, bookingId, BookingStatus.ARRIVED));
+    }
+
+    @PutMapping("/{bookingId}/start")
+    public ResponseEntity<BookingResponse> startTrip(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long bookingId) throws BadRequestException, ResourceNotFoundException {
+        return ResponseEntity.ok(bookingService.updateBookingStatus(driverId, bookingId, BookingStatus.IN_PROGRESS));
+    }
+
+    @PutMapping("/{bookingId}/complete")
+    public ResponseEntity<BookingResponse> completeTrip(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long bookingId,
+            @RequestParam(defaultValue = "CASH") String paymentMethod) throws BadRequestException, ResourceNotFoundException {
+        return ResponseEntity.ok(bookingService.completeTrip(driverId, bookingId, paymentMethod));
+    }
+
+    @PutMapping("/{bookingId}/cancel")
+    public ResponseEntity<BookingResponse> cancelBooking(
+            @RequestHeader("X-User-Id") Long customerId,
+            @PathVariable Long bookingId) throws ResourceNotFoundException, BadRequestException {
+        return ResponseEntity.ok(bookingService.cancelBooking(customerId, bookingId));
+    }
+
+    @PutMapping("/{bookingId}/driver-cancel")
+    public ResponseEntity<BookingResponse> driverCancelBooking(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long bookingId) throws ResourceNotFoundException, BadRequestException {
+
+        return ResponseEntity.ok(bookingService.cancelBookingByDriver(driverId, bookingId));
+    }
+
+    @GetMapping("/customer")
+    public ResponseEntity<ApiResponse<List<Booking>>> getCustomerBookings(@RequestHeader("X-User-Id") Long customerId) {
+        return ResponseEntity.ok(bookingService.getCustomerBookings(customerId));
+    }
+
+    @GetMapping("/driver/daily-report")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyReport(@RequestHeader("X-User-Id") Long driverId) {
+        return ResponseEntity.ok(bookingService.getDriverDailyReport(driverId));
+    }
+
+}
