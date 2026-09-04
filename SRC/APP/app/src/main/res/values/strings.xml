@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">OmniGo</string>
+
+    <!-- LANGUAGE -->
+    <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="english">English</string>
+    <string name="vietnamese">Vietnamese</string>
+    <string name="apply">Apply</string>
 </resources>
