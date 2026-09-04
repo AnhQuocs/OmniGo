@@ -45,7 +45,6 @@ export const Bookings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  // Sync status filter from URL query param
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const statusParam = params.get('status');
