@@ -1,15 +1,8 @@
+# Monorepo root gitignore
+.idea/
+.vscode/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-google-services.json
+Thumbs.db
+
+# Sub-project specific ignore files are in their respective directories
