@@ -87,4 +87,13 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getDriverDailyReport(driverId));
     }
 
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingsAdmin() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    @GetMapping("/admin/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAdminBookingStats() {
+        return ResponseEntity.ok(bookingService.getAdminStats());
+    }
 }

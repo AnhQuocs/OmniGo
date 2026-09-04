@@ -119,6 +119,29 @@ public class PaymentController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/admin/transactions")
+    public ResponseEntity<List<Transaction>> getAllTransactionsAdmin() {
+        return ResponseEntity.ok(transactionRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
+    @GetMapping("/admin/stats")
+    public ResponseEntity<java.util.Map<String, Object>> getAdminPaymentStats() {
+        List<Transaction> all = transactionRepository.findAll();
+        long total = all.size();
+        long successCount = all.stream().filter(t -> t.getStatus() == TransactionStatus.SUCCESS).count();
+        BigDecimal totalVolume = all.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount() != null)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("totalTransactions", total);
+        map.put("successTransactions", successCount);
+        map.put("totalVolume", totalVolume);
+
+        return ResponseEntity.ok(map);
+    }
+
     private ResponseEntity<String> renderReturnHtml(String code, String orderId, String subText) {
         String title = "00".equals(code) ? "Thanh Toán Thành Công!" : "Thanh Toán Thất Bại";
         String icon = "00".equals(code) ? "✅" : "❌";

@@ -3,12 +3,15 @@ package com.trung.userdriverservice.controller;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
+import com.trung.userdriverservice.dto.response.DriverInternalResponse;
 import com.trung.userdriverservice.dto.response.UserResponse;
+import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.exception.BadRequestException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
+import com.trung.userdriverservice.mapper.UserMapper;
+import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.service.DriverService;
-import com.trung.userdriverservice.util.enums.DriverStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/drivers")
@@ -24,6 +28,8 @@ import java.time.LocalDateTime;
 public class DriverController {
 
     private final DriverService driverService;
+    private final DriverProfileRepository driverProfileRepository;
+    private final UserMapper userMapper;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> registerDriver(@Valid @RequestBody DriverRegisterRequest request) throws ResourceConflictException {
@@ -35,6 +41,18 @@ public class DriverController {
                 .build();
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse<List<DriverInternalResponse>>> getAllDriversAdmin() {
+        List<DriverProfile> list = driverProfileRepository.findAll();
+        List<DriverInternalResponse> data = list.stream().map(userMapper::toDriverInternalResponse).toList();
+        return ResponseEntity.ok(ApiResponse.<List<DriverInternalResponse>>builder()
+                .success(true)
+                .message("Lấy toàn bộ hồ sơ tài xế thành công")
+                .data(data)
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
     @PutMapping("/{driverId}/status")

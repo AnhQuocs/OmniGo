@@ -68,26 +68,26 @@ jobs:
          docker build -t vmt1609/location-service:latest ./SRC/BE/location-service
          docker push vmt1609/location-service:latest
 
- deploy-to-vps:
-   needs: build-and-push
-   runs-on: ubuntu-latest
-   steps:
-     - name: Deploy to VPS via SSH
-       uses: appleboy/ssh-action@v1.0.3
-       with:
-         host: ${{ secrets.VPS_HOST }}
-         username: ${{ secrets.VPS_USERNAME }}
-         password: ${{ secrets.VPS_PASSWORD }}
-         port: 22
-         script: |
-           cd /home/trung/RIDE-HAILING-LOGISTICS-SYSTEM
-
-           git pull origin main
-
-           docker compose pull
-
-           docker compose up -d
-
-           docker compose restart frontend
-
-           docker image prune -f
+# deploy-to-vps:
+#   needs: build-and-push
+#   runs-on: ubuntu-latest
+#   steps:
+#     - name: Deploy to VPS via SSH
+#       uses: appleboy/ssh-action@v1.0.3
+#       with:
+#         host: ${{ secrets.VPS_HOST }}
+#         username: ${{ secrets.VPS_USERNAME }}
+#         password: ${{ secrets.VPS_PASSWORD }}
+#         port: 22
+#         script: |
+#           cd /home/trung/RIDE-HAILING-LOGISTICS-SYSTEM
+#
+#           git pull origin main
+#
+#           docker compose pull
+#
+#           docker compose up -d
+#
+#           docker compose restart frontend
+#
+#           docker image prune -f

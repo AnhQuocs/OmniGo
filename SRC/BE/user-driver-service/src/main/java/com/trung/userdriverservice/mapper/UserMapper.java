@@ -7,8 +7,10 @@ import com.trung.userdriverservice.dto.response.UserPaymentInfoResponse;
 import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.entity.User;
+import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.util.enums.DriverStatus;
 import com.trung.userdriverservice.util.enums.Role;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +18,11 @@ import org.springframework.stereotype.Component;
 public class UserMapper {
 
     private final PasswordEncoder passwordEncoder;
+    private final DriverProfileRepository driverProfileRepository;
 
-    public UserMapper(PasswordEncoder passwordEncoder) {
+    public UserMapper(PasswordEncoder passwordEncoder, @Lazy DriverProfileRepository driverProfileRepository) {
         this.passwordEncoder = passwordEncoder;
+        this.driverProfileRepository = driverProfileRepository;
     }
 
     public User toCustomerEntity(UserRegisterRequest request) {
@@ -52,21 +56,31 @@ public class UserMapper {
     }
 
     public UserResponse toUserResponse(User user) {
-        return UserResponse.builder()
+        UserResponse.UserResponseBuilder builder = UserResponse.builder()
                 .id(user.getId())
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
-                .createdAt(user.getCreatedAt())
-                .build();
+                .createdAt(user.getCreatedAt());
+
+        if (user.getRole() == Role.DRIVER) {
+            driverProfileRepository.findById(user.getId()).ifPresent(dp -> {
+                builder.status(dp.getStatus());
+                builder.vehicleType(dp.getVehicleType());
+                builder.licensePlate(dp.getLicensePlate());
+                builder.vehicleModel(dp.getVehicleModel());
+            });
+        }
+
+        return builder.build();
     }
 
     public DriverInternalResponse toDriverInternalResponse(DriverProfile profile) {
         return DriverInternalResponse.builder()
                 .driverId(profile.getDriverId())
-                .fullName(profile.getUser().getFullName())
-                .phoneNumber(profile.getUser().getPhoneNumber())
+                .fullName(profile.getUser() != null ? profile.getUser().getFullName() : "")
+                .phoneNumber(profile.getUser() != null ? profile.getUser().getPhoneNumber() : "")
                 .vehicleType(profile.getVehicleType())
                 .licensePlate(profile.getLicensePlate())
                 .vehicleModel(profile.getVehicleModel())

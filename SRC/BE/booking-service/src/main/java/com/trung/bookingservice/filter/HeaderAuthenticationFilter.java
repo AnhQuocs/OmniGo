@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -25,23 +25,29 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
         String role = request.getHeader("X-User-Role");
         String userId = request.getHeader("X-User-Id");
 
-        if (phoneNumber != null && role != null) {
+        if (role != null && (userId != null || phoneNumber != null)) {
             try {
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
+                String cleanRole = role.toUpperCase().replace("ROLE_", "");
+                List<SimpleGrantedAuthority> authorities = List.of(
+                        new SimpleGrantedAuthority("ROLE_" + cleanRole),
+                        new SimpleGrantedAuthority(cleanRole)
+                );
+
+                String principal = (phoneNumber != null && !phoneNumber.isBlank()) ? phoneNumber : userId;
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        phoneNumber,
+                        principal,
                         null,
-                        Collections.singletonList(authority)
+                        authorities
                 );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("Đã xác thực request từ Gateway cho User: {}, Role: {}", phoneNumber, role);
+                log.debug("Đã xác thực request từ Gateway cho User: {}, Role: {}", principal, cleanRole);
             } catch (Exception e) {
-                log.error("Lỗi khi thiết lập Header Authentication", e);
+                log.error("Lỗi khi thiết lập Header Authentication trong booking-service", e);
             }
         }
 
