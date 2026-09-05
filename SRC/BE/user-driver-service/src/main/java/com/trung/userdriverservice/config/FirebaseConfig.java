@@ -35,37 +35,15 @@ public class FirebaseConfig {
     public void initFirebase() {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                InputStream serviceAccount = null;
-
-                // 1. Kiểm tra biến môi trường (hỗ trợ cả JSON trực tiếp hoặc Base64)
-                String rawCreds = !credentials.trim().isEmpty() ? credentials.trim() :
-                                  (!credentialsJson.trim().isEmpty() ? credentialsJson.trim() : credentialsBase64.trim());
-
-                if (!rawCreds.isEmpty()) {
-                    if (rawCreds.startsWith("{")) {
-                        log.info("Khởi tạo Firebase từ chuỗi JSON môi trường...");
-                        serviceAccount = new ByteArrayInputStream(rawCreds.getBytes(StandardCharsets.UTF_8));
-                    } else {
-                        log.info("Khởi tạo Firebase từ chuỗi Base64 môi trường...");
-                        byte[] decoded = Base64.getDecoder().decode(rawCreds);
-                        serviceAccount = new ByteArrayInputStream(decoded);
-                    }
-                } 
-                // 2. Nếu không có biến môi trường -> Nạp từ file classpath local
-                else {
-                    ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
-                    if (resource.exists()) {
-                        log.info("Khởi tạo Firebase từ file classpath local (firebase-service-account.json)...");
-                        serviceAccount = resource.getInputStream();
-                    } else {
-                        log.warn("Không tìm thấy file firebase-service-account.json và không có biến môi trường credentials!");
-                        return;
-                    }
+                InputStream serviceAccount = getServiceAccountStream();
+                if (serviceAccount == null) {
+                    log.warn("Không tìm thấy file firebase-service-account.json và không có biến môi trường credentials!");
+                    return;
                 }
 
-                try (serviceAccount) {
+                try (InputStream stream = serviceAccount) {
                     FirebaseOptions options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                            .setCredentials(GoogleCredentials.fromStream(stream))
                             .build();
 
                     FirebaseApp.initializeApp(options);
@@ -75,6 +53,30 @@ public class FirebaseConfig {
         } catch (Exception e) {
             log.error("Lỗi khi khởi tạo Firebase Admin SDK: {}", e.getMessage(), e);
         }
+    }
+
+    private InputStream getServiceAccountStream() throws Exception {
+        String rawCreds = !credentials.trim().isEmpty() ? credentials.trim() :
+                          (!credentialsJson.trim().isEmpty() ? credentialsJson.trim() : credentialsBase64.trim());
+
+        if (!rawCreds.isEmpty()) {
+            if (rawCreds.startsWith("{")) {
+                log.info("Khởi tạo Firebase từ chuỗi JSON môi trường...");
+                return new ByteArrayInputStream(rawCreds.getBytes(StandardCharsets.UTF_8));
+            } else {
+                log.info("Khởi tạo Firebase từ chuỗi Base64 môi trường...");
+                byte[] decoded = Base64.getDecoder().decode(rawCreds);
+                return new ByteArrayInputStream(decoded);
+            }
+        }
+
+        ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
+        if (resource.exists()) {
+            log.info("Khởi tạo Firebase từ file classpath local (firebase-service-account.json)...");
+            return resource.getInputStream();
+        }
+
+        return null;
     }
 
     @Bean
