@@ -536,6 +536,41 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    @Override
+    public ApiResponse<List<Booking>> getAllBookings() {
+        List<Booking> list = bookingRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return ApiResponse.<List<Booking>>builder()
+                .success(true)
+                .message("Lấy toàn bộ danh sách chuyến xe thành công")
+                .data(list)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<Map<String, Object>> getAdminStats() {
+        List<Booking> all = bookingRepository.findAll();
+        long total = all.size();
+        long completed = all.stream().filter(b -> b.getStatus() == BookingStatus.COMPLETED).count();
+        long inProgress = all.stream().filter(b -> b.getStatus() == BookingStatus.IN_PROGRESS || b.getStatus() == BookingStatus.ACCEPTED || b.getStatus() == BookingStatus.ARRIVED).count();
+        long cancelled = all.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).count();
+        long pending = all.stream().filter(b -> b.getStatus() == BookingStatus.PENDING).count();
+        double totalGmv = all.stream().filter(b -> b.getStatus() == BookingStatus.COMPLETED && b.getPrice() != null).mapToDouble(Booking::getPrice).sum();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalBookings", total);
+        stats.put("completedBookings", completed);
+        stats.put("inProgressBookings", inProgress);
+        stats.put("cancelledBookings", cancelled);
+        stats.put("pendingBookings", pending);
+        stats.put("totalGmv", totalGmv);
+
+        return ApiResponse.<Map<String, Object>>builder()
+                .success(true)
+                .message("Lấy thống kê cuốc xe thành công")
+                .data(stats)
+                .build();
+    }
+
     private BookingResponse convertToResponse(Booking booking, double distance) {
         return BookingResponse.builder()
                 .bookingId(booking.getId())

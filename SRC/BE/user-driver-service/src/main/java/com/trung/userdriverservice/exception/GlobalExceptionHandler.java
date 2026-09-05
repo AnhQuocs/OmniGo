@@ -22,9 +22,14 @@ public class GlobalExceptionHandler {
                 errors.put(error.getField(), error.getDefaultMessage())
         );
 
+        String combinedMessage = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .filter(msg -> msg != null && !msg.isBlank())
+                .collect(Collectors.joining("; "));
+
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
-                .message("Dữ liệu đầu vào không hợp lệ")
+                .message(combinedMessage.isEmpty() ? "Dữ liệu đầu vào không hợp lệ" : combinedMessage)
                 .error(errors)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -35,7 +40,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleResourceConflictException(ResourceConflictException ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
-                .message("Xung đột dữ liệu")
+                .message(ex.getMessage() != null ? ex.getMessage() : "Xung đột dữ liệu")
                 .error(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -46,7 +51,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
-                .message("Không tìm thấy tài nguyên")
+                .message(ex.getMessage() != null ? ex.getMessage() : "Không tìm thấy tài nguyên")
                 .error(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -57,7 +62,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
-                .message("Thông tin không hợp lệ")
+                .message(ex.getMessage() != null ? ex.getMessage() : "Thông tin không hợp lệ")
                 .error(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -68,7 +73,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleBadRequestException(BadRequestException ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
-                .message("Yêu cầu không hợp lệ")
+                .message(ex.getMessage() != null ? ex.getMessage() : "Yêu cầu không hợp lệ")
                 .error(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();

@@ -1,5 +1,6 @@
 package com.trung.userdriverservice.dto.response;
 
+import com.trung.userdriverservice.util.enums.DriverStatus;
 import com.trung.userdriverservice.util.enums.Role;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,5 +17,9 @@ public class UserResponse {
     private String email;
     private String fullName;
     private Role role;
+    private DriverStatus status;
+    private String vehicleType;
+    private String licensePlate;
+    private String vehicleModel;
     private LocalDateTime createdAt;
 }

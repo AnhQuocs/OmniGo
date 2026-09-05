@@ -27,4 +27,8 @@ public interface BookingService {
     ApiResponse<List<Booking>> getCustomerBookings(Long customerId);
 
     ApiResponse<Map<String, Object>> getDriverDailyReport(Long driverId);
+
+    ApiResponse<List<Booking>> getAllBookings();
+
+    ApiResponse<Map<String, Object>> getAdminStats();
 }

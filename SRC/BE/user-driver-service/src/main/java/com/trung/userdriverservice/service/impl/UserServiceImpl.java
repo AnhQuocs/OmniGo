@@ -3,13 +3,19 @@ package com.trung.userdriverservice.service.impl;
 import com.trung.userdriverservice.dto.request.PageRequestDTO;
 import com.trung.userdriverservice.dto.request.UserRegisterRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
+import com.trung.userdriverservice.dto.response.LoginResponse;
 import com.trung.userdriverservice.dto.response.PageResponseDTO;
 import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.User;
+import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.UserRepository;
+import com.trung.userdriverservice.security.JwtTokenProvider;
+import com.trung.userdriverservice.security.RefreshTokenService;
+import com.trung.userdriverservice.service.FirebaseAuthService;
 import com.trung.userdriverservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,10 +30,27 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final FirebaseAuthService firebaseAuthService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
-    public ApiResponse<UserResponse> registerCustomer(UserRegisterRequest request) throws ResourceConflictException {
+    public ApiResponse<LoginResponse> registerCustomer(UserRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
+    
+        /*
+        if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
+            String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
+            request.setPhoneNumber(verifiedPhoneNumber);
+        } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
+            throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký.");
+        }
+        */
+
+        if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
+            throw new BadRequestException("Vui lòng cung cấp số điện thoại để đăng ký.");
+        }
+
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new ResourceConflictException("Số điện thoại đã được đăng ký.");
         }
@@ -39,8 +62,18 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepository.save(user);
 
-        return ApiResponse.<UserResponse>builder()
-                .data(userMapper.toUserResponse(savedUser))
+        // Sinh Access Token và Refresh Token cho người dùng vừa đăng ký
+        String accessToken = jwtTokenProvider.generateAccessToken(savedUser);
+        String refreshToken = refreshTokenService.generateAndSaveRefreshToken(savedUser.getPhoneNumber());
+
+        LoginResponse loginResponse = LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .user(userMapper.toUserResponse(savedUser))
+                .build();
+
+        return ApiResponse.<LoginResponse>builder()
+                .data(loginResponse)
                 .build();
     }
 
