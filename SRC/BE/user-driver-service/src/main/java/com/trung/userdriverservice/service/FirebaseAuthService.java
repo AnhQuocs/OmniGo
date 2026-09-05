@@ -5,18 +5,21 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.trung.userdriverservice.exception.BadRequestException;
 import com.trung.userdriverservice.exception.InvalidCredentialsException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class FirebaseAuthService {
 
-    private final FirebaseAuth firebaseAuth;
+    @Autowired(required = false)
+    private FirebaseAuth firebaseAuth;
 
     public String verifyTokenAndExtractPhoneNumber(String firebaseToken) throws InvalidCredentialsException, BadRequestException {
+        if (firebaseAuth == null) {
+            throw new BadRequestException("Firebase Authentication chưa được cấu hình trên hệ thống.");
+        }
         if (firebaseToken == null || firebaseToken.trim().isEmpty()) {
             throw new BadRequestException("Firebase ID Token không được để trống.");
         }
