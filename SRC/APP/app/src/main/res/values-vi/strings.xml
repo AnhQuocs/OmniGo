@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">OmniGo</string>
+    <string name="app_tagline">Di chuyển thuận tiện, ăn ngon mỗi ngày</string>
 
     <!-- LANGUAGE -->
     <string name="language">Ngôn ngữ</string>
@@ -7,4 +8,93 @@
     <string name="english">Tiếng Anh</string>
     <string name="vietnamese">Tiếng Việt</string>
     <string name="apply">Áp dụng</string>
+
+    <!-- COMMON FORM FIELDS -->
+    <string name="phone_number">Số điện thoại</string>
+    <string name="phone_number_hint">0912 345 678</string>
+    <string name="password">Mật khẩu</string>
+    <string name="password_hint">Nhập mật khẩu</string>
+    <string name="full_name">Họ và tên</string>
+    <string name="full_name_hint">Ví dụ: Nguyễn Văn A</string>
+    <string name="email">Email</string>
+    <string name="email_hint">Nhập email (không bắt buộc)</string>
+    <string name="email_required_hint">Nhập địa chỉ email</string>
+    <string name="confirm_password">Xác nhận mật khẩu</string>
+    <string name="confirm_password_hint">Nhập lại mật khẩu</string>
+    <string name="password_not_match">Mật khẩu xác nhận không khớp</string>
+
+    <!-- LOGIN SCREEN -->
+    <string name="login">Đăng nhập</string>
+    <string name="login_title">Chào mừng đến với OmniGo</string>
+    <string name="login_subtitle">Đăng nhập để đặt xe và gọi món ăn nhanh chóng</string>
+    <string name="forgot_password">Quên mật khẩu?</string>
+    <string name="dont_have_account">Chưa có tài khoản?</string>
+    <string name="register_now">Đăng ký ngay</string>
+    <string name="logging_in">Đang đăng nhập…</string>
+
+    <!-- REGISTER SCREEN -->
+    <string name="register">Đăng ký</string>
+    <string name="register_title">Tạo tài khoản mới</string>
+    <string name="register_subtitle">Chọn vai trò và bắt đầu trải nghiệm cùng OmniGo</string>
+    <string name="step_role">1. Chọn vai trò</string>
+    <string name="step_otp">Xác thực số điện thoại</string>
+    <string name="step_info">Thông tin tài khoản</string>
+    <string name="select_role">Tôi muốn đăng ký làm</string>
+    <string name="role_customer_title">Khách hàng</string>
+    <string name="role_customer_desc">Đặt xe và gọi món ăn nhanh chóng</string>
+    <string name="role_driver_title">Đối tác Tài xế</string>
+    <string name="role_driver_desc">Lái xe, giao hàng và gia tăng thu nhập</string>
+    <string name="send_otp">Gửi OTP</string>
+    <string name="sending_otp">Đang gửi OTP…</string>
+    <string name="enter_otp">Nhập mã OTP 6 số</string>
+    <string name="otp_sent_to">Mã OTP đã được gửi đến: %1$s</string>
+    <string name="resend_otp">Gửi lại mã</string>
+    <string name="resend_otp_countdown">Gửi lại sau (%1$ds)</string>
+    <string name="verify_otp">Xác thực mã</string>
+    <string name="verifying_otp">Đang xác thực…</string>
+    <string name="phone_verified">Xác thực số điện thoại thành công</string>
+    <string name="change_phone">Đổi số điện thoại</string>
+    <string name="vehicle_type">Loại phương tiện</string>
+    <string name="license_plate">Biển số xe</string>
+    <string name="license_plate_hint">Ví dụ: 29A-123.45</string>
+    <string name="vehicle_model">Mẫu xe</string>
+    <string name="vehicle_model_hint">Ví dụ: Honda Wave, Toyota Vios</string>
+    <string name="vehicle_type_bike">Xe máy</string>
+    <string name="vehicle_type_car4">Xe 4 chỗ</string>
+    <string name="vehicle_type_car7">Xe 7 chỗ</string>
+    <string name="vehicle_type_express">Giao hàng</string>
+    <string name="complete_registration">Hoàn tất đăng ký</string>
+    <string name="registering">Đang tạo tài khoản…</string>
+    <string name="already_have_account">Đã có tài khoản?</string>
+    <string name="back_to_login">Đăng nhập</string>
+    <string name="account_created_success">Tạo tài khoản thành công!</string>
+    <string name="driver_pending_notice">Tài khoản tài xế đã được tạo và đang chờ quản trị viên phê duyệt.</string>
+
+    <!-- AUTH REGISTER ERRORS -->
+    <string name="error_empty_full_name">Họ và tên không được để trống</string>
+    <string name="error_empty_email">Email không được để trống</string>
+    <string name="error_invalid_email">Địa chỉ email không hợp lệ</string>
+    <string name="error_empty_phone">Số điện thoại không được để trống</string>
+    <string name="error_invalid_phone">Số điện thoại không đúng định dạng</string>
+    <string name="error_empty_password">Mật khẩu không được để trống</string>
+    <string name="error_password_too_short">Mật khẩu phải có ít nhất 6 ký tự</string>
+    <string name="error_phone_verification_required">Vui lòng xác thực số điện thoại trước</string>
+    <string name="error_empty_license_plate">Biển số xe không được để trống</string>
+    <string name="error_empty_vehicle_model">Mẫu xe không được để trống</string>
+    <string name="error_invalid_otp">Mã OTP không chính xác. Vui lòng thử lại</string>
+    <string name="error_otp_expired">Mã OTP đã hết hạn</string>
+    <string name="error_too_many_requests">Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau</string>
+    <string name="error_phone_number_mismatch">Số điện thoại xác thực không khớp với số đăng ký</string>
+    <string name="error_email_or_phone_already_exists">Email hoặc số điện thoại đã tồn tại</string>
+    <string name="error_bad_request">Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin</string>
+    <string name="error_server_error">Lỗi máy chủ. Vui lòng thử lại sau</string>
+    <string name="error_network_error">Lỗi kết nối mạng. Vui lòng kiểm tra lại kết nối internet</string>
+    <string name="error_unknown">Đã có lỗi không xác định xảy ra</string>
+
+    <!-- AUTH LOGIN ERRORS & LOGOUT -->
+    <string name="error_invalid_credentials">Số điện thoại hoặc mật khẩu không chính xác</string>
+    <string name="error_account_not_found">Tài khoản không tồn tại</string>
+    <string name="error_account_blocked">Tài khoản đã bị khóa hoặc tạm ngưng</string>
+    <string name="logout_success">Đăng xuất thành công</string>
+    <string name="logout_failed">Đăng xuất thất bại</string>
 </resources>

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,10 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+val keyStorePropertiesFile = rootProject.file("local.properties")
+val keyStoreProperties = Properties()
+keyStoreProperties.load(keyStorePropertiesFile.inputStream())
 
 android {
     namespace = "com.example.omnigo"
@@ -18,6 +24,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val baseUrl = keyStoreProperties.getProperty("BASE_URL") ?: "\"http://localhost:8080/\""
+        buildConfigField("String", "BASE_URL", baseUrl)
     }
 
     buildTypes {
@@ -33,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -42,6 +52,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -68,4 +79,13 @@ dependencies {
 
     //Hilt
     implementation("androidx.hilt:hilt-lifecycle-viewmodel-compose:1.3.0")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.8")
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 }
