@@ -11,7 +11,9 @@ import lombok.Setter;
 @Setter
 public class UserRegisterRequest {
 
-    @NotBlank(message = "Số điện thoại không được để trống")
+    @NotBlank(message = "Firebase Token không được để trống")
+    private String firebaseToken;
+
     @Pattern(regexp = "^(0[3|5|7|8|9])[0-9]{8}$", message = "Số điện thoại phải bao gồm đúng 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)")
     private String phoneNumber;
 
@@ -26,4 +28,4 @@ public class UserRegisterRequest {
     private String fullName;
 
     private String role;
-}
+}

@@ -5,9 +5,11 @@ import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.DriverInternalResponse;
+import com.trung.userdriverservice.dto.response.LoginResponse;
 import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
@@ -33,8 +35,8 @@ public class DriverController {
     private final UserMapper userMapper;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserResponse>> registerDriver(@Valid @RequestBody DriverRegisterRequest request) throws ResourceConflictException {
-        ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
+    public ResponseEntity<ApiResponse<LoginResponse>> registerDriver(@Valid @RequestBody DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
+        ApiResponse<LoginResponse> response = ApiResponse.<LoginResponse>builder()
                 .success(true)
                 .message("Đăng ký tài khoản tài xế thành công")
                 .data(driverService.registerDriver(request).getData())

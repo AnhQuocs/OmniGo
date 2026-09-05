@@ -4,17 +4,22 @@ import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
+import com.trung.userdriverservice.dto.response.LoginResponse;
 import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.entity.User;
 import com.trung.userdriverservice.event.DriverRegisteredEvent;
 import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.repository.UserRepository;
+import com.trung.userdriverservice.security.JwtTokenProvider;
+import com.trung.userdriverservice.security.RefreshTokenService;
 import com.trung.userdriverservice.service.DriverService;
+import com.trung.userdriverservice.service.FirebaseAuthService;
 import com.trung.userdriverservice.service.client.LocationClient;
 import com.trung.userdriverservice.util.enums.DriverStatus;
 import lombok.RequiredArgsConstructor;
@@ -36,10 +41,21 @@ public class DriverServiceImpl implements DriverService {
     private final UserMapper userMapper;
     private final LocationClient locationClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final FirebaseAuthService firebaseAuthService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
-    public ApiResponse<UserResponse> registerDriver(DriverRegisterRequest request) throws ResourceConflictException {
+    public ApiResponse<LoginResponse> registerDriver(DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
+        // Nếu có Firebase ID Token từ Mobile gửi lên -> Giải mã lấy số điện thoại đã xác thực
+        if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
+            String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
+            request.setPhoneNumber(verifiedPhoneNumber);
+        } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
+            throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký tài xế.");
+        }
+
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new ResourceConflictException("Số điện thoại đã được đăng ký.");
         }
@@ -65,8 +81,18 @@ public class DriverServiceImpl implements DriverService {
             log.error("Lỗi khi bắn sự kiện Kafka đăng ký tài xế: {}", e.getMessage());
         }
 
-        return ApiResponse.<UserResponse>builder()
-                .data(userMapper.toUserResponse(savedUser))
+        // Sinh Access Token và Refresh Token cho tài xế vừa đăng ký
+        String accessToken = jwtTokenProvider.generateAccessToken(savedUser);
+        String refreshToken = refreshTokenService.generateAndSaveRefreshToken(savedUser.getPhoneNumber());
+
+        LoginResponse loginResponse = LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .user(userMapper.toUserResponse(savedUser))
+                .build();
+
+        return ApiResponse.<LoginResponse>builder()
+                .data(loginResponse)
                 .build();
     }
 

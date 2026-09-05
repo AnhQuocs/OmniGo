@@ -2,8 +2,11 @@ package com.trung.userdriverservice.controller;
 import com.trung.userdriverservice.dto.request.PageRequestDTO;
 import com.trung.userdriverservice.dto.request.UserRegisterRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
+import com.trung.userdriverservice.dto.response.LoginResponse;
 import com.trung.userdriverservice.dto.response.PageResponseDTO;
 import com.trung.userdriverservice.dto.response.UserResponse;
+import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.service.UserService;
@@ -24,9 +27,9 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register/customer")
-    public ResponseEntity<ApiResponse<UserResponse>> registerCustomer(@Valid @RequestBody UserRegisterRequest request) throws ResourceConflictException {
+    public ResponseEntity<ApiResponse<LoginResponse>> registerCustomer(@Valid @RequestBody UserRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
 
-        ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
+        ApiResponse<LoginResponse> response = ApiResponse.<LoginResponse>builder()
                 .success(true)
                 .message("Đăng ký tài khoản khách hàng thành công")
                 .data(userService.registerCustomer(request).getData())

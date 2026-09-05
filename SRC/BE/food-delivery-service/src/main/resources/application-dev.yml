@@ -1,9 +1,9 @@
 server:
-  port: 8081
+  port: 8086
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ride_hailing_db
+    url: jdbc:postgresql://localhost:5432/food_delivery_db
     username: postgres
     password: 123456
     driver-class-name: org.postgresql.Driver
@@ -29,7 +29,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: driver-created:com.trung.userdriverservice.event.DriverRegisteredEvent
+        spring.json.type.mapping:
 
 eureka:
   client:
@@ -39,14 +39,6 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
-
-jwt:
-  secret: DayLaChuoiBiMatMacDinhCuaToiChoMoiTruongDev123456
-  access-token-expiration: 86400000
-  refresh-token-expiration: 604800000
-
-firebase:
-  credentials: ${FIREBASE_CREDENTIALS:}
 
 management:
   endpoints:
