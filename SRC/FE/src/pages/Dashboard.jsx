@@ -68,6 +68,7 @@ export const Dashboard = () => {
     cancelledBookings: 0,
     pendingBookings: 0,
     totalGmv: 0,
+    platformCommission: 0,
     totalTransactions: 0,
     successTransactions: 0,
   });
@@ -222,11 +223,13 @@ export const Dashboard = () => {
       const totalTransactions = Number(pStats.totalTransactions ?? allTransactions.length);
       const successTransactions = Number(pStats.successTransactions ?? allTransactions.filter((t) => t.status === 'SUCCESS').length);
 
+      // Tổng 100% GMV toàn bộ các chuyến xe hoàn thành (COMPLETED), bao gồm cả Tiền mặt và Online
       const computedGmv = allBookings
         .filter((b) => b.status === 'COMPLETED' && b.price)
         .reduce((sum, b) => sum + Number(b.price), 0);
 
-      const totalGmv = Number(pStats.totalVolume ?? bStats.totalGmv ?? computedGmv ?? 0);
+      const totalGmv = Number(bStats.totalGmv ?? computedGmv ?? 0);
+      const platformCommission = Math.round(totalGmv * 0.20);
 
       setStats({
         totalCustomers,
@@ -238,6 +241,7 @@ export const Dashboard = () => {
         cancelledBookings,
         pendingBookings,
         totalGmv,
+        platformCommission,
         totalTransactions,
         successTransactions,
       });
@@ -399,7 +403,7 @@ export const Dashboard = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Tổng GMV Doanh Thu
+                  Tổng GMV Toàn Sàn
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', my: 0.5 }}>
                   {loading ? <CircularProgress size={22} /> : `${Number(stats.totalGmv).toLocaleString('vi-VN')} đ`}
@@ -415,11 +419,13 @@ export const Dashboard = () => {
                   <BarChart data={sparklineRevenue}><Bar dataKey="v" fill="#ff3366" radius={[2, 2, 0, 0]} /></BarChart>
                 </ResponsiveContainer>
               </Box>
-              <Chip
-                label={`${stats.successTransactions} GD Thành công`}
-                size="small"
-                sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}
-              />
+              <Tooltip title={`Doanh thu sàn thu 20% từ các cuốc xe hoàn thành: ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}>
+                <Chip
+                  label={`Phí sàn (20%): ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}
+                  size="small"
+                  sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}
+                />
+              </Tooltip>
             </Box>
           </Card>
         </Grid>
