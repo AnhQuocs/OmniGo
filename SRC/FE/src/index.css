@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
 
 * {
   box-sizing: border-box;
@@ -37,3 +37,80 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(140, 160, 190, 0.45);
 }
+
+/* Smooth Page & Component Transitions */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter-animation {
+  animation: fadeInSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 3D Subtle Tilt & Elevation Effects */
+.card-3d-tilt {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+}
+
+.card-3d-tilt:hover {
+  transform: translateY(-4px) perspective(1000px) rotateX(1.5deg);
+  box-shadow: 0 14px 28px rgba(0, 140, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Realtime Radar Pulse Effect */
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(21, 202, 32, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(21, 202, 32, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(21, 202, 32, 0);
+  }
+}
+
+.realtime-live-pulse {
+  animation: radarPulse 2s infinite cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+@keyframes tickerGlow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.live-ticker-badge {
+  animation: tickerGlow 2.5s infinite ease-in-out;
+}
+
+/* 3D Isometric View Accents */
+.isometric-view-container {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.isometric-layer {
+  transform: rotateX(20deg) rotateZ(-10deg) translateZ(10px);
+  transition: transform 0.4s ease;
+}
+
+.isometric-layer:hover {
+  transform: rotateX(15deg) rotateZ(-5deg) translateZ(20px);
+}
+

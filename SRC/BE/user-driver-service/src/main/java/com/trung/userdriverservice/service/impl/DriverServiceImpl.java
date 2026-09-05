@@ -1,5 +1,6 @@
 package com.trung.userdriverservice.service.impl;
 
+import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
@@ -70,6 +71,55 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
+    @Transactional
+    public ApiResponse<UserResponse> adminUpdateDriver(Long driverId, DriverAdminUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
+        DriverProfile profile = driverProfileRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế với ID: " + driverId));
+
+        User user = profile.getUser();
+        if (user == null) {
+            user = userRepository.findById(driverId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người dùng của tài xế."));
+        }
+
+        // Validate phone uniqueness if changed
+        if (!user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new ResourceConflictException("Số điện thoại " + request.getPhoneNumber() + " đã được đăng ký bởi tài khoản khác.");
+        }
+
+        // Validate email uniqueness if changed
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (!request.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+                throw new ResourceConflictException("Email " + request.getEmail() + " đã được đăng ký bởi tài khoản khác.");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        // Validate license plate uniqueness if changed
+        if (profile.getLicensePlate() != null && !profile.getLicensePlate().equalsIgnoreCase(request.getLicensePlate())
+                && driverProfileRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new ResourceConflictException("Biển số xe " + request.getLicensePlate() + " đã tồn tại trên hệ thống.");
+        }
+
+        // Update User info
+        user.setFullName(request.getFullName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        userRepository.save(user);
+
+        // Update DriverProfile info
+        profile.setVehicleType(request.getVehicleType());
+        profile.setLicensePlate(request.getLicensePlate());
+        profile.setVehicleModel(request.getVehicleModel());
+        driverProfileRepository.save(profile);
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Cập nhật thông tin tài xế và phương tiện thành công")
+                .data(userMapper.toUserResponse(user))
+                .build();
+    }
+
+    @Override
     public ApiResponse<UserResponse> updateDriverVehicle(Long driverId, DriverUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         DriverProfile profile = driverProfileRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế."));
@@ -92,6 +142,7 @@ public class DriverServiceImpl implements DriverService {
                 .data(userMapper.toUserResponse(profile.getUser()))
                 .build();
     }
+
 
     @Override
     public void toggleDriverActiveStatus(Long driverId, boolean isActive) throws ResourceNotFoundException, BadRequestException {

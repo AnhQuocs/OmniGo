@@ -157,8 +157,10 @@ export const Pricing = () => {
                     onChange={handleChange}
                     required
                     fullWidth
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                      },
                     }}
                     helperText="Khoản tiền tối thiểu cho mỗi cuốc xe"
                   />
@@ -175,8 +177,10 @@ export const Pricing = () => {
                     onChange={handleChange}
                     required
                     fullWidth
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">VND / km</InputAdornment>,
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">VND / km</InputAdornment>,
+                      },
                     }}
                     helperText="Đơn giá nhân với tổng số km di chuyển"
                   />
@@ -193,8 +197,10 @@ export const Pricing = () => {
                     onChange={handleChange}
                     required
                     fullWidth
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">VND / phút</InputAdornment>,
+                    slotProps={{
+                      input: {
+                        endAdornment: <InputAdornment position="end">VND / phút</InputAdornment>,
+                      },
                     }}
                     helperText="Đơn giá nhân với tổng thời gian di chuyển thực tế"
                   />
@@ -241,7 +247,7 @@ export const Pricing = () => {
                     value={simDistance}
                     onChange={(e) => setSimDistance(Math.max(0, Number(e.target.value)))}
                     fullWidth
-                    InputProps={{ endAdornment: <InputAdornment position="end">km</InputAdornment> }}
+                    slotProps={{ input: { endAdornment: <InputAdornment position="end">km</InputAdornment> } }}
                   />
                 </Box>
                 <Box>
@@ -253,7 +259,7 @@ export const Pricing = () => {
                     value={simDuration}
                     onChange={(e) => setSimDuration(Math.max(0, Number(e.target.value)))}
                     fullWidth
-                    InputProps={{ endAdornment: <InputAdornment position="end">phút</InputAdornment> }}
+                    slotProps={{ input: { endAdornment: <InputAdornment position="end">phút</InputAdornment> } }}
                   />
                 </Box>
               </Box>

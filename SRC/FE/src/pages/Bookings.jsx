@@ -28,6 +28,7 @@ import {
   Schedule as PendingIcon,
   Cancel as CancelIcon,
   LocationOn as LocationIcon,
+  FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -44,6 +45,7 @@ export const Bookings = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [autoSync, setAutoSync] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -56,24 +58,35 @@ export const Bookings = () => {
     setPage(0);
   }, [location.search]);
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     setError(null);
     try {
       const data = await bookingService.getAllBookings();
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Không thể tải danh sách chuyến xe từ Backend';
-      setError(msg);
-      toast.error(msg);
+      if (!isBackground) {
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  // Realtime auto-sync every 10s
+  useEffect(() => {
+    if (!autoSync) return;
+    const interval = setInterval(() => {
+      fetchBookings(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [autoSync]);
 
   const handleTabChange = (val) => {
     setStatusFilter(val);
@@ -149,25 +162,40 @@ export const Bookings = () => {
   );
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Header */}
+    <Box sx={{ width: '100%' }} className="page-enter-animation">
+      {/* Header bar with Realtime Indicator & Refresh */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
-            Quản Lý Chuyến Xe (Bookings)
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
+              Quản Lý Chuyến Xe (Bookings)
+            </Typography>
+            <Chip
+              icon={<DotIcon sx={{ fontSize: '10px !important', color: autoSync ? '#15ca20 !important' : '#94a3b8 !important' }} />}
+              label={autoSync ? 'REALTIME LIVE' : 'SYNC TẮT'}
+              size="small"
+              className={autoSync ? 'realtime-live-pulse' : ''}
+              sx={{
+                bgcolor: autoSync ? 'rgba(21, 202, 32, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                color: autoSync ? '#15ca20' : 'text.secondary',
+                fontWeight: 800,
+                fontSize: '0.72rem',
+              }}
+            />
+          </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
-            Theo dõi trạng thái, lộ trình và doanh thu điều phối từ `booking-service`
+            Theo dõi trạng thái, lộ trình và điều phối chuyến xe từ `booking-service`
           </Typography>
         </Box>
+
         <Button
           variant="contained"
           startIcon={<RefreshIcon />}
-          onClick={fetchBookings}
+          onClick={() => fetchBookings(false)}
           disabled={loading}
           sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2 }}
         >
-          Làm Mới Dữ Liệu
+          Làm Mới
         </Button>
       </Box>
 
@@ -175,7 +203,7 @@ export const Bookings = () => {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
               <RideIcon />
             </Box>
             <Box>
@@ -186,7 +214,7 @@ export const Bookings = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff' }}>
               <PendingIcon />
             </Box>
             <Box>
@@ -197,7 +225,7 @@ export const Bookings = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
               <CompletedIcon />
             </Box>
             <Box>
@@ -208,7 +236,7 @@ export const Bookings = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
               <CancelIcon />
             </Box>
             <Box>
@@ -225,7 +253,7 @@ export const Bookings = () => {
         </Alert>
       )}
 
-      {/* Main Table Card */}
+      {/* Main Table View */}
       <Card sx={{ p: 2.5 }}>
         {/* Filter buttons & Search */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
@@ -263,18 +291,19 @@ export const Bookings = () => {
                 setSearchTerm(e.target.value);
                 setPage(0);
               }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </Box>
         </Box>
 
-        {/* Bookings Data Table with Complete Columns */}
         <TableContainer>
           <Table sx={{ minWidth: 950 }}>
             <TableHead>

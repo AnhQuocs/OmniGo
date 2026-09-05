@@ -39,16 +39,22 @@ export const authService = {
   },
 
   /**
-   * Đăng xuất
+   * Đăng xuất & Hủy cookie Refresh Token triệt để
    * Endpoint BE: POST /api/v1/auth/logout
    */
   logout: async () => {
     try {
-      return await post('/api/v1/auth/logout', {});
+      await post('/api/v1/auth/logout', {});
     } catch (error) {
-      console.warn('Backend logout failed:', error.message);
-      return { success: true };
+      console.warn('Backend logout call:', error.message);
+    } finally {
+      // Clear cookies from client side
+      document.cookie = 'refresh_token=; Max-Age=0; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+      document.cookie = 'refreshToken=; Max-Age=0; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+      localStorage.removeItem('omni_token');
+      localStorage.removeItem('omni_user');
     }
+    return { success: true };
   },
 
   /**

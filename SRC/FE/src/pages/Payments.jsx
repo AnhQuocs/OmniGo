@@ -147,7 +147,7 @@ export const Payments = () => {
   );
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%' }} className="page-enter-animation">
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
@@ -173,7 +173,7 @@ export const Payments = () => {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
               <PaymentIcon />
             </Box>
             <Box>
@@ -184,7 +184,7 @@ export const Payments = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
               <SuccessIcon />
             </Box>
             <Box>
@@ -195,7 +195,7 @@ export const Payments = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
               <MoneyIcon />
             </Box>
             <Box>
@@ -208,7 +208,7 @@ export const Payments = () => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800' }}>
+            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800' }}>
               <WalletIcon />
             </Box>
             <Box>
@@ -263,12 +263,14 @@ export const Payments = () => {
                 setSearchTerm(e.target.value);
                 setPage(0);
               }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </Box>

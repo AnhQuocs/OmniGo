@@ -5,16 +5,24 @@ export const driverService = {
    * Lấy danh sách tài xế
    * Endpoint BE: GET /api/v1/users (filter role DRIVER)
    */
-  getAllDrivers: async (params = { page: 0, size: 10 }) => {
+  getAllDrivers: async (params = { page: 0, size: 100 }) => {
     return await get('/api/v1/users', { ...params, role: 'DRIVER' });
   },
 
   /**
-   * Cập nhật trạng thái bật/tắt hoạt động của tài xế
-   * Endpoint BE: PUT /api/v1/drivers/{driverId}/status?isActive={isActive}
+   * Lấy danh sách toàn bộ hồ sơ tài xế từ driver-service
+   * Endpoint BE: GET /api/v1/drivers/admin/all
    */
-  toggleDriverStatus: async (driverId, isActive) => {
-    return await put(`/api/v1/drivers/${driverId}/status?isActive=${isActive}`);
+  getAllDriverProfiles: async () => {
+    return await get('/api/v1/drivers/admin/all');
+  },
+
+  /**
+   * Cập nhật toàn diện thông tin cá nhân và phương tiện của tài xế (Admin)
+   * Endpoint BE: PUT /api/v1/drivers/{driverId}/admin
+   */
+  updateDriverAdmin: async (driverId, driverData) => {
+    return await put(`/api/v1/drivers/${driverId}/admin`, driverData);
   },
 
   /**
@@ -26,12 +34,21 @@ export const driverService = {
   },
 
   /**
-   * Đăng ký tài xế mới
+   * Đăng ký thêm mới tài khoản tài xế
    * Endpoint BE: POST /api/v1/drivers/register
    */
-  registerDriver: async (driverPayload) => {
+  createDriver: async (driverPayload) => {
     return await post('/api/v1/drivers/register', driverPayload);
+  },
+
+  /**
+   * Cập nhật trạng thái bật/tắt hoạt động của tài xế
+   * Endpoint BE: PUT /api/v1/drivers/{driverId}/status?isActive={isActive}
+   */
+  toggleDriverStatus: async (driverId, isActive) => {
+    return await put(`/api/v1/drivers/${driverId}/status?isActive=${isActive}`);
   },
 };
 
 export default driverService;
+

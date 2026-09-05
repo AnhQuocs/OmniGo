@@ -25,7 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../redux/authSlice';
+import { logoutUser, logout } from '../redux/authSlice';
 import { useColorMode } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
@@ -48,10 +48,14 @@ export const Header = ({ handleDrawerToggle }) => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleCloseUserMenu();
-    dispatch(logout());
-    toast.success('Đã đăng xuất tài khoản');
+    try {
+      await dispatch(logoutUser()).unwrap();
+    } catch {
+      dispatch(logout());
+    }
+    toast.success('Đã đăng xuất tài khoản và xóa phiên làm việc');
     navigate('/login');
   };
 
@@ -75,30 +79,6 @@ export const Header = ({ handleDrawerToggle }) => {
           >
             <MenuIcon />
           </IconButton>
-
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
-              px: 2,
-              py: 0.6,
-              borderRadius: '20px',
-              border: 1,
-              borderColor: 'divider',
-              width: { xs: 160, sm: 240 },
-            }}
-          >
-            <SearchIcon sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
-            <InputBase
-              placeholder="Search..."
-              sx={{
-                fontSize: '0.88rem',
-                color: 'text.primary',
-                '& input::placeholder': { color: 'text.secondary', opacity: 1 },
-              }}
-            />
-          </Box>
         </Box>
 
         {/* Right: Icons bar & Profile */}
@@ -110,25 +90,6 @@ export const Header = ({ handleDrawerToggle }) => {
             ) : (
               <LightIcon sx={{ fontSize: 20, color: '#ffb800' }} />
             )}
-          </IconButton>
-
-          {/* Grid apps icon */}
-          <IconButton size="small" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'inline-flex' } }}>
-            <GridIcon sx={{ fontSize: 20 }} />
-          </IconButton>
-
-          {/* Notification bell with badge 7 */}
-          <IconButton size="small" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'inline-flex' } }}>
-            <Badge badgeContent={7} color="error">
-              <BellIcon sx={{ fontSize: 20 }} />
-            </Badge>
-          </IconButton>
-
-          {/* Shopping bag with badge 8 */}
-          <IconButton size="small" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'inline-flex' } }}>
-            <Badge badgeContent={8} color="error">
-              <BagIcon sx={{ fontSize: 20 }} />
-            </Badge>
           </IconButton>
 
           {/* User Profile Avatar with Name */}

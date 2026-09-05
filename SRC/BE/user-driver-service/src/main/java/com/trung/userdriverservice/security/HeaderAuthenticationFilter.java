@@ -27,7 +27,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 
         if (phoneNumber != null && role != null) {
             try {
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
+                String normalizedRole = role.toUpperCase().startsWith("ROLE_") ? role.toUpperCase() : "ROLE_" + role.toUpperCase();
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(normalizedRole);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         phoneNumber,

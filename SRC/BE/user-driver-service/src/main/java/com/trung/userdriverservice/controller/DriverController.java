@@ -1,5 +1,6 @@
 package com.trung.userdriverservice.controller;
 
+import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
@@ -75,8 +76,17 @@ public class DriverController {
     @PreAuthorize("hasRole('ADMIN') or (hasRole('DRIVER') and #currentDriverId == #driverId)")
     public ResponseEntity<ApiResponse<UserResponse>> updateDriverVehicle(@PathVariable Long driverId,
                                                                          @Valid @RequestBody DriverUpdateRequest request,
-                                                                         @RequestHeader(name = "X-User-Id") Long currentDriverId) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
+                                                                         @RequestHeader(name = "X-User-Id", required = false) Long currentDriverId) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         ApiResponse<UserResponse> response = driverService.updateDriverVehicle(driverId, request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @PutMapping("/{driverId}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> adminUpdateDriver(@PathVariable Long driverId,
+                                                                       @Valid @RequestBody DriverAdminUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
+        ApiResponse<UserResponse> response = driverService.adminUpdateDriver(driverId, request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }
+

@@ -12,11 +12,10 @@ import lombok.Setter;
 public class UserRegisterRequest {
 
     @NotBlank(message = "Số điện thoại không được để trống")
-    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^(0[3|5|7|8|9])[0-9]{8}$", message = "Số điện thoại phải bao gồm đúng 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)")
     private String phoneNumber;
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không đúng định dạng")
+    @Email(message = "Địa chỉ email không đúng định dạng")
     private String email;
 
     @NotBlank(message = "Mật khẩu không được để trống")
@@ -27,4 +26,4 @@ public class UserRegisterRequest {
     private String fullName;
 
     private String role;
-}
+}

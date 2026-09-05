@@ -33,13 +33,27 @@ export const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!phoneNumber.trim() || !password.trim()) {
-      toast.error('Vui lòng nhập đầy đủ Số điện thoại và Mật khẩu');
+    setPhoneError('');
+
+    const cleanPhone = phoneNumber.trim();
+    if (!cleanPhone) {
+      setPhoneError('Vui lòng nhập số điện thoại');
+      toast.error('Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (cleanPhone.length !== 10 || !/^(0[3|5|7|8|9])[0-9]{8}$/.test(cleanPhone)) {
+      setPhoneError('Số điện thoại phải gồm đúng 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)');
+      toast.error('Số điện thoại phải gồm đúng 10 chữ số');
+      return;
+    }
+    if (!password) {
+      toast.error('Vui lòng nhập mật khẩu');
       return;
     }
 
@@ -47,7 +61,7 @@ export const Login = () => {
     const loadingToast = toast.loading('Đang xác thực thông tin đăng nhập...');
 
     try {
-      const resultAction = await dispatch(loginUser({ phoneNumber, password }));
+      const resultAction = await dispatch(loginUser({ phoneNumber: cleanPhone, password }));
 
       if (loginUser.fulfilled.match(resultAction)) {
         toast.dismiss(loadingToast);
@@ -136,14 +150,22 @@ export const Login = () => {
                 placeholder="Nhập số điện thoại tài khoản admin"
                 fullWidth
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                error={Boolean(phoneError)}
+                helperText={phoneError}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setPhoneNumber(val);
+                  setPhoneError('');
+                }}
                 required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PhoneIcon sx={{ color: 'text.secondary' }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PhoneIcon sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Box>
@@ -159,22 +181,27 @@ export const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon sx={{ color: 'text.secondary' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          type="button"
+                          size="small"
+                          sx={{ color: 'text.secondary' }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Box>

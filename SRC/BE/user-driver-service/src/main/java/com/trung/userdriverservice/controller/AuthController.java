@@ -68,7 +68,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
             @CookieValue(name = "refresh_token", required = false) String refreshToken,
-            @RequestHeader(name = "Authorization") String authHeader,
+            @RequestHeader(name = "Authorization", required = false) String authHeader,
             HttpServletResponse response) {
 
         String accessToken = null;
@@ -77,7 +77,7 @@ public class AuthController {
         }
         ApiResponse<String> apiResponse = authService.logout(accessToken, refreshToken);
 
-        setRefreshTokenCookie(response, "",0);
+        setRefreshTokenCookie(response, "", 0);
 
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
     }
@@ -87,7 +87,7 @@ public class AuthController {
         boolean isClearToken = (token == null || token.isEmpty());
         boolean isProduction = false;
 
-        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refresh_token", token)
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refresh_token", token != null ? token : "")
                 .httpOnly(true)
                 .path("/")
                 .maxAge(isClearToken ? 0 : maxAgeSeconds);
@@ -102,5 +102,16 @@ public class AuthController {
         }
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
+
+        if (isClearToken) {
+            // Also clear legacy camelCase refreshToken cookie variant
+            ResponseCookie clearCamelCase = ResponseCookie.from("refreshToken", "")
+                    .httpOnly(true)
+                    .path("/")
+                    .maxAge(0)
+                    .sameSite("Lax")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, clearCamelCase.toString());
+        }
     }
 }

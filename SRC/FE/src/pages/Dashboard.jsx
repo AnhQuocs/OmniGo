@@ -4,7 +4,6 @@ import {
   Grid,
   Card,
   Typography,
-  IconButton,
   CircularProgress,
   Chip,
   Table,
@@ -14,15 +13,18 @@ import {
   TableHead,
   TableRow,
   Button,
+  Tooltip,
 } from '@mui/material';
 import {
-  MoreHoriz as MoreIcon,
   DirectionsCar as RideIcon,
   AttachMoney as MoneyIcon,
   People as CustomerIcon,
   TwoWheeler as DriverIcon,
   Refresh as RefreshIcon,
   ArrowForward as ArrowForwardIcon,
+  PlayArrow as PlayIcon,
+  Pause as PauseIcon,
+  FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 import {
   AreaChart,
@@ -52,6 +54,10 @@ export const Dashboard = () => {
   const isDark = theme.palette.mode === 'dark';
 
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [autoSync, setAutoSync] = useState(true);
+  const [countdown, setCountdown] = useState(10);
+
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalDrivers: 0,
@@ -70,7 +76,6 @@ export const Dashboard = () => {
   const [monthlyTripData, setMonthlyTripData] = useState([]);
   const [serviceFleetData, setServiceFleetData] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
-  const [recentTransactions, setRecentTransactions] = useState([]);
 
   const sparklineRides = [{ v: 8 }, { v: 12 }, { v: 15 }, { v: 11 }, { v: 18 }, { v: 14 }, { v: 22 }, { v: 19 }, { v: 25 }, { v: 28 }];
   const sparklineRevenue = [{ v: 10 }, { v: 14 }, { v: 12 }, { v: 19 }, { v: 16 }, { v: 24 }, { v: 21 }, { v: 28 }, { v: 26 }, { v: 35 }];
@@ -91,7 +96,7 @@ export const Dashboard = () => {
     if (bookings && bookings.length > 0) {
       bookings.forEach((b) => {
         const date = b.createdAt ? new Date(b.createdAt) : new Date();
-        const dayOfWeek = date.getDay(); // 0 = CN, 1 = T2, ..., 6 = T7
+        const dayOfWeek = date.getDay();
         const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         if (days[index]) {
           days[index].booked += 1;
@@ -100,20 +105,6 @@ export const Dashboard = () => {
           }
         }
       });
-    }
-
-    // If zero across all days, show realistic active base indicators
-    const hasData = days.some((d) => d.booked > 0);
-    if (!hasData && bookings.length === 0) {
-      return [
-        { day: 'T2', booked: 0, completed: 0 },
-        { day: 'T3', booked: 0, completed: 0 },
-        { day: 'T4', booked: 0, completed: 0 },
-        { day: 'T5', booked: 0, completed: 0 },
-        { day: 'T6', booked: 0, completed: 0 },
-        { day: 'T7', booked: 0, completed: 0 },
-        { day: 'CN', booked: 0, completed: 0 },
-      ];
     }
     return days;
   };
@@ -154,7 +145,7 @@ export const Dashboard = () => {
     return result;
   };
 
-  const processFleetDistribution = (bookings, driversCount) => {
+  const processFleetDistribution = (bookings) => {
     let bikeCount = 0;
     let carCount = 0;
     let deliveryCount = 0;
@@ -184,8 +175,8 @@ export const Dashboard = () => {
     ];
   };
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchDashboardData = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const [usersRes, pricingRes, bookingStatsRes, paymentStatsRes, allBookingsRes, allTransactionsRes] = await Promise.allSettled([
         userService.getAllUsers({ page: 0, size: 100 }),
@@ -227,7 +218,6 @@ export const Dashboard = () => {
       // Process Payments
       const pStats = paymentStatsRes.status === 'fulfilled' ? paymentStatsRes.value : {};
       const allTransactions = allTransactionsRes.status === 'fulfilled' && Array.isArray(allTransactionsRes.value) ? allTransactionsRes.value : [];
-      setRecentTransactions(allTransactions.slice(0, 5));
 
       const totalTransactions = Number(pStats.totalTransactions ?? allTransactions.length);
       const successTransactions = Number(pStats.successTransactions ?? allTransactions.filter((t) => t.status === 'SUCCESS').length);
@@ -254,17 +244,34 @@ export const Dashboard = () => {
 
       setWeeklyRideData(processWeeklyData(allBookings));
       setMonthlyTripData(processMonthlyData(allBookings));
-      setServiceFleetData(processFleetDistribution(allBookings, totalDrivers));
-    } catch (err) {
-      toast.error('Lỗi khi nạp dữ liệu thống kê từ Backend');
+      setServiceFleetData(processFleetDistribution(allBookings));
+      setLastUpdated(new Date());
+    } catch {
+      if (!isBackground) toast.error('Lỗi khi nạp dữ liệu thống kê từ Backend');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Realtime live auto-sync every 10s
+  useEffect(() => {
+    if (!autoSync) return;
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          fetchDashboardData(true);
+          return 10;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [autoSync]);
 
   const getBookingStatusBadge = (status) => {
     switch (status) {
@@ -281,45 +288,74 @@ export const Dashboard = () => {
     }
   };
 
-  const getPaymentStatusBadge = (status) => {
-    switch (status) {
-      case 'SUCCESS':
-        return <Chip label="Thành Công" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }} />;
-      case 'FAILED':
-        return <Chip label="Thất Bại" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700, fontSize: '0.72rem' }} />;
-      default:
-        return <Chip label="Đang Xử Lý" size="small" sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', fontWeight: 700, fontSize: '0.72rem' }} />;
-    }
-  };
-
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Header action row */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+    <Box sx={{ width: '100%' }} className="page-enter-animation">
+      {/* Header bar with Realtime Controls & 3D Toggle */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
-            Tổng Quan Vận Hành
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
+              Tổng Quan Vận Hành
+            </Typography>
+            <Chip
+              icon={<DotIcon sx={{ fontSize: '10px !important', color: autoSync ? '#15ca20 !important' : '#94a3b8 !important' }} />}
+              label={autoSync ? `REALTIME (${countdown}s)` : 'TẠM DỪNG'}
+              size="small"
+              className={autoSync ? 'realtime-live-pulse' : ''}
+              sx={{
+                bgcolor: autoSync ? 'rgba(21, 202, 32, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                color: autoSync ? '#15ca20' : 'text.secondary',
+                fontWeight: 800,
+                fontSize: '0.72rem',
+                letterSpacing: '0.04em',
+              }}
+            />
+          </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
-            Hệ thống giám sát điều phối xe & doanh thu thời gian thực
+            Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')} • Dữ liệu kết nối trực tiếp từ hệ thống Backend
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={fetchDashboardData}
-          disabled={loading}
-          sx={{ borderRadius: 2 }}
-        >
-          Làm Mới
-        </Button>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Realtime Auto-sync Toggle */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={autoSync ? <PauseIcon /> : <PlayIcon />}
+            onClick={() => setAutoSync(!autoSync)}
+            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}
+          >
+            {autoSync ? 'Dừng Sync' : 'Bật Sync'}
+          </Button>
+
+          {/* Manual Refresh */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<RefreshIcon />}
+            onClick={() => fetchDashboardData(false)}
+            disabled={loading}
+            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}
+          >
+            Làm Mới
+          </Button>
+        </Box>
       </Box>
 
-      {/* Top 4 KPI Metric Cards */}
+      {/* 4 Clean Fixed KPI Metric Cards Grid */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-        {/* Card 1: Chuyến Xe Hoàn Thành */}
+        {/* Card 1: Completed Bookings */}
         <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Card
+            className="page-enter-animation"
+            sx={{
+              p: 2.5,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -329,7 +365,7 @@ export const Dashboard = () => {
                   {loading ? <CircularProgress size={22} /> : stats.completedBookings.toLocaleString('vi-VN')}
                 </Typography>
               </Box>
-              <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)' }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(0, 140, 255, 0.12)', boxShadow: '0 4px 10px rgba(0, 140, 255, 0.2)' }}>
                 <RideIcon sx={{ color: '#008cff', fontSize: 26 }} />
               </Box>
             </Box>
@@ -348,9 +384,18 @@ export const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Card 2: Doanh Thu GMV */}
+        {/* Card 2: Total GMV Revenue */}
         <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Card
+            className="page-enter-animation"
+            sx={{
+              p: 2.5,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -360,7 +405,7 @@ export const Dashboard = () => {
                   {loading ? <CircularProgress size={22} /> : `${Number(stats.totalGmv).toLocaleString('vi-VN')} đ`}
                 </Typography>
               </Box>
-              <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.1)' }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(255, 51, 102, 0.12)', boxShadow: '0 4px 10px rgba(255, 51, 102, 0.2)' }}>
                 <MoneyIcon sx={{ color: '#ff3366', fontSize: 26 }} />
               </Box>
             </Box>
@@ -379,9 +424,18 @@ export const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Card 3: Khách Hàng */}
+        {/* Card 3: Customers Registered */}
         <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Card
+            className="page-enter-animation"
+            sx={{
+              p: 2.5,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -391,7 +445,7 @@ export const Dashboard = () => {
                   {loading ? <CircularProgress size={22} /> : `${stats.totalCustomers} Khách`}
                 </Typography>
               </Box>
-              <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.1)' }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(21, 202, 32, 0.12)', boxShadow: '0 4px 10px rgba(21, 202, 32, 0.2)' }}>
                 <CustomerIcon sx={{ color: '#15ca20', fontSize: 26 }} />
               </Box>
             </Box>
@@ -410,9 +464,18 @@ export const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Card 4: Tài Xế & Đội Xe */}
+        {/* Card 4: Drivers Active */}
         <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Card
+            className="page-enter-animation"
+            sx={{
+              p: 2.5,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -422,7 +485,7 @@ export const Dashboard = () => {
                   {loading ? <CircularProgress size={22} /> : `${stats.totalDrivers} Tài Xế`}
                 </Typography>
               </Box>
-              <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.1)' }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(255, 184, 0, 0.12)', boxShadow: '0 4px 10px rgba(255, 184, 0, 0.2)' }}>
                 <DriverIcon sx={{ color: '#ffb800', fontSize: 26 }} />
               </Box>
             </Box>
@@ -442,7 +505,7 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Main Charts Row */}
+      {/* Main Charts Row with 3D Depth */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         {/* Left Chart (8 cols): Ride Dispatch Overview */}
         <Grid item xs={12} lg={8}>
@@ -623,7 +686,7 @@ export const Dashboard = () => {
                   Chuyến Xe Mới Nhất
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Dữ liệu trực tiếp từ booking-service
+                  Dữ liệu trực tiếp thời gian thực từ booking-service
                 </Typography>
               </Box>
               <Button

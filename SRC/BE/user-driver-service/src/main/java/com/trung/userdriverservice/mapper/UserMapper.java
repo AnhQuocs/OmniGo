@@ -81,10 +81,12 @@ public class UserMapper {
                 .driverId(profile.getDriverId())
                 .fullName(profile.getUser() != null ? profile.getUser().getFullName() : "")
                 .phoneNumber(profile.getUser() != null ? profile.getUser().getPhoneNumber() : "")
+                .email(profile.getUser() != null ? profile.getUser().getEmail() : "")
                 .vehicleType(profile.getVehicleType())
                 .licensePlate(profile.getLicensePlate())
                 .vehicleModel(profile.getVehicleModel())
                 .status(profile.getStatus())
+                .createdAt(profile.getUser() != null ? profile.getUser().getCreatedAt() : null)
                 .build();
     }
 
