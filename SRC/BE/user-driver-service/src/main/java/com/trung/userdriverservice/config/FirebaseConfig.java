@@ -81,6 +81,9 @@ public class FirebaseConfig {
 
     @Bean
     public FirebaseAuth firebaseAuth() {
+        if (FirebaseApp.getApps().isEmpty()) {
+            return null;
+        }
         return FirebaseAuth.getInstance();
     }
 }

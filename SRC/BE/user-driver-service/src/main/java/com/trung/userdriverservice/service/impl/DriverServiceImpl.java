@@ -48,12 +48,19 @@ public class DriverServiceImpl implements DriverService {
     @Override
     @Transactional
     public ApiResponse<LoginResponse> registerDriver(DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
+        
+        /*
         // Nếu có Firebase ID Token từ Mobile gửi lên -> Giải mã lấy số điện thoại đã xác thực
         if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
             String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
             request.setPhoneNumber(verifiedPhoneNumber);
         } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
             throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký tài xế.");
+        }
+        */
+
+        if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
+            throw new BadRequestException("Vui lòng cung cấp số điện thoại để đăng ký tài xế.");
         }
 
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {

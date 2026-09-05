@@ -37,11 +37,18 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public ApiResponse<LoginResponse> registerCustomer(UserRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
+    
+        /*
         if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
             String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
             request.setPhoneNumber(verifiedPhoneNumber);
         } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
             throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký.");
+        }
+        */
+
+        if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
+            throw new BadRequestException("Vui lòng cung cấp số điện thoại để đăng ký.");
         }
 
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
