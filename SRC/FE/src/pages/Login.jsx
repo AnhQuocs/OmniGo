@@ -221,17 +221,6 @@ export const Login = () => {
               {loading ? <CircularProgress size={24} sx={{ color: 'primary.contrastText' }} /> : 'Đăng Nhập'}
             </Button>
           </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              Cổng Gateway kết nối:
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, fontFamily: 'monospace' }}>
-              {API_BASE_URL}
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
     </Box>
