@@ -56,6 +56,7 @@ momo:
   endpoint: ${MOMO_ENDPOINT_PROD}
   redirect-url: ${MOMO_REDIRECT_URL_PROD}
   ipn-url: ${MOMO_IPN_URL_PROD}
+  request-type: ${MOMO_REQUEST_TYPE:captureWallet}
 
 vnpay:
   tmn-code: ${VNPAY_TMN_CODE_PROD}

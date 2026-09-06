@@ -145,9 +145,10 @@ export const Payments = () => {
     if (typeFilter === 'ONLINE_GATEWAY') return ['VNPAY', 'MOMO'].includes(t.paymentMethod);
     if (typeFilter === 'FOOD_PAYMENT') return t.transactionType === 'FOOD_PAYMENT';
     if (typeFilter === 'REFUND') return t.transactionType === 'REFUND';
-    if (typeFilter === 'WALLET') return ['WALLET', 'TOPUP', 'WITHDRAW'].includes(t.transactionType) || t.paymentMethod === 'WALLET';
+    if (typeFilter === 'WALLET') return ['WALLET', 'TOPUP', 'WITHDRAW', 'WITHDRAWAL', 'DEPOSIT'].includes(t.transactionType) || t.paymentMethod === 'WALLET';
     return t.transactionType === typeFilter;
   });
+
 
   const paginatedTransactions = filteredTransactions.slice(
     page * rowsPerPage,

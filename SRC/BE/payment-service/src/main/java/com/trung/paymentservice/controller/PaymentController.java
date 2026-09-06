@@ -107,11 +107,32 @@ public class PaymentController {
         return ResponseEntity.ok(transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId()));
     }
 
-    @PostMapping("/driver/withdraw")
+    @PostMapping("/wallet/deposit")
+    public ResponseEntity<WalletResponse> depositWallet(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-User-Role", defaultValue = "CUSTOMER") String roleStr,
+            @RequestParam Double amount,
+            @RequestParam(required = false, defaultValue = "Nạp tiền vào ví") String note) {
+        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        var wallet = walletService.depositWallet(userId, userType, amount, note);
+        return ResponseEntity.ok(paymentMapper.toWalletResponse(wallet));
+    }
+
+    @PostMapping("/wallet/withdraw")
     public ResponseEntity<Void> withdrawWallet(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-User-Role", defaultValue = "CUSTOMER") String roleStr,
+            @RequestParam Double amount) {
+        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        walletService.withdrawWallet(userId, userType, amount);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/driver/withdraw")
+    public ResponseEntity<Void> withdrawDriverWallet(
             @RequestHeader("X-User-Id") Long driverId,
             @RequestParam Double amount) {
-        walletService.withdrawWallet(driverId, amount);
+        walletService.withdrawWallet(driverId, UserType.DRIVER, amount);
         return ResponseEntity.ok().build();
     }
 

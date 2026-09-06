@@ -53,6 +53,7 @@ momo:
   endpoint: https://test-payment.momo.vn/v2/gateway/api/create
   redirect-url: http://localhost:8080/api/v1/payments/momo/return
   ipn-url: https://gluelike-lithographically-willow.ngrok-free.dev/api/v1/payments/momo/ipn
+  request-type: captureWallet
 
 vnpay:
   tmn-code: RMMQDEPO

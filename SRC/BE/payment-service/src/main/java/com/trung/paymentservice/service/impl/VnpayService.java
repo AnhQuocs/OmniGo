@@ -52,7 +52,12 @@ public class VnpayService implements PaymentStrategy {
         Long walletId;
 
         TransactionType txType;
-        if ("DEPOSIT".equalsIgnoreCase(type)) {
+        if ("CUSTOMER_DEPOSIT".equalsIgnoreCase(type)) {
+            Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
+            walletId = wallet.getId();
+            orderId = "VNPDEP_CUST_" + userId + "_" + System.currentTimeMillis();
+            txType = TransactionType.DEPOSIT;
+        } else if ("DEPOSIT".equalsIgnoreCase(type) || "DRIVER_DEPOSIT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.DRIVER);
             walletId = wallet.getId();
             orderId = "VNPDEP_" + userId + "_" + System.currentTimeMillis();
@@ -119,7 +124,7 @@ public class VnpayService implements PaymentStrategy {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy ví tương ứng với giao dịch"));
 
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                walletService.creditWallet(wallet.getUserId(), UserType.DRIVER, transaction.getAmount().doubleValue());
+                walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
             } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
                 notifyFoodOrderPaid(transaction.getBookingId());
             } else {

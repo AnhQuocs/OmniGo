@@ -595,6 +595,7 @@
         <button id="btnCancelTrip" onclick="cancelCurrentTrip(false)" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; display: none; border-radius: 5px;">
             HỦY CHUYẾN ĐI
         </button>
+        <button id="btnPayWallet" class="momo-btn" onclick="payTrip('WALLET')" style="background-color: #16a34a;">💳 Ví OmniPay (Trừ số dư)</button>
         <button id="btnPayMomo" class="momo-btn" onclick="payTrip('MOMO')">Thanh toán MoMo</button>
         <button id="btnPayVnpay" class="momo-btn" onclick="payTrip('VNPAY')" style="background-color: #005691;">Thanh toán VNPay</button>
     </div>
@@ -613,16 +614,14 @@
 
         <div class="food-nav-tabs">
             <button class="food-tab-btn active" id="food-subtab-res" onclick="switchFoodSubTab('restaurants')">🏪 Danh Sách Quán</button>
-            <button class="food-tab-btn" id="food-subtab-orders" onclick="switchFoodSubTab('orders')">📋 Đơn Hàng Của Tôi (<span id="my-food-orders-count">0</span>)</button>
+            <button class="food-tab-btn" id="food-subtab-orders" onclick="switchFoodSubTab('orders')">📋 Đơn Hàng Của Tôi</button>
         </div>
     </div>
 
     <!-- Sub-view 1: Restaurant List -->
     <div id="food-view-restaurants">
-        <h3>🏪 Danh Sách Quán Ăn Gần Bạn</h3>
-        <div class="restaurant-grid" id="restaurant-list-container">
-            <p style="color: gray;">Đang tải danh sách quán ăn...</p>
-        </div>
+        <h3>🏪 Quán Ăn Gần Bạn</h3>
+        <div class="restaurant-grid" id="restaurant-list-container" style="margin-top: 12px;"></div>
     </div>
 
     <!-- Sub-view 2: Restaurant Menu Detail -->
@@ -648,7 +647,16 @@
             <button class="btn-action" style="background: #e2e8f0; font-size: 13px;" onclick="fetchMyFoodOrders()">🔄 Làm mới</button>
         </div>
         <div id="my-food-orders-container">
-            <p style="color: gray;">Đang tải đơn hàng...</p>
+            <div style="text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size: 40px; margin-bottom: 8px;">🍽️</div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Bạn chưa có đơn đặt món nào</div>
+                <div style="color: #64748b; font-size: 13px; margin-top: 4px; max-width: 340px; margin-left: auto; margin-right: auto;">
+                    Hãy duyệt qua các quán ăn hấp dẫn gần bạn để thưởng thức những món ăn ngon nhất!
+                </div>
+                <button class="btn-action" style="background: var(--food-primary); color: white; margin-top: 14px; font-size: 13px; padding: 8px 18px; border-radius: 6px;" onclick="switchFoodSubTab('restaurants')">
+                    🍴 Khám Phá Quán Ăn Ngay
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -661,28 +669,106 @@
     <span style="background: var(--food-primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">Xem Giỏ Hàng ➔</span>
 </div>
 
-<!-- Modal: Customer Wallet & Refunds -->
+<!-- Modal: Customer Wallet (Deposit, Withdraw, Pay, History) -->
 <div class="modal-backdrop" id="customer-wallet-modal">
-    <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-card" style="max-width: 520px;">
         <div class="modal-head">
-            <h3 style="color: #15803d; display: flex; align-items: center; gap: 8px;">💳 Ví Điện Tử Của Bạn</h3>
+            <h3 style="color: #15803d; display: flex; align-items: center; gap: 8px;">💳 Ví Điện Tử OmniPay</h3>
             <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="closeModal('customer-wallet-modal')">✕</button>
         </div>
 
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
-            <div style="font-size: 13px; color: #166534; font-weight: 500;">Số Dư Khả Dụng (Bao gồm Tiền Hoàn Đơn)</div>
-            <div id="wallet-modal-balance" style="font-size: 26px; font-weight: 800; color: #15803d; margin: 6px 0;">0 đ</div>
-            <button onclick="fetchCustomerWallet(true)" style="padding: 5px 12px; font-size: 12px; background: white; border: 1px solid #86efac; border-radius: 4px; cursor: pointer; color: #166534; font-weight: 600;">🔄 Làm mới số dư</button>
+        <!-- Balance Card -->
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 15px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 13px; color: #166534; font-weight: 600;">Số Dư Khả Dụng (Dùng để Đặt Xe & Đặt Món)</div>
+            <div id="wallet-modal-balance" style="font-size: 28px; font-weight: 800; color: #15803d; margin: 6px 0; letter-spacing: -0.5px;">0 đ</div>
+            <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
+                <button onclick="fetchCustomerWallet(true)" style="padding: 4px 10px; font-size: 11px; background: white; border: 1px solid #86efac; border-radius: 4px; cursor: pointer; color: #166534; font-weight: 600;">🔄 Làm mới</button>
+            </div>
         </div>
 
-        <div>
-            <h4 style="margin: 0 0 10px 0; color: #334155; font-size: 14px;">📜 Lịch Sử Giao Dịch & Tiền Hoàn:</h4>
-            <div id="customer-tx-list" style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 13px; background: #fafafa;">
+        <!-- Wallet Action Tabs -->
+        <div style="display: flex; gap: 6px; margin-bottom: 14px; background: #f1f5f9; padding: 4px; border-radius: 8px;">
+            <button id="cust-wtab-history-btn" onclick="switchCustomerWalletTab('history')" style="flex: 1; padding: 8px 10px; border: none; background: white; color: #0f172a; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">📜 Lịch Sử</button>
+            <button id="cust-wtab-deposit-btn" onclick="switchCustomerWalletTab('deposit')" style="flex: 1; padding: 8px 10px; border: none; background: transparent; color: #64748b; font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 13px;">➕ Nạp Tiền</button>
+            <button id="cust-wtab-withdraw-btn" onclick="switchCustomerWalletTab('withdraw')" style="flex: 1; padding: 8px 10px; border: none; background: transparent; color: #64748b; font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 13px;">➖ Rút Tiền</button>
+        </div>
+
+        <!-- Tab 1: History Content -->
+        <div id="cust-wtab-history-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0; color: #334155; font-size: 13px;">Lịch sử Nạp, Rút, Thanh toán & Hoàn tiền:</h4>
+                <button onclick="fetchCustomerTransactions()" style="font-size: 11px; background: none; border: none; color: #0284c7; cursor: pointer; font-weight: 600;">Tải lại</button>
+            </div>
+            <div id="customer-tx-list" style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 13px; background: #fafafa;">
                 <p style="color: gray; text-align: center; margin: 10px 0;">Đang tải lịch sử...</p>
             </div>
         </div>
 
-        <div style="margin-top: 15px; text-align: right;">
+        <!-- Tab 2: Deposit Content -->
+        <div id="cust-wtab-deposit-content" style="display: none;">
+            <div class="form-group">
+                <label class="form-label">💵 Số tiền muốn nạp (VND) *</label>
+                <input type="number" id="cust-deposit-input" class="form-control" placeholder="Nhập số tiền (VD: 100000)" value="100000" min="10000" step="10000">
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                <button type="button" onclick="setCustDepositAmount(50000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">+50.000 đ</button>
+                <button type="button" onclick="setCustDepositAmount(100000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">+100.000 đ</button>
+                <button type="button" onclick="setCustDepositAmount(200000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">+200.000 đ</button>
+                <button type="button" onclick="setCustDepositAmount(500000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">+500.000 đ</button>
+                <button type="button" onclick="setCustDepositAmount(1000000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">+1.000.000 đ</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">💳 Kênh nạp tiền</label>
+                <select id="cust-deposit-method" class="form-control">
+                    <option value="DIRECT">⚡ Nạp Trực Tiếp (Mô phỏng tức thì vào ví)</option>
+                    <option value="MOMO">📱 Cổng MoMo (Mở trang thanh toán)</option>
+                    <option value="VNPAY">💳 Cổng VNPay (Mở trang thanh toán)</option>
+                </select>
+            </div>
+
+            <button type="button" onclick="executeCustomerDeposit()" class="btn-action" style="width: 100%; background: #16a34a; color: white; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 6px;">
+                🚀 XÁC NHẬN NẠP TIỀN VÀO VÍ
+            </button>
+        </div>
+
+        <!-- Tab 3: Withdraw Content -->
+        <div id="cust-wtab-withdraw-content" style="display: none;">
+            <div class="form-group">
+                <label class="form-label">💸 Số tiền muốn rút (VND) *</label>
+                <input type="number" id="cust-withdraw-input" class="form-control" placeholder="Nhập số tiền rút (VD: 50000)" value="50000" min="10000" step="10000">
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                <button type="button" onclick="setCustWithdrawAmount(50000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">50.000 đ</button>
+                <button type="button" onclick="setCustWithdrawAmount(100000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">100.000 đ</button>
+                <button type="button" onclick="setCustWithdrawAmount(200000)" style="padding: 4px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">200.000 đ</button>
+                <button type="button" onclick="setCustWithdrawAll()" style="padding: 4px 10px; background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 700;">Rút Toàn Bộ Số Dư</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🏦 Ngân hàng thụ hưởng</label>
+                <select id="cust-withdraw-bank" class="form-control">
+                    <option value="VCB">Vietcombank (Ngân hàng TMCP Ngoại Thương)</option>
+                    <option value="MB">MB Bank (Ngân hàng Quân Đội)</option>
+                    <option value="TCB">Techcombank (Ngân hàng Kỹ Thương)</option>
+                    <option value="VPB">VPBank (Ngân hàng Việt Nam Thịnh Vượng)</option>
+                    <option value="ACB">ACB (Ngân hàng Á Châu)</option>
+                    <option value="BIDV">BIDV (Ngân hàng Đầu tư và Phát triển)</option>
+                    <option value="CTG">VietinBank (Ngân hàng Công Thương)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🔢 Số tài khoản / Số thẻ nhận tiền *</label>
+                <input type="text" id="cust-withdraw-account" class="form-control" placeholder="Nhập số tài khoản ngân hàng..." value="0987654321">
+            </div>
+
+            <button type="button" onclick="executeCustomerWithdraw()" class="btn-action" style="width: 100%; background: #dc2626; color: white; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 6px;">
+                💸 XÁC NHẬN RÚT TIỀN VỀ TÀI KHOẢN
+            </button>
+        </div>
+
+        <div style="margin-top: 15px; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 10px;">
             <button onclick="closeModal('customer-wallet-modal')" class="btn-action" style="background: #64748b; color: white; padding: 8px 18px;">Đóng</button>
         </div>
     </div>
@@ -734,6 +820,7 @@
             <label class="form-label">💳 Phương thức thanh toán</label>
             <select id="order-payment-method" class="form-control">
                 <option value="CASH">💵 Tiền mặt khi nhận hàng (COD)</option>
+                <option value="WALLET">💳 Ví OmniPay (Trừ số dư ví)</option>
                 <option value="MOMO">📱 Ví Điện Tử MoMo</option>
                 <option value="VNPAY">💳 Cổng VNPay</option>
             </select>
@@ -839,6 +926,12 @@
     async function fetchWithAuth(url, options = {}) {
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = 'Bearer ' + getStoredToken();
+        if (customerId && !options.headers['X-User-Id']) {
+            options.headers['X-User-Id'] = customerId.toString();
+        }
+        if (!options.headers['X-User-Role']) {
+            options.headers['X-User-Role'] = 'CUSTOMER';
+        }
         options.credentials = 'include';
 
         let response = await fetch(url, options);
@@ -847,6 +940,9 @@
             const isRefreshed = await doRefreshToken();
             if (isRefreshed) {
                 options.headers['Authorization'] = 'Bearer ' + getStoredToken();
+                if (customerId && !options.headers['X-User-Id']) {
+                    options.headers['X-User-Id'] = customerId.toString();
+                }
                 response = await fetch(url, options);
             } else {
                 doActualLogout(getStoredToken());
@@ -943,32 +1039,58 @@
         document.getElementById('food-view-restaurants').style.display = subTab === 'restaurants' ? 'block' : 'none';
         document.getElementById('food-view-menu').style.display = 'none';
         document.getElementById('food-view-orders').style.display = subTab === 'orders' ? 'block' : 'none';
+
+        if (subTab === 'orders') {
+            fetchMyFoodOrders(true);
+        } else if (subTab === 'restaurants') {
+            if (allRestaurants.length === 0) fetchRestaurants();
+        }
     }
 
     async function fetchRestaurants(search = '', showLoading = true) {
         const container = document.getElementById('restaurant-list-container');
         if (showLoading && allRestaurants.length === 0) {
-            container.innerHTML = `<p style="color:gray;">Đang tải danh sách quán ăn...</p>`;
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 24px; color: #64748b;">
+                    <div style="font-size: 24px; animation: spin 1s linear infinite; display: inline-block;">⏳</div>
+                    <div style="margin-top: 6px; font-size: 13px;">Đang tải danh sách quán ăn...</div>
+                </div>
+            `;
         }
         try {
             let url = `${API_BASE_URL}/api/v1/restaurants`;
             if (search) url += `?search=${encodeURIComponent(search)}`;
             let res = await fetchWithAuth(url);
-            let data = await res.json();
+            let data = await res.json().catch(() => ({}));
 
-            if (res.ok && data.success) {
-                allRestaurants = data.data || [];
-                renderRestaurants(allRestaurants);
+            if (res.ok && data.success && Array.isArray(data.data)) {
+                allRestaurants = data.data;
+            } else if (res.ok && Array.isArray(data)) {
+                allRestaurants = data;
+            } else {
+                allRestaurants = [];
             }
+            renderRestaurants(allRestaurants);
         } catch (e) {
-            if (showLoading) container.innerHTML = `<p style="color:red;">Lỗi kết nối máy chủ</p>`;
+            console.error("Lỗi tải danh sách quán:", e);
+            allRestaurants = [];
+            renderRestaurants(allRestaurants);
         }
     }
 
     function renderRestaurants(list) {
         const container = document.getElementById('restaurant-list-container');
         if (!list || list.length === 0) {
-            container.innerHTML = `<p style="color: gray; grid-column: 1/-1;">Không tìm thấy quán ăn nào phù hợp.</p>`;
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px; margin-top: 10px;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🏪</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Chưa có quán ăn nào phù hợp</div>
+                    <div style="color: #64748b; font-size: 13px; margin-top: 4px;">Hiện chưa có quán ăn nào đang hoạt động hoặc phù hợp với từ khóa tìm kiếm.</div>
+                    <button class="btn-action" style="background: #e2e8f0; color: #1e293b; margin-top: 12px; font-size: 13px; border-radius: 6px;" onclick="document.getElementById('food-search-input').value=''; fetchRestaurants('');">
+                        🔄 Làm mới danh sách quán
+                    </button>
+                </div>
+            `;
             return;
         }
 
@@ -1033,26 +1155,34 @@
         document.getElementById('food-view-menu').style.display = 'block';
 
         const container = document.getElementById('menu-items-container');
-        container.innerHTML = `<p style="color:gray;">Đang tải thực đơn...</p>`;
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 24px; color: #64748b;">
+                <div style="font-size: 24px; animation: spin 1s linear infinite; display: inline-block;">⏳</div>
+                <div style="margin-top: 6px; font-size: 13px;">Đang tải thực đơn quán...</div>
+            </div>
+        `;
 
         try {
             let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants/${restaurantId}/items`);
-            let data = await res.json();
-            if (res.ok && data.success) {
-                currentRestaurantMenu = data.data || [];
-                renderRestaurantMenu(currentRestaurantMenu);
+            let data = await res.json().catch(() => ({}));
+            if (res.ok && data.success && Array.isArray(data.data)) {
+                currentRestaurantMenu = data.data;
+            } else if (res.ok && Array.isArray(data)) {
+                currentRestaurantMenu = data;
             } else {
-                container.innerHTML = `<p style="color:red;">Không thể tải thực đơn quán</p>`;
+                currentRestaurantMenu = [];
             }
+            renderRestaurantMenu(currentRestaurantMenu);
         } catch (e) {
-            container.innerHTML = `<p style="color:red;">Lỗi tải menu</p>`;
+            currentRestaurantMenu = [];
+            renderRestaurantMenu(currentRestaurantMenu);
         }
     }
 
     async function refreshRestaurantMenu(restaurantId) {
         try {
             let resRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants`);
-            let resData = await resRes.json();
+            let resData = await resRes.json().catch(() => ({}));
             if (resRes.ok && resData.success && resData.data) {
                 allRestaurants = resData.data;
                 const found = allRestaurants.find(r => r.id === restaurantId);
@@ -1083,12 +1213,19 @@
             }
 
             let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants/${restaurantId}/items`);
-            let data = await res.json();
-            if (res.ok && data.success) {
-                currentRestaurantMenu = data.data || [];
-                renderRestaurantMenu(currentRestaurantMenu);
+            let data = await res.json().catch(() => ({}));
+            if (res.ok && data.success && Array.isArray(data.data)) {
+                currentRestaurantMenu = data.data;
+            } else if (res.ok && Array.isArray(data)) {
+                currentRestaurantMenu = data;
+            } else {
+                currentRestaurantMenu = [];
             }
-        } catch (e) {}
+            renderRestaurantMenu(currentRestaurantMenu);
+        } catch (e) {
+            currentRestaurantMenu = [];
+            renderRestaurantMenu(currentRestaurantMenu);
+        }
     }
 
     function backToRestaurantList() {
@@ -1099,7 +1236,16 @@
     function renderRestaurantMenu(items) {
         const container = document.getElementById('menu-items-container');
         if (!items || items.length === 0) {
-            container.innerHTML = `<p style="color:gray; grid-column:1/-1;">Quán chưa có món ăn nào trong thực đơn.</p>`;
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🍽️</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Quán chưa có món ăn nào trong thực đơn</div>
+                    <div style="color: #64748b; font-size: 13px; margin-top: 4px;">Nhà hàng đang cập nhật món, bạn hãy quay lại sau hoặc chọn quán khác nhé!</div>
+                    <button class="btn-action" style="background: #e2e8f0; color: #1e293b; margin-top: 12px; font-size: 13px; border-radius: 6px;" onclick="backToRestaurantList()">
+                        ⬅️ Chọn quán ăn khác
+                    </button>
+                </div>
+            `;
             return;
         }
 
@@ -1296,7 +1442,25 @@
                 switchFoodSubTab('orders');
                 fetchMyFoodOrders();
 
-                if (payMethod === 'MOMO' || payMethod === 'VNPAY') {
+                if (payMethod === 'WALLET') {
+                    // Thanh toán trực tiếp qua Ví OmniPay
+                    try {
+                        let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=WALLET&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
+                            method: 'POST',
+                            headers: { 'X-User-Id': customerId ? customerId.toString() : '1', 'X-User-Role': 'CUSTOMER' }
+                        });
+                        let payData = await payRes.json();
+                        if (payRes.ok) {
+                            alert(`🎉 Đặt món và thanh toán qua Ví OmniPay thành công cho đơn #${orderId}! Nhà hàng đang chuẩn bị món ăn.`);
+                            fetchCustomerWallet(true);
+                            fetchMyFoodOrders();
+                        } else {
+                            alert(`⚠️ Lỗi thanh toán bằng ví cho đơn #${orderId}: ` + (payData.message || 'Số dư không đủ'));
+                        }
+                    } catch (payErr) {
+                        alert(`Đã tạo đơn hàng #${orderId}. Lỗi kết nối cổng thanh toán ví: ` + payErr.message);
+                    }
+                } else if (payMethod === 'MOMO' || payMethod === 'VNPAY') {
                     // Mở cổng thanh toán Online
                     try {
                         let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${payMethod}&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
@@ -1349,26 +1513,49 @@
     async function fetchMyFoodOrders(showLoading = true) {
         const container = document.getElementById('my-food-orders-container');
         if (showLoading && myFoodOrders.length === 0) {
-            container.innerHTML = `<p style="color:gray;">Đang tải đơn hàng của bạn...</p>`;
+            container.innerHTML = `
+                <div style="text-align: center; padding: 24px; color: #64748b;">
+                    <div style="font-size: 24px; animation: spin 1s linear infinite; display: inline-block;">⏳</div>
+                    <div style="margin-top: 6px; font-size: 13px;">Đang tải danh sách đơn hàng...</div>
+                </div>
+            `;
         }
 
         try {
             let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/my-orders`);
-            let data = await res.json();
-            if (res.ok && data.success) {
-                myFoodOrders = data.data || [];
-                document.getElementById('my-food-orders-count').innerText = myFoodOrders.length;
-                renderMyFoodOrders();
+            let data = await res.json().catch(() => ({}));
+            if (res.ok && data.success && Array.isArray(data.data)) {
+                myFoodOrders = data.data;
+            } else if (res.ok && Array.isArray(data)) {
+                myFoodOrders = data;
+            } else {
+                myFoodOrders = [];
             }
+            let countEl = document.getElementById('my-food-orders-count');
+            if (countEl) countEl.innerText = myFoodOrders.length;
+            renderMyFoodOrders();
         } catch (e) {
             console.error("Lỗi tải đơn đặt món:", e);
+            myFoodOrders = [];
+            renderMyFoodOrders();
         }
     }
 
     function renderMyFoodOrders() {
         const container = document.getElementById('my-food-orders-container');
-        if (myFoodOrders.length === 0) {
-            container.innerHTML = `<p style="color:gray;">Bạn chưa đặt đơn đồ ăn nào.</p>`;
+        if (!myFoodOrders || myFoodOrders.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🍽️</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Bạn chưa có đơn đặt món nào</div>
+                    <div style="color: #64748b; font-size: 13px; margin-top: 4px; max-width: 340px; margin-left: auto; margin-right: auto;">
+                        Hãy duyệt qua các quán ăn hấp dẫn gần bạn để thưởng thức những món ăn ngon nhất!
+                    </div>
+                    <button class="btn-action" style="background: var(--food-primary); color: white; margin-top: 14px; font-size: 13px; padding: 8px 18px; border-radius: 6px;" onclick="switchFoodSubTab('restaurants')">
+                        🍴 Khám Phá Quán Ăn Ngay
+                    </button>
+                </div>
+            `;
             return;
         }
 
@@ -1444,17 +1631,26 @@
     }
 
     // Ride Hailing Logic
-    function startCustomerTimer() {
+    function startCustomerTimer(maxSeconds = 30) {
         clearInterval(customerTimerInterval);
         let timerEl = document.getElementById('customer-timer');
         timerEl.style.display = "inline";
-        timerEl.innerText = `(⏳ Đang chờ tài xế...)`;
+        
+        let remaining = maxSeconds;
+        timerEl.innerText = `(⏳ Đang quét tìm tài xế... ${remaining}s)`;
 
-        let dots = 0;
         customerTimerInterval = setInterval(() => {
-            dots = (dots + 1) % 4;
-            let dotStr = ".".repeat(dots);
-            timerEl.innerText = `(🔄 Đang quét tìm tài xế phù hợp${dotStr})`;
+            remaining--;
+            if (remaining > 0) {
+                let dots = ".".repeat((30 - remaining) % 4);
+                timerEl.innerText = `(🔄 Đang quét tìm tài xế${dots} ${remaining}s)`;
+            } else {
+                clearInterval(customerTimerInterval);
+                timerEl.style.display = "none";
+                if (!assignedDriverId && currentBookingId) {
+                    cancelCurrentTrip(true);
+                }
+            }
         }, 1000);
     }
 
@@ -1585,34 +1781,53 @@
         const btnCancel = document.getElementById('btnCancelTrip');
         const btnMomo = document.getElementById('btnPayMomo');
         const btnVnpay = document.getElementById('btnPayVnpay');
+        const btnWallet = document.getElementById('btnPayWallet');
 
         card.style.display = 'block';
 
         if (event.status === 'SEARCHING' || event.status === 'PENDING') {
-            text.innerText = `Đang tìm tài xế gần bạn nhất...`;
+            card.style.backgroundColor = "#e2f0d9";
+            card.style.borderColor = "#c8e1b7";
+            text.innerHTML = `Đang tìm tài xế gần bạn nhất...`;
             btnCancel.style.display = "inline-block";
             btnMomo.style.display = "none";
             btnVnpay.style.display = "none";
-            startCustomerTimer();
+            if (btnWallet) btnWallet.style.display = "none";
+            startCustomerTimer(30);
         } else if (event.status === 'ACCEPTED' || event.status === 'DRIVER_ASSIGNED') {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
             assignedDriverId = event.driverId;
-            text.innerText = `🎉 Tài xế #${event.driverId} đã nhận chuyến! Đang đến đón bạn.`;
+            card.style.backgroundColor = "#e2f0d9";
+            card.style.borderColor = "#c8e1b7";
+            text.innerHTML = `🎉 <b>Tài xế #${event.driverId}</b> đã nhận chuyến! Đang đến đón bạn.`;
             btnCancel.style.display = "inline-block";
+            btnMomo.style.display = "none";
+            btnVnpay.style.display = "none";
+            if (btnWallet) btnWallet.style.display = "none";
             logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã nhận chuyến.`);
         } else if (event.status === 'ARRIVED') {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
             assignedDriverId = event.driverId;
-            text.innerText = `🚖 Tài xế #${event.driverId} đã đến điểm đón! Vui lòng lên xe.`;
+            card.style.backgroundColor = "#e2f0d9";
+            card.style.borderColor = "#c8e1b7";
+            text.innerHTML = `🚖 <b>Tài xế #${event.driverId}</b> đã đến điểm đón! Vui lòng lên xe.`;
             btnCancel.style.display = "inline-block";
+            btnMomo.style.display = "none";
+            btnVnpay.style.display = "none";
+            if (btnWallet) btnWallet.style.display = "none";
             logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã đến điểm đón.`);
         } else if (event.status === 'IN_PROGRESS') {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
+            card.style.backgroundColor = "#e2f0d9";
+            card.style.borderColor = "#c8e1b7";
             btnCancel.style.display = "none";
-            text.innerText = `🚕 Chuyến đi đang diễn ra. Chúc bạn có trải nghiệm an toàn!`;
+            btnMomo.style.display = "none";
+            btnVnpay.style.display = "none";
+            if (btnWallet) btnWallet.style.display = "none";
+            text.innerHTML = `🚕 Chuyến đi đang diễn ra. Chúc bạn có trải nghiệm an toàn!`;
             logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi đang diễn ra.`);
         } else if (event.status === 'COMPLETED') {
             clearInterval(customerTimerInterval);
@@ -1620,15 +1835,36 @@
             btnCancel.style.display = "none";
             btnMomo.style.display = "inline-block";
             btnVnpay.style.display = "inline-block";
+            if (btnWallet) btnWallet.style.display = "inline-block";
+            card.style.backgroundColor = "#e2f0d9";
+            card.style.borderColor = "#c8e1b7";
             currentTripPrice = event.price || 0;
-            text.innerText = `🏁 Chuyến đi hoàn tất! Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`;
+            text.innerHTML = `🏁 Chuyến đi hoàn tất! Cước phí: <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b>.`;
             logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
-        } else if (event.status === 'CANCELLED') {
+        } else if (event.status === 'CANCELLED' || event.status === 'NO_DRIVER_FOUND') {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
             btnCancel.style.display = "none";
-            text.innerText = `❌ Chuyến đi đã bị hủy.`;
-            logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi đã bị hủy.`);
+            btnMomo.style.display = "none";
+            btnVnpay.style.display = "none";
+            if (btnWallet) btnWallet.style.display = "none";
+            card.style.backgroundColor = "#fee2e2";
+            card.style.borderColor = "#fca5a5";
+
+            if (isClientCanceling) {
+                text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b>`;
+                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Khách hàng đã chủ động hủy chuyến đi.`);
+            } else {
+                text.innerHTML = `🚫 <b>Không tìm thấy tài xế rảnh:</b> Hệ thống đã tự động hủy chuyến đi do tất cả tài xế trong khu vực đang bận.`;
+                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Không có tài xế nào nhận chuyến trong khu vực. Chuyến đi tự động hủy.`);
+            }
+
+            setTimeout(() => {
+                card.style.display = "none";
+                currentBookingId = null;
+                assignedDriverId = null;
+                isClientCanceling = false;
+            }, 4000);
         }
     }
 
@@ -1644,6 +1880,23 @@
             endLongitude: endPoint[1]
         };
 
+        const card = document.getElementById('trip-card');
+        const text = document.getElementById('trip-status-text');
+        const btnCancel = document.getElementById('btnCancelTrip');
+        const btnMomo = document.getElementById('btnPayMomo');
+        const btnVnpay = document.getElementById('btnPayVnpay');
+        const btnWallet = document.getElementById('btnPayWallet');
+
+        // Hiển thị trạng thái đang khởi tạo
+        card.style.display = 'block';
+        card.style.backgroundColor = "#e2f0d9";
+        card.style.borderColor = "#c8e1b7";
+        text.innerText = "Đang gửi yêu cầu đặt xe tới hệ thống...";
+        btnCancel.style.display = "none";
+        btnMomo.style.display = "none";
+        btnVnpay.style.display = "none";
+        if (btnWallet) btnWallet.style.display = "none";
+
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -1654,32 +1907,80 @@
             if (res.ok) {
                 let booking = data.data || data;
                 if (booking && (booking.id || booking.bookingId)) {
+                    // Nếu backend trả về luôn trạng thái CANCELLED do không có tài xế rảnh trong bán kính
+                    if (booking.status === 'CANCELLED') {
+                        currentBookingId = null;
+                        assignedDriverId = null;
+                        clearInterval(customerTimerInterval);
+                        document.getElementById('customer-timer').style.display = "none";
+                        card.style.backgroundColor = "#fee2e2";
+                        card.style.borderColor = "#fca5a5";
+                        text.innerHTML = `⚠️ <b>Rất tiếc:</b> Hiện không tìm thấy tài xế nào đang rảnh trong khu vực. Hệ thống đã tự động hủy yêu cầu đặt xe!`;
+                        btnCancel.style.display = "none";
+                        logSystem(booking.id || booking.bookingId, 'CANCELLED', 'Không có tài xế rảnh trong khu vực (bán kính tối đa 8km). Tự động hủy chuyến.');
+                        setTimeout(() => {
+                            card.style.display = "none";
+                        }, 4000);
+                        return;
+                    }
+
                     currentBookingId = booking.id || booking.bookingId;
-                    document.getElementById('trip-card').style.display = 'block';
-                    document.getElementById('trip-status-text').innerText = "Đang tìm tài xế gần bạn...";
-                    document.getElementById('btnCancelTrip').style.display = "inline-block";
-                    startCustomerTimer();
+                    card.style.backgroundColor = "#e2f0d9";
+                    card.style.borderColor = "#c8e1b7";
+                    text.innerText = "Đang quét tìm tài xế gần bạn...";
+                    btnCancel.style.display = "inline-block";
+                    startCustomerTimer(30);
+                    logSystem(currentBookingId, 'SEARCHING', 'Đang quét tìm tài xế rảnh trong khu vực...');
                     return;
                 }
             }
+            card.style.display = 'none';
             alert(data.message || "Đặt xe thất bại!");
         })
-        .catch(err => alert("Lỗi đặt xe: " + err.message));
+        .catch(err => {
+            card.style.display = 'none';
+            alert("Lỗi đặt xe: " + err.message);
+        });
     }
 
     function cancelCurrentTrip(isTimeout = false) {
         if (!currentBookingId) return;
-        isClientCanceling = true;
-        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${currentBookingId}/cancel`, {
+        isClientCanceling = !isTimeout;
+        const bId = currentBookingId;
+        
+        clearInterval(customerTimerInterval);
+        document.getElementById('customer-timer').style.display = "none";
+        document.getElementById('btnCancelTrip').style.display = "none";
+
+        const card = document.getElementById('trip-card');
+        const text = document.getElementById('trip-status-text');
+
+        if (isTimeout) {
+            card.style.backgroundColor = "#fee2e2";
+            card.style.borderColor = "#fca5a5";
+            text.innerHTML = `🚫 <b>Hết thời gian tìm kiếm:</b> Không có tài xế nào nhận chuyến. Hệ thống đã tự động hủy chuyến đi.`;
+            logSystem(bId, 'TIMEOUT', 'Hết thời gian tìm kiếm tài xế (30s). Tự động hủy chuyến.');
+        } else {
+            card.style.backgroundColor = "#fee2e2";
+            card.style.borderColor = "#fca5a5";
+            text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b>`;
+            logSystem(bId, 'CANCELLED', 'Khách hàng chủ động bấm hủy chuyến.');
+        }
+
+        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${bId}/cancel`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({reason: isTimeout ? "Quá thời gian chờ" : "Khách hàng hủy chủ động"})
+            body: JSON.stringify({reason: isTimeout ? "Quá thời gian chờ (Không có tài xế rảnh)" : "Khách hàng hủy chủ động"})
         })
-        .then(() => {
-            clearInterval(customerTimerInterval);
-            document.getElementById('customer-timer').style.display = "none";
-            document.getElementById('trip-status-text').innerText = "❌ Bạn đã hủy chuyến đi.";
-            document.getElementById('btnCancelTrip').style.display = "none";
+        .finally(() => {
+            setTimeout(() => {
+                card.style.display = "none";
+                if (currentBookingId === bId) {
+                    currentBookingId = null;
+                    assignedDriverId = null;
+                    isClientCanceling = false;
+                }
+            }, 3500);
         });
     }
 
@@ -1689,14 +1990,34 @@
         let driverParam = assignedDriverId ? `&driverId=${assignedDriverId}` : '';
         let url = `${API_BASE_URL}/api/v1/payments/payment/create?method=${method.toUpperCase()}&type=TRIP_PAYMENT&bookingId=${currentBookingId}&amount=${currentTripPrice}${driverParam}`;
 
-        fetchWithAuth(url, { method: 'POST' })
+        fetchWithAuth(url, {
+            method: 'POST',
+            headers: { 'X-User-Id': customerId ? customerId.toString() : '1', 'X-User-Role': 'CUSTOMER' }
+        })
         .then(async res => {
             let data = await res.json();
-            if (res.ok && data.paymentUrl) {
-                window.open(data.paymentUrl, '_blank');
-                startCustomerPaymentPolling(currentBookingId);
+            if (res.ok) {
+                if (method.toUpperCase() === 'WALLET') {
+                    // Thanh toán trực tiếp qua ví hoàn tất
+                    if (document.getElementById('btnPayWallet')) document.getElementById('btnPayWallet').style.display = "none";
+                    if (document.getElementById('btnPayMomo')) document.getElementById('btnPayMomo').style.display = "none";
+                    if (document.getElementById('btnPayVnpay')) document.getElementById('btnPayVnpay').style.display = "none";
+                    document.getElementById('trip-status-text').innerHTML = `🎉 <b>THANH TOÁN BẰNG VÍ OMNIPAY THÀNH CÔNG!</b> Cảm ơn bạn đã sử dụng dịch vụ.`;
+                    logSystem(currentBookingId, 'PAID', 'Thanh toán cước chuyến đi bằng Ví OmniPay thành công.');
+                    alert("🎉 Thanh toán chuyến đi bằng Ví OmniPay thành công!");
+                    fetchCustomerWallet(true);
+                    setTimeout(() => {
+                        document.getElementById('trip-card').style.display = 'none';
+                        currentBookingId = null;
+                        assignedDriverId = null;
+                        hasInitiatedPayment = false;
+                    }, 2500);
+                } else if (data.paymentUrl) {
+                    window.open(data.paymentUrl, '_blank');
+                    startCustomerPaymentPolling(currentBookingId);
+                }
             } else {
-                alert(data.message || "Không thể tạo liên kết thanh toán!");
+                alert(data.message || "Không thể thực hiện thanh toán!");
             }
         })
         .catch(err => {
@@ -1716,11 +2037,13 @@
                 .then(status => {
                     if (status === 'SUCCESS') {
                         clearInterval(paymentCheckInterval);
-                        document.getElementById('btnPayMomo').style.display = "none";
-                        document.getElementById('btnPayVnpay').style.display = "none";
+                        if (document.getElementById('btnPayWallet')) document.getElementById('btnPayWallet').style.display = "none";
+                        if (document.getElementById('btnPayMomo')) document.getElementById('btnPayMomo').style.display = "none";
+                        if (document.getElementById('btnPayVnpay')) document.getElementById('btnPayVnpay').style.display = "none";
                         document.getElementById('trip-status-text').innerHTML = `🎉 <b>THANH TOÁN THÀNH CÔNG!</b> Cảm ơn bạn đã sử dụng dịch vụ.`;
                         logSystem(bookingId, 'PAID', 'Thanh toán cước chuyến đi thành công.');
                         alert("🎉 Thanh toán chuyến đi thành công!");
+                        fetchCustomerWallet(true);
                         setTimeout(() => {
                             document.getElementById('trip-card').style.display = 'none';
                             currentBookingId = null;
@@ -1749,18 +2072,24 @@
 
     function fetchBookingHistory() {
         let listEl = document.getElementById('booking-history-list');
-        listEl.innerHTML = "<li style='padding: 10px; color: gray;'>⏳ Đang tải dữ liệu...</li>";
+        listEl.innerHTML = "<li style='padding: 15px; color: #64748b; text-align:center;'>⏳ Đang tải dữ liệu chuyến đi...</li>";
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/customer`, {
             method: 'GET',
-            headers: {'X-User-Id': customerId.toString()}
+            headers: {'X-User-Id': customerId ? customerId.toString() : '1'}
         })
-        .then(res => res.json())
+        .then(res => res.json().catch(() => ({})))
         .then(data => {
             listEl.innerHTML = "";
-            let bookings = data.data || data;
+            let bookings = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
             if (!Array.isArray(bookings) || bookings.length === 0) {
-                listEl.innerHTML = "<li style='padding: 10px; color: #555; font-style: italic;'>Bạn chưa có chuyến đi nào.</li>";
+                listEl.innerHTML = `
+                    <li style="padding: 24px 10px; text-align: center; color: #64748b;">
+                        <div style="font-size: 32px; margin-bottom: 6px;">🚕</div>
+                        <div style="font-weight: 600; color: #334155;">Bạn chưa có chuyến đi nào</div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Hãy đặt xe ngay để trải nghiệm dịch vụ di chuyển tiện lợi!</div>
+                    </li>
+                `;
                 return;
             }
             bookings.forEach(b => {
@@ -1776,9 +2105,17 @@
             });
         })
         .catch(err => {
-            listEl.innerHTML = `<li style='padding: 10px; color: red;'>❌ Lỗi: ${err.message}</li>`;
+            listEl.innerHTML = `
+                <li style="padding: 24px 10px; text-align: center; color: #64748b;">
+                    <div style="font-size: 32px; margin-bottom: 6px;">🚕</div>
+                    <div style="font-weight: 600; color: #334155;">Bạn chưa có chuyến đi nào</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Hãy đặt xe ngay để trải nghiệm dịch vụ di chuyển tiện lợi!</div>
+                </li>
+            `;
         });
     }
+
+    let customerRawBalance = 0;
 
     function toggleCustomerWalletModal() {
         let modal = document.getElementById('customer-wallet-modal');
@@ -1786,8 +2123,133 @@
             modal.style.display = 'none';
         } else {
             modal.style.display = 'flex';
+            switchCustomerWalletTab('history');
             fetchCustomerWallet(true);
             fetchCustomerTransactions();
+        }
+    }
+
+    function switchCustomerWalletTab(tabName) {
+        const tabs = ['history', 'deposit', 'withdraw'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`cust-wtab-${t}-btn`);
+            const content = document.getElementById(`cust-wtab-${t}-content`);
+            if (t === tabName) {
+                if (btn) {
+                    btn.style.background = 'white';
+                    btn.style.color = '#0f172a';
+                    btn.style.fontWeight = '700';
+                    btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+                }
+                if (content) content.style.display = 'block';
+            } else {
+                if (btn) {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#64748b';
+                    btn.style.fontWeight = '600';
+                    btn.style.boxShadow = 'none';
+                }
+                if (content) content.style.display = 'none';
+            }
+        });
+    }
+
+    function setCustDepositAmount(val) {
+        let el = document.getElementById('cust-deposit-input');
+        if (el) el.value = val;
+    }
+
+    function setCustWithdrawAmount(val) {
+        let el = document.getElementById('cust-withdraw-input');
+        if (el) el.value = val;
+    }
+
+    function setCustWithdrawAll() {
+        let el = document.getElementById('cust-withdraw-input');
+        if (el) el.value = customerRawBalance > 0 ? customerRawBalance : 0;
+    }
+
+    async function executeCustomerDeposit() {
+        if (!customerId) return alert("Vui lòng đăng nhập!");
+        const amountInput = document.getElementById('cust-deposit-input');
+        const amount = parseFloat(amountInput.value);
+        if (isNaN(amount) || amount <= 0) return alert("Vui lòng nhập số tiền nạp hợp lệ (> 0 đ)!");
+
+        const method = document.getElementById('cust-deposit-method').value;
+
+        if (method === 'DIRECT') {
+            try {
+                let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/wallet/deposit?amount=${amount}&note=Nạp tiền trực tiếp vào ví`, {
+                    method: 'POST',
+                    headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
+                });
+                let data = await res.json();
+                if (res.ok) {
+                    alert(`🎉 Nạp thành công +${amount.toLocaleString('vi-VN')} đ vào ví OmniPay!`);
+                    fetchCustomerWallet(true);
+                    fetchCustomerTransactions();
+                    switchCustomerWalletTab('history');
+                } else {
+                    alert("❌ Lỗi nạp tiền: " + (data.message || 'Không thể nạp tiền'));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối khi nạp tiền: " + err.message);
+            }
+        } else {
+            // MOMO / VNPAY online deposit
+            try {
+                let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${method}&type=CUSTOMER_DEPOSIT&amount=${amount}`, {
+                    method: 'POST',
+                    headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
+                });
+                let data = await res.json();
+                if (res.ok && data.paymentUrl) {
+                    window.open(data.paymentUrl, '_blank');
+                    alert(`🚀 Đang chuyển hướng tới cổng ${method} để nạp ${amount.toLocaleString('vi-VN')} đ.\nVui lòng hoàn tất thanh toán trên tab mới mở.`);
+                    switchCustomerWalletTab('history');
+                } else {
+                    alert("❌ Lỗi mở cổng thanh toán: " + (data.message || 'Không thể tạo liên kết nạp tiền'));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối cổng thanh toán: " + err.message);
+            }
+        }
+    }
+
+    async function executeCustomerWithdraw() {
+        if (!customerId) return alert("Vui lòng đăng nhập!");
+        const amountInput = document.getElementById('cust-withdraw-input');
+        const amount = parseFloat(amountInput.value);
+        if (isNaN(amount) || amount <= 0) return alert("Vui lòng nhập số tiền rút hợp lệ (> 0 đ)!");
+
+        if (customerRawBalance < amount) {
+            return alert(`⚠️ Số dư ví không đủ để rút! (Số dư hiện tại: ${customerRawBalance.toLocaleString('vi-VN')} đ)`);
+        }
+
+        const bank = document.getElementById('cust-withdraw-bank').value;
+        const account = (document.getElementById('cust-withdraw-account').value || '').trim();
+        if (!account) return alert("Vui lòng nhập số tài khoản / số thẻ nhận tiền!");
+
+        if (!confirm(`Bạn có chắc chắn muốn rút ${amount.toLocaleString('vi-VN')} đ về tài khoản ${bank} - STK: ${account}?`)) {
+            return;
+        }
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/wallet/withdraw?amount=${amount}`, {
+                method: 'POST',
+                headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
+            });
+            if (res.ok) {
+                alert(`🎉 Rút tiền thành công! Hệ thống đã chuyển -${amount.toLocaleString('vi-VN')} đ về tài khoản ${bank} (${account}).`);
+                fetchCustomerWallet(true);
+                fetchCustomerTransactions();
+                switchCustomerWalletTab('history');
+            } else {
+                let data = await res.json().catch(() => ({}));
+                alert("❌ Lỗi rút tiền: " + (data.message || 'Số dư không đủ hoặc lỗi hệ thống'));
+            }
+        } catch (err) {
+            alert("Lỗi kết nối khi rút tiền: " + err.message);
         }
     }
 
@@ -1802,7 +2264,8 @@
             if (data && data.balance !== undefined) balance = data.balance;
             else if (data && data.data && data.data.balance !== undefined) balance = data.data.balance;
 
-            let formatted = Number(balance).toLocaleString('vi-VN') + ' đ';
+            customerRawBalance = Number(balance) || 0;
+            let formatted = customerRawBalance.toLocaleString('vi-VN') + ' đ';
             let el = document.getElementById('customer-wallet-balance');
             if (el) el.innerText = formatted;
             let modalBal = document.getElementById('wallet-modal-balance');
@@ -1817,7 +2280,7 @@
     function fetchCustomerTransactions() {
         if (!customerId) return;
         let listEl = document.getElementById('customer-tx-list');
-        listEl.innerHTML = "<p style='color: gray; text-align: center; margin: 10px 0;'>⏳ Đang tải lịch sử...</p>";
+        listEl.innerHTML = "<p style='color: gray; text-align: center; margin: 10px 0;'>⏳ Đang tải lịch sử ví...</p>";
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
             headers: {'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER'}
@@ -1826,7 +2289,13 @@
         .then(data => {
             let list = (data && data.data !== undefined) ? data.data : data;
             if (!Array.isArray(list) || list.length === 0) {
-                listEl.innerHTML = "<p style='color: #64748b; text-align: center; padding: 10px;'>Chưa có giao dịch hoặc tiền hoàn nào.</p>";
+                listEl.innerHTML = `
+                    <div style="text-align: center; padding: 24px 10px; color: #64748b;">
+                        <div style="font-size: 32px; margin-bottom: 6px;">💳</div>
+                        <div style="font-weight: 600; color: #334155;">Chưa có giao dịch nào</div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Lịch sử nạp, rút, thanh toán và hoàn tiền sẽ hiển thị tại đây.</div>
+                    </div>
+                `;
                 return;
             }
 
@@ -1843,7 +2312,9 @@
                 } else if (tx.transactionType === 'TRIP_PAYMENT') {
                     desc = `🚕 Thanh toán cuốc xe #${tx.bookingId || ''}`;
                 } else if (tx.transactionType === 'DEPOSIT') {
-                    desc = `💳 Nạp tiền vào ví`;
+                    desc = `💳 Nạp tiền vào ví (${tx.paymentMethod || 'DIRECT'})`;
+                } else if (tx.transactionType === 'WITHDRAWAL') {
+                    desc = `💸 Rút tiền về tài khoản`;
                 } else {
                     desc = tx.transactionType;
                 }
@@ -1870,7 +2341,13 @@
             }).join('');
         })
         .catch(err => {
-            listEl.innerHTML = `<p style='color: red; text-align: center;'>❌ Lỗi tải lịch sử: ${err.message}</p>`;
+            listEl.innerHTML = `
+                <div style="text-align: center; padding: 24px 10px; color: #64748b;">
+                    <div style="font-size: 32px; margin-bottom: 6px;">💳</div>
+                    <div style="font-weight: 600; color: #334155;">Chưa có giao dịch nào</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Lịch sử nạp, rút, thanh toán và hoàn tiền sẽ hiển thị tại đây.</div>
+                </div>
+            `;
         });
     }
 </script>

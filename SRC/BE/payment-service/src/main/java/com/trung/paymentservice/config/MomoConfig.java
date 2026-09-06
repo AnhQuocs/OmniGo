@@ -14,4 +14,5 @@ public class MomoConfig {
     private String endpoint;
     private String redirectUrl;
     private String ipnUrl;
+    private String requestType = "captureWallet";
 }

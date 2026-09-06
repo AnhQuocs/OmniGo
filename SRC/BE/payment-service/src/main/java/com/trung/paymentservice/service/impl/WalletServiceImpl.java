@@ -167,25 +167,59 @@ public class WalletServiceImpl implements WalletService {
         }
     }
 
+    @Override
+    @Transactional
+    public Wallet depositWallet(Long userId, UserType userType, Double amount, String note) {
+        if (amount == null || amount <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền nạp phải lớn hơn 0!");
+        }
+
+        Wallet wallet = getOrCreateWallet(userId, userType);
+        BigDecimal bdAmount = BigDecimal.valueOf(amount);
+        wallet.setBalance(wallet.getBalance().add(bdAmount));
+        Wallet savedWallet = walletRepository.save(wallet);
+
+        Transaction transaction = Transaction.builder()
+                .walletId(savedWallet.getId())
+                .orderId("DEP_" + userType + "_" + userId + "_" + System.currentTimeMillis())
+                .amount(bdAmount)
+                .transactionType(TransactionType.DEPOSIT)
+                .paymentMethod(PaymentMethod.WALLET)
+                .status(TransactionStatus.SUCCESS)
+                .build();
+        transactionRepository.save(transaction);
+
+        log.info("Nạp tiền thành công cho User ID {} ({}): +{} VND. Số dư mới: {} VND",
+                userId, userType, amount, savedWallet.getBalance());
+        return savedWallet;
+    }
+
+    @Override
     @Transactional
     public void withdrawWallet(Long driverId, Double amount) {
-        if (amount <= 0) {
+        withdrawWallet(driverId, UserType.DRIVER, amount);
+    }
+
+    @Override
+    @Transactional
+    public void withdrawWallet(Long userId, UserType userType, Double amount) {
+        if (amount == null || amount <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Số tiền rút phải lớn hơn 0!"
             );
         }
         BigDecimal bdAmount = BigDecimal.valueOf(amount);
-        Wallet wallet = walletRepository.findByUserIdAndUserTypeWithLock(driverId, UserType.DRIVER)
+        Wallet wallet = walletRepository.findByUserIdAndUserTypeWithLock(userId, userType)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "Không tìm thấy ví của tài xế ID " + driverId + " để trừ phí hoa hồng."
+                        "Không tìm thấy ví của " + userType + " ID " + userId
                 ));
 
         if (wallet.getBalance().compareTo(bdAmount) < 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Số dư ví không đủ để thực hiện lệnh rút tiền này!"
+                    "Số dư ví không đủ để thực hiện lệnh rút tiền này! (Số dư hiện tại: " + wallet.getBalance() + " đ)"
             );
         }
 
@@ -194,7 +228,7 @@ public class WalletServiceImpl implements WalletService {
 
         Transaction transaction = Transaction.builder()
                 .walletId(wallet.getId())
-                .orderId("WITHDRAW_" + driverId + "_" + System.currentTimeMillis())
+                .orderId("WITHDRAW_" + userType + "_" + userId + "_" + System.currentTimeMillis())
                 .amount(bdAmount)
                 .transactionType(TransactionType.WITHDRAWAL)
                 .paymentMethod(PaymentMethod.WALLET)
@@ -202,8 +236,8 @@ public class WalletServiceImpl implements WalletService {
                 .build();
         transactionRepository.save(transaction);
 
-        log.info("Tài xế ID {} đã rút thành công {} VND. Số dư còn lại: {} VND",
-                driverId, amount, wallet.getBalance());
+        log.info("{} ID {} đã rút thành công {} VND. Số dư còn lại: {} VND",
+                userType, userId, amount, wallet.getBalance());
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.trung.paymentservice.entity.Transaction;
 import com.trung.paymentservice.entity.Wallet;
 import com.trung.paymentservice.event.BookingCompletedEvent;
 import com.trung.paymentservice.repository.TransactionRepository;
+import com.trung.paymentservice.repository.WalletRepository;
 import com.trung.paymentservice.service.MomoEncoder;
 import com.trung.paymentservice.service.WalletService;
 import com.trung.paymentservice.strategy.PaymentStrategy;
@@ -43,6 +44,7 @@ public class MomoService implements PaymentStrategy {
     private final MomoConfig momoConfig;
     private final MomoEncoder momoEncoder;
     private final TransactionRepository transactionRepository;
+    private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final RestTemplate restTemplate;
 
@@ -54,20 +56,35 @@ public class MomoService implements PaymentStrategy {
         return "MOMO";
     }
 
+    private String getRequestType() {
+        return (momoConfig.getRequestType() != null && !momoConfig.getRequestType().isBlank())
+                ? momoConfig.getRequestType()
+                : "captureWallet";
+    }
+
     @Override
     @Transactional
     public PaymentUrlResponse createPayment(Long userId, Long driverId, Long bookingId, BigDecimal amount, String type) {
         MomoCreateResponse momoResponse;
         String orderId;
+        String requestType = getRequestType();
 
-        if ("DEPOSIT".equalsIgnoreCase(type)) {
+        if ("CUSTOMER_DEPOSIT".equalsIgnoreCase(type)) {
+            Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
+            orderId = "DEPOSIT_CUST_" + userId + "_" + System.currentTimeMillis();
+            String requestId = UUID.randomUUID().toString();
+            String extraData = "USER_TYPE=CUSTOMER;USER_ID=" + userId;
+
+            savePendingTransaction(wallet.getId(), null, orderId, amount, TransactionType.DEPOSIT);
+            momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi khach hang #" + userId, requestType, extraData);
+        } else if ("DEPOSIT".equalsIgnoreCase(type) || "DRIVER_DEPOSIT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.DRIVER);
             orderId = "DEPOSIT_" + userId + "_" + System.currentTimeMillis();
             String requestId = UUID.randomUUID().toString();
             String extraData = "USER_TYPE=DRIVER;USER_ID=" + userId;
 
             savePendingTransaction(wallet.getId(), null, orderId, amount, TransactionType.DEPOSIT);
-            momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi tai xe #" + userId, "captureWallet", extraData);
+            momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi tai xe #" + userId, requestType, extraData);
         } else if ("FOOD_PAYMENT".equalsIgnoreCase(type)) {
             Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             orderId = "FOOD_" + bookingId + "_" + System.currentTimeMillis();
@@ -75,7 +92,7 @@ public class MomoService implements PaymentStrategy {
             String extraData = "BOOKING_ID=" + bookingId + ";TYPE=FOOD_PAYMENT";
 
             savePendingTransaction(customerWallet.getId(), bookingId, orderId, amount, TransactionType.FOOD_PAYMENT);
-            momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan don mon #" + bookingId, "captureWallet", extraData);
+            momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan don mon #" + bookingId, requestType, extraData);
         } else {
             Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             orderId = "TRIP_" + bookingId + "_" + System.currentTimeMillis();
@@ -83,7 +100,7 @@ public class MomoService implements PaymentStrategy {
             String extraData = "BOOKING_ID=" + bookingId + ";DRIVER_ID=" + driverId;
 
             savePendingTransaction(customerWallet.getId(), bookingId, orderId, amount, TransactionType.TRIP_PAYMENT);
-            momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan cuoc xe #" + bookingId, "captureWallet", extraData);
+            momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan cuoc xe #" + bookingId, requestType, extraData);
         }
 
         return PaymentUrlResponse.builder()
@@ -123,8 +140,15 @@ public class MomoService implements PaymentStrategy {
             transactionRepository.save(transaction);
 
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                Long userId = parseDataFromExtra(ipnRequest.getExtraData(), "USER_ID=");
-                if (userId != null) walletService.creditWallet(userId, UserType.DRIVER, transaction.getAmount().doubleValue());
+                Wallet wallet = walletRepository.findById(transaction.getWalletId()).orElse(null);
+                if (wallet != null) {
+                    walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
+                } else {
+                    Long userId = parseDataFromExtra(ipnRequest.getExtraData(), "USER_ID=");
+                    String userTypeStr = parseDataFromExtraStr(ipnRequest.getExtraData(), "USER_TYPE=");
+                    UserType userType = "CUSTOMER".equalsIgnoreCase(userTypeStr) ? UserType.CUSTOMER : UserType.DRIVER;
+                    if (userId != null) walletService.creditWallet(userId, userType, transaction.getAmount().doubleValue());
+                }
             } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
                 notifyFoodOrderPaid(transaction.getBookingId());
             } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
@@ -147,8 +171,15 @@ public class MomoService implements PaymentStrategy {
             transactionRepository.save(transaction);
 
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                Long userId = parseDataFromExtra(extraData, "USER_ID=");
-                if (userId != null) walletService.creditWallet(userId, UserType.DRIVER, transaction.getAmount().doubleValue());
+                Wallet wallet = walletRepository.findById(transaction.getWalletId()).orElse(null);
+                if (wallet != null) {
+                    walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
+                } else {
+                    Long userId = parseDataFromExtra(extraData, "USER_ID=");
+                    String userTypeStr = parseDataFromExtraStr(extraData, "USER_TYPE=");
+                    UserType userType = "CUSTOMER".equalsIgnoreCase(userTypeStr) ? UserType.CUSTOMER : UserType.DRIVER;
+                    if (userId != null) walletService.creditWallet(userId, userType, transaction.getAmount().doubleValue());
+                }
             } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
                 notifyFoodOrderPaid(transaction.getBookingId());
             } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
@@ -220,6 +251,17 @@ public class MomoService implements PaymentStrategy {
         try {
             for (String param : extraData.split(";")) {
                 if (param.startsWith(key)) return Long.parseLong(param.split("=")[1]);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private String parseDataFromExtraStr(String extraData, String key) {
+        if (extraData == null || extraData.isEmpty()) return null;
+        try {
+            for (String param : extraData.split(";")) {
+                if (param.startsWith(key)) return param.split("=")[1];
             }
         } catch (Exception ignored) {
         }
