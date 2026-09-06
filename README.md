@@ -7,6 +7,7 @@ Dự án OmniGo - Cấu trúc Monorepo.
 - **DOCUMENT**: Tài liệu hướng dẫn, quy trình.
 - **SRC**: Mã nguồn dự án.
     - **BE**: Back-end.
+    - **FE**: Front-end. (Admin Dashboard)
     - **APP**: Mã nguồn ứng dụng Android (Front-end).
 
 ## Hướng dẫn phát triển
