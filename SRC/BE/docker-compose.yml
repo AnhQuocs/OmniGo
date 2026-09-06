@@ -320,6 +320,16 @@ services:
     networks:
       - ride-hailing
 
+  frontend-admin:
+    build:
+      context: ../FE
+      dockerfile: Dockerfile
+    container_name: frontend-admin
+    restart: unless-stopped
+    networks:
+      - ride-hailing
+
+
 networks:
   ride-hailing:
 

@@ -7,7 +7,9 @@ build/
 .idea/
 *.iml
 
-# Environment files
+# Environment & Config files
 .env
 .env.*
 user-driver-service/src/main/resources/firebase-service-account.json
+infra/nginx/nginx.conf
+
