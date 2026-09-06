@@ -25,7 +25,7 @@ spring:
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: booking-event:com.trung.paymentservice.event.BookingCompletedEvent,driver-created:com.trung.paymentservice.event.DriverRegisteredEvent
+        spring.json.type.mapping: booking-event:com.trung.paymentservice.event.BookingCompletedEvent,driver-created:com.trung.paymentservice.event.DriverRegisteredEvent,com.trung.bookingservice.event.BookingCompletedEvent:com.trung.paymentservice.event.BookingCompletedEvent
 
 management:
   endpoints:
@@ -70,3 +70,6 @@ logging:
 
     org.springframework: INFO
     org.apache.kafka: INFO
+
+app:
+  food-delivery-url: http://localhost:8086

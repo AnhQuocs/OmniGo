@@ -18,6 +18,8 @@ import {
   TuneOutlined as PricingIcon,
   ReceiptLongOutlined as BookingsIcon,
   AccountBalanceWalletOutlined as PaymentsIcon,
+  StoreOutlined as RestaurantIcon,
+  FastfoodOutlined as FoodOrderIcon,
   ExpandMore,
   ExpandLess,
   ArrowBackIosNew as CollapseIcon,
@@ -37,12 +39,16 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
 
   const [openDashboard, setOpenDashboard] = useState(true);
   const [openBookings, setOpenBookings] = useState(true);
+  const [openFoodOrders, setOpenFoodOrders] = useState(true);
   const [openPayments, setOpenPayments] = useState(true);
 
   // Auto-expand relevant menus based on URL path
   useEffect(() => {
     if (location.pathname.startsWith('/bookings')) {
       setOpenBookings(true);
+    }
+    if (location.pathname.startsWith('/food-orders')) {
+      setOpenFoodOrders(true);
     }
     if (location.pathname.startsWith('/payments')) {
       setOpenPayments(true);
@@ -75,6 +81,15 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
     { title: 'Đang hoạt động', path: '/bookings?status=ACTIVE' },
     { title: 'Lịch sử hoàn thành', path: '/bookings?status=COMPLETED' },
     { title: 'Cuốc xe đã hủy', path: '/bookings?status=CANCELLED' },
+  ];
+
+  const FOOD_ORDER_SUB_ITEMS = [
+    { title: 'Tất cả đơn món', path: '/food-orders' },
+    { title: 'Chờ duyệt / Quán nhận', path: '/food-orders?status=PENDING' },
+    { title: 'Đang nấu / Chờ tài xế', path: '/food-orders?status=PREPARING' },
+    { title: 'Đang giao hàng', path: '/food-orders?status=DELIVERING' },
+    { title: 'Giao hoàn tất', path: '/food-orders?status=COMPLETED' },
+    { title: 'Đơn đã hủy', path: '/food-orders?status=CANCELLED' },
   ];
 
   const PAYMENT_SUB_ITEMS = [
@@ -399,6 +414,162 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
             })}
           </List>
         </Collapse>
+
+        {/* Category: FOOD DELIVERY */}
+        <Typography
+          variant="caption"
+          sx={{
+            px: 1.5,
+            pt: 2,
+            pb: 0.8,
+            display: 'block',
+            color: 'text.secondary',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            fontSize: '0.7rem',
+          }}
+        >
+          Giao Đồ Ăn (Food Delivery)
+        </Typography>
+
+        {/* 1. Nhà Hàng & Đối Tác */}
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            onClick={() => handleNav('/restaurants')}
+            sx={{
+              borderRadius: 1.5,
+              py: 0.9,
+              px: 1.5,
+              bgcolor: isCurrent('/restaurants')
+                ? isDark ? 'rgba(0, 140, 255, 0.15)' : 'rgba(0, 140, 255, 0.1)'
+                : 'transparent',
+              '&:hover': { bgcolor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: isCurrent('/restaurants') ? '#008cff' : 'text.secondary' }}>
+              <RestaurantIcon sx={{ fontSize: 20 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: isCurrent('/restaurants') ? 700 : 600,
+                    color: isCurrent('/restaurants') ? (isDark ? '#38bdf8' : '#0070cc') : 'text.primary',
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  Nhà hàng & Đối tác
+                </Typography>
+              }
+            />
+          </ListItemButton>
+        </ListItem>
+
+        {/* 2. Đơn Đặt Món (Food Orders) with expandable sub-items */}
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            onClick={() => setOpenFoodOrders(!openFoodOrders)}
+            sx={{
+              borderRadius: 1.5,
+              py: 0.9,
+              px: 1.5,
+              bgcolor: isSectionActive('/food-orders')
+                ? isDark ? 'rgba(0, 140, 255, 0.15)' : 'rgba(0, 140, 255, 0.08)'
+                : 'transparent',
+              '&:hover': { bgcolor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: isSectionActive('/food-orders') ? '#008cff' : 'text.secondary' }}>
+              <FoodOrderIcon sx={{ fontSize: 20 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: isSectionActive('/food-orders') ? 700 : 600,
+                    color: isSectionActive('/food-orders') ? (isDark ? '#38bdf8' : '#0070cc') : 'text.primary',
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  Đơn đặt món (Food)
+                </Typography>
+              }
+            />
+            {openFoodOrders ? (
+              <ExpandLess sx={{ fontSize: 18, color: 'text.secondary' }} />
+            ) : (
+              <ExpandMore sx={{ fontSize: 18, color: 'text.secondary' }} />
+            )}
+          </ListItemButton>
+        </ListItem>
+
+        <Collapse in={openFoodOrders} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding sx={{ pl: 2, mb: 0.5 }}>
+            {FOOD_ORDER_SUB_ITEMS.map((sub) => {
+              const active = isCurrent(sub.path);
+              return (
+                <ListItemButton
+                  key={sub.path}
+                  onClick={() => handleNav(sub.path)}
+                  sx={{
+                    py: 0.7,
+                    px: 2,
+                    borderRadius: 1.5,
+                    bgcolor: active
+                      ? isDark ? 'rgba(0, 140, 255, 0.2)' : 'rgba(0, 140, 255, 0.12)'
+                      : 'transparent',
+                    '&:hover': {
+                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 140, 255, 0.18)',
+                    },
+                  }}
+                >
+                  {active ? (
+                    <ActiveBulletIcon sx={{ fontSize: 9, mr: 1.5, color: '#008cff' }} />
+                  ) : (
+                    <BulletIcon sx={{ fontSize: 8, mr: 1.5, color: 'text.secondary' }} />
+                  )}
+                  <ListItemText
+                    primary={
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: '0.83rem',
+                          fontWeight: active ? 700 : 500,
+                          color: active
+                            ? (isDark ? '#38bdf8' : '#0062b3')
+                            : (isDark ? '#cbd5e1' : '#334155'),
+                        }}
+                      >
+                        {sub.title}
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Collapse>
+
+        {/* Category: FINANCE */}
+        <Typography
+          variant="caption"
+          sx={{
+            px: 1.5,
+            pt: 2,
+            pb: 0.8,
+            display: 'block',
+            color: 'text.secondary',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            fontSize: '0.7rem',
+          }}
+        >
+          Tài Chính & Hệ Thống
+        </Typography>
 
         {/* 4. Thanh Toán & Ví with expandable sub-items */}
         <ListItem disablePadding sx={{ mb: 0.5 }}>

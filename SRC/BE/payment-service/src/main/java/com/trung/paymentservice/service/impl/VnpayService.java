@@ -15,8 +15,12 @@ import com.trung.paymentservice.util.enums.TransactionStatus;
 import com.trung.paymentservice.util.enums.TransactionType;
 import com.trung.paymentservice.util.enums.UserType;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -31,6 +35,10 @@ public class VnpayService implements PaymentStrategy {
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
     private final WalletRepository walletRepository;
+    private final RestTemplate restTemplate;
+
+    @Value ("${app.food-delivery-url:http://localhost:8086}")
+    private String foodDeliveryBaseUrl;
 
     @Override
     public String getPaymentMethod() {
@@ -43,14 +51,22 @@ public class VnpayService implements PaymentStrategy {
         String orderId;
         Long walletId;
 
+        TransactionType txType;
         if ("DEPOSIT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.DRIVER);
             walletId = wallet.getId();
             orderId = "VNPDEP_" + userId + "_" + System.currentTimeMillis();
+            txType = TransactionType.DEPOSIT;
+        } else if ("FOOD_PAYMENT".equalsIgnoreCase(type)) {
+            Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
+            walletId = wallet.getId();
+            orderId = "VNPFOOD_" + bookingId + "_" + System.currentTimeMillis();
+            txType = TransactionType.FOOD_PAYMENT;
         } else {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             walletId = wallet.getId();
             orderId = "VNPTRI_" + bookingId + "_" + System.currentTimeMillis();
+            txType = TransactionType.TRIP_PAYMENT;
         }
 
         Transaction transaction = Transaction.builder()
@@ -58,7 +74,7 @@ public class VnpayService implements PaymentStrategy {
                 .bookingId(bookingId)
                 .orderId(orderId)
                 .amount(amount)
-                .transactionType("DEPOSIT".equalsIgnoreCase(type) ? TransactionType.DEPOSIT : TransactionType.TRIP_PAYMENT)
+                .transactionType(txType)
                 .paymentMethod(PaymentMethod.valueOf("VNPAY"))
                 .status(TransactionStatus.PENDING)
                 .build();
@@ -104,6 +120,8 @@ public class VnpayService implements PaymentStrategy {
 
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
                 walletService.creditWallet(wallet.getUserId(), UserType.DRIVER, transaction.getAmount().doubleValue());
+            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
+                notifyFoodOrderPaid(transaction.getBookingId());
             } else {
                 Long driverId = parseData(orderInfo, "DR=");
                 creditDriverForTrip(driverId, transaction);
@@ -111,6 +129,17 @@ public class VnpayService implements PaymentStrategy {
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(transaction);
+        }
+    }
+
+    private void notifyFoodOrderPaid(Long orderId) {
+        if (orderId == null) return;
+        try {
+            String url = (foodDeliveryBaseUrl != null ? foodDeliveryBaseUrl : "http://localhost:8086") + "/api/v1/food-orders/" + orderId + "/paid";
+            restTemplate.exchange(url, HttpMethod.POST, null, Void.class);
+            org.slf4j.LoggerFactory.getLogger(VnpayService.class).info("Đã thông báo sang food-delivery-service ({}/api/v1/food-orders/{}/paid): Đơn hàng #{} đã thanh toán thành công qua VNPay", foodDeliveryBaseUrl, orderId, orderId);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(VnpayService.class).error("Lỗi thông báo cập nhật thanh toán đơn đồ ăn #{}: {}", orderId, e.getMessage());
         }
     }
 

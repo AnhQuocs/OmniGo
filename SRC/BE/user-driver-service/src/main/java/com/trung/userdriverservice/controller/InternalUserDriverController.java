@@ -7,13 +7,18 @@ import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.service.DriverService;
 import com.trung.userdriverservice.service.InternalUserDriverService;
 import com.trung.userdriverservice.util.enums.DriverStatus;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+
+import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.ResourceConflictException;
 
 @RestController
 @RequestMapping("/api/v1/internal")
@@ -38,6 +43,14 @@ public class InternalUserDriverController {
     @GetMapping("/users/{id}/payment-info")
     public ResponseEntity<ApiResponse<UserPaymentInfoResponse>> getUserPaymentInfoInternal(@PathVariable Long id) throws ResourceNotFoundException {
         return ResponseEntity.ok(internalUserDriverService.getUserPaymentInfoInternal(id));
+    }
+
+    @PostMapping("/users/restaurant")
+    public ResponseEntity<ApiResponse<com.trung.userdriverservice.dto.response.UserResponse>> createRestaurantUser(
+            @jakarta.validation.Valid @RequestBody com.trung.userdriverservice.dto.request.RestaurantUserCreateRequest request)
+            throws ResourceConflictException, BadRequestException {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(internalUserDriverService.createRestaurantUser(request));
     }
 
     @PutMapping("/drivers/{driverId}/status/toggle")

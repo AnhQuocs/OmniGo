@@ -2,18 +2,122 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Khách Hàng Đặt Xe Simulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng Dụng Khách Hàng - Gọi Xe & Giao Đồ Ăn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+        :root {
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --food-primary: #f97316;
+            --food-hover: #ea580c;
+            --food-light: #fff7ed;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --bg-light: #f8fafc;
+            --border-color: #e2e8f0;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: var(--bg-light);
+            color: #1e293b;
             padding: 20px;
         }
 
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            border-left: 5px solid var(--primary);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .logout-btn {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            padding: 7px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #fca5a5;
+        }
+
+        /* Main Service Switcher Tabs */
+        .service-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .service-tab {
+            flex: 1;
+            padding: 14px 20px;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .service-tab:hover {
+            border-color: #94a3b8;
+        }
+
+        .service-tab.active-ride {
+            background: #eff6ff;
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+        }
+
+        .service-tab.active-food {
+            background: var(--food-light);
+            border-color: var(--food-primary);
+            color: var(--food-primary);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+        }
+
+        /* Ride Hailing Section Styles */
         .map-container {
             position: relative;
         }
@@ -22,8 +126,9 @@
             height: 450px;
             width: 100%;
             margin-top: 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
         }
 
         .stats-panel {
@@ -33,26 +138,29 @@
             z-index: 1000;
             background: rgba(255, 255, 255, 0.95);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            border: 2px solid #007bff;
+            border: 2px solid var(--primary);
             width: 220px;
         }
 
         .stats-panel h4 {
             margin: 0 0 10px 0;
-            color: #007bff;
+            color: var(--primary);
             text-align: center;
         }
 
         #log {
             color: darkcyan;
-            margin-top: 20px;
-            height: 150px;
+            margin-top: 15px;
+            height: 120px;
             overflow-y: scroll;
             border: 1px solid #ccc;
             padding: 10px;
             list-style-type: none;
+            background: white;
+            border-radius: 6px;
+            font-size: 13px;
         }
 
         .radar-pulse {
@@ -65,18 +173,22 @@
         }
 
         @keyframes pulse {
-            0% {
-                transform: scale(0.5);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(3);
-                opacity: 0;
-            }
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
         }
 
         .nearby-car-icon {
             transition: transform 2s linear !important;
+        }
+
+        .btn-action {
+            padding: 9px 18px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
         }
 
         .momo-btn {
@@ -91,107 +203,573 @@
             margin-left: 10px;
         }
 
-        /* ⚡ Header User Style */
-        .user-header {
+        /* Food Delivery Section Styles */
+        .food-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #e9ecef;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            border-left: 5px solid #007bff;
+            margin-bottom: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
         }
 
-        .logout-btn {
-            background: #dc3545;
+        .food-search-box {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--food-primary);
+        }
+
+        .food-nav-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .food-tab-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .food-tab-btn.active {
+            background: var(--food-primary);
+            color: white;
+            border-color: var(--food-primary);
+        }
+
+        .restaurant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 15px;
+        }
+
+        .res-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .res-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: #cbd5e1;
+        }
+
+        .res-img-wrap {
+            height: 150px;
+            position: relative;
+            background: #f1f5f9;
+        }
+
+        .res-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .res-status-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .tag-open { background: var(--success); }
+        .tag-busy { background: var(--warning); color: #000; }
+        .tag-closed { background: var(--danger); }
+
+        .res-body {
+            padding: 14px;
+        }
+
+        .res-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #0f172a;
+        }
+
+        .res-address {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .res-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 8px;
+        }
+
+        .menu-view-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .food-item-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .food-item-img {
+            height: 140px;
+            background: #f1f5f9;
+        }
+
+        .food-item-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .food-item-body {
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .food-item-name {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .food-item-desc {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 10px;
+            flex: 1;
+        }
+
+        .food-item-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .food-item-price {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--food-primary);
+        }
+
+        .btn-add-cart {
+            background: var(--food-primary);
             color: white;
             border: none;
-            padding: 6px 15px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-add-cart:hover {
+            background: var(--food-hover);
+        }
+
+        /* Floating Cart Bar */
+        .floating-cart-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1500;
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .floating-cart-bar:hover {
+            transform: scale(1.03);
+        }
+
+        /* Food Orders List (Tracking) */
+        .food-order-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .food-order-card.status-DELIVERING {
+            border-left: 5px solid var(--food-primary);
+        }
+
+        .food-order-card.status-COMPLETED {
+            border-left: 5px solid var(--success);
+        }
+
+        .badge-food {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Modals */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #334155;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--food-primary);
         }
     </style>
 </head>
 <body>
 
 <div class="user-header">
-    <span>👋 Xin chào Khách hàng: <b id="display-user" style="color:#007bff;">Đang tải...</b></span>
-    <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
-</div>
-
-<h2>Ứng dụng Khách Hàng (Mô phỏng Giá Động)</h2>
-
-<button id="btnConnect" onclick="connectNotification()">1. Kết nối hệ thống</button>
-<button id="btnBook" onclick="bookRide()" disabled
-        style="background-color: #28a745; color: white; padding: 8px 15px; font-weight: bold; border: none; cursor: pointer;">
-    2. 🚕 ĐẶT XE NGAY
-</button>
-
-<button id="btnHistory" onclick="toggleBookingHistory()"
-        style="background-color: #17a2b8; color: white; padding: 8px 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; margin-left: 10px;">
-    3. 📜 Lịch sử chuyến đi
-</button>
-
-<div id="status" style="margin-top: 15px; font-weight: bold; color: gray;">Trạng thái: Chưa kết nối</div>
-
-<div id="history-panel"
-     style="display: none; margin-top: 15px; background: #fff; border: 2px solid #17a2b8; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <h3 style="color: #17a2b8; margin-top: 0; display: flex; justify-content: space-between;">
-        <span>📜 LỊCH SỬ CHUYẾN ĐI CỦA BẠN</span>
-        <button onclick="toggleBookingHistory()"
-                style="background: none; border: none; font-size: 16px; cursor: pointer; color: red;">❌ Đóng
-        </button>
-    </h3>
-    <button onclick="fetchBookingHistory()" style="margin-bottom: 10px; cursor:pointer; padding: 5px 10px;">🔄 Làm mới dữ
-        liệu
-    </button>
-    <ul id="booking-history-list"
-        style="list-style-type: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto;">
-    </ul>
-</div>
-
-<div class="map-container">
-    <div id="map"></div>
-    <div class="stats-panel" id="stats-panel" style="display: none;">
-        <h4>📊 Radar Khu vực</h4>
-        <p style="margin: 5px 0; font-weight: bold;">🚕 Cung (Tài xế rảnh): <span id="supply-count"
-                                                                                 style="color: green; font-size: 18px;">0</span>
-        </p>
-        <p style="margin: 5px 0; font-weight: bold;">📈 Mức giá hiện tại: <br><span id="surge-badge"
-                                                                                   style="color: blue; font-size: 14px; background: #e9ecef; padding: 3px 6px; border-radius: 4px;">Đang tính toán...</span>
-        </p>
+    <span>👋 Xin chào Khách hàng: <b id="display-user" style="color:var(--primary);">Đang tải...</b></span>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: #e2f0d9; border: 1px solid #c8e1b7; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;" onclick="toggleCustomerWalletModal()" title="Bấm để xem chi tiết ví và lịch sử hoàn tiền">
+            <span>💳 Ví của tôi:</span>
+            <span id="customer-wallet-balance" style="color: #274e13; font-weight: 700; font-size: 15px;">0 đ</span>
+            <span style="font-size: 11px; background: #28a745; color: white; padding: 2px 6px; border-radius: 4px;">Chi tiết</span>
+        </div>
+        <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
     </div>
 </div>
 
-<div id="trip-card"
-     style="margin-top: 20px; padding: 15px; background-color: #e2f0d9; border: 1px solid #c8e1b7; display: none; border-radius: 8px;">
-    <h3 style="color: #385723; margin-top: 0;">🚗 TRẠNG THÁI CHUYẾN ĐI</h3>
-    <p style="font-size: 16px; font-weight: bold; color: #274e13;">
-        <span id="trip-status-text"></span>
-        <span id="customer-timer" style="color: red; margin-left: 10px; display: none;"></span>
-    </p>
-    <button id="btnCancelTrip" onclick="cancelCurrentTrip(false)"
-            style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; display: none; border-radius: 5px;">
-        HỦY CHUYẾN ĐI
-    </button>
-    <button id="btnPayMomo" class="momo-btn" onclick="payTrip('MOMO')">Thanh toán MoMo</button>
-    <button id="btnPayVnpay" class="momo-btn" onclick="payTrip('VNPAY')" style="background-color: #005691;">Thanh toán
-        VNPay
-    </button>
+<!-- Main Switcher: Ride Hailing vs Food Delivery -->
+<div class="service-tabs">
+    <div class="service-tab active-ride" id="tab-btn-ride" onclick="switchService('ride')">
+        🚕 GỌI XE TRỰC TUYẾN
+    </div>
+    <div class="service-tab" id="tab-btn-food" onclick="switchService('food')">
+        🍲 GIAO ĐỒ ĂN (FOOD DELIVERY)
+    </div>
 </div>
 
-<h3>Nhật ký hệ thống:</h3>
-<ul id="log"></ul>
+<!-- 1. KHU VỰC GỌI XE (RIDE HAILING) -->
+<div id="section-ride">
+    <h2>🚕 Đặt Xe Trực Tuyến (Mô phỏng Giá Động)</h2>
+
+    <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button id="btnConnect" class="btn-action" style="background:#007bff; color:white;" onclick="connectNotification()">1. Kết nối hệ thống</button>
+        <button id="btnBook" class="btn-action" onclick="bookRide()" disabled style="background-color: #28a745; color: white;">
+            2. 🚕 ĐẶT XE NGAY
+        </button>
+        <button id="btnHistory" class="btn-action" onclick="toggleBookingHistory()" style="background-color: #17a2b8; color: white;">
+            3. 📜 Lịch sử chuyến đi
+        </button>
+    </div>
+
+    <div id="status" style="margin-top: 15px; font-weight: bold; color: gray;">Trạng thái: Chưa kết nối</div>
+
+    <div id="history-panel" style="display: none; margin-top: 15px; background: #fff; border: 2px solid #17a2b8; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="color: #17a2b8; margin-top: 0; display: flex; justify-content: space-between;">
+            <span>📜 LỊCH SỬ CHUYẾN ĐI CỦA BẠN</span>
+            <button onclick="toggleBookingHistory()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: red;">❌ Đóng</button>
+        </h3>
+        <button onclick="fetchBookingHistory()" style="margin-bottom: 10px; cursor:pointer; padding: 5px 10px;">🔄 Làm mới dữ liệu</button>
+        <ul id="booking-history-list" style="list-style-type: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto;"></ul>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+        <div class="stats-panel" id="stats-panel" style="display: none;">
+            <h4>📊 Radar Khu vực</h4>
+            <p style="margin: 5px 0; font-weight: bold;">🚕 Cung (Tài xế rảnh): <span id="supply-count" style="color: green; font-size: 18px;">0</span></p>
+            <p style="margin: 5px 0; font-weight: bold;">📈 Mức giá hiện tại: <br><span id="surge-badge" style="color: blue; font-size: 14px; background: #e9ecef; padding: 3px 6px; border-radius: 4px;">Đang tính toán...</span></p>
+        </div>
+    </div>
+
+    <div id="trip-card" style="margin-top: 20px; padding: 15px; background-color: #e2f0d9; border: 1px solid #c8e1b7; display: none; border-radius: 8px;">
+        <h3 style="color: #385723; margin-top: 0;">🚗 TRẠNG THÁI CHUYẾN ĐI</h3>
+        <p style="font-size: 16px; font-weight: bold; color: #274e13;">
+            <span id="trip-status-text"></span>
+            <span id="customer-timer" style="color: red; margin-left: 10px; display: none;"></span>
+        </p>
+        <button id="btnCancelTrip" onclick="cancelCurrentTrip(false)" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; display: none; border-radius: 5px;">
+            HỦY CHUYẾN ĐI
+        </button>
+        <button id="btnPayMomo" class="momo-btn" onclick="payTrip('MOMO')">Thanh toán MoMo</button>
+        <button id="btnPayVnpay" class="momo-btn" onclick="payTrip('VNPAY')" style="background-color: #005691;">Thanh toán VNPay</button>
+    </div>
+
+    <h3 style="margin-top: 15px;">Nhật ký hệ thống:</h3>
+    <ul id="log"></ul>
+</div>
+
+<!-- 2. KHU VỰC GIAO ĐỒ ĂN (FOOD DELIVERY) -->
+<div id="section-food" style="display: none;">
+    <div class="food-header">
+        <div class="food-search-box">
+            <input type="text" id="food-search-input" class="search-input" placeholder="🔍 Tìm kiếm quán ăn hoặc món ngon..." onkeyup="handleFoodSearch(event)">
+            <button class="btn-action" style="background: var(--food-primary); color: white;" onclick="searchRestaurants()">Tìm</button>
+        </div>
+
+        <div class="food-nav-tabs">
+            <button class="food-tab-btn active" id="food-subtab-res" onclick="switchFoodSubTab('restaurants')">🏪 Danh Sách Quán</button>
+            <button class="food-tab-btn" id="food-subtab-orders" onclick="switchFoodSubTab('orders')">📋 Đơn Hàng Của Tôi (<span id="my-food-orders-count">0</span>)</button>
+        </div>
+    </div>
+
+    <!-- Sub-view 1: Restaurant List -->
+    <div id="food-view-restaurants">
+        <h3>🏪 Danh Sách Quán Ăn Gần Bạn</h3>
+        <div class="restaurant-grid" id="restaurant-list-container">
+            <p style="color: gray;">Đang tải danh sách quán ăn...</p>
+        </div>
+    </div>
+
+    <!-- Sub-view 2: Restaurant Menu Detail -->
+    <div id="food-view-menu" style="display: none;">
+        <div class="menu-view-header">
+            <button class="btn-action" style="background: #e2e8f0; color: #1e293b;" onclick="backToRestaurantList()">⬅️ Quay lại danh sách quán</button>
+            <div>
+                <h2 id="menu-view-res-name" style="color: var(--food-primary); font-size: 20px;">Tên quán ăn</h2>
+                <p id="menu-view-res-address" style="font-size: 13px; color: #64748b;">Địa chỉ quán</p>
+            </div>
+        </div>
+
+        <div id="restaurant-status-banner" style="display: none; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 600;"></div>
+
+        <h3>🍽️ Thực Đơn Món Ăn</h3>
+        <div class="food-grid" id="menu-items-container" style="margin-top: 12px;"></div>
+    </div>
+
+    <!-- Sub-view 3: My Food Orders & Live Tracking -->
+    <div id="food-view-orders" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3>📋 Lịch Sử & Theo Dõi Đơn Đồ Ăn</h3>
+            <button class="btn-action" style="background: #e2e8f0; font-size: 13px;" onclick="fetchMyFoodOrders()">🔄 Làm mới</button>
+        </div>
+        <div id="my-food-orders-container">
+            <p style="color: gray;">Đang tải đơn hàng...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Cart Button -->
+<div class="floating-cart-bar" id="floating-cart-btn" onclick="openCartModal()">
+    <span>🛒 <b id="cart-item-count">0</b> món</span>
+    <span>|</span>
+    <span>Tổng: <b id="cart-total-price" style="color: #fdba74;">0 đ</b></span>
+    <span style="background: var(--food-primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">Xem Giỏ Hàng ➔</span>
+</div>
+
+<!-- Modal: Customer Wallet & Refunds -->
+<div class="modal-backdrop" id="customer-wallet-modal">
+    <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-head">
+            <h3 style="color: #15803d; display: flex; align-items: center; gap: 8px;">💳 Ví Điện Tử Của Bạn</h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="closeModal('customer-wallet-modal')">✕</button>
+        </div>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
+            <div style="font-size: 13px; color: #166534; font-weight: 500;">Số Dư Khả Dụng (Bao gồm Tiền Hoàn Đơn)</div>
+            <div id="wallet-modal-balance" style="font-size: 26px; font-weight: 800; color: #15803d; margin: 6px 0;">0 đ</div>
+            <button onclick="fetchCustomerWallet(true)" style="padding: 5px 12px; font-size: 12px; background: white; border: 1px solid #86efac; border-radius: 4px; cursor: pointer; color: #166534; font-weight: 600;">🔄 Làm mới số dư</button>
+        </div>
+
+        <div>
+            <h4 style="margin: 0 0 10px 0; color: #334155; font-size: 14px;">📜 Lịch Sử Giao Dịch & Tiền Hoàn:</h4>
+            <div id="customer-tx-list" style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 13px; background: #fafafa;">
+                <p style="color: gray; text-align: center; margin: 10px 0;">Đang tải lịch sử...</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; text-align: right;">
+            <button onclick="closeModal('customer-wallet-modal')" class="btn-action" style="background: #64748b; color: white; padding: 8px 18px;">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cart & Checkout -->
+<div class="modal-backdrop" id="modal-cart">
+    <div class="modal-card">
+        <div class="modal-head">
+            <h3 style="color: var(--food-primary);">🛒 Giỏ Hàng & Đặt Món</h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="closeModal('modal-cart')">✕</button>
+        </div>
+
+        <div id="cart-items-list" style="margin-bottom: 16px; max-height: 200px; overflow-y: auto;"></div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">👤 Tên người nhận *</label>
+                <input type="text" id="order-customer-name" class="form-control" placeholder="Họ tên người nhận...">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">📞 Số điện thoại *</label>
+                <input type="text" id="order-customer-phone" class="form-control" placeholder="Số điện thoại nhận hàng...">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">📍 Địa chỉ nhận hàng *</label>
+            <input type="text" id="order-delivery-address" class="form-control" value="Số 123 Đường Cầu Giấy, Hà Nội" required>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">Vĩ độ (Lat)</label>
+                <input type="number" step="any" id="order-delivery-lat" class="form-control" value="21.033333">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">Kinh độ (Lng)</label>
+                <input type="number" step="any" id="order-delivery-lng" class="form-control" value="105.789123">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">📝 Ghi chú đơn hàng</label>
+            <input type="text" id="order-note" class="form-control" placeholder="VD: Không lấy hành, cho nhiều ớt...">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">💳 Phương thức thanh toán</label>
+            <select id="order-payment-method" class="form-control">
+                <option value="CASH">💵 Tiền mặt khi nhận hàng (COD)</option>
+                <option value="MOMO">📱 Ví Điện Tử MoMo</option>
+                <option value="VNPAY">💳 Cổng VNPay</option>
+            </select>
+        </div>
+
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; line-height: 1.8;">
+            <div style="display:flex; justify-content:space-between;">
+                <span>Tiền món ăn:</span>
+                <b id="summary-subtotal">0 đ</b>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span>Phí giao hàng ước tính:</span>
+                <b id="summary-shipping">15.000 đ</b>
+            </div>
+            <hr style="margin: 6px 0; border: none; border-top: 1px dashed #cbd5e1;">
+            <div style="display:flex; justify-content:space-between; font-size: 15px; color: var(--food-primary);">
+                <span><b>TỔNG THANH TOÁN:</b></span>
+                <b id="summary-total">0 đ</b>
+            </div>
+        </div>
+
+        <button class="btn-action" style="width: 100%; background: var(--food-primary); color: white; padding: 12px; font-size: 15px;" onclick="submitFoodOrder()">
+            🚀 XÁC NHẬN ĐẶT MÓN
+        </button>
+    </div>
+</div>
 
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
     const WS_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
 
-    let stompClient = null;
     let customerId = null;
+
+    // Ride Hailing State
+    let stompClient = null;
     let currentBookingId = null;
     let currentTripPrice = 0;
     let assignedDriverId = null;
@@ -204,7 +782,6 @@
     let hasInitiatedPayment = false;
     let driverMarkers = {};
     let paymentCheckInterval = null;
-
     const startPoint = [21.0245, 105.8574];
     const endPoint = [21.0585, 105.8202];
     const nearbyCarIcon = L.divIcon({
@@ -214,50 +791,13 @@
         iconAnchor: [15, 7]
     });
 
-    async function doRefreshToken() {
-        try {
-            let res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + getStoredToken()
-                },
-                credentials: 'include'
-            });
-
-            if (!res.ok) return false;
-
-            let data = await res.json();
-            if (data.success && data.data.accessToken) {
-                localStorage.setItem('accessToken', data.data.accessToken);
-                return true;
-            }
-            return false;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    async function fetchWithAuth(url, options = {}) {
-        if (!options.headers) options.headers = {};
-        options.headers['Authorization'] = 'Bearer ' + getStoredToken();
-        options.credentials = 'include';
-
-        let response = await fetch(url, options);
-
-        if (response.status === 401) {
-            console.warn("Access Token hết hạn! Đang tiến hành refresh ngầm...");
-            const isRefreshed = await doRefreshToken();
-
-            if (isRefreshed) {
-                options.headers['Authorization'] = 'Bearer ' + getStoredToken();
-                response = await fetch(url, options);
-            } else {
-                doActualLogout(getStoredToken());
-                throw new Error("Phiên đăng nhập đã hết hạn hoàn toàn. Vui lòng đăng nhập lại!");
-            }
-        }
-        return response;
-    }
+    // Food Delivery State
+    let allRestaurants = [];
+    let currentSelectedRestaurant = null;
+    let currentRestaurantMenu = [];
+    let cart = [];
+    let myFoodOrders = [];
+    let foodPollingInterval = null;
 
     function getStoredToken() {
         const token = localStorage.getItem('accessToken');
@@ -277,6 +817,45 @@
         }
     }
 
+    async function doRefreshToken() {
+        try {
+            let res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + getStoredToken() },
+                credentials: 'include'
+            });
+            if (!res.ok) return false;
+            let data = await res.json();
+            if (data.success && data.data.accessToken) {
+                localStorage.setItem('accessToken', data.data.accessToken);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async function fetchWithAuth(url, options = {}) {
+        if (!options.headers) options.headers = {};
+        options.headers['Authorization'] = 'Bearer ' + getStoredToken();
+        options.credentials = 'include';
+
+        let response = await fetch(url, options);
+
+        if (response.status === 401) {
+            const isRefreshed = await doRefreshToken();
+            if (isRefreshed) {
+                options.headers['Authorization'] = 'Bearer ' + getStoredToken();
+                response = await fetch(url, options);
+            } else {
+                doActualLogout(getStoredToken());
+                throw new Error("Phiên đăng nhập đã hết hạn hoàn toàn. Vui lòng đăng nhập lại!");
+            }
+        }
+        return response;
+    }
+
     function logout() {
         const token = getStoredToken();
         if (!token) return;
@@ -294,6 +873,31 @@
         });
     }
 
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function switchService(service) {
+        const btnRide = document.getElementById('tab-btn-ride');
+        const btnFood = document.getElementById('tab-btn-food');
+        const secRide = document.getElementById('section-ride');
+        const secFood = document.getElementById('section-food');
+
+        if (service === 'ride') {
+            btnRide.className = 'service-tab active-ride';
+            btnFood.className = 'service-tab';
+            secRide.style.display = 'block';
+            secFood.style.display = 'none';
+            if (map) setTimeout(() => map.invalidateSize(), 100);
+        } else {
+            btnRide.className = 'service-tab';
+            btnFood.className = 'service-tab active-food';
+            secRide.style.display = 'none';
+            secFood.style.display = 'block';
+            fetchRestaurants();
+            fetchMyFoodOrders();
+        }
+    }
+
     window.onload = function () {
         let t = getStoredToken();
         if (!t) return;
@@ -302,6 +906,7 @@
         if (decoded) {
             customerId = decoded.userId || decoded.id;
             document.getElementById('display-user').innerText = decoded.sub + ' (ID: ' + customerId + ')';
+            fetchCustomerWallet();
         }
 
         map = L.map('map').setView([21.0415, 105.8388], 13);
@@ -317,8 +922,528 @@
         L.polyline([startPoint, endPoint], {color: '#007bff', weight: 4, dashArray: '10, 10'}).addTo(map);
 
         connectNotification();
+
+        foodPollingInterval = setInterval(() => {
+            const foodSection = document.getElementById('section-food');
+            if (foodSection && foodSection.style.display !== 'none') {
+                // Chỉ làm mới đơn hàng khi người dùng đang ở tab Đơn Đặt Món
+                const ordersView = document.getElementById('food-view-orders');
+                if (ordersView && ordersView.style.display !== 'none') {
+                    fetchMyFoodOrders(false);
+                }
+            }
+        }, 5000);
     };
 
+    // Food Delivery Logic
+    function switchFoodSubTab(subTab) {
+        document.getElementById('food-subtab-res').className = subTab === 'restaurants' ? 'food-tab-btn active' : 'food-tab-btn';
+        document.getElementById('food-subtab-orders').className = subTab === 'orders' ? 'food-tab-btn active' : 'food-tab-btn';
+
+        document.getElementById('food-view-restaurants').style.display = subTab === 'restaurants' ? 'block' : 'none';
+        document.getElementById('food-view-menu').style.display = 'none';
+        document.getElementById('food-view-orders').style.display = subTab === 'orders' ? 'block' : 'none';
+    }
+
+    async function fetchRestaurants(search = '', showLoading = true) {
+        const container = document.getElementById('restaurant-list-container');
+        if (showLoading && allRestaurants.length === 0) {
+            container.innerHTML = `<p style="color:gray;">Đang tải danh sách quán ăn...</p>`;
+        }
+        try {
+            let url = `${API_BASE_URL}/api/v1/restaurants`;
+            if (search) url += `?search=${encodeURIComponent(search)}`;
+            let res = await fetchWithAuth(url);
+            let data = await res.json();
+
+            if (res.ok && data.success) {
+                allRestaurants = data.data || [];
+                renderRestaurants(allRestaurants);
+            }
+        } catch (e) {
+            if (showLoading) container.innerHTML = `<p style="color:red;">Lỗi kết nối máy chủ</p>`;
+        }
+    }
+
+    function renderRestaurants(list) {
+        const container = document.getElementById('restaurant-list-container');
+        if (!list || list.length === 0) {
+            container.innerHTML = `<p style="color: gray; grid-column: 1/-1;">Không tìm thấy quán ăn nào phù hợp.</p>`;
+            return;
+        }
+
+        container.innerHTML = list.map(r => `
+            <div class="res-card" onclick="openRestaurantMenu(${r.id})">
+                <div class="res-img-wrap">
+                    <img src="${r.imageUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${r.name}">
+                    <span class="res-status-tag ${r.status === 'OPEN' ? 'tag-open' : r.status === 'BUSY' ? 'tag-busy' : 'tag-closed'}">
+                        ${r.status === 'OPEN' ? '🟢 Mở cửa' : r.status === 'BUSY' ? '🟡 Đang bận' : '🔴 Đóng cửa'}
+                    </span>
+                </div>
+                <div class="res-body">
+                    <div class="res-title">${r.name}</div>
+                    <div class="res-address">📍 ${r.address}</div>
+                    <div class="res-meta">
+                        <span>⭐ ${r.rating ? r.rating.toFixed(1) : '5.0'}</span>
+                        <span>🕒 ${r.openTime || '07:00'} - ${r.closeTime || '22:00'}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function handleFoodSearch(e) {
+        if (e.key === 'Enter') searchRestaurants();
+    }
+
+    function searchRestaurants() {
+        const q = document.getElementById('food-search-input').value.trim();
+        switchFoodSubTab('restaurants');
+        fetchRestaurants(q);
+    }
+
+    async function openRestaurantMenu(restaurantId) {
+        currentSelectedRestaurant = allRestaurants.find(r => r.id === restaurantId);
+        if (!currentSelectedRestaurant) return;
+
+        document.getElementById('menu-view-res-name').innerText = currentSelectedRestaurant.name;
+        document.getElementById('menu-view-res-address').innerText = `📍 ${currentSelectedRestaurant.address}`;
+
+        const banner = document.getElementById('restaurant-status-banner');
+        if (banner) {
+            if (currentSelectedRestaurant.status === 'CLOSED') {
+                banner.style.display = 'block';
+                banner.style.background = '#fee2e2';
+                banner.style.color = '#b91c1c';
+                banner.style.border = '1px solid #fca5a5';
+                banner.innerHTML = `🔴 <b>Quán hiện đang đóng cửa (Tạm ngưng nhận đơn).</b> Quý khách vẫn có thể xem trước thực đơn món ăn.`;
+            } else if (currentSelectedRestaurant.status === 'BUSY') {
+                banner.style.display = 'block';
+                banner.style.background = '#fef3c7';
+                banner.style.color = '#b45309';
+                banner.style.border = '1px solid #fcd34d';
+                banner.innerHTML = `🟡 <b>Quán đang tạm bận / quá tải (Tạm dừng nhận đơn mới).</b> Quý khách vẫn có thể xem trước thực đơn.`;
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        document.getElementById('food-view-restaurants').style.display = 'none';
+        document.getElementById('food-view-orders').style.display = 'none';
+        document.getElementById('food-view-menu').style.display = 'block';
+
+        const container = document.getElementById('menu-items-container');
+        container.innerHTML = `<p style="color:gray;">Đang tải thực đơn...</p>`;
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants/${restaurantId}/items`);
+            let data = await res.json();
+            if (res.ok && data.success) {
+                currentRestaurantMenu = data.data || [];
+                renderRestaurantMenu(currentRestaurantMenu);
+            } else {
+                container.innerHTML = `<p style="color:red;">Không thể tải thực đơn quán</p>`;
+            }
+        } catch (e) {
+            container.innerHTML = `<p style="color:red;">Lỗi tải menu</p>`;
+        }
+    }
+
+    async function refreshRestaurantMenu(restaurantId) {
+        try {
+            let resRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants`);
+            let resData = await resRes.json();
+            if (resRes.ok && resData.success && resData.data) {
+                allRestaurants = resData.data;
+                const found = allRestaurants.find(r => r.id === restaurantId);
+                if (found) {
+                    currentSelectedRestaurant = found;
+                    document.getElementById('menu-view-res-name').innerText = found.name;
+                    document.getElementById('menu-view-res-address').innerText = `📍 ${found.address}`;
+
+                    const banner = document.getElementById('restaurant-status-banner');
+                    if (banner) {
+                        if (found.status === 'CLOSED') {
+                            banner.style.display = 'block';
+                            banner.style.background = '#fee2e2';
+                            banner.style.color = '#b91c1c';
+                            banner.style.border = '1px solid #fca5a5';
+                            banner.innerHTML = `🔴 <b>Quán hiện đang đóng cửa (Tạm ngưng nhận đơn).</b> Quý khách vẫn có thể xem trước thực đơn món ăn.`;
+                        } else if (found.status === 'BUSY') {
+                            banner.style.display = 'block';
+                            banner.style.background = '#fef3c7';
+                            banner.style.color = '#b45309';
+                            banner.style.border = '1px solid #fcd34d';
+                            banner.innerHTML = `🟡 <b>Quán đang tạm bận / quá tải (Tạm dừng nhận đơn mới).</b> Quý khách vẫn có thể xem trước thực đơn.`;
+                        } else {
+                            banner.style.display = 'none';
+                        }
+                    }
+                }
+            }
+
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants/${restaurantId}/items`);
+            let data = await res.json();
+            if (res.ok && data.success) {
+                currentRestaurantMenu = data.data || [];
+                renderRestaurantMenu(currentRestaurantMenu);
+            }
+        } catch (e) {}
+    }
+
+    function backToRestaurantList() {
+        document.getElementById('food-view-menu').style.display = 'none';
+        document.getElementById('food-view-restaurants').style.display = 'block';
+    }
+
+    function renderRestaurantMenu(items) {
+        const container = document.getElementById('menu-items-container');
+        if (!items || items.length === 0) {
+            container.innerHTML = `<p style="color:gray; grid-column:1/-1;">Quán chưa có món ăn nào trong thực đơn.</p>`;
+            return;
+        }
+
+        const isResOpen = (currentSelectedRestaurant && currentSelectedRestaurant.status === 'OPEN');
+
+        container.innerHTML = items.map(item => {
+            const isItemAvailable = (item.isAvailable !== false);
+
+            let buttonHtml = '';
+            if (!isResOpen) {
+                buttonHtml = `<button class="btn-add-cart" style="background:#94a3b8; cursor:not-allowed;" onclick="alert('⚠️ Quán hiện đang ${currentSelectedRestaurant?.status === 'BUSY' ? 'tạm bận' : 'đóng cửa'}, tạm thời chưa nhận đặt món!')" title="Quán đang đóng cửa">🚫 Tạm đóng</button>`;
+            } else if (!isItemAvailable) {
+                buttonHtml = `<button class="btn-add-cart" style="background:#cbd5e1; color:#64748b; cursor:not-allowed;" disabled>Hết món</button>`;
+            } else {
+                buttonHtml = `<button class="btn-add-cart" onclick="addToCart(${item.id})">+ Thêm</button>`;
+            }
+
+            return `
+                <div class="food-item-card" style="${!isResOpen ? 'opacity: 0.9;' : ''}">
+                    <div class="food-item-img">
+                        <img src="${item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}" alt="${item.name}">
+                    </div>
+                    <div class="food-item-body">
+                        <div class="food-item-name">${item.name}</div>
+                        <div class="food-item-desc">${item.description || 'Món ăn thơm ngon, hấp dẫn'}</div>
+                        <div class="food-item-foot">
+                            <span class="food-item-price">${(item.price || 0).toLocaleString('vi-VN')} đ</span>
+                            ${buttonHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function addToCart(menuItemId) {
+        if (!currentSelectedRestaurant || currentSelectedRestaurant.status !== 'OPEN') {
+            alert("⚠️ Quán hiện đang đóng cửa hoặc tạm ngưng nhận đơn, không thể đặt món vào lúc này!");
+            return;
+        }
+
+        const item = currentRestaurantMenu.find(m => m.id === menuItemId);
+        if (!item) return;
+        if (item.isAvailable === false) {
+            alert("⚠️ Món ăn này hiện đã hết hàng!");
+            return;
+        }
+
+        if (cart.length > 0 && cart[0].restaurantId !== currentSelectedRestaurant.id) {
+            if (!confirm("Giỏ hàng của bạn đang có món từ quán khác. Bạn có muốn xóa giỏ hàng để chọn quán này không?")) return;
+            cart = [];
+        }
+
+        const existing = cart.find(c => c.menuItemId === menuItemId);
+        if (existing) {
+            existing.quantity++;
+        } else {
+            cart.push({
+                menuItemId: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: 1,
+                restaurantId: currentSelectedRestaurant.id
+            });
+        }
+
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        const floatingBar = document.getElementById('floating-cart-btn');
+        const countEl = document.getElementById('cart-item-count');
+        const priceEl = document.getElementById('cart-total-price');
+
+        const totalCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+        const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+        if (totalCount > 0) {
+            floatingBar.style.display = 'flex';
+            countEl.innerText = totalCount;
+            priceEl.innerText = subtotal.toLocaleString('vi-VN') + ' đ';
+        } else {
+            floatingBar.style.display = 'none';
+        }
+    }
+
+    function openCartModal() {
+        if (cart.length === 0) return;
+        renderCartModalItems();
+
+        let nameInput = document.getElementById('order-customer-name');
+        let phoneInput = document.getElementById('order-customer-phone');
+        let t = getStoredToken();
+        if (t) {
+            let decoded = parseJwt(t);
+            if (decoded) {
+                if (!nameInput.value && (decoded.fullName || decoded.name || decoded.sub)) {
+                    nameInput.value = decoded.fullName || decoded.name || decoded.sub;
+                }
+                if (!phoneInput.value) {
+                    if (decoded.phoneNumber) phoneInput.value = decoded.phoneNumber;
+                    else if (decoded.phone) phoneInput.value = decoded.phone;
+                    else if (decoded.sub && /^\d{9,11}$/.test(decoded.sub)) phoneInput.value = decoded.sub;
+                }
+            }
+        }
+
+        openModal('modal-cart');
+    }
+
+    function renderCartModalItems() {
+        const listEl = document.getElementById('cart-items-list');
+        const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+        const shipping = 15000;
+        const total = subtotal + shipping;
+
+        listEl.innerHTML = cart.map((item, idx) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                <div>
+                    <b>${item.name}</b><br>
+                    <span style="font-size:12px; color:var(--food-primary);">${item.price.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button style="padding:2px 8px; cursor:pointer;" onclick="changeCartQty(${idx}, -1)">-</button>
+                    <b>${item.quantity}</b>
+                    <button style="padding:2px 8px; cursor:pointer;" onclick="changeCartQty(${idx}, 1)">+</button>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('summary-subtotal').innerText = subtotal.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('summary-shipping').innerText = shipping.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('summary-total').innerText = total.toLocaleString('vi-VN') + ' đ';
+    }
+
+    function changeCartQty(idx, delta) {
+        if (!cart[idx]) return;
+        cart[idx].quantity += delta;
+        if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+        updateCartUI();
+        if (cart.length === 0) {
+            closeModal('modal-cart');
+        } else {
+            renderCartModalItems();
+        }
+    }
+
+    async function submitFoodOrder() {
+        if (cart.length === 0) return alert("Giỏ hàng đang trống!");
+
+        const resId = cart[0].restaurantId;
+        const targetRes = allRestaurants.find(r => r.id === resId);
+        if (targetRes && targetRes.status !== 'OPEN') {
+            return alert("⚠️ Nhà hàng này hiện đang đóng cửa hoặc tạm ngưng nhận đơn, không thể đặt hàng lúc này!");
+        }
+
+        const customerName = (document.getElementById('order-customer-name').value || '').trim();
+        const customerPhone = (document.getElementById('order-customer-phone').value || '').trim();
+        const deliveryAddress = (document.getElementById('order-delivery-address').value || '').trim();
+
+        if (!customerName) return alert("Vui lòng nhập tên người nhận!");
+        if (!customerPhone) return alert("Vui lòng nhập số điện thoại người nhận!");
+        if (!deliveryAddress) return alert("Vui lòng nhập địa chỉ nhận hàng!");
+
+        const payMethod = document.getElementById('order-payment-method').value;
+        const payload = {
+            restaurantId: cart[0].restaurantId,
+            customerName: customerName,
+            customerPhone: customerPhone,
+            deliveryAddress: deliveryAddress,
+            deliveryLatitude: parseFloat(document.getElementById('order-delivery-lat').value) || 21.033333,
+            deliveryLongitude: parseFloat(document.getElementById('order-delivery-lng').value) || 105.789123,
+            note: document.getElementById('order-note').value,
+            paymentMethod: payMethod,
+            items: cart.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity }))
+        };
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            let data = await res.json();
+
+            if (res.ok && data.success) {
+                let createdOrder = data.data || {};
+                let orderId = createdOrder.id;
+                let totalPrice = createdOrder.totalPrice || 0;
+
+                cart = [];
+                updateCartUI();
+                closeModal('modal-cart');
+                switchFoodSubTab('orders');
+                fetchMyFoodOrders();
+
+                if (payMethod === 'MOMO' || payMethod === 'VNPAY') {
+                    // Mở cổng thanh toán Online
+                    try {
+                        let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${payMethod}&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
+                            method: 'POST'
+                        });
+                        let payData = await payRes.json();
+                        if (payRes.ok && payData.paymentUrl) {
+                            window.open(payData.paymentUrl, '_blank');
+                            alert(`🎉 Đã tạo đơn hàng #${orderId}!\nVui lòng thanh toán qua ${payMethod} trên tab vừa mở.`);
+                            startFoodOrderPaymentPolling(orderId);
+                        } else {
+                            alert(`Đơn hàng #${orderId} đã được tạo (Lỗi mở cổng thanh toán: ${payData.message || ''})`);
+                        }
+                    } catch (payErr) {
+                        alert(`Đã tạo đơn hàng #${orderId}. Lỗi kết nối cổng thanh toán: ` + payErr.message);
+                    }
+                } else {
+                    alert(`🎉 Đặt món thành công đơn #${orderId}! Nhà hàng đang chuẩn bị món ăn.`);
+                }
+            } else {
+                alert("❌ Lỗi: " + (data.message || "Không thể tạo đơn đặt món"));
+            }
+        } catch (e) {
+            alert("Lỗi kết nối khi đặt món: " + e.message);
+        }
+    }
+
+    let foodPaymentCheckInterval = null;
+    function startFoodOrderPaymentPolling(orderId) {
+        clearInterval(foodPaymentCheckInterval);
+        let pollCount = 0;
+        foodPaymentCheckInterval = setInterval(() => {
+            pollCount++;
+            fetchWithAuth(`${API_BASE_URL}/api/v1/payments/food-order/${orderId}/payment-status`)
+                .then(res => res.text())
+                .then(status => {
+                    if (status === 'SUCCESS') {
+                        clearInterval(foodPaymentCheckInterval);
+                        alert(`🎉 Xác nhận: Đơn hàng #${orderId} đã được thanh toán thành công!`);
+                        fetchMyFoodOrders();
+                    }
+                }).catch(e => {});
+
+            if (pollCount >= 60) {
+                clearInterval(foodPaymentCheckInterval);
+            }
+        }, 3000);
+    }
+
+    async function fetchMyFoodOrders(showLoading = true) {
+        const container = document.getElementById('my-food-orders-container');
+        if (showLoading && myFoodOrders.length === 0) {
+            container.innerHTML = `<p style="color:gray;">Đang tải đơn hàng của bạn...</p>`;
+        }
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/my-orders`);
+            let data = await res.json();
+            if (res.ok && data.success) {
+                myFoodOrders = data.data || [];
+                document.getElementById('my-food-orders-count').innerText = myFoodOrders.length;
+                renderMyFoodOrders();
+            }
+        } catch (e) {
+            console.error("Lỗi tải đơn đặt món:", e);
+        }
+    }
+
+    function renderMyFoodOrders() {
+        const container = document.getElementById('my-food-orders-container');
+        if (myFoodOrders.length === 0) {
+            container.innerHTML = `<p style="color:gray;">Bạn chưa đặt đơn đồ ăn nào.</p>`;
+            return;
+        }
+
+        container.innerHTML = myFoodOrders.map(order => {
+            const dateStr = new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            const statusBadge = getFoodOrderStatusBadge(order.status);
+            const canCancel = (order.status === 'PENDING');
+
+            const orderItemsList = order.orderItems || order.items || [];
+            const itemsText = orderItemsList.map(i => `${i.itemName || i.dishName || 'Món'} (x${i.quantity})`).join(', ');
+            const finalPrice = order.totalPrice || order.totalAmount || 0;
+            const customerDisplay = order.customerName || ('Khách #' + (order.customerId || ''));
+            const phoneDisplay = order.customerPhone ? ` • 📞 ${order.customerPhone}` : '';
+
+            return `
+                <div class="food-order-card status-${order.status}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <b>Đơn hàng #${order.id}</b>
+                            <span style="font-size:12px; color:#64748b; margin-left:8px;">🕒 ${dateStr}</span>
+                        </div>
+                        <div>${statusBadge}</div>
+                    </div>
+
+                    <div style="font-size:13px; line-height:1.7;">
+                        <div>👤 <b>Người nhận:</b> ${customerDisplay}${phoneDisplay}</div>
+                        <div>🍛 <b>Món đã đặt:</b> ${itemsText || '<i>Chi tiết món ăn</i>'}</div>
+                        <div>📍 <b>Giao đến:</b> ${order.deliveryAddress || 'Địa chỉ nhận'}</div>
+                        <div>💵 <b>Tổng thanh toán:</b> <span style="color:var(--food-primary); font-weight:bold;">${Number(finalPrice).toLocaleString('vi-VN')} đ</span> (${order.paymentMethod || 'CASH'})</div>
+                        ${order.driverId ? `<div>🛵 <b>Tài xế giao:</b> Tài xế #${order.driverId}</div>` : ''}
+                    </div>
+
+                    ${canCancel ? `
+                        <div style="margin-top:10px; text-align:right;">
+                            <button class="btn-action" style="background:#fee2e2; color:#dc2626; padding:6px 12px; font-size:12px;" onclick="cancelFoodOrder(${order.id})">❌ Hủy đơn hàng</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function getFoodOrderStatusBadge(status) {
+        switch (status) {
+            case 'PENDING': return `<span class="badge-food" style="background:#fef3c7; color:#b45309;">⏳ Chờ quán xác nhận</span>`;
+            case 'ACCEPTED': return `<span class="badge-food" style="background:#dbeafe; color:#1d4ed8;">👌 Quán đã nhận</span>`;
+            case 'PREPARING': return `<span class="badge-food" style="background:#ede9fe; color:#6d28d9;">🍳 Đang nấu món</span>`;
+            case 'READY_FOR_PICKUP': return `<span class="badge-food" style="background:#ffedd5; color:#c2410c;">🛵 Đang tìm tài xế</span>`;
+            case 'DELIVERING': return `<span class="badge-food" style="background:#e0e7ff; color:#4338ca;">🚀 Tài xế đang giao</span>`;
+            case 'COMPLETED': return `<span class="badge-food" style="background:#d1fae5; color:#047857;">✅ Giao thành công</span>`;
+            case 'CANCELLED': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">❌ Khách đã hủy</span>`;
+            case 'REJECTED': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Quán từ chối</span>`;
+            case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Không tìm thấy tài xế</span>`;
+            default: return `<span class="badge-food">${status}</span>`;
+        }
+    }
+
+    async function cancelFoodOrder(orderId) {
+        if (!confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${orderId}?`)) return;
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/${orderId}/cancel`, { method: 'POST' });
+            let data = await res.json();
+            if (res.ok && data.success) {
+                alert("Đã hủy đơn hàng thành công!");
+                fetchMyFoodOrders();
+                fetchCustomerWallet(true);
+            } else {
+                alert(data.message || "Hủy đơn thất bại");
+            }
+        } catch (e) {
+            alert("Lỗi kết nối");
+        }
+    }
+
+    // Ride Hailing Logic
     function startCustomerTimer() {
         clearInterval(customerTimerInterval);
         let timerEl = document.getElementById('customer-timer');
@@ -334,382 +1459,282 @@
     }
 
     function loadNearbyDrivers() {
-        let cleanToken = getStoredToken();
-        if (!cleanToken) return;
-        let url = `${API_BASE_URL}/api/v1/locations/nearby?longitude=${startPoint[1]}&latitude=${startPoint[0]}&radius=5.0`;
-
-        fetchWithAuth(url, {method: 'GET'})
-            .then(async res => {
-                if (!res.ok) throw new Error("HTTP Status: " + res.status);
-                let responseText = await res.text();
-                return responseText ? JSON.parse(responseText) : [];
-            })
-            .then(data => {
-                if (!Array.isArray(data)) return;
-                let currentDriverIds = [];
-
-                data.forEach(driver => {
-                    let idStr = driver.driverId.toString();
-                    currentDriverIds.push(idStr);
-                    let latlng = [driver.latitude, driver.longitude];
-                    if (activeDriverId && idStr === activeDriverId.toString()) return;
-                    if (driverMarkers[idStr]) {
-                        driverMarkers[idStr].setLatLng(latlng);
-                    } else {
-                        driverMarkers[idStr] = L.marker(latlng, {icon: nearbyCarIcon}).addTo(map).bindPopup(`🚕 Tài xế ID: ${idStr}`);
-                    }
-                });
-
-                for (let id in driverMarkers) {
-                    if (activeDriverId && id === activeDriverId.toString()) continue;
-                    if (!currentDriverIds.includes(id)) {
-                        map.removeLayer(driverMarkers[id]);
-                        delete driverMarkers[id];
+        fetchWithAuth(`${API_BASE_URL}/api/v1/locations/nearby?longitude=${startPoint[1]}&latitude=${startPoint[0]}&radius=5.0`)
+            .then(res => res.json())
+            .then(drivers => {
+                if (!Array.isArray(drivers)) return;
+                let activeDriverIds = drivers.map(d => d.driverId);
+                for (let dId in driverMarkers) {
+                    if (!activeDriverIds.includes(parseInt(dId)) && parseInt(dId) !== assignedDriverId) {
+                        map.removeLayer(driverMarkers[dId]);
+                        delete driverMarkers[dId];
                     }
                 }
-                document.getElementById('supply-count').innerText = Object.keys(driverMarkers).length;
-            })
-            .catch(err => console.warn("Lỗi quét tài xế:", err.message));
+                drivers.forEach(d => {
+                    if (d.driverId === assignedDriverId) return;
+                    if (driverMarkers[d.driverId]) {
+                        driverMarkers[d.driverId].setLatLng([d.latitude, d.longitude]);
+                    } else {
+                        let marker = L.marker([d.latitude, d.longitude], {icon: nearbyCarIcon}).addTo(map);
+                        marker.bindPopup(`<b>Tài xế rảnh: #${d.driverId}</b>`);
+                        driverMarkers[d.driverId] = marker;
+                    }
+                });
+                loadDynamicPricing(drivers.length);
+            }).catch(e => {});
     }
 
-    function startRadar() {
-        if (radarMarker) map.removeLayer(radarMarker);
-        let radarIcon = L.divIcon({
-            className: '',
-            html: '<div class="radar-pulse"></div>',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
-        radarMarker = L.marker(startPoint, {icon: radarIcon}).addTo(map);
+    function loadDynamicPricing(nearbyCount = 0) {
+        document.getElementById('stats-panel').style.display = 'block';
+        document.getElementById('supply-count').innerText = nearbyCount;
+
+        let payload = {
+            startLongitude: startPoint[1],
+            startLatitude: startPoint[0],
+            endLongitude: endPoint[1],
+            endLatitude: endPoint[0]
+        };
+
+        fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/calculate?nearbyDriversCount=${nearbyCount}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            let badge = document.getElementById('surge-badge');
+            let mult = data.surgeMultiplier || 1.0;
+            if (mult > 1.0) {
+                badge.innerText = `🔥 Tăng giá: x${mult.toFixed(1)} (${data.surgeLevel || 'Nhu cầu cao'})`;
+                badge.style.color = "red";
+                badge.style.background = "#fee2e2";
+            } else {
+                badge.innerText = `⚡ Giá chuẩn (x1.0)`;
+                badge.style.color = "green";
+                badge.style.background = "#d1fae5";
+            }
+        }).catch(e => {});
     }
 
-    function stopRadar() {
-        if (radarMarker) {
-            map.removeLayer(radarMarker);
-            radarMarker = null;
-        }
-    }
-
-    function updateSurgeBadgeByPrice(price) {
-        let badge = document.getElementById('surge-badge');
-        if (price > 120000) {
-            badge.innerText = `🔥 TĂNG GIÁ (Cầu cao)`;
-            badge.style.color = "red";
-            badge.style.fontWeight = "bold";
-        } else {
-            badge.innerText = `Bình thường (1.0x)`;
-            badge.style.color = "green";
-            badge.style.fontWeight = "normal";
-        }
-    }
-
-    function cleanupSystem() {
-        clearInterval(nearbyDriversInterval);
-        clearInterval(customerTimerInterval);
-        if (stompClient) stompClient.disconnect();
-        document.getElementById('status').innerText = "Trạng thái: TOKEN HẾT HẠN";
-        document.getElementById('status').style.color = "red";
-        document.getElementById('btnBook').disabled = true;
-        document.getElementById('btnConnect').disabled = false;
-    }
-
-    function logSystem(bookingId, status, messageStr) {
-        let logEl = document.getElementById('log');
-        let color = status === 'COMPLETED' ? "green" : (status === 'CANCELLED' || status === 'TIMEOUT' ? "red" : "blue");
-        logEl.innerHTML += `<li style="font-weight:bold; color:${color}">[ID: ${bookingId || '?'}] -> ${status}: ${messageStr}</li>`;
-        logEl.scrollTop = logEl.scrollHeight;
+    function logSystem(bookingId, status, message) {
+        const log = document.getElementById('log');
+        let li = document.createElement('li');
+        let time = new Date().toLocaleTimeString();
+        let displayStatus = status ? `[${status}]` : '';
+        li.innerHTML = `<b>[${time}] ${displayStatus}</b>: ${message}`;
+        log.appendChild(li);
+        log.scrollTop = log.scrollHeight;
     }
 
     function connectNotification() {
         let cleanToken = getStoredToken();
         if (!cleanToken) return;
 
+        let decoded = parseJwt(cleanToken);
+        if (!decoded) return alert("Token không hợp lệ!");
+
+        customerId = decoded.userId || decoded.id;
         let socket = new SockJS(`${WS_BASE_URL}/ws-booking`);
         stompClient = Stomp.over(socket);
+        stompClient.debug = null;
 
         stompClient.connect({
-            "userId": customerId.toString(),
-            "role": "CUSTOMER"
+            'Authorization': 'Bearer ' + cleanToken,
+            'userId': customerId.toString(),
+            'role': 'CUSTOMER'
         }, function (frame) {
-            document.getElementById('status').innerText = `Đã kết nối (ID: ${customerId})`;
+            document.getElementById('status').innerText = `Trạng thái: Đã kết nối (Khách hàng ID: ${customerId})`;
             document.getElementById('status').style.color = "green";
-            document.getElementById('btnBook').disabled = false;
             document.getElementById('btnConnect').disabled = true;
-            document.getElementById('stats-panel').style.display = "block";
+            document.getElementById('btnBook').disabled = false;
 
-            if (nearbyDriversInterval) clearInterval(nearbyDriversInterval);
-            loadNearbyDrivers();
-            nearbyDriversInterval = setInterval(loadNearbyDrivers, 3500);
-
-            stompClient.subscribe('/user/queue/booking/status', function (message) {
-                let bookingInfo = JSON.parse(message.body);
-
-                if (bookingInfo.status === 'PENDING' || bookingInfo.status === 'ACCEPTED') {
-                    document.getElementById('btnCancelTrip').style.display = "inline-block";
-                } else {
-                    document.getElementById('btnCancelTrip').style.display = "none";
-                }
-
-                if (bookingInfo.status === 'PENDING') {
-                    document.getElementById('btnPayMomo').style.display = "none";
-                    document.getElementById('btnPayVnpay').style.display = "none";
-
-                    hasInitiatedPayment = false;
-                    let oldBadge = document.getElementById('paid-badge');
-                    if (oldBadge) oldBadge.remove();
-
-                    startRadar();
-                    startCustomerTimer();
-
-                    if (activeDriverId && driverMarkers[activeDriverId.toString()]) {
-                        map.removeLayer(driverMarkers[activeDriverId.toString()]);
-                        delete driverMarkers[activeDriverId.toString()];
-                    }
-                    activeDriverId = null;
-                    if (bookingInfo.price) updateSurgeBadgeByPrice(bookingInfo.price);
-                } else {
-                    clearInterval(customerTimerInterval);
-                    document.getElementById('customer-timer').style.display = "none";
-                    stopRadar();
-
-                    if (bookingInfo.status === 'ACCEPTED' && !hasInitiatedPayment) {
-                        document.getElementById('btnPayMomo').style.display = "inline-block";
-                        document.getElementById('btnPayVnpay').style.display = "inline-block";
-                    }
-                    else if (bookingInfo.status === 'COMPLETED' && !hasInitiatedPayment) {
-                        if (bookingInfo.paymentMethod === 'CASH') {
-                            document.getElementById('btnPayMomo').style.display = "none";
-                            document.getElementById('btnPayVnpay').style.display = "none";
-                            document.getElementById('trip-status-text').innerHTML = `Mã chuyến: #${bookingInfo.bookingId} | <span style="color: green;">ĐÃ THANH TOÁN (TIỀN MẶT)</span>`;
-                            alert("✅ Tài xế đã xác nhận thu TIỀN MẶT. Chuyến đi kết thúc!");
-
-                            setTimeout(() => {
-                                document.getElementById('trip-card').style.display = "none";
-                                currentBookingId = null;
-                            }, 3000);
-                        }
-                        else if (bookingInfo.paymentMethod === 'APP') {
-                            document.getElementById('btnPayMomo').style.display = "inline-block";
-                            document.getElementById('btnPayVnpay').style.display = "inline-block";
-                            document.getElementById('trip-status-text').innerHTML = `Mã chuyến: #${bookingInfo.bookingId} | <span style="color: red;">ĐANG CHỜ BẠN THANH TOÁN QUA APP</span>`;
-                            alert("⚠️ Tài xế yêu cầu thanh toán cước phí qua Ứng Dụng. Vui lòng chọn cổng thanh toán!");
-                        }
-                    }
-                    else {
-                        document.getElementById('btnPayMomo').style.display = "none";
-                        document.getElementById('btnPayVnpay').style.display = "none";
-                    }
-                }
-
-                if (bookingInfo.status === 'CANCELLED') {
-                    if (!isClientCanceling) {
-                        logSystem(bookingInfo.bookingId, "CANCELLED", "Hệ thống hủy chuyến đi (Không tìm thấy tài xế).");
-                        alert("❌ THÔNG BÁO: Hệ thống không tìm thấy tài xế rảnh nào tiếp nhận. Cuốc xe đã hủy.");
-                    } else {
-                        logSystem(bookingInfo.bookingId, "CANCELLED", "Bạn đã chủ động hủy chuyến đi.");
-                    }
-
-                    if (activeDriverId && driverMarkers[activeDriverId.toString()]) {
-                        map.removeLayer(driverMarkers[activeDriverId.toString()]);
-                        delete driverMarkers[activeDriverId.toString()];
-                    }
-                    activeDriverId = null;
-                    currentBookingId = null;
-                    document.getElementById('trip-card').style.display = "none";
-                    document.getElementById('btnPayMomo').style.display = "none";
-                    document.getElementById('btnPayVnpay').style.display = "none";
-                    stopRadar();
-                    document.getElementById('surge-badge').innerText = "Trở về bình thường";
-                    document.getElementById('surge-badge').style.color = "blue";
-                    isClientCanceling = false;
-                    return;
-                }
-
-                currentBookingId = bookingInfo.bookingId;
-                document.getElementById('trip-card').style.display = "block";
-                document.getElementById('trip-status-text').innerText = `Mã chuyến: #${bookingInfo.bookingId} | Trạng thái: ${bookingInfo.status} | Tài xế ID: ${bookingInfo.driverId || 'Đang tìm tài xế...'}`;
-
-                if (bookingInfo.status === 'ACCEPTED' && bookingInfo.driverId) {
-                    activeDriverId = bookingInfo.driverId;
-                    assignedDriverId = bookingInfo.driverId;
-                    let idStr = activeDriverId.toString();
-                    if (driverMarkers[idStr]) driverMarkers[idStr].setLatLng(startPoint);
-                    else driverMarkers[idStr] = L.marker(startPoint, {icon: nearbyCarIcon}).addTo(map).bindPopup(`🚕 Tài xế Mới Đón Bạn (ID: ${idStr})`);
-                    driverMarkers[idStr].openPopup();
-                }
-
-                if (bookingInfo.status === 'COMPLETED') {
-                    if (activeDriverId && driverMarkers[activeDriverId.toString()]) {
-                        map.removeLayer(driverMarkers[activeDriverId.toString()]);
-                        delete driverMarkers[activeDriverId.toString()];
-                    }
-                    activeDriverId = null;
-                    document.getElementById('surge-badge').innerText = "Trở về bình thường";
-                    document.getElementById('surge-badge').style.color = "blue";
-                }
-
-                logSystem(bookingInfo.bookingId, bookingInfo.status, "Cập nhật từ hệ thống");
-                if (bookingInfo.status === 'COMPLETED') alert("Tài xế đã hoàn thành chuyến đi! Bạn có thể thanh toán ngay.");
+            if (radarMarker) map.removeLayer(radarMarker);
+            const radarIcon = L.divIcon({
+                className: 'radar-pulse',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
             });
-        }, function (error) {
-            console.error('Lỗi kết nối STOMP: ' + error);
-            document.getElementById('status').innerText = "Trạng thái: KẾT NỐI THẤT BẠI";
+            radarMarker = L.marker(startPoint, {icon: radarIcon}).addTo(map);
+
+            loadNearbyDrivers();
+            clearInterval(nearbyDriversInterval);
+            nearbyDriversInterval = setInterval(() => {
+                loadNearbyDrivers();
+            }, 3000);
+
+            // Lắng nghe cập nhật trạng thái chuyến đi từ booking-service
+            stompClient.subscribe(`/user/queue/booking/status`, function (message) {
+                let event = JSON.parse(message.body);
+                handleBookingEvent(event);
+            });
+
+            stompClient.subscribe(`/user/queue/customer-notifications`, function (message) {
+                let event = JSON.parse(message.body);
+                handleBookingEvent(event);
+            });
+        }, function(err) {
+            document.getElementById('status').innerText = "Trạng thái: Mất kết nối!";
             document.getElementById('status').style.color = "red";
+            document.getElementById('btnConnect').disabled = false;
         });
     }
 
+    function handleBookingEvent(event) {
+        const card = document.getElementById('trip-card');
+        const text = document.getElementById('trip-status-text');
+        const btnCancel = document.getElementById('btnCancelTrip');
+        const btnMomo = document.getElementById('btnPayMomo');
+        const btnVnpay = document.getElementById('btnPayVnpay');
+
+        card.style.display = 'block';
+
+        if (event.status === 'SEARCHING' || event.status === 'PENDING') {
+            text.innerText = `Đang tìm tài xế gần bạn nhất...`;
+            btnCancel.style.display = "inline-block";
+            btnMomo.style.display = "none";
+            btnVnpay.style.display = "none";
+            startCustomerTimer();
+        } else if (event.status === 'ACCEPTED' || event.status === 'DRIVER_ASSIGNED') {
+            clearInterval(customerTimerInterval);
+            document.getElementById('customer-timer').style.display = "none";
+            assignedDriverId = event.driverId;
+            text.innerText = `🎉 Tài xế #${event.driverId} đã nhận chuyến! Đang đến đón bạn.`;
+            btnCancel.style.display = "inline-block";
+            logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã nhận chuyến.`);
+        } else if (event.status === 'ARRIVED') {
+            clearInterval(customerTimerInterval);
+            document.getElementById('customer-timer').style.display = "none";
+            assignedDriverId = event.driverId;
+            text.innerText = `🚖 Tài xế #${event.driverId} đã đến điểm đón! Vui lòng lên xe.`;
+            btnCancel.style.display = "inline-block";
+            logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã đến điểm đón.`);
+        } else if (event.status === 'IN_PROGRESS') {
+            clearInterval(customerTimerInterval);
+            document.getElementById('customer-timer').style.display = "none";
+            btnCancel.style.display = "none";
+            text.innerText = `🚕 Chuyến đi đang diễn ra. Chúc bạn có trải nghiệm an toàn!`;
+            logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi đang diễn ra.`);
+        } else if (event.status === 'COMPLETED') {
+            clearInterval(customerTimerInterval);
+            document.getElementById('customer-timer').style.display = "none";
+            btnCancel.style.display = "none";
+            btnMomo.style.display = "inline-block";
+            btnVnpay.style.display = "inline-block";
+            currentTripPrice = event.price || 0;
+            text.innerText = `🏁 Chuyến đi hoàn tất! Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`;
+            logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+        } else if (event.status === 'CANCELLED') {
+            clearInterval(customerTimerInterval);
+            document.getElementById('customer-timer').style.display = "none";
+            btnCancel.style.display = "none";
+            text.innerText = `❌ Chuyến đi đã bị hủy.`;
+            logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi đã bị hủy.`);
+        }
+    }
+
     function bookRide() {
-        let cleanToken = getStoredToken();
-        if (!cleanToken) return;
+        isClientCanceling = false;
+        hasInitiatedPayment = false;
+        assignedDriverId = null;
+
         let payload = {
-            "startLongitude": startPoint[1],
-            "startLatitude": startPoint[0],
-            "endLongitude": endPoint[1],
-            "endLatitude": endPoint[0]
+            startLatitude: startPoint[0],
+            startLongitude: startPoint[1],
+            endLatitude: endPoint[0],
+            endLongitude: endPoint[1]
         };
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
-        }).then(async res => {
-            if (!res.ok) {
-                let err = await res.json().catch(() => ({}));
-                throw new Error(err.message || "Lỗi hệ thống");
+        })
+        .then(async res => {
+            let data = await res.json();
+            if (res.ok) {
+                let booking = data.data || data;
+                if (booking && (booking.id || booking.bookingId)) {
+                    currentBookingId = booking.id || booking.bookingId;
+                    document.getElementById('trip-card').style.display = 'block';
+                    document.getElementById('trip-status-text').innerText = "Đang tìm tài xế gần bạn...";
+                    document.getElementById('btnCancelTrip').style.display = "inline-block";
+                    startCustomerTimer();
+                    return;
+                }
             }
-            return res.json();
-        }).then(data => {
-            if (data.status === 'CANCELLED') {
-                alert("❌ ĐẶT XE THẤT BẠI: Hết xe rảnh!");
-                return;
-            }
-
-            currentBookingId = data.bookingId;
-            currentTripPrice = data.price;
-            hasInitiatedPayment = false;
-            let oldBadge = document.getElementById('paid-badge');
-            if (oldBadge) oldBadge.remove();
-
-            updateSurgeBadgeByPrice(data.price);
-            document.getElementById('trip-card').style.display = "block";
-            document.getElementById('btnPayMomo').style.display = "none";
-            document.getElementById('trip-status-text').innerText = `Mã chuyến: #${data.bookingId} | Đang chờ...`;
-            document.getElementById('btnCancelTrip').style.display = "inline-block";
-
-            startRadar();
-            startCustomerTimer();
-            logSystem(data.bookingId, "PENDING", `Đã gửi yêu cầu đặt xe. Thành tiền: ${Math.round(data.price).toLocaleString('vi-VN')} VND`);
-        }).catch(err => alert("⚠️ ĐẶT XE THẤT BẠI: " + err.message));
+            alert(data.message || "Đặt xe thất bại!");
+        })
+        .catch(err => alert("Lỗi đặt xe: " + err.message));
     }
 
-    function cancelCurrentTrip(isAutomaticTimeout = false) {
+    function cancelCurrentTrip(isTimeout = false) {
         if (!currentBookingId) return;
-        if (!isAutomaticTimeout && !confirm("Bạn có chắc chắn muốn hủy?")) return;
-
-        let cleanToken = getStoredToken();
-        if (!cleanToken) return;
         isClientCanceling = true;
-
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${currentBookingId}/cancel`, {
-            method: 'PUT',
-            headers: {'X-User-Id': customerId.toString()}
-        }).then(async res => {
-            if (!res.ok) throw new Error("Không thể hủy!");
-            return res.json();
-        }).then(data => {
-            document.getElementById('btnCancelTrip').style.display = "none";
-            document.getElementById('btnPayMomo').style.display = "none";
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({reason: isTimeout ? "Quá thời gian chờ" : "Khách hàng hủy chủ động"})
+        })
+        .then(() => {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
-            stopRadar();
-            document.getElementById('trip-card').style.display = "none";
-            document.getElementById('surge-badge').innerText = "Trở về bình thường";
-            document.getElementById('surge-badge').style.color = "blue";
-            if (isAutomaticTimeout) alert("❌ HỆ THỐNG TIMEOUT: Không tìm thấy phản hồi từ tài xế, cuốc xe tự động hủy!");
-            else alert("Đã hủy chuyến thành công!");
-        }).catch(err => {
-            isAutomaticTimeout = false;
+            document.getElementById('trip-status-text').innerText = "❌ Bạn đã hủy chuyến đi.";
             document.getElementById('btnCancelTrip').style.display = "none";
-            clearInterval(customerTimerInterval);
-            document.getElementById('customer-timer').style.display = "none";
-            stopRadar();
-            document.getElementById('trip-card').style.display = "none";
         });
     }
 
     function payTrip(method) {
-        if (!currentBookingId || !currentTripPrice || !assignedDriverId) {
-            alert("Thông tin cuốc xe không hợp lệ!");
-            return;
-        }
-        let cleanToken = getStoredToken();
-        if (!cleanToken) return;
+        if (!currentBookingId) return alert("Không tìm thấy mã chuyến đi!");
+        hasInitiatedPayment = true;
+        let driverParam = assignedDriverId ? `&driverId=${assignedDriverId}` : '';
+        let url = `${API_BASE_URL}/api/v1/payments/payment/create?method=${method.toUpperCase()}&type=TRIP_PAYMENT&bookingId=${currentBookingId}&amount=${currentTripPrice}${driverParam}`;
 
-        fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${method}&type=TRIP&bookingId=${currentBookingId}&driverId=${assignedDriverId}&amount=${currentTripPrice}`, {
-            method: 'POST', headers: {'X-User-Id': customerId.toString()}
-        }).then(async res => {
-            if (!res.ok) throw new Error("Lỗi gọi cổng thanh toán");
-            return res.json();
-        }).then(data => {
-            if (data.paymentUrl) {
+        fetchWithAuth(url, { method: 'POST' })
+        .then(async res => {
+            let data = await res.json();
+            if (res.ok && data.paymentUrl) {
                 window.open(data.paymentUrl, '_blank');
-                hasInitiatedPayment = true;
-                document.getElementById('btnPayMomo').style.display = "none";
-                document.getElementById('btnPayVnpay').style.display = "none";
-
-                let tripCard = document.getElementById('trip-card');
-                let paidBadge = document.createElement("span");
-                paidBadge.id = "paid-badge";
-                paidBadge.style.cssText = "color: #ed6c02; font-weight: bold; margin-left: 10px; background: #fff3cd; padding: 5px 10px; border-radius: 5px;";
-                paidBadge.innerText = `⏳ Đang chờ kết quả từ ${method}...`;
-
-                let cancelPayBtn = document.createElement("button");
-                cancelPayBtn.id = "cancel-pay-btn";
-                cancelPayBtn.innerText = "❌ Đổi phương thức";
-                cancelPayBtn.style.cssText = "margin-left: 10px; background: none; border: 1px solid #dc3545; color: #dc3545; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 13px;";
-
-                cancelPayBtn.onclick = function () {
-                    clearInterval(paymentCheckInterval);
-                    hasInitiatedPayment = false;
-                    paidBadge.remove();
-                    cancelPayBtn.remove();
-
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${currentBookingId}/cancel-pending`, {
-                        method: 'PUT'
-                    }).catch(err => console.warn("Lỗi hủy PENDING:", err));
-
-                    document.getElementById('btnPayMomo').style.display = "inline-block";
-                    document.getElementById('btnPayVnpay').style.display = "inline-block";
-                    logSystem(currentBookingId, "INFO", "Khách hàng đã hủy giao dịch cũ để chọn lại phương thức thanh toán.");
-                };
-
-                if (!document.getElementById('paid-badge')) {
-                    tripCard.appendChild(paidBadge);
-                    tripCard.appendChild(cancelPayBtn);
-                }
-                logSystem(currentBookingId, "PAYMENT", `Bắt đầu gọi cổng ${method} số tiền ${currentTripPrice.toLocaleString('vi-VN')} đ`);
-
-                clearInterval(paymentCheckInterval);
-                paymentCheckInterval = setInterval(() => {
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${currentBookingId}/payment-status`)
-                        .then(res => res.text())
-                        .then(status => {
-                            if (status === 'SUCCESS') {
-                                clearInterval(paymentCheckInterval);
-                                let badge = document.getElementById('paid-badge');
-                                let cancelBtn = document.getElementById('cancel-pay-btn');
-                                if (badge) badge.remove();
-                                if (cancelBtn) cancelBtn.remove();
-                                logSystem(currentBookingId, "COMPLETED", `Khách hàng ID ${customerId} đã thanh toán thành công cuốc xe #${currentBookingId} giá ${currentTripPrice.toLocaleString('vi-VN')} đ qua ${method}.`);
-                            } else if (status === 'CANCELED' || status === 'FAILED') {
-                                clearInterval(paymentCheckInterval);
-                                let badge = document.getElementById('paid-badge');
-                                if (badge) badge.innerText = "❌ Giao dịch đã bị hủy!";
-                            }
-                        });
-                }, 3000);
+                startCustomerPaymentPolling(currentBookingId);
+            } else {
+                alert(data.message || "Không thể tạo liên kết thanh toán!");
             }
-        }).catch(err => alert("Lỗi: " + err.message));
+        })
+        .catch(err => {
+            alert("Lỗi khi kết nối tới cổng thanh toán: " + err.message);
+        });
+    }
+
+    function startCustomerPaymentPolling(bookingId) {
+        clearInterval(paymentCheckInterval);
+        let pollCount = 0;
+        document.getElementById('trip-status-text').innerHTML = `⏳ <i>Đang chờ xác nhận thanh toán...</i>`;
+
+        paymentCheckInterval = setInterval(() => {
+            pollCount++;
+            fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${bookingId}/payment-status`)
+                .then(res => res.text())
+                .then(status => {
+                    if (status === 'SUCCESS') {
+                        clearInterval(paymentCheckInterval);
+                        document.getElementById('btnPayMomo').style.display = "none";
+                        document.getElementById('btnPayVnpay').style.display = "none";
+                        document.getElementById('trip-status-text').innerHTML = `🎉 <b>THANH TOÁN THÀNH CÔNG!</b> Cảm ơn bạn đã sử dụng dịch vụ.`;
+                        logSystem(bookingId, 'PAID', 'Thanh toán cước chuyến đi thành công.');
+                        alert("🎉 Thanh toán chuyến đi thành công!");
+                        setTimeout(() => {
+                            document.getElementById('trip-card').style.display = 'none';
+                            currentBookingId = null;
+                            assignedDriverId = null;
+                            hasInitiatedPayment = false;
+                        }, 2500);
+                    }
+                })
+                .catch(e => {});
+
+            if (pollCount >= 60) {
+                clearInterval(paymentCheckInterval);
+            }
+        }, 3000);
     }
 
     function toggleBookingHistory() {
@@ -726,55 +1751,129 @@
         let listEl = document.getElementById('booking-history-list');
         listEl.innerHTML = "<li style='padding: 10px; color: gray;'>⏳ Đang tải dữ liệu...</li>";
 
-        let cleanToken = getStoredToken();
-        if (!cleanToken || !customerId) return;
-
-
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/customer`, {
             method: 'GET',
             headers: {'X-User-Id': customerId.toString()}
         })
-            .then(async res => {
-                if (!res.ok) throw new Error("Không thể lấy dữ liệu lịch sử");
-                return res.json();
-            })
-            .then(data => {
-                listEl.innerHTML = "";
-                let bookings = data.data || data;
-
-                if (!Array.isArray(bookings) || bookings.length === 0) {
-                    listEl.innerHTML = "<li style='padding: 10px; color: #555; font-style: italic;'>Bạn chưa có chuyến đi nào.</li>";
-                    return;
-                }
-
-                bookings.forEach(b => {
-                    let statusColor = b.status === 'COMPLETED' ? 'green' : (b.status === 'CANCELLED' ? 'red' : '#ed6c02');
-                    let displayPrice = b.price ? b.price.toLocaleString('vi-VN') : 0;
-                    let displayId = b.id || b.bookingId;
-                    let dateStr = 'Không rõ thời gian';
-                    if (b.createdAt) {
-                        let utcTime = b.createdAt.endsWith('Z') ? b.createdAt : b.createdAt + 'Z';
-                        let dateObj = new Date(utcTime);
-
-                        let time = dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                        let date = dateObj.toLocaleDateString('vi-VN');
-                        dateStr = `${time} ${date}`;
-                    }
-
-                    listEl.innerHTML += `
+        .then(res => res.json())
+        .then(data => {
+            listEl.innerHTML = "";
+            let bookings = data.data || data;
+            if (!Array.isArray(bookings) || bookings.length === 0) {
+                listEl.innerHTML = "<li style='padding: 10px; color: #555; font-style: italic;'>Bạn chưa có chuyến đi nào.</li>";
+                return;
+            }
+            bookings.forEach(b => {
+                let statusColor = b.status === 'COMPLETED' ? 'green' : (b.status === 'CANCELLED' ? 'red' : '#ed6c02');
+                let displayPrice = b.price ? b.price.toLocaleString('vi-VN') : 0;
+                listEl.innerHTML += `
                     <li style="border-bottom: 1px solid #eee; padding: 12px 0; line-height: 1.6;">
-                        <div style="font-weight: bold; color: #333; font-size: 15px;">Mã chuyến xe: #${displayId}</div>
-                        <div style="font-size: 14px;">Quãng đường: <b>${b.distanceInKm ? b.distanceInKm.toFixed(2) : '?'} km</b> - Thành tiền: <b style="color: #d32f2f;">${displayPrice} đ</b></div>
-                        <div style="font-size: 14px;">Trạng thái: <span style="color: ${statusColor}; font-weight: bold;">${b.status}</span></div>
-                        <div style="font-size: 12px; color: gray; margin-top: 4px;">📅 Đặt lúc: ${dateStr}</div>
+                        <div style="font-weight: bold; color: #333;">Mã chuyến: #${b.id || b.bookingId}</div>
+                        <div>Quãng đường: <b>${b.distanceInKm ? b.distanceInKm.toFixed(2) : '?'} km</b> - Thành tiền: <b style="color: #d32f2f;">${displayPrice} đ</b></div>
+                        <div>Trạng thái: <span style="color: ${statusColor}; font-weight: bold;">${b.status}</span></div>
                     </li>
                 `;
-                });
-            })
-            .catch(err => {
-                listEl.innerHTML = `<li style='padding: 10px; color: red;'>❌ Lỗi: ${err.message}</li>`;
             });
+        })
+        .catch(err => {
+            listEl.innerHTML = `<li style='padding: 10px; color: red;'>❌ Lỗi: ${err.message}</li>`;
+        });
+    }
+
+    function toggleCustomerWalletModal() {
+        let modal = document.getElementById('customer-wallet-modal');
+        if (modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        } else {
+            modal.style.display = 'flex';
+            fetchCustomerWallet(true);
+            fetchCustomerTransactions();
+        }
+    }
+
+    function fetchCustomerWallet(notify = false) {
+        if (!customerId) return;
+        fetchWithAuth(`${API_BASE_URL}/api/v1/payments/wallet`, {
+            headers: {'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            let balance = 0;
+            if (data && data.balance !== undefined) balance = data.balance;
+            else if (data && data.data && data.data.balance !== undefined) balance = data.data.balance;
+
+            let formatted = Number(balance).toLocaleString('vi-VN') + ' đ';
+            let el = document.getElementById('customer-wallet-balance');
+            if (el) el.innerText = formatted;
+            let modalBal = document.getElementById('wallet-modal-balance');
+            if (modalBal) modalBal.innerText = formatted;
+            if (notify) console.log("Cập nhật ví khách hàng:", formatted);
+        })
+        .catch(err => {
+            console.warn("Chưa lấy được ví khách hàng:", err);
+        });
+    }
+
+    function fetchCustomerTransactions() {
+        if (!customerId) return;
+        let listEl = document.getElementById('customer-tx-list');
+        listEl.innerHTML = "<p style='color: gray; text-align: center; margin: 10px 0;'>⏳ Đang tải lịch sử...</p>";
+
+        fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
+            headers: {'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            let list = (data && data.data !== undefined) ? data.data : data;
+            if (!Array.isArray(list) || list.length === 0) {
+                listEl.innerHTML = "<p style='color: #64748b; text-align: center; padding: 10px;'>Chưa có giao dịch hoặc tiền hoàn nào.</p>";
+                return;
+            }
+
+            listEl.innerHTML = list.map(tx => {
+                let isIncome = (tx.transactionType === 'REFUND' || tx.transactionType === 'DEPOSIT');
+                let color = isIncome ? '#16a34a' : '#dc2626';
+                let sign = isIncome ? '+' : '-';
+
+                let desc = "";
+                if (tx.transactionType === 'REFUND') {
+                    desc = `💵 Hoàn tiền đơn hàng #${tx.bookingId || ''}`;
+                } else if (tx.transactionType === 'FOOD_PAYMENT') {
+                    desc = `🍲 Thanh toán đơn đồ ăn #${tx.bookingId || ''}`;
+                } else if (tx.transactionType === 'TRIP_PAYMENT') {
+                    desc = `🚕 Thanh toán cuốc xe #${tx.bookingId || ''}`;
+                } else if (tx.transactionType === 'DEPOSIT') {
+                    desc = `💳 Nạp tiền vào ví`;
+                } else {
+                    desc = tx.transactionType;
+                }
+
+                let dateStr = '';
+                if (tx.createdAt) {
+                    let utcTime = tx.createdAt.endsWith('Z') ? tx.createdAt : tx.createdAt + 'Z';
+                    let dateObj = new Date(utcTime);
+                    dateStr = dateObj.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'});
+                }
+
+                return `
+                    <div style="border-bottom: 1px solid #e2e8f0; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; color: #1e293b;">${desc}</div>
+                            <div style="font-size: 11px; color: #64748b;">🕒 ${dateStr}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; color: ${color}; font-size: 14px;">${sign}${Number(tx.amount || 0).toLocaleString('vi-VN')} đ</div>
+                            <span style="font-size: 11px; padding: 1px 6px; border-radius: 4px; background: ${tx.status === 'SUCCESS' ? '#dcfce7' : '#fee2e2'}; color: ${tx.status === 'SUCCESS' ? '#15803d' : '#991b1b'};">${tx.status}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(err => {
+            listEl.innerHTML = `<p style='color: red; text-align: center;'>❌ Lỗi tải lịch sử: ${err.message}</p>`;
+        });
     }
 </script>
+
 </body>
 </html>

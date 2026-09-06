@@ -103,4 +103,10 @@ public class LocationServiceImpl implements LocationService {
         nearbyDrivers.sort(Comparator.comparingDouble(DriverLocationResponse::getDistanceInKm));
         return nearbyDrivers;
     }
-}
+
+    @Override
+    public List<DriverLocationResponse> getNearbyDeliveryDrivers(Double longitude, Double latitude, Double radiusInKm) {
+        log.info("Tìm kiếm tài xế giao đồ ăn gần tọa độ ({}, {}) bán kính {} km", longitude, latitude, radiusInKm);
+        return getNearbyDrivers(longitude, latitude, radiusInKm);
+    }
+}

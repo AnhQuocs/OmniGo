@@ -23,7 +23,7 @@ public class CorsConfig {
                 "https://*.ridehailingsystem.online",
                 "http://*.ridehailingsystem.online"
         ));
-        corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         corsConfig.setAllowedHeaders(Arrays.asList("*"));
         corsConfig.setAllowCredentials(true);
 

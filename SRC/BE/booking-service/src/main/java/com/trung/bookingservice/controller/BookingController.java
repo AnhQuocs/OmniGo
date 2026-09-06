@@ -6,8 +6,10 @@ import com.trung.bookingservice.dto.response.BookingResponse;
 import com.trung.bookingservice.entity.Booking;
 import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
+import com.trung.bookingservice.service.FoodDeliveryDispatchService;
 import com.trung.bookingservice.service.impl.BookingServiceImpl;
 import com.trung.bookingservice.util.enums.BookingStatus;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class BookingController {
 
     private final BookingServiceImpl bookingService;
+    private final FoodDeliveryDispatchService foodDeliveryDispatchService;
 
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(
@@ -90,6 +93,30 @@ public class BookingController {
     @GetMapping("/admin/all")
     public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingsAdmin() {
         return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    @PostMapping("/food-orders/{orderId}/accept")
+    public ResponseEntity<ApiResponse<String>> acceptFoodOrder(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long orderId) throws ResourceNotFoundException, BadRequestException {
+        foodDeliveryDispatchService.acceptFoodOrder(orderId, driverId);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Tài xế đã nhận đơn giao đồ ăn thành công")
+                .data("OK")
+                .build());
+    }
+
+    @PostMapping("/food-orders/{orderId}/reject")
+    public ResponseEntity<ApiResponse<String>> rejectFoodOrder(
+            @RequestHeader("X-User-Id") Long driverId,
+            @PathVariable Long orderId) {
+        foodDeliveryDispatchService.rejectFoodOrder(orderId, driverId);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Tài xế đã bỏ qua đơn giao đồ ăn")
+                .data("OK")
+                .build());
     }
 
     @GetMapping("/admin/stats")

@@ -15,4 +15,11 @@ public interface LocationClient {
             @RequestParam("latitude") Double latitude,
             @RequestParam("radius") Double radius
     );
-}
+
+    @GetMapping("/api/v1/internal/locations/drivers/nearby-delivery")
+    List<DriverNearbyResponse> getNearbyDeliveryDrivers(
+            @RequestParam("longitude") Double longitude,
+            @RequestParam("latitude") Double latitude,
+            @RequestParam("radius") Double radius
+    );
+}

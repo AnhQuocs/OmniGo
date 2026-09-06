@@ -1,5 +1,6 @@
 package com.trung.paymentservice.service.impl;
 
+import com.trung.paymentservice.dto.request.RefundRequest;
 import com.trung.paymentservice.entity.Transaction;
 import com.trung.paymentservice.entity.Wallet;
 import com.trung.paymentservice.event.BookingCompletedEvent;
@@ -216,5 +217,128 @@ public class WalletServiceImpl implements WalletService {
             transactionRepository.saveAll(pendingTxs);
             log.info("Đã chuyển trạng thái sang CANCELED cho {} giao dịch của booking {}", pendingTxs.size(), bookingId);
         }
+    }
+
+    @Override
+    @Transactional
+    public void processFoodOrderPayout(com.trung.paymentservice.dto.request.FoodOrderPayoutRequest request) {
+        if (request == null || request.getDriverId() == null || request.getOrderId() == null) {
+            log.error("Dữ liệu payout đơn hàng giao đồ ăn không hợp lệ: {}", request);
+            return;
+        }
+
+        Long driverId = request.getDriverId();
+        Long orderId = request.getOrderId();
+        BigDecimal deliveryFee = request.getDeliveryFee() != null ? request.getDeliveryFee() : BigDecimal.valueOf(15000);
+        String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
+
+        Wallet wallet = walletRepository.findByUserIdAndUserTypeWithLock(driverId, UserType.DRIVER)
+                .orElseGet(() -> walletRepository.save(Wallet.builder()
+                        .userId(driverId)
+                        .userType(UserType.DRIVER)
+                        .balance(BigDecimal.ZERO)
+                        .build()));
+
+        boolean alreadyProcessed = transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId())
+                .stream().anyMatch(tx -> tx.getOrderId() != null && tx.getOrderId().startsWith("FOOD_FEE_" + orderId + "_"));
+
+        if (alreadyProcessed) {
+            log.info("Đơn đồ ăn #{} đã được quyết toán hoa hồng/cước phí trước đó, bỏ qua.", orderId);
+            return;
+        }
+
+        BigDecimal commissionFee = deliveryFee.multiply(BigDecimal.valueOf(0.20)).setScale(0, java.math.RoundingMode.HALF_UP);
+
+        if ("CASH".equalsIgnoreCase(paymentMethod)) {
+            // Đơn tiền mặt: Khách trả tiền mặt cho tài xế. Hệ thống trừ 20% phí hoa hồng cước ship từ ví tài xế
+            wallet.setBalance(wallet.getBalance().subtract(commissionFee));
+            walletRepository.save(wallet);
+
+            Transaction feeTx = Transaction.builder()
+                    .walletId(wallet.getId())
+                    .bookingId(orderId)
+                    .orderId("FOOD_FEE_" + orderId + "_" + System.currentTimeMillis())
+                    .amount(commissionFee)
+                    .transactionType(TransactionType.COMMISSION_FEE)
+                    .paymentMethod(PaymentMethod.WALLET)
+                    .status(TransactionStatus.SUCCESS)
+                    .build();
+            transactionRepository.save(feeTx);
+            log.info("Đã trừ 20% hoa hồng đơn giao đồ ăn COD #{}: -{} VND từ ví tài xế ID {}", orderId, commissionFee, driverId);
+        } else {
+            // Đơn online (MOMO/VNPAY): Khách đã trả trước, cộng cước ship vào ví và trừ 20% hoa hồng sàn
+            BigDecimal netIncome = deliveryFee.subtract(commissionFee);
+            wallet.setBalance(wallet.getBalance().add(netIncome));
+            walletRepository.save(wallet);
+
+            Transaction incTx = Transaction.builder()
+                    .walletId(wallet.getId())
+                    .bookingId(orderId)
+                    .orderId("FOOD_INC_" + orderId + "_" + System.currentTimeMillis())
+                    .amount(deliveryFee)
+                    .transactionType(TransactionType.FOOD_DELIVERY_INCOME)
+                    .paymentMethod(PaymentMethod.WALLET)
+                    .status(TransactionStatus.SUCCESS)
+                    .build();
+            transactionRepository.save(incTx);
+
+            Transaction feeTx = Transaction.builder()
+                    .walletId(wallet.getId())
+                    .bookingId(orderId)
+                    .orderId("FOOD_FEE_" + orderId + "_" + System.currentTimeMillis())
+                    .amount(commissionFee)
+                    .transactionType(TransactionType.COMMISSION_FEE)
+                    .paymentMethod(PaymentMethod.WALLET)
+                    .status(TransactionStatus.SUCCESS)
+                    .build();
+            transactionRepository.save(feeTx);
+
+            log.info("Đã cộng cước ship online đơn đồ ăn #{} vào ví tài xế ID {}: +{} VND (sau trừ phí sàn)", orderId, netIncome, driverId);
+        }
+
+        if (wallet.getBalance().compareTo(BigDecimal.valueOf(-50000)) <= 0) {
+            log.warn("Tài xế ID {} nợ cước hệ thống quá hạn mức (-50k). Số dư: {}. Ép OFFLINE!", driverId, wallet.getBalance());
+            try {
+                String lockUrl = "http://USER-DRIVER-SERVICE/api/v1/drivers/" + driverId + "/status?isActive=false";
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("X-User-Id", String.valueOf(driverId));
+                HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+                internalRestTemplate.exchange(lockUrl, HttpMethod.PUT, requestEntity, Void.class);
+            } catch (Exception e) {
+                log.error("Lỗi gọi khóa tài xế ID {}: {}", driverId, e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void processRefund(RefundRequest request) {
+        if (request == null || request.getUserId() == null || request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Dữ liệu hoàn tiền không hợp lệ: {}", request);
+            return;
+        }
+
+        Long userId = request.getUserId();
+        UserType userType = "DRIVER".equalsIgnoreCase(request.getUserType()) ? UserType.DRIVER : UserType.CUSTOMER;
+        BigDecimal amount = request.getAmount();
+        Long orderId = request.getOrderId();
+
+        Wallet wallet = getOrCreateWallet(userId, userType);
+        wallet.setBalance(wallet.getBalance().add(amount));
+        walletRepository.save(wallet);
+
+        Transaction refundTx = Transaction.builder()
+                .walletId(wallet.getId())
+                .bookingId(orderId)
+                .orderId("REFUND_" + (orderId != null ? orderId : System.currentTimeMillis()) + "_" + System.currentTimeMillis())
+                .amount(amount)
+                .transactionType(TransactionType.REFUND)
+                .paymentMethod(PaymentMethod.WALLET)
+                .status(TransactionStatus.SUCCESS)
+                .build();
+        transactionRepository.save(refundTx);
+
+        log.info("Đã hoàn tiền {} VND cho User ID {} (Loại: {}) cho đơn #{} thành công. Số dư mới: {} VND",
+                amount, userId, userType, orderId, wallet.getBalance());
     }
 }

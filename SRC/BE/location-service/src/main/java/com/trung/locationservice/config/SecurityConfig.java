@@ -21,18 +21,19 @@ public class SecurityConfig {
     private final HeaderAuthenticationFilter headerAuthenticationFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http){
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/internal/**").permitAll()
+                        .requestMatchers("/api/v1/locations/**").permitAll()
                         .requestMatchers("/ws-location/**").permitAll()
-                        .requestMatchers("/api/v1/locations/nearby").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .anyRequest().permitAll()
                 )
-                .addFilterBefore(headerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .addFilterBefore(headerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

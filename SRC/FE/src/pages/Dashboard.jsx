@@ -25,6 +25,8 @@ import {
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
   FiberManualRecord as DotIcon,
+  Fastfood as FoodIcon,
+  Store as RestaurantIcon,
 } from '@mui/icons-material';
 import {
   AreaChart,
@@ -47,6 +49,7 @@ import userService from '../services/userService';
 import pricingService from '../services/pricingService';
 import bookingService from '../services/bookingService';
 import paymentService from '../services/paymentService';
+import foodService from '../services/foodService';
 
 export const Dashboard = () => {
   const theme = useTheme();
@@ -71,6 +74,11 @@ export const Dashboard = () => {
     platformCommission: 0,
     totalTransactions: 0,
     successTransactions: 0,
+    totalFoodOrders: 0,
+    completedFoodOrders: 0,
+    foodRevenue: 0,
+    totalRestaurants: 0,
+    openRestaurants: 0,
   });
 
   const [weeklyRideData, setWeeklyRideData] = useState([]);
@@ -179,13 +187,24 @@ export const Dashboard = () => {
   const fetchDashboardData = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const [usersRes, pricingRes, bookingStatsRes, paymentStatsRes, allBookingsRes, allTransactionsRes] = await Promise.allSettled([
+      const [
+        usersRes,
+        pricingRes,
+        bookingStatsRes,
+        paymentStatsRes,
+        allBookingsRes,
+        allTransactionsRes,
+        foodStatsRes,
+        restaurantsRes,
+      ] = await Promise.allSettled([
         userService.getAllUsers({ page: 0, size: 100 }),
         pricingService.getPricingConfig(),
         bookingService.getBookingStats(),
         paymentService.getPaymentStats(),
         bookingService.getAllBookings(),
         paymentService.getAllTransactions(),
+        foodService.getFoodStats(),
+        foodService.getAllRestaurants(),
       ]);
 
       // Process Users & Drivers
@@ -231,6 +250,15 @@ export const Dashboard = () => {
       const totalGmv = Number(bStats.totalGmv ?? computedGmv ?? 0);
       const platformCommission = Math.round(totalGmv * 0.20);
 
+      // Process Food Delivery
+      const fStats = foodStatsRes.status === 'fulfilled' ? foodStatsRes.value : {};
+      const allRestaurants = restaurantsRes.status === 'fulfilled' && Array.isArray(restaurantsRes.value) ? restaurantsRes.value : [];
+      const totalFoodOrders = Number(fStats.totalOrders || 0);
+      const completedFoodOrders = Number(fStats.completedOrders || 0);
+      const foodRevenue = Number(fStats.totalRevenue || 0);
+      const totalRestaurants = allRestaurants.length;
+      const openRestaurants = allRestaurants.filter((r) => r.status === 'OPEN').length;
+
       setStats({
         totalCustomers,
         totalDrivers,
@@ -244,6 +272,11 @@ export const Dashboard = () => {
         platformCommission,
         totalTransactions,
         successTransactions,
+        totalFoodOrders,
+        completedFoodOrders,
+        foodRevenue,
+        totalRestaurants,
+        openRestaurants,
       });
 
       setWeeklyRideData(processWeeklyData(allBookings));
@@ -506,6 +539,105 @@ export const Dashboard = () => {
                 size="small"
                 sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#d97706', fontWeight: 700, fontSize: '0.72rem' }}
               />
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* 2 Food Delivery Telemetry Cards */}
+      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+        {/* Food Orders Card */}
+        <Grid item xs={12} sm={6} md={6}>
+          <Card
+            sx={{
+              p: 2.5,
+              borderRadius: 2.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-2px)' },
+            }}
+            onClick={() => navigate('/food-orders')}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>
+                <FoodIcon sx={{ fontSize: 32 }} />
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Đơn Giao Đồ Ăn (Food Delivery)
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
+                  {stats.totalFoodOrders} Đơn Hàng
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
+                  ✅ {stats.completedFoodOrders} Hoàn tất thành công
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
+                Doanh Thu Đồ Ăn
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#f97316' }}>
+                {Number(stats.foodRevenue).toLocaleString('vi-VN')} đ
+              </Typography>
+              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: 0.5, p: 0, fontSize: '0.78rem' }}>
+                Xem đơn
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Restaurants Card */}
+        <Grid item xs={12} sm={6} md={6}>
+          <Card
+            sx={{
+              p: 2.5,
+              borderRadius: 2.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-2px)' },
+            }}
+            onClick={() => navigate('/restaurants')}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff' }}>
+                <RestaurantIcon sx={{ fontSize: 32 }} />
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Đối Tác Nhà Hàng
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
+                  {stats.totalRestaurants} Nhà Hàng
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
+                  🟢 {stats.openRestaurants} Quán đang mở cửa nhận đơn
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
+                Tỷ lệ hoạt động
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff' }}>
+                {stats.totalRestaurants > 0 ? `${Math.round((stats.openRestaurants / stats.totalRestaurants) * 100)}%` : '100%'}
+              </Typography>
+              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: 0.5, p: 0, fontSize: '0.78rem' }}>
+                Quản lý quán
+              </Button>
             </Box>
           </Card>
         </Grid>

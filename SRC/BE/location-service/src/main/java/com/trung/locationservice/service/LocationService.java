@@ -9,4 +9,6 @@ public interface LocationService {
     void updateDriverLocation(Long driverId, LocationUpdateRequest request);
     void removeDriverLocation(Long driverId);
     List<DriverLocationResponse> getNearbyDrivers(Double longitude, Double latitude, Double radiusInKm);
+    List<DriverLocationResponse> getNearbyDeliveryDrivers(Double longitude, Double latitude, Double radiusInKm);
 }
+

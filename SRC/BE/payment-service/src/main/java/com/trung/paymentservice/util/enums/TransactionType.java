@@ -5,5 +5,8 @@ public enum TransactionType {
     TRIP_PAYMENT,
     TRIP_INCOME,
     COMMISSION_FEE,
-    WITHDRAWAL
+    WITHDRAWAL,
+    FOOD_PAYMENT,
+    FOOD_DELIVERY_INCOME,
+    REFUND
 }

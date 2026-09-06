@@ -15,6 +15,8 @@ import Drivers from './pages/Drivers';
 import Bookings from './pages/Bookings';
 import Payments from './pages/Payments';
 import Pricing from './pages/Pricing';
+import Restaurants from './pages/Restaurants';
+import FoodOrders from './pages/FoodOrders';
 import NotFound from './pages/NotFound';
 
 export function App() {
@@ -47,6 +49,8 @@ export function App() {
                 <Route path="users" element={<Users />} />
                 <Route path="drivers" element={<Drivers />} />
                 <Route path="bookings" element={<Bookings />} />
+                <Route path="restaurants" element={<Restaurants />} />
+                <Route path="food-orders" element={<FoodOrders />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="pricing" element={<Pricing />} />
               </Route>

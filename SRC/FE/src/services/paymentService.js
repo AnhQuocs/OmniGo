@@ -40,6 +40,23 @@ export const paymentService = {
       return { totalTransactions: 0, successTransactions: 0, totalVolume: 0 };
     }
   },
+
+  /**
+   * Lấy danh sách ví điện tử & số dư tài xế, khách hàng
+   * Endpoint BE: GET /api/v1/payments/admin/wallets
+   */
+  getAllWallets: async () => {
+    try {
+      const res = await get('/api/v1/payments/admin/wallets');
+      if (res && res.data) {
+        return Array.isArray(res.data) ? res.data : [];
+      }
+      return Array.isArray(res) ? res : [];
+    } catch (error) {
+      console.warn('Backend wallets warning:', error.message);
+      return [];
+    }
+  },
 };
 
 export default paymentService;

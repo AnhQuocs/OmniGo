@@ -18,8 +18,11 @@ import com.trung.paymentservice.util.enums.TransactionType;
 import com.trung.paymentservice.util.enums.UserType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -43,6 +46,9 @@ public class MomoService implements PaymentStrategy {
     private final WalletService walletService;
     private final RestTemplate restTemplate;
 
+    @Value ("${app.food-delivery-url:http://localhost:8086}")
+    private String foodDeliveryBaseUrl;
+
     @Override
     public String getPaymentMethod() {
         return "MOMO";
@@ -62,6 +68,14 @@ public class MomoService implements PaymentStrategy {
 
             savePendingTransaction(wallet.getId(), null, orderId, amount, TransactionType.DEPOSIT);
             momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi tai xe #" + userId, "captureWallet", extraData);
+        } else if ("FOOD_PAYMENT".equalsIgnoreCase(type)) {
+            Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
+            orderId = "FOOD_" + bookingId + "_" + System.currentTimeMillis();
+            String requestId = UUID.randomUUID().toString();
+            String extraData = "BOOKING_ID=" + bookingId + ";TYPE=FOOD_PAYMENT";
+
+            savePendingTransaction(customerWallet.getId(), bookingId, orderId, amount, TransactionType.FOOD_PAYMENT);
+            momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan don mon #" + bookingId, "captureWallet", extraData);
         } else {
             Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             orderId = "TRIP_" + bookingId + "_" + System.currentTimeMillis();
@@ -111,6 +125,8 @@ public class MomoService implements PaymentStrategy {
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
                 Long userId = parseDataFromExtra(ipnRequest.getExtraData(), "USER_ID=");
                 if (userId != null) walletService.creditWallet(userId, UserType.DRIVER, transaction.getAmount().doubleValue());
+            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
+                notifyFoodOrderPaid(transaction.getBookingId());
             } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
                 Long driverId = parseDataFromExtra(ipnRequest.getExtraData(), "DRIVER_ID=");
                 creditDriverForTrip(driverId, transaction);
@@ -133,6 +149,8 @@ public class MomoService implements PaymentStrategy {
             if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
                 Long userId = parseDataFromExtra(extraData, "USER_ID=");
                 if (userId != null) walletService.creditWallet(userId, UserType.DRIVER, transaction.getAmount().doubleValue());
+            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
+                notifyFoodOrderPaid(transaction.getBookingId());
             } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
                 Long driverId = parseDataFromExtra(extraData, "DRIVER_ID=");
                 creditDriverForTrip(driverId, transaction);
@@ -143,6 +161,17 @@ public class MomoService implements PaymentStrategy {
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(transaction);
+        }
+    }
+
+    private void notifyFoodOrderPaid(Long orderId) {
+        if (orderId == null) return;
+        try {
+            String url = (foodDeliveryBaseUrl != null ? foodDeliveryBaseUrl : "http://localhost:8086") + "/api/v1/food-orders/" + orderId + "/paid";
+            restTemplate.exchange(url, HttpMethod.POST, null, Void.class);
+            log.info("Đã thông báo sang food-delivery-service ({}/api/v1/food-orders/{}/paid): Đơn hàng #{} đã thanh toán thành công", foodDeliveryBaseUrl, orderId, orderId);
+        } catch (Exception e) {
+            log.error("Lỗi thông báo cập nhật thanh toán đơn đồ ăn #{}: {}", orderId, e.getMessage());
         }
     }
 

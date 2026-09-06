@@ -96,6 +96,9 @@ export const Payments = () => {
         return <Chip label="Thành Công" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700 }} />;
       case 'FAILED':
         return <Chip label="Thất Bại" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+      case 'CANCELED':
+      case 'CANCELLED':
+        return <Chip label="Đã Hủy" size="small" sx={{ bgcolor: 'rgba(148, 163, 184, 0.2)', color: '#64748b', fontWeight: 700 }} />;
       case 'PENDING':
       default:
         return <Chip label="Đang Xử Lý" size="small" sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', fontWeight: 700 }} />;
@@ -124,6 +127,8 @@ export const Payments = () => {
     .filter((t) => t.status === 'SUCCESS' && t.amount)
     .reduce((sum, t) => sum + Number(t.amount), 0);
   const tripPaymentsCount = transactions.filter((t) => t.transactionType === 'TRIP_PAYMENT').length;
+  const foodPaymentsCount = transactions.filter((t) => t.transactionType === 'FOOD_PAYMENT').length;
+  const refundsCount = transactions.filter((t) => t.transactionType === 'REFUND').length;
 
   const filteredTransactions = transactions.filter((t) => {
     const term = searchTerm.toLowerCase();
@@ -132,11 +137,14 @@ export const Payments = () => {
       (t.orderId && t.orderId.toLowerCase().includes(term)) ||
       (t.gatewayTransId && t.gatewayTransId.toLowerCase().includes(term)) ||
       (t.paymentMethod && t.paymentMethod.toLowerCase().includes(term)) ||
-      (t.transactionType && t.transactionType.toLowerCase().includes(term));
+      (t.transactionType && t.transactionType.toLowerCase().includes(term)) ||
+      (t.description && t.description.toLowerCase().includes(term));
 
     if (!matchSearch) return false;
     if (typeFilter === 'ALL') return true;
     if (typeFilter === 'ONLINE_GATEWAY') return ['VNPAY', 'MOMO'].includes(t.paymentMethod);
+    if (typeFilter === 'FOOD_PAYMENT') return t.transactionType === 'FOOD_PAYMENT';
+    if (typeFilter === 'REFUND') return t.transactionType === 'REFUND';
     if (typeFilter === 'WALLET') return ['WALLET', 'TOPUP', 'WITHDRAW'].includes(t.transactionType) || t.paymentMethod === 'WALLET';
     return t.transactionType === typeFilter;
   });
@@ -229,12 +237,14 @@ export const Payments = () => {
       <Card sx={{ p: 2.5 }}>
         {/* Filter buttons & Search */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
-          <ButtonGroup variant="outlined">
+          <ButtonGroup variant="outlined" sx={{ flexWrap: 'wrap' }}>
             {[
               { label: 'Tất Cả', value: 'ALL', count: totalCount },
-              { label: 'Thanh Toán Cuốc', value: 'TRIP_PAYMENT', count: tripPaymentsCount },
+              { label: 'Cuốc Xe', value: 'TRIP_PAYMENT', count: tripPaymentsCount },
+              { label: 'Đơn Đồ Ăn', value: 'FOOD_PAYMENT', count: foodPaymentsCount },
+              { label: 'Hoàn Tiền', value: 'REFUND', count: refundsCount },
               { label: 'Giao Dịch Ví', value: 'WALLET', count: transactions.filter((t) => ['WALLET', 'TOPUP', 'WITHDRAW'].includes(t.transactionType) || t.paymentMethod === 'WALLET').length },
-              { label: 'Cổng VNPAY / MoMo', value: 'ONLINE_GATEWAY', count: transactions.filter((t) => ['VNPAY', 'MOMO'].includes(t.paymentMethod)).length },
+              { label: 'Cổng Online', value: 'ONLINE_GATEWAY', count: transactions.filter((t) => ['VNPAY', 'MOMO'].includes(t.paymentMethod)).length },
             ].map((tab) => (
               <Button
                 key={tab.value}

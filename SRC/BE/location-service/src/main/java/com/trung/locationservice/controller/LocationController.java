@@ -35,4 +35,13 @@ public class LocationController {
 
         return ResponseEntity.ok(locationService.getNearbyDrivers(longitude, latitude, radius));
     }
-}
+
+    @GetMapping("/nearby-delivery-drivers")
+    public ResponseEntity<List<DriverLocationResponse>> getNearbyDeliveryDrivers(
+            @RequestParam double longitude,
+            @RequestParam double latitude,
+            @RequestParam(defaultValue = "5.0") double radius) {
+
+        return ResponseEntity.ok(locationService.getNearbyDeliveryDrivers(longitude, latitude, radius));
+    }
+}

@@ -33,7 +33,13 @@ public class PaymentController {
     private final MomoService momoService;
     private final VnpayService vnpayService;
     private final TransactionRepository transactionRepository;
+    private final com.trung.paymentservice.repository.WalletRepository walletRepository;
     private final PaymentFactory paymentFactory;
+
+    @GetMapping("/admin/wallets")
+    public ResponseEntity<List<com.trung.paymentservice.entity.Wallet>> getAllWalletsAdmin() {
+        return ResponseEntity.ok(walletRepository.findAll());
+    }
 
     @GetMapping("/wallet")
     public ResponseEntity<WalletResponse> getMyWallet(
@@ -50,6 +56,29 @@ public class PaymentController {
                 .anyMatch(tx -> tx.getTransactionType() == TransactionType.TRIP_PAYMENT
                         && tx.getStatus() == TransactionStatus.SUCCESS);
         return ResponseEntity.ok(isSuccess ? "SUCCESS" : "PENDING");
+    }
+
+    @GetMapping("/food-order/{orderId}/payment-status")
+    public ResponseEntity<String> checkFoodOrderPaymentStatus(@PathVariable Long orderId) {
+        boolean isSuccess = transactionRepository.findByBookingId(orderId)
+                .stream()
+                .anyMatch(tx -> (tx.getTransactionType() == TransactionType.FOOD_PAYMENT || tx.getTransactionType() == TransactionType.TRIP_PAYMENT)
+                        && tx.getStatus() == TransactionStatus.SUCCESS);
+        return ResponseEntity.ok(isSuccess ? "SUCCESS" : "PENDING");
+    }
+
+    @PostMapping("/internal/food-order-payout")
+    public ResponseEntity<Void> payoutFoodOrder(@RequestBody com.trung.paymentservice.dto.request.FoodOrderPayoutRequest request) {
+        log.info("Nhận yêu cầu payout đơn giao đồ ăn: {}", request);
+        walletService.processFoodOrderPayout(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/internal/refund-order")
+    public ResponseEntity<Void> refundOrder(@RequestBody com.trung.paymentservice.dto.request.RefundRequest request) {
+        log.info("Nhận yêu cầu hoàn tiền cho đơn hàng: {}", request);
+        walletService.processRefund(request);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/payment/create")

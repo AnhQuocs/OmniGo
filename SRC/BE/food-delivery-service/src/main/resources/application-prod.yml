@@ -30,6 +30,17 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.type.mapping: find-driver-for-food:com.trung.fooddeliveryservice.event.FindDriverForFoodOrderEvent,driver-assigned-food:com.trung.fooddeliveryservice.event.DriverAssignedToFoodOrderEvent
+    consumer:
+      group-id: food-delivery-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: driver-assigned-food:com.trung.fooddeliveryservice.event.DriverAssignedToFoodOrderEvent,com.trung.bookingservice.event.DriverAssignedToFoodOrderEvent:com.trung.fooddeliveryservice.event.DriverAssignedToFoodOrderEvent
+
 
 eureka:
   client:
@@ -39,6 +50,10 @@ eureka:
     register-with-eureka: true
   instance:
     prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
 
 management:
   endpoints:
@@ -62,3 +77,7 @@ logging:
 
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+app:
+  payment-service-url: ${PAYMENT_SERVICE_URL:https://api.ridehailingsystem.online}
+  driver-service-url: ${DRIVER_SERVICE_URL:https://api.ridehailingsystem.online}

@@ -39,6 +39,11 @@ spring:
               uri: lb://payment-service
               predicates:
                 - Path=/api/v1/payments/**
+            - id: food-delivery-service-route
+              uri: lb://food-delivery-service
+              predicates:
+                - Path=/api/v1/restaurants/**,/api/v1/items/**,/api/v1/food-orders/**
+
 
 management:
   endpoints:

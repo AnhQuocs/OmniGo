@@ -34,7 +34,8 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/users/register/customer",
-            "/api/v1/drivers/register"
+            "/api/v1/drivers/register",
+            "/api/v1/restaurants/partner"
     );
 
     @Override
@@ -53,8 +54,15 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
+        boolean isPublicGet = request.getMethod().equals(HttpMethod.GET)
+                && (path.startsWith("/api/v1/restaurants") || path.startsWith("/api/v1/items"))
+                && !path.equals("/api/v1/restaurants/my-restaurant");
+
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (isPublicGet) {
+                return chain.filter(exchange);
+            }
             return onError(exchange, "Thiếu hoặc sai định dạng Authorization Header.", HttpStatus.UNAUTHORIZED);
         }
 
