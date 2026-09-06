@@ -321,6 +321,7 @@ services:
       - ride-hailing
 
   frontend-admin:
+    image: vmt1609/frontend-admin:latest
     build:
       context: ../FE
       dockerfile: Dockerfile
@@ -328,6 +329,7 @@ services:
     restart: unless-stopped
     networks:
       - ride-hailing
+
 
 
 networks:

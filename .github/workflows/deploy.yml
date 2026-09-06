@@ -68,6 +68,10 @@ jobs:
          docker build -t vmt1609/location-service:latest ./SRC/BE/location-service
          docker push vmt1609/location-service:latest
 
+         # 8. Frontend Admin (React SPA)
+         docker build -t vmt1609/frontend-admin:latest ./SRC/FE
+         docker push vmt1609/frontend-admin:latest
+
  deploy-to-vps:
    needs: build-and-push
    runs-on: ubuntu-latest
