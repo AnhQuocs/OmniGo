@@ -5,7 +5,4 @@
 .DS_Store
 Thumbs.db
 
-# Sub-project specific ignore files are in their respective directories
-SRC/BE/infra/nginx/nginx.conf
-infra/nginx/nginx.conf
 
