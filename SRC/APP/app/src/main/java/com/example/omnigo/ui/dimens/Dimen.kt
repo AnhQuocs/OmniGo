@@ -29,28 +29,5 @@ object Dimen {
     val SizeMega = 80.dp
     val SizeUltra = 120.dp
 
-    // Card Size
-    val HotelCardWidth = 160.dp
-    val HotelCardHeight = 250.dp
-    val HotelCardCorner = 12.dp
-
-    // Height (component height)
-    val HeightXXS = 20.dp
-    val HeightXS = 24.dp
-    val HeightSmall = 30.dp
-    val HeightText = 35.dp
     val HeightDefault = 48.dp
-    val HeightLarge = 56.dp
-    val HeightML = 80.dp
-    val HeightXL = 100.dp
-    val HeightXL2 = 120.dp
-    val HeightXL3 = 150.dp
-    val HeightXL4 = 250.dp
-    val HeightXXL = 300.dp
-    val HeightShimmer = 400.dp
-
-    // Width
-    val WidthM = 80.dp
-    val WidthL = 150.dp
-    val WidthXL = 180.dp
 }

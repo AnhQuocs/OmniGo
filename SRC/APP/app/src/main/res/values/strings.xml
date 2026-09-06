@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">OmniGo</string>
+    <string name="app_tagline">Fast rides, delicious food</string>
 
     <!-- LANGUAGE -->
     <string name="language">Language</string>
@@ -7,4 +8,93 @@
     <string name="english">English</string>
     <string name="vietnamese">Vietnamese</string>
     <string name="apply">Apply</string>
+
+    <!-- COMMON FORM FIELDS -->
+    <string name="phone_number">Phone Number</string>
+    <string name="phone_number_hint">0912 345 678</string>
+    <string name="password">Password</string>
+    <string name="password_hint">Enter your password</string>
+    <string name="full_name">Full Name</string>
+    <string name="full_name_hint">e.g. Nguyen Van A</string>
+    <string name="email">Email</string>
+    <string name="email_hint">Enter email (optional)</string>
+    <string name="email_required_hint">Enter email</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="confirm_password_hint">Re-enter your password</string>
+    <string name="password_not_match">Passwords do not match</string>
+
+    <!-- LOGIN SCREEN -->
+    <string name="login">Log In</string>
+    <string name="login_title">Welcome to OmniGo</string>
+    <string name="login_subtitle">Log in to book rides and order food</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="register_now">Register now</string>
+    <string name="logging_in">Logging in…</string>
+
+    <!-- REGISTER SCREEN -->
+    <string name="register">Register</string>
+    <string name="register_title">Create an Account</string>
+    <string name="register_subtitle">Choose your role and get started with OmniGo</string>
+    <string name="step_role">1. Select Role</string>
+    <string name="step_otp">Phone Verification</string>
+    <string name="step_info">Account Information</string>
+    <string name="select_role">I want to register as</string>
+    <string name="role_customer_title">Customer</string>
+    <string name="role_customer_desc">Book rides and order food easily</string>
+    <string name="role_driver_title">Driver Partner</string>
+    <string name="role_driver_desc">Drive, deliver and earn with OmniGo</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="sending_otp">Sending OTP…</string>
+    <string name="enter_otp">Enter 6-digit OTP code</string>
+    <string name="otp_sent_to">Code sent to: %1$s</string>
+    <string name="resend_otp">Resend code</string>
+    <string name="resend_otp_countdown">Resend code (%1$ds)</string>
+    <string name="verify_otp">Verify Code</string>
+    <string name="verifying_otp">Verifying…</string>
+    <string name="phone_verified">Phone number verified successfully</string>
+    <string name="change_phone">Change phone number</string>
+    <string name="vehicle_type">Vehicle Type</string>
+    <string name="license_plate">License Plate</string>
+    <string name="license_plate_hint">e.g. 29A-123.45</string>
+    <string name="vehicle_model">Vehicle Model</string>
+    <string name="vehicle_model_hint">e.g. Honda Wave, Toyota Vios</string>
+    <string name="vehicle_type_bike">Motorbike</string>
+    <string name="vehicle_type_car4">4-Seat Car</string>
+    <string name="vehicle_type_car7">7-Seat Car</string>
+    <string name="vehicle_type_express">Express Delivery</string>
+    <string name="complete_registration">Complete Registration</string>
+    <string name="registering">Creating account…</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="back_to_login">Log In</string>
+    <string name="account_created_success">Account created successfully!</string>
+    <string name="driver_pending_notice">Driver account created and is pending admin approval.</string>
+
+    <!-- AUTH REGISTER ERRORS -->
+    <string name="error_empty_full_name">Full name cannot be empty</string>
+    <string name="error_empty_email">Email cannot be empty</string>
+    <string name="error_invalid_email">Invalid email address</string>
+    <string name="error_empty_phone">Phone number cannot be empty</string>
+    <string name="error_invalid_phone">Invalid phone number format</string>
+    <string name="error_empty_password">Password cannot be empty</string>
+    <string name="error_password_too_short">Password must be at least 6 characters</string>
+    <string name="error_phone_verification_required">Please verify your phone number first</string>
+    <string name="error_empty_license_plate">License plate cannot be empty</string>
+    <string name="error_empty_vehicle_model">Vehicle model cannot be empty</string>
+    <string name="error_invalid_otp">Invalid OTP code. Please try again</string>
+    <string name="error_otp_expired">OTP code has expired</string>
+    <string name="error_too_many_requests">Too many requests. Please try again later</string>
+    <string name="error_phone_number_mismatch">Verified phone number does not match registered phone number</string>
+    <string name="error_email_or_phone_already_exists">Email or phone number already exists</string>
+    <string name="error_bad_request">Invalid request. Please check your information</string>
+    <string name="error_server_error">Server error. Please try again later</string>
+    <string name="error_network_error">Network connection error. Please check your internet connection</string>
+    <string name="error_unknown">An unexpected error occurred</string>
+
+    <!-- AUTH LOGIN ERRORS & LOGOUT -->
+    <string name="error_invalid_credentials">Incorrect phone number or password</string>
+    <string name="error_account_not_found">Account does not exist</string>
+    <string name="error_account_blocked">Account has been blocked or suspended</string>
+    <string name="logout_success">Logged out successfully</string>
+    <string name="logout_failed">Failed to log out</string>
 </resources>
