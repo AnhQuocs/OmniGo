@@ -155,14 +155,14 @@ export const Payments = () => {
   );
 
   return (
-    <Box sx={{ width: '100%' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
             Quản Lý Giao Dịch & Thanh Toán
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
             Đối soát dòng tiền, nạp ví và cổng VNPay / MoMo từ `payment-service`
           </Typography>
         </Box>
@@ -171,57 +171,57 @@ export const Payments = () => {
           startIcon={<RefreshIcon />}
           onClick={fetchTransactions}
           disabled={loading}
-          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2 }}
+          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
         >
-          Làm Mới Dữ Liệu
+          Làm Mới
         </Button>
       </Box>
 
       {/* 4 Summary Stats Mini Cards */}
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
-              <PaymentIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
+              <PaymentIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>TỔNG GIAO DỊCH</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>{totalCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG GIAO DỊCH</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{totalCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
-              <SuccessIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
+              <SuccessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>THÀNH CÔNG</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20' }}>{successCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>THÀNH CÔNG</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{successCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
-              <MoneyIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', display: 'flex' }}>
+              <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>TỔNG GMV DÒNG TIỀN</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG GMV</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {Number(totalVolume).toLocaleString('vi-VN')} đ
               </Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800' }}>
-              <WalletIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', display: 'flex' }}>
+              <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>CUỐC XE ĐÃ TRẢ</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706' }}>{tripPaymentsCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>CUỐC ĐÃ TRẢ</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{tripPaymentsCount}</Typography>
             </Box>
           </Card>
         </Grid>
@@ -234,10 +234,10 @@ export const Payments = () => {
       )}
 
       {/* Main Table Card */}
-      <Card sx={{ p: 2.5 }}>
+      <Card sx={{ p: { xs: 1.8, sm: 2.5 } }}>
         {/* Filter buttons & Search */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
-          <ButtonGroup variant="outlined" sx={{ flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
             {[
               { label: 'Tất Cả', value: 'ALL', count: totalCount },
               { label: 'Cuốc Xe', value: 'TRIP_PAYMENT', count: tripPaymentsCount },
@@ -250,20 +250,23 @@ export const Payments = () => {
                 key={tab.value}
                 variant={typeFilter === tab.value ? 'contained' : 'outlined'}
                 onClick={() => handleTabChange(tab.value)}
+                size="small"
                 sx={{
-                  px: 2,
+                  px: { xs: 1.5, sm: 2 },
                   py: 0.8,
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
                   bgcolor: typeFilter === tab.value ? '#008cff' : 'transparent',
                 }}
               >
                 {tab.label} ({tab.count})
               </Button>
             ))}
-          </ButtonGroup>
+          </Box>
 
-          <Box sx={{ maxWidth: 340, width: '100%' }}>
+          <Box sx={{ width: { xs: '100%', md: 340 } }}>
             <TextField
               size="small"
               fullWidth
@@ -287,8 +290,8 @@ export const Payments = () => {
         </Box>
 
         {/* Payments Data Table with Complete Columns */}
-        <TableContainer>
-          <Table sx={{ minWidth: 950 }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: 900 }} size="small">
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: 80 }}>MÃ GD</TableCell>

@@ -32,13 +32,15 @@ export const Layout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2.5, sm: 3.5, md: 4 },
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          p: { xs: 1.5, sm: 2.5, md: 3.5 },
+          width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          maxWidth: '100%',
+          overflowX: 'hidden',
           minHeight: '100vh',
           bgcolor: 'background.default',
         }}
       >
-        <Toolbar sx={{ minHeight: '64px !important' }} />
+        <Toolbar sx={{ minHeight: { xs: '58px !important', sm: '62px !important' } }} />
         <Outlet />
       </Box>
     </Box>

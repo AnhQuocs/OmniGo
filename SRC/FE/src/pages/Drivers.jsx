@@ -452,18 +452,18 @@ export const Drivers = () => {
   );
 
   return (
-    <Box sx={{ width: '100%' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
       {/* Header bar */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
             Quản Lý Tài Xế & Đội Xe
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
-            Quản lý hồ sơ đối tác, phương tiện và theo dõi trạng thái vận hành từ `user-driver-service`
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+            Quản lý hồ sơ đối tác, phương tiện và theo dõi trạng thái vận hành
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             startIcon={<AddDriverIcon />}
@@ -473,6 +473,8 @@ export const Drivers = () => {
               '&:hover': { bgcolor: '#12b01c' },
               borderRadius: 2,
               fontWeight: 700,
+              fontSize: '0.82rem',
+              flex: { xs: 1, sm: 'none' },
             }}
           >
             Thêm Tài Xế Mới
@@ -483,7 +485,7 @@ export const Drivers = () => {
             startIcon={<RefreshIcon />}
             onClick={fetchDrivers}
             disabled={loading}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
+            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.82rem', flex: { xs: 1, sm: 'none' } }}
           >
             Làm Mới
           </Button>
@@ -491,48 +493,48 @@ export const Drivers = () => {
       </Box>
 
       {/* 4 Mini Metric Overview Cards */}
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
-              <BikeIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
+              <BikeIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>TỔNG TÀI XẾ</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>{drivers.length}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG TÀI XẾ</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{drivers.length}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
-              <DotIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
+              <DotIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>TRỰC TUYẾN</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20' }}>{onlineCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TRỰC TUYẾN</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{onlineCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(148, 163, 184, 0.15)', color: '#64748b' }}>
-              <DotIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(148, 163, 184, 0.15)', color: '#64748b', display: 'flex' }}>
+              <DotIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>NGOẠI TUYẾN</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#64748b' }}>{offlineCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>NGOẠI TUYẾN</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#64748b', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{offlineCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
-              <LicensePlateIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', display: 'flex' }}>
+              <LicensePlateIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>ĐÃ CẤP XE</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>ĐÃ CẤP XE</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {drivers.filter((d) => d.licensePlate).length}
               </Typography>
             </Box>
@@ -547,9 +549,9 @@ export const Drivers = () => {
       )}
 
       {/* Main Table Card */}
-      <Card sx={{ p: 2.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
-          <ButtonGroup variant="outlined">
+      <Card sx={{ p: { xs: 1.8, sm: 2.5 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
             {[
               { label: 'Tất Cả', value: 'ALL', count: drivers.length },
               { label: 'Trực Tuyến', value: 'ONLINE', count: onlineCount },
@@ -562,20 +564,23 @@ export const Drivers = () => {
                   setStatusFilter(tab.value);
                   setPage(0);
                 }}
+                size="small"
                 sx={{
-                  px: 2,
+                  px: { xs: 1.5, sm: 2 },
                   py: 0.8,
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
                   bgcolor: statusFilter === tab.value ? '#008cff' : 'transparent',
                 }}
               >
                 {tab.label} ({tab.count})
               </Button>
             ))}
-          </ButtonGroup>
+          </Box>
 
-          <Box sx={{ maxWidth: 360, width: '100%' }}>
+          <Box sx={{ width: { xs: '100%', md: 360 } }}>
             <TextField
               size="small"
               placeholder="Tìm theo Tên, SĐT, Email, Biển số xe..."
@@ -598,8 +603,8 @@ export const Drivers = () => {
           </Box>
         </Box>
 
-        <TableContainer>
-          <Table sx={{ minWidth: 980 }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: 900 }} size="small">
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: 80 }}>MÃ ID</TableCell>

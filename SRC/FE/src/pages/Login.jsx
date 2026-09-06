@@ -86,18 +86,18 @@ export const Login = () => {
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
-        p: 2.5,
+        p: { xs: 2, sm: 2.5 },
       }}
     >
       <Card
         sx={{
           maxWidth: 420,
           width: '100%',
-          p: { xs: 3, sm: 4 },
+          p: { xs: 2.5, sm: 4 },
           bgcolor: 'background.paper',
           border: 1,
           borderColor: 'divider',
-          borderRadius: 4,
+          borderRadius: 3.5,
         }}
       >
         <CardContent sx={{ p: '0 !important' }}>

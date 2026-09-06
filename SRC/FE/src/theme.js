@@ -43,46 +43,67 @@ export const getAppTheme = (mode = 'dark') => {
       fontFamily: ['"Open Sans"', '"Poppins"', '"Segoe UI"', 'Roboto', 'sans-serif'].join(','),
       h4: {
         fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
-        fontSize: '1.65rem',
+        fontSize: '1.4rem',
+        '@media (min-width:600px)': {
+          fontSize: '1.65rem',
+        },
         fontWeight: 700,
         color: isDark ? '#ffffff' : '#1e293b',
       },
       h5: {
         fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
-        fontSize: '1.35rem',
-        fontWeight: 600,
+        fontSize: '1.15rem',
+        '@media (min-width:600px)': {
+          fontSize: '1.35rem',
+        },
+        fontWeight: 700,
         color: isDark ? '#ffffff' : '#1e293b',
       },
       h6: {
         fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
-        fontSize: '1.05rem',
+        fontSize: '0.95rem',
+        '@media (min-width:600px)': {
+          fontSize: '1.05rem',
+        },
         fontWeight: 600,
         color: isDark ? '#ffffff' : '#1e293b',
       },
       body1: {
-        fontSize: '0.92rem',
+        fontSize: '0.88rem',
+        '@media (min-width:600px)': {
+          fontSize: '0.92rem',
+        },
         color: isDark ? '#e2e8f0' : '#1e293b',
         lineHeight: 1.5,
       },
       body2: {
-        fontSize: '0.85rem',
+        fontSize: '0.82rem',
+        '@media (min-width:600px)': {
+          fontSize: '0.85rem',
+        },
         color: isDark ? '#94a3b8' : '#64748b',
         lineHeight: 1.4,
       },
       subtitle1: {
-        fontSize: '0.9rem',
+        fontSize: '0.85rem',
+        '@media (min-width:600px)': {
+          fontSize: '0.9rem',
+        },
         color: isDark ? '#cbd5e1' : '#475569',
         fontWeight: 600,
       },
       subtitle2: {
-        fontSize: '0.8rem',
+        fontSize: '0.75rem',
+        '@media (min-width:600px)': {
+          fontSize: '0.8rem',
+        },
         color: isDark ? '#94a3b8' : '#64748b',
         fontWeight: 500,
       },
       button: {
         textTransform: 'none',
         fontWeight: 600,
-        fontSize: '0.88rem',
+        fontSize: '0.85rem',
       },
     },
     shape: {
@@ -134,10 +155,15 @@ export const getAppTheme = (mode = 'dark') => {
             '& .MuiTableCell-root': {
               color: isDark ? '#cbd5e1' : '#475569',
               fontWeight: 700,
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
               borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'}`,
+              padding: '10px 12px',
+              '@media (min-width:600px)': {
+                fontSize: '0.82rem',
+                padding: '12px 16px',
+              },
             },
           },
         },
@@ -145,10 +171,14 @@ export const getAppTheme = (mode = 'dark') => {
       MuiTableCell: {
         styleOverrides: {
           root: {
-            fontSize: '0.9rem',
+            fontSize: '0.85rem',
             color: isDark ? '#e2e8f0' : '#1e293b',
             borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'}`,
-            padding: '13px 16px',
+            padding: '10px 12px',
+            '@media (min-width:600px)': {
+              fontSize: '0.9rem',
+              padding: '13px 16px',
+            },
           },
         },
       },
@@ -156,8 +186,11 @@ export const getAppTheme = (mode = 'dark') => {
         styleOverrides: {
           root: {
             borderRadius: 8,
-            padding: '7px 18px',
+            padding: '6px 14px',
             boxShadow: 'none',
+            '@media (min-width:600px)': {
+              padding: '7px 18px',
+            },
             '&:hover': {
               boxShadow: 'none',
             },
@@ -189,7 +222,7 @@ export const getAppTheme = (mode = 'dark') => {
           root: {
             backgroundColor: isDark ? '#131d2c' : '#ffffff',
             borderRadius: 8,
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             '& fieldset': {
               borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
             },

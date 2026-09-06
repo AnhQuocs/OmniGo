@@ -67,24 +67,72 @@ export const Header = ({ handleDrawerToggle }) => {
         ml: { md: `${DRAWER_WIDTH}px` },
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3 }, minHeight: '62px !important' }}>
-        {/* Left: Mobile Menu & Rocker Search Input */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1.5, sm: 3 }, minHeight: { xs: '58px', sm: '62px' } }}>
+        {/* Left: Mobile Menu & Brand */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <IconButton
             color="inherit"
             edge="start"
             onClick={handleDrawerToggle}
-            size="small"
-            sx={{ display: { md: 'none' } }}
+            size="medium"
+            aria-label="open drawer"
+            sx={{
+              display: { md: 'none' },
+              p: 1,
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 2,
+            }}
           >
-            <MenuIcon />
+            <MenuIcon sx={{ fontSize: 22 }} />
           </IconButton>
+
+          {/* Mobile Brand Name */}
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                bgcolor: '#008cff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.85rem',
+              }}
+            >
+              O
+            </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 800,
+                fontFamily: '"Poppins", sans-serif',
+                fontSize: '1.1rem',
+                color: 'text.primary',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              OmniGo
+            </Typography>
+          </Box>
         </Box>
 
         {/* Right: Icons bar & Profile */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.8, sm: 1.5 } }}>
           {/* Sun / Moon Theme Switcher */}
-          <IconButton onClick={toggleColorMode} size="small" sx={{ color: 'text.primary', p: 0.9 }}>
+          <IconButton
+            onClick={toggleColorMode}
+            size="small"
+            sx={{
+              color: 'text.primary',
+              p: { xs: 0.8, sm: 0.9 },
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+              borderRadius: 2,
+            }}
+            title="Đổi giao diện Sáng / Tối"
+          >
             {mode === 'light' ? (
               <DarkIcon sx={{ fontSize: 20 }} />
             ) : (
@@ -98,30 +146,33 @@ export const Header = ({ handleDrawerToggle }) => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.2,
+              gap: 1,
               cursor: 'pointer',
-              ml: 1,
-              pl: 1,
+              p: 0.5,
+              borderRadius: 2,
+              '&:hover': {
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+              },
             }}
           >
             <Avatar
               sx={{
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 bgcolor: '#008cff',
                 color: '#ffffff',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 fontWeight: 700,
               }}
             >
-              {user?.fullName?.charAt(0) || user?.phoneNumber?.charAt(0) || 'P'}
+              {user?.fullName?.charAt(0) || user?.phoneNumber?.charAt(0) || 'A'}
             </Avatar>
             <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left' }}>
               <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.1, color: 'text.primary', fontSize: '0.88rem' }}>
-                {user?.fullName || 'Pauline Seitz'}
+                {user?.fullName || 'Administrator'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                {user?.role === 'ADMIN' ? 'System Administrator' : 'Web Designer'}
+                {user?.role === 'ADMIN' ? 'System Administrator' : 'Quản trị viên'}
               </Typography>
             </Box>
           </Box>
@@ -134,6 +185,7 @@ export const Header = ({ handleDrawerToggle }) => {
               sx: {
                 width: 220,
                 mt: 1.5,
+                borderRadius: 2.5,
               },
             }}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}

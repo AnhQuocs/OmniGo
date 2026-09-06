@@ -162,11 +162,11 @@ export const Bookings = () => {
   );
 
   return (
-    <Box sx={{ width: '100%' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
       {/* Header bar with Realtime Indicator & Refresh */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
             <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
               Quản Lý Chuyến Xe (Bookings)
             </Typography>
@@ -183,7 +183,7 @@ export const Bookings = () => {
               }}
             />
           </Box>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
             Theo dõi trạng thái, lộ trình và điều phối chuyến xe từ `booking-service`
           </Typography>
         </Box>
@@ -193,55 +193,55 @@ export const Bookings = () => {
           startIcon={<RefreshIcon />}
           onClick={() => fetchBookings(false)}
           disabled={loading}
-          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2 }}
+          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
         >
           Làm Mới
         </Button>
       </Box>
 
       {/* 4 Summary Stats Mini Cards */}
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff' }}>
-              <RideIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
+              <RideIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>TỔNG CUỐC XE</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>{totalCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG CUỐC XE</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{totalCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff' }}>
-              <PendingIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff', display: 'flex' }}>
+              <PendingIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>ĐANG CHẠY</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff' }}>{activeCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>ĐANG CHẠY</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{activeCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20' }}>
-              <CompletedIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
+              <CompletedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>HOÀN THÀNH</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20' }}>{completedCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>HOÀN THÀNH</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{completedCount}</Typography>
             </Box>
           </Card>
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366' }}>
-              <CancelIcon />
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', display: 'flex' }}>
+              <CancelIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>ĐÃ HỦY</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366' }}>{cancelledCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>ĐÃ HỦY</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{cancelledCount}</Typography>
             </Box>
           </Card>
         </Grid>
@@ -254,10 +254,10 @@ export const Bookings = () => {
       )}
 
       {/* Main Table View */}
-      <Card sx={{ p: 2.5 }}>
+      <Card sx={{ p: { xs: 1.8, sm: 2.5 } }}>
         {/* Filter buttons & Search */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
-          <ButtonGroup variant="outlined">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
             {[
               { label: 'Tất Cả', value: 'ALL', count: totalCount },
               { label: 'Đang Chạy', value: 'ACTIVE', count: activeCount },
@@ -268,20 +268,23 @@ export const Bookings = () => {
                 key={tab.value}
                 variant={statusFilter === tab.value ? 'contained' : 'outlined'}
                 onClick={() => handleTabChange(tab.value)}
+                size="small"
                 sx={{
-                  px: 2,
+                  px: { xs: 1.5, sm: 2 },
                   py: 0.8,
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
                   bgcolor: statusFilter === tab.value ? '#008cff' : 'transparent',
                 }}
               >
                 {tab.label} ({tab.count})
               </Button>
             ))}
-          </ButtonGroup>
+          </Box>
 
-          <Box sx={{ maxWidth: 340, width: '100%' }}>
+          <Box sx={{ width: { xs: '100%', md: 340 } }}>
             <TextField
               size="small"
               fullWidth
@@ -304,8 +307,8 @@ export const Bookings = () => {
           </Box>
         </Box>
 
-        <TableContainer>
-          <Table sx={{ minWidth: 950 }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: 900 }} size="small">
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: 80 }}>MÃ CUỐC</TableCell>

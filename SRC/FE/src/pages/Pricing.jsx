@@ -102,13 +102,13 @@ export const Pricing = () => {
     (Number(form.pricePerMinute) || 0) * simDuration;
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
             Cấu Hình Giá Cước & Thuật Toán
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
             Thông số tính toán cước chuyến đi được lưu trữ trực tiếp trong Redis
           </Typography>
         </Box>
@@ -117,14 +117,14 @@ export const Pricing = () => {
           startIcon={<RefreshIcon />}
           onClick={fetchPricingConfig}
           disabled={loading}
-          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' } }}
+          sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
         >
           Làm Mới
         </Button>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2.5 }}>
           {error}
         </Alert>
       )}
@@ -134,18 +134,18 @@ export const Pricing = () => {
           <CircularProgress size={36} />
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={2.5}>
           {/* Main Config Box */}
           <Grid item xs={12} md={7}>
-            <Card sx={{ p: 3, height: '100%' }}>
+            <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Thông Số Bảng Giá Cơ Sở
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 3 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5 }}>
                 Áp dụng tính giá tự động khi khách hàng đặt cuốc xe
               </Typography>
 
-              <Box component="form" onSubmit={handleSave} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <Box component="form" onSubmit={handleSave} sx={{ display: 'flex', flexDirection: 'column', gap: 2.2 }}>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.8 }}>
                     Giá mở cửa cố định (Base Fare)
@@ -215,8 +215,10 @@ export const Pricing = () => {
                     mt: 1,
                     py: 1.2,
                     fontWeight: 700,
-                    alignSelf: 'flex-start',
+                    width: { xs: '100%', sm: 'auto' },
+                    alignSelf: { xs: 'stretch', sm: 'flex-start' },
                     px: 3.5,
+                    borderRadius: 2,
                     bgcolor: '#008cff',
                     '&:hover': { bgcolor: '#0070cc' },
                   }}
@@ -229,7 +231,7 @@ export const Pricing = () => {
 
           {/* Calculator Preview Box */}
           <Grid item xs={12} md={5}>
-            <Card sx={{ p: 3, height: '100%' }}>
+            <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Mô Phỏng Cước Thực Tế
               </Typography>

@@ -298,17 +298,17 @@ export const Restaurants = () => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* Header bar */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
-            🏪 Quản Lý Nhà Hàng & Đối Tác Ẩm Thực
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Quản Lý Nhà Hàng & Quán Ăn
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Theo dõi danh sách quán ăn, thực đơn món và trạng thái hoạt động trực tiếp trên toàn hệ thống
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+            Quản lý thông tin nhà hàng đối tác, duyệt thực đơn và cấu hình trạng thái
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -322,6 +322,8 @@ export const Restaurants = () => {
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 700,
+              fontSize: '0.82rem',
+              flex: { xs: 1, sm: 'none' },
               boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
             }}
           >
@@ -336,6 +338,8 @@ export const Restaurants = () => {
               borderRadius: 2,
               textTransform: 'none',
               fontWeight: 700,
+              fontSize: '0.82rem',
+              flex: { xs: 1, sm: 'none' },
             }}
           >
             Làm Mới
@@ -344,109 +348,109 @@ export const Restaurants = () => {
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: 48, height: 48 }}>
-              <RestaurantIcon />
+            <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <RestaurantIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Tổng Nhà Hàng
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                TỔNG QUÁN
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.total}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(21, 202, 32, 0.12)', color: '#15ca20', width: 48, height: 48 }}>
-              <OpenIcon />
+            <Avatar sx={{ bgcolor: 'rgba(21, 202, 32, 0.12)', color: '#15ca20', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <OpenIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Đang Mở Cửa (Nhận Đơn)
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                ĐANG MỞ CỬA
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#15ca20' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.open}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(255, 170, 0, 0.12)', color: '#ffaa00', width: 48, height: 48 }}>
-              <BusyIcon />
+            <Avatar sx={{ bgcolor: 'rgba(255, 170, 0, 0.12)', color: '#ffaa00', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <BusyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Tạm Bận / Quá Tải
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                TẠM BẬN
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ffaa00' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ffaa00', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.busy}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(255, 51, 102, 0.12)', color: '#ff3366', width: 48, height: 48 }}>
-              <ClosedIcon />
+            <Avatar sx={{ bgcolor: 'rgba(255, 51, 102, 0.12)', color: '#ff3366', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <ClosedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Đang Đóng Cửa
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                ĐÓNG CỬA
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ff3366' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.closed}
               </Typography>
             </Box>
@@ -459,9 +463,9 @@ export const Restaurants = () => {
         {/* Filter & Search Bar */}
         <Box
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
+            flexDirection: { xs: 'column', md: 'row' },
             gap: 2,
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -469,43 +473,47 @@ export const Restaurants = () => {
             borderColor: 'divider',
           }}
         >
-          <ButtonGroup size="small" variant="outlined">
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
             <Button
               variant={statusFilter === 'ALL' ? 'contained' : 'outlined'}
               onClick={() => { setStatusFilter('ALL'); setPage(0); }}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
             >
               Tất cả ({stats.total})
             </Button>
             <Button
               variant={statusFilter === 'OPEN' ? 'contained' : 'outlined'}
               onClick={() => { setStatusFilter('OPEN'); setPage(0); }}
-              sx={{ textTransform: 'none', fontWeight: 600, color: statusFilter === 'OPEN' ? '#fff' : '#15ca20' }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'OPEN' ? '#fff' : '#15ca20' }}
             >
               Mở cửa ({stats.open})
             </Button>
             <Button
               variant={statusFilter === 'BUSY' ? 'contained' : 'outlined'}
               onClick={() => { setStatusFilter('BUSY'); setPage(0); }}
-              sx={{ textTransform: 'none', fontWeight: 600, color: statusFilter === 'BUSY' ? '#fff' : '#ffaa00' }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'BUSY' ? '#fff' : '#ffaa00' }}
             >
               Đang bận ({stats.busy})
             </Button>
             <Button
               variant={statusFilter === 'CLOSED' ? 'contained' : 'outlined'}
               onClick={() => { setStatusFilter('CLOSED'); setPage(0); }}
-              sx={{ textTransform: 'none', fontWeight: 600, color: statusFilter === 'CLOSED' ? '#fff' : '#ff3366' }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'CLOSED' ? '#fff' : '#ff3366' }}
             >
               Đóng cửa ({stats.closed})
             </Button>
-          </ButtonGroup>
+          </Box>
 
           <TextField
             size="small"
             placeholder="Tìm theo tên quán, địa chỉ, SĐT..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-            sx={{ width: { xs: '100%', sm: 300 } }}
+            sx={{ width: { xs: '100%', md: 300 } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -523,8 +531,8 @@ export const Restaurants = () => {
         )}
 
         {/* Table */}
-        <TableContainer>
-          <Table sx={{ minWidth: 700 }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: 700 }} size="small">
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, width: 60 }}>#ID</TableCell>

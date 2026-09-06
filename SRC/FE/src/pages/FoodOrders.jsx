@@ -186,14 +186,14 @@ export const FoodOrders = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+      {/* Header bar */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
-            🍲 Giám Sát Đơn Giao Đồ Ăn (Food Orders)
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Giám Sát Đơn Giao Đồ Ăn (Food)
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
             Theo dõi hành trình đơn hàng, khách hàng, nhà hàng, tài xế giao và trạng thái thanh toán thời gian thực
           </Typography>
         </Box>
@@ -208,6 +208,8 @@ export const FoodOrders = () => {
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 700,
+            fontSize: '0.82rem',
+            width: { xs: '100%', sm: 'auto' },
           }}
         >
           Làm Mới
@@ -215,109 +217,109 @@ export const FoodOrders = () => {
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(249, 115, 22, 0.12)', color: '#f97316', width: 48, height: 48 }}>
-              <FoodIcon />
+            <Avatar sx={{ bgcolor: 'rgba(249, 115, 22, 0.12)', color: '#f97316', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <FoodIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Tổng Đơn Đặt Món
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                TỔNG ĐƠN MÓN
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.totalOrders || orders.length}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(21, 202, 32, 0.12)', color: '#15ca20', width: 48, height: 48 }}>
-              <SuccessIcon />
+            <Avatar sx={{ bgcolor: 'rgba(21, 202, 32, 0.12)', color: '#15ca20', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <SuccessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Giao Thành Công
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                GIAO THÀNH CÔNG
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#15ca20' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.completedOrders || 0}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', width: 48, height: 48 }}>
-              <DriverIcon />
+            <Avatar sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <DriverIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Đang Nấu / Đang Giao
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                ĐANG XỬ LÝ / GIAO
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#3b82f6', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {(stats.deliveringOrders || 0) + (stats.preparingOrders || 0)}
               </Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
-              p: 2.5,
+              p: { xs: 1.5, sm: 2 },
               borderRadius: 2.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.2,
             }}
           >
-            <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: 48, height: 48 }}>
-              <MoneyIcon />
+            <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
+              <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                Doanh Thu Ẩm Thực
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                DOANH THU ẨM THỰC
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {Number(stats.totalRevenue || 0).toLocaleString('vi-VN')} đ
               </Typography>
             </Box>
@@ -330,7 +332,7 @@ export const FoodOrders = () => {
         {/* Filter Tabs & Search */}
         <Box
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             gap: 2,
@@ -340,57 +342,63 @@ export const FoodOrders = () => {
             borderColor: 'divider',
           }}
         >
-          <ButtonGroup size="small" variant="outlined" sx={{ flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
             <Button
               variant={statusFilter === 'ALL' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('ALL')}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
             >
               Tất cả ({orders.length})
             </Button>
             <Button
               variant={statusFilter === 'PENDING' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('PENDING')}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
             >
               Chờ duyệt ({stats.pendingOrders || 0})
             </Button>
             <Button
               variant={statusFilter === 'PREPARING' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('PREPARING')}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
             >
               Đang nấu ({stats.preparingOrders || 0})
             </Button>
             <Button
               variant={statusFilter === 'DELIVERING' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('DELIVERING')}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
             >
               Đang giao ({stats.deliveringOrders || 0})
             </Button>
             <Button
               variant={statusFilter === 'COMPLETED' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('COMPLETED')}
-              sx={{ textTransform: 'none', fontWeight: 600, color: statusFilter === 'COMPLETED' ? '#fff' : '#15ca20' }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'COMPLETED' ? '#fff' : '#15ca20' }}
             >
               Hoàn tất ({stats.completedOrders || 0})
             </Button>
             <Button
               variant={statusFilter === 'CANCELLED' ? 'contained' : 'outlined'}
               onClick={() => handleStatusTab('CANCELLED')}
-              sx={{ textTransform: 'none', fontWeight: 600, color: statusFilter === 'CANCELLED' ? '#fff' : '#ff3366' }}
+              size="small"
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'CANCELLED' ? '#fff' : '#ff3366' }}
             >
               Đã hủy ({stats.cancelledOrders || 0})
             </Button>
-          </ButtonGroup>
+          </Box>
 
           <TextField
             size="small"
             placeholder="Tìm mã đơn, tên khách, SĐT, quán..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-            sx={{ width: { xs: '100%', sm: 300 } }}
+            sx={{ width: { xs: '100%', md: 300 } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -408,8 +416,8 @@ export const FoodOrders = () => {
         )}
 
         {/* Table */}
-        <TableContainer>
-          <Table sx={{ minWidth: 850 }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: 850 }} size="small">
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, width: 70 }}>#Mã Đơn</TableCell>

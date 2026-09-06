@@ -80,13 +80,13 @@ export const Users = () => {
   );
 
   return (
-    <Box className="page-enter-animation">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box className="page-enter-animation" sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
             Quản Lý Khách Hàng
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
             Danh sách tài khoản người dùng đăng ký trên hệ thống
           </Typography>
         </Box>
@@ -95,23 +95,24 @@ export const Users = () => {
           startIcon={<RefreshIcon />}
           onClick={fetchUsers}
           disabled={loading}
+          sx={{ width: { xs: '100%', sm: 'auto' }, borderRadius: 2 }}
         >
           Làm Mới
         </Button>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2.5 }}>
           {error}
         </Alert>
       )}
 
       {/* Main Container Card */}
       <Card sx={{ border: 1, borderColor: 'divider' }}>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: { xs: 1.8, sm: 3 } }}>
           {/* Controls Bar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-            <ButtonGroup variant="outlined" sx={{ borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
               {[
                 { label: 'Khách Hàng', value: 'CUSTOMER', count: allUsers.filter((u) => u.role === 'CUSTOMER').length },
                 { label: 'Tất Cả', value: 'ALL', count: allUsers.length },
@@ -124,23 +125,26 @@ export const Users = () => {
                     setRoleFilter(tab.value);
                     setPage(0);
                   }}
+                  size="small"
                   sx={{
-                    px: 2,
-                    py: 1,
+                    px: { xs: 1.5, sm: 2 },
+                    py: 0.8,
                     fontWeight: 700,
-                    fontSize: '0.9rem',
-                    borderRadius: '0 !important',
+                    fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                    borderRadius: 2,
+                    flex: { xs: 1, sm: 'none' },
                   }}
                 >
                   {tab.label} ({tab.count})
                 </Button>
               ))}
-            </ButtonGroup>
+            </Box>
 
-            <Box sx={{ maxWidth: 360, width: '100%' }}>
+            <Box sx={{ width: { xs: '100%', md: 360 } }}>
               <TextField
-                placeholder="Tìm kiếm theo Tên, SĐT, Email..."
+                placeholder="Tìm theo Tên, SĐT, Email..."
                 fullWidth
+                size="small"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -150,7 +154,7 @@ export const Users = () => {
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ color: 'text.secondary' }} />
+                        <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
                       </InputAdornment>
                     ),
                   },
@@ -159,8 +163,8 @@ export const Users = () => {
             </Box>
           </Box>
 
-          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
-            <Table sx={{ minWidth: 700 }}>
+          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflowX: 'auto', width: '100%' }}>
+            <Table sx={{ minWidth: 620 }} size="small">
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: 90, fontWeight: 700 }}>MÃ ID</TableCell>

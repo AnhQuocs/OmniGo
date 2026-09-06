@@ -326,11 +326,11 @@ export const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ width: '100%' }} className="page-enter-animation">
-      {/* Header bar with Realtime Controls & 3D Toggle */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+      {/* Header bar with Realtime Controls */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
             <Typography variant="h5" sx={{ fontWeight: 700, fontFamily: '"Poppins", sans-serif' }}>
               Tổng Quan Vận Hành
             </Typography>
@@ -348,19 +348,19 @@ export const Dashboard = () => {
               }}
             />
           </Box>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
-            Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')} • Dữ liệu kết nối trực tiếp từ hệ thống Backend
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            Cập nhật: {lastUpdated.toLocaleTimeString('vi-VN')} • Dữ liệu kết nối trực tiếp Backend
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
           {/* Realtime Auto-sync Toggle */}
           <Button
             variant="outlined"
             size="small"
             startIcon={autoSync ? <PauseIcon /> : <PlayIcon />}
             onClick={() => setAutoSync(!autoSync)}
-            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}
+            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.78rem', flex: { xs: 1, sm: 'none' } }}
           >
             {autoSync ? 'Dừng Sync' : 'Bật Sync'}
           </Button>
@@ -372,7 +372,7 @@ export const Dashboard = () => {
             startIcon={<RefreshIcon />}
             onClick={() => fetchDashboardData(false)}
             disabled={loading}
-            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}
+            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.78rem', flex: { xs: 1, sm: 'none' } }}
           >
             Làm Mới
           </Button>
@@ -553,8 +553,10 @@ export const Dashboard = () => {
               p: 2.5,
               borderRadius: 2.5,
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
               justifyContent: 'space-between',
+              gap: 1.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
@@ -564,30 +566,32 @@ export const Dashboard = () => {
             }}
             onClick={() => navigate('/food-orders')}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>
-                <FoodIcon sx={{ fontSize: 32 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>
+                <FoodIcon sx={{ fontSize: 28 }} />
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Đơn Giao Đồ Ăn (Food Delivery)
+                  Đơn Giao Đồ Ăn (Food)
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
                   {stats.totalFoodOrders} Đơn Hàng
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
-                  ✅ {stats.completedFoodOrders} Hoàn tất thành công
+                  ✅ {stats.completedFoodOrders} Hoàn tất
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
-                Doanh Thu Đồ Ăn
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#f97316' }}>
-                {Number(stats.foodRevenue).toLocaleString('vi-VN')} đ
-              </Typography>
-              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: 0.5, p: 0, fontSize: '0.78rem' }}>
+            <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' }, borderTop: { xs: '1px solid rgba(255,255,255,0.06)', sm: 'none' }, pt: { xs: 1, sm: 0 }, display: 'flex', flexDirection: { xs: 'row', sm: 'column' }, justifyContent: { xs: 'space-between', sm: 'flex-start' }, alignItems: { xs: 'center', sm: 'flex-end' } }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
+                  Doanh Thu Đồ Ăn
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#f97316' }}>
+                  {Number(stats.foodRevenue).toLocaleString('vi-VN')} đ
+                </Typography>
+              </Box>
+              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: { xs: 0, sm: 0.5 }, p: 0, fontSize: '0.78rem' }}>
                 Xem đơn
               </Button>
             </Box>
@@ -601,8 +605,10 @@ export const Dashboard = () => {
               p: 2.5,
               borderRadius: 2.5,
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
               justifyContent: 'space-between',
+              gap: 1.5,
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
@@ -612,30 +618,32 @@ export const Dashboard = () => {
             }}
             onClick={() => navigate('/restaurants')}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff' }}>
-                <RestaurantIcon sx={{ fontSize: 32 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
+              <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff' }}>
+                <RestaurantIcon sx={{ fontSize: 28 }} />
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Đối Tác Nhà Hàng
+                  Đối Tác Quán Ăn
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
                   {stats.totalRestaurants} Nhà Hàng
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
-                  🟢 {stats.openRestaurants} Quán đang mở cửa nhận đơn
+                  🟢 {stats.openRestaurants} Quán đang mở
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
-                Tỷ lệ hoạt động
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff' }}>
-                {stats.totalRestaurants > 0 ? `${Math.round((stats.openRestaurants / stats.totalRestaurants) * 100)}%` : '100%'}
-              </Typography>
-              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: 0.5, p: 0, fontSize: '0.78rem' }}>
+            <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' }, borderTop: { xs: '1px solid rgba(255,255,255,0.06)', sm: 'none' }, pt: { xs: 1, sm: 0 }, display: 'flex', flexDirection: { xs: 'row', sm: 'column' }, justifyContent: { xs: 'space-between', sm: 'flex-start' }, alignItems: { xs: 'center', sm: 'flex-end' } }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
+                  Tỷ lệ mở cửa
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#008cff' }}>
+                  {stats.totalRestaurants > 0 ? `${Math.round((stats.openRestaurants / stats.totalRestaurants) * 100)}%` : '100%'}
+                </Typography>
+              </Box>
+              <Button size="small" endIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none', mt: { xs: 0, sm: 0.5 }, p: 0, fontSize: '0.78rem' }}>
                 Quản lý quán
               </Button>
             </Box>
@@ -647,32 +655,32 @@ export const Dashboard = () => {
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         {/* Left Chart (8 cols): Ride Dispatch Overview */}
         <Grid item xs={12} lg={8}>
-          <Card sx={{ p: 2.5, height: '100%' }}>
+          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', color: 'text.primary' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
                   Biểu Đồ Xu Hướng Cuốc Xe Trong Tuần
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                  Lượng chuyến đặt và tỷ lệ chuyến xe hoàn thành theo thời gian thực
+                  Lượng chuyến đặt và hoàn thành theo thời gian thực
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: '#008cff' }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: '#008cff' }} />
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Hoàn thành</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: '#ff7849' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: '#ff7849' }} />
                   <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Tổng đặt</Typography>
                 </Box>
               </Box>
             </Box>
 
-            <Box sx={{ width: '100%', height: 270 }}>
+            <Box sx={{ width: '100%', height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weeklyRideData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                <AreaChart data={weeklyRideData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#008cff" stopOpacity={0.4} />
@@ -705,10 +713,10 @@ export const Dashboard = () => {
 
         {/* Right Chart (4 cols): Monthly Growth Bar Chart */}
         <Grid item xs={12} lg={4}>
-          <Card sx={{ p: 2.5, height: '100%' }}>
+          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', color: 'text.primary' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
                   Sản Lượng Chuyến Theo Tháng
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -717,9 +725,9 @@ export const Dashboard = () => {
               </Box>
             </Box>
 
-            <Box sx={{ width: '100%', height: 270 }}>
+            <Box sx={{ width: '100%', height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyTripData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={monthlyTripData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="barTripGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#ff3366" />
@@ -739,7 +747,7 @@ export const Dashboard = () => {
                     }}
                     formatter={(val) => [`${val.toLocaleString('vi-VN')} chuyến`, 'Số cuốc xe']}
                   />
-                  <Bar dataKey="count" fill="url(#barTripGrad)" radius={[8, 8, 0, 0]} barSize={22} />
+                  <Bar dataKey="count" fill="url(#barTripGrad)" radius={[8, 8, 0, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
@@ -751,22 +759,22 @@ export const Dashboard = () => {
       <Grid container spacing={2.5}>
         {/* Fleet Distribution Donut */}
         <Grid item xs={12} lg={4}>
-          <Card sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
                 Phân Bố Dịch Vụ Xe
               </Typography>
             </Box>
 
-            <Box sx={{ position: 'relative', width: '100%', height: 230 }}>
+            <Box sx={{ position: 'relative', width: '100%', height: 210 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={serviceFleetData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={65}
-                    outerRadius={88}
+                    innerRadius={60}
+                    outerRadius={82}
                     paddingAngle={5}
                     dataKey="value"
                   >
@@ -802,7 +810,7 @@ export const Dashboard = () => {
                 <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: item.color }} />
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
                       {item.name}
                     </Typography>
                   </Box>
@@ -817,10 +825,10 @@ export const Dashboard = () => {
 
         {/* Live Recent Bookings Table */}
         <Grid item xs={12} lg={8}>
-          <Card sx={{ p: 2.5, height: '100%' }}>
+          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', color: 'text.primary' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
                   Chuyến Xe Mới Nhất
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -831,14 +839,14 @@ export const Dashboard = () => {
                 size="small"
                 endIcon={<ArrowForwardIcon />}
                 onClick={() => navigate('/bookings')}
-                sx={{ textTransform: 'none', fontWeight: 700 }}
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem' }}
               >
                 Xem tất cả
               </Button>
             </Box>
 
-            <TableContainer>
-              <Table size="small">
+            <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+              <Table size="small" sx={{ minWidth: 550 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>MÃ CUỐC</TableCell>
