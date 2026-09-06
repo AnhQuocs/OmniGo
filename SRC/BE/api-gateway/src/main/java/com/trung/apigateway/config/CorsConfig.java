@@ -16,7 +16,12 @@ public class CorsConfig {
         corsConfig.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "https://ridehailingsystem.online"
+                "https://ridehailingsystem.online",
+                "http://ridehailingsystem.online",
+                "https://admin.ridehailingsystem.online",
+                "http://admin.ridehailingsystem.online",
+                "https://*.ridehailingsystem.online",
+                "http://*.ridehailingsystem.online"
         ));
         corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfig.setAllowedHeaders(Arrays.asList("*"));
