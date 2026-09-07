@@ -50,7 +50,9 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
                 || path.startsWith("/ws-booking") || path.contains("/api/v1/payments/momo/ipn")
                 || path.contains("/api/v1/payments/momo/return")
                 || path.contains("/api/v1/payments/vnpay/return")
-                || path.contains("/cancel-pending")) {
+                || path.contains("/cancel-pending")
+                || path.contains("/api/v1/payments/internal")
+                || path.contains("/internal/")) {
             return chain.filter(exchange);
         }
 

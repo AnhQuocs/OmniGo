@@ -403,9 +403,28 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     "deliveryFee", deliveryFee != null ? deliveryFee : BigDecimal.valueOf(15000),
                     "paymentMethod", paymentMethod != null ? paymentMethod : "CASH"
             );
-            String url = (paymentServiceBaseUrl != null ? paymentServiceBaseUrl : "http://localhost:8085") + "/api/v1/payments/internal/food-order-payout";
-            directRestTemplate.postForEntity(url, payoutReq, Void.class);
-            log.info("Đã gửi yêu cầu quyết toán cước ship đơn đồ ăn #{} cho tài xế ID {} thành công", orderId, driverId);
+
+            List<String> targetUrls = new ArrayList<>();
+            if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
+                targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/food-order-payout");
+            }
+            targetUrls.add("http://localhost:8085/api/v1/payments/internal/food-order-payout");
+            targetUrls.add("http://localhost:8080/api/v1/payments/internal/food-order-payout");
+
+            boolean success = false;
+            for (String url : targetUrls) {
+                try {
+                    directRestTemplate.postForEntity(url, payoutReq, Void.class);
+                    log.info("Đã gửi yêu cầu quyết toán cước ship đơn đồ ăn #{} cho tài xế ID {} thành công qua URL: {}", orderId, driverId, url);
+                    success = true;
+                    break;
+                } catch (Exception err) {
+                    log.warn("Không thể gọi payment-service qua URL {}: {}", url, err.getMessage());
+                }
+            }
+            if (!success) {
+                log.error("Không thể quyết toán cước ship cho tài xế ID {} (đơn #{}) qua bất kỳ URL nào", driverId, orderId);
+            }
         } catch (Exception e) {
             log.error("Lỗi khi gọi thanh toán cước phí ship cho tài xế ID {} (đơn #{}): {}", driverId, orderId, e.getMessage());
         }
@@ -420,9 +439,23 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     "amount", amount != null ? amount : BigDecimal.ZERO,
                     "reason", reason != null ? reason : "Hoàn tiền đơn hàng"
             );
-            String url = (paymentServiceBaseUrl != null ? paymentServiceBaseUrl : "http://localhost:8085") + "/api/v1/payments/internal/refund-order";
-            directRestTemplate.postForEntity(url, refundReq, Void.class);
-            log.info("Đã gửi yêu cầu hoàn tiền {} VND cho khách hàng ID {} (đơn #{}) thành công", amount, customerId, orderId);
+
+            List<String> targetUrls = new ArrayList<>();
+            if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
+                targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/refund-order");
+            }
+            targetUrls.add("http://localhost:8085/api/v1/payments/internal/refund-order");
+            targetUrls.add("http://localhost:8080/api/v1/payments/internal/refund-order");
+
+            for (String url : targetUrls) {
+                try {
+                    directRestTemplate.postForEntity(url, refundReq, Void.class);
+                    log.info("Đã gửi yêu cầu hoàn tiền {} VND cho khách hàng ID {} (đơn #{}) thành công qua URL: {}", amount, customerId, orderId, url);
+                    break;
+                } catch (Exception err) {
+                    log.warn("Không thể gọi hoàn tiền qua URL {}: {}", url, err.getMessage());
+                }
+            }
         } catch (Exception e) {
             log.error("Lỗi khi gọi hoàn tiền cho khách hàng ID {} (đơn #{}): {}", customerId, orderId, e.getMessage());
         }
