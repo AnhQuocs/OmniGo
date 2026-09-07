@@ -1,5 +1,6 @@
 package com.trung.fooddeliveryservice.service;
 
+import com.trung.fooddeliveryservice.dto.request.RestaurantLockRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
 import com.trung.fooddeliveryservice.dto.response.RestaurantResponse;
@@ -25,6 +26,8 @@ public interface RestaurantService {
     List<RestaurantResponse> searchRestaurants(String keyword);
 
     RestaurantResponse updateRestaurant(Long id, RestaurantRequest request, Long ownerId) throws ResourceNotFoundException, UnauthorizedException;
+
+    RestaurantResponse toggleLockRestaurant(Long id, RestaurantLockRequest request) throws ResourceNotFoundException;
 
     RestaurantResponse toggleRestaurantStatus(Long id, Long ownerId, RestaurantStatus status) throws ResourceNotFoundException, UnauthorizedException;
 }

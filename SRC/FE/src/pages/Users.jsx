@@ -17,11 +17,19 @@ import {
   CircularProgress,
   Alert,
   Button,
-  ButtonGroup,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  LockOpen as UnlockIcon,
+  Lock as LockIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import userService from '../services/userService';
@@ -34,6 +42,12 @@ export const Users = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('CUSTOMER');
+
+  // Lock Dialog state
+  const [openLockDialog, setOpenLockDialog] = useState(false);
+  const [selectedUserForLock, setSelectedUserForLock] = useState(null);
+  const [lockReason, setLockReason] = useState('');
+  const [lockSubmitting, setLockSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -62,6 +76,46 @@ export const Users = () => {
     fetchUsers();
   }, []);
 
+  const handleOpenLockModal = (user) => {
+    setSelectedUserForLock(user);
+    setLockReason(user.isLocked ? '' : 'Vi phạm điều khoản sử dụng');
+    setOpenLockDialog(true);
+  };
+
+  const handleCloseLockModal = () => {
+    if (!lockSubmitting) {
+      setOpenLockDialog(false);
+      setSelectedUserForLock(null);
+    }
+  };
+
+  const handleToggleLockSubmit = async () => {
+    if (!selectedUserForLock) return;
+    const isLocking = !selectedUserForLock.isLocked;
+
+    if (isLocking && !lockReason.trim()) {
+      toast.error('Vui lòng nhập lý do khóa tài khoản');
+      return;
+    }
+
+    setLockSubmitting(true);
+    try {
+      await userService.toggleLockUser(selectedUserForLock.id, {
+        isLocked: isLocking,
+        reason: isLocking ? lockReason.trim() : '',
+      });
+      toast.success(isLocking ? 'Đã khóa tài khoản thành công' : 'Đã mở khóa tài khoản thành công');
+      setOpenLockDialog(false);
+      setSelectedUserForLock(null);
+      fetchUsers();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Thao tác khóa/mở khóa thất bại';
+      toast.error(msg);
+    } finally {
+      setLockSubmitting(false);
+    }
+  };
+
   const filteredUsers = allUsers.filter((u) => {
     const term = searchTerm.toLowerCase();
     const matchSearch =
@@ -84,10 +138,10 @@ export const Users = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            Quản Lý Khách Hàng
+            Quản Lý Khách Hàng & Người Dùng
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
-            Danh sách tài khoản người dùng đăng ký trên hệ thống
+            Danh sách tài khoản và quyền khóa / mở khóa truy cập hệ thống
           </Typography>
         </Box>
         <Button
@@ -164,21 +218,23 @@ export const Users = () => {
           </Box>
 
           <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflowX: 'auto', width: '100%' }}>
-            <Table sx={{ minWidth: 620 }} size="small">
+            <Table sx={{ minWidth: 700 }} size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: 90, fontWeight: 700 }}>MÃ ID</TableCell>
+                  <TableCell sx={{ width: 80, fontWeight: 700 }}>ID</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>HỌ VÀ TÊN</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>SỐ ĐIỆN THOẠI</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>ĐỊA CHỈ EMAIL</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>EMAIL</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>VAI TRÒ</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>TRẠNG THÁI</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>NGÀY TẠO</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>HÀNH ĐỘNG</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body1" sx={{ mt: 1.5, fontWeight: 600 }}>
                         Đang tải danh sách người dùng...
@@ -187,7 +243,7 @@ export const Users = () => {
                   </TableRow>
                 ) : paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
                       <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                         {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có tài khoản nào theo bộ lọc này'}
                       </Typography>
@@ -212,11 +268,48 @@ export const Users = () => {
                         <Chip
                           label={user.role}
                           color={user.role === 'ADMIN' ? 'primary' : 'default'}
+                          size="small"
                           sx={{ fontWeight: 700 }}
                         />
                       </TableCell>
+                      <TableCell>
+                        {user.isLocked ? (
+                          <Tooltip title={`Lý do: ${user.lockedReason || 'Không có lý do'}`}>
+                            <Chip
+                              icon={<LockIcon sx={{ fontSize: '14px !important' }} />}
+                              label="ĐÃ KHÓA"
+                              color="error"
+                              size="small"
+                              sx={{ fontWeight: 700 }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Chip
+                            icon={<UnlockIcon sx={{ fontSize: '14px !important' }} />}
+                            label="HOẠT ĐỘNG"
+                            color="success"
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        )}
+                      </TableCell>
                       <TableCell sx={{ color: 'text.secondary', fontSize: '0.9rem', fontWeight: 500 }}>
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}
+                      </TableCell>
+                      <TableCell align="center">
+                        {user.role !== 'ADMIN' && (
+                          <Button
+                            size="small"
+                            variant={user.isLocked ? 'outlined' : 'contained'}
+                            color={user.isLocked ? 'success' : 'error'}
+                            startIcon={user.isLocked ? <UnlockIcon /> : <LockIcon />}
+                            onClick={() => handleOpenLockModal(user)}
+                            sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                          >
+                            {user.isLocked ? 'Mở Khóa' : 'Khóa'}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -241,6 +334,51 @@ export const Users = () => {
           />
         </CardContent>
       </Card>
+
+      {/* Dialog: Lock / Unlock User */}
+      <Dialog open={openLockDialog} onClose={handleCloseLockModal} maxWidth="xs" fullWidth>
+        <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {selectedUserForLock?.isLocked ? 'Xác nhận mở khóa tài khoản' : 'Khóa tài khoản người dùng'}
+          </Typography>
+          <IconButton onClick={handleCloseLockModal} size="small" disabled={lockSubmitting}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            {selectedUserForLock?.isLocked
+              ? `Bạn có chắc chắn muốn mở khóa cho tài khoản ${selectedUserForLock?.fullName} (${selectedUserForLock?.phoneNumber}) không?`
+              : `Khóa tài khoản sẽ thu hồi quyền đăng nhập và chặn người dùng ${selectedUserForLock?.fullName} (${selectedUserForLock?.phoneNumber}) sử dụng ứng dụng.`}
+          </Typography>
+          {!selectedUserForLock?.isLocked && (
+            <TextField
+              label="Lý do khóa tài khoản"
+              fullWidth
+              multiline
+              rows={3}
+              required
+              value={lockReason}
+              onChange={(e) => setLockReason(e.target.value)}
+              placeholder="Nhập lý do vi phạm (ví dụ: Spam cuốc xe, gian lận thanh toán...)"
+              size="small"
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseLockModal} disabled={lockSubmitting} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            onClick={handleToggleLockSubmit}
+            variant="contained"
+            color={selectedUserForLock?.isLocked ? 'success' : 'error'}
+            disabled={lockSubmitting}
+          >
+            {lockSubmitting ? <CircularProgress size={20} color="inherit" /> : selectedUserForLock?.isLocked ? 'Mở Khóa Ngay' : 'Xác Nhận Khóa'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

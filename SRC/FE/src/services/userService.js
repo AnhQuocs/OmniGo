@@ -1,4 +1,4 @@
-import { get, post } from './api';
+import { get, post, patch } from './api';
 
 export const userService = {
   /**
@@ -23,6 +23,14 @@ export const userService = {
    */
   registerCustomer: async (payload) => {
     return await post('/api/v1/users/register/customer', payload);
+  },
+
+  /**
+   * Khóa hoặc mở khóa tài khoản người dùng (Admin)
+   * Endpoint BE: PATCH /api/v1/users/{id}/lock
+   */
+  toggleLockUser: async (id, payload) => {
+    return await patch(`/api/v1/users/${id}/lock`, payload);
   },
 };
 

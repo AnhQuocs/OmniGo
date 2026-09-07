@@ -32,6 +32,7 @@ import {
   Tab,
   Tabs,
   Stack,
+  Tooltip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -46,6 +47,7 @@ import {
   Add as AddIcon,
   Person as PersonIcon,
   Lock as LockIcon,
+  LockOpen as UnlockIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
   LocationOn as LocationIcon,
@@ -74,6 +76,52 @@ export const Restaurants = () => {
   const [statusDialogData, setStatusDialogData] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Lock Restaurant Dialog State
+  const [openLockModal, setOpenLockModal] = useState(false);
+  const [selectedRestaurantForLock, setSelectedRestaurantForLock] = useState(null);
+  const [lockReason, setLockReason] = useState('');
+  const [lockSubmitting, setLockSubmitting] = useState(false);
+
+  const handleOpenLockRestaurant = (restaurant) => {
+    setSelectedRestaurantForLock(restaurant);
+    setLockReason(restaurant.isLocked ? '' : 'Vi phạm an toàn vệ sinh thực phẩm / khiếu nại');
+    setOpenLockModal(true);
+  };
+
+  const handleCloseLockRestaurant = () => {
+    if (!lockSubmitting) {
+      setOpenLockModal(false);
+      setSelectedRestaurantForLock(null);
+    }
+  };
+
+  const handleToggleLockRestaurantSubmit = async () => {
+    if (!selectedRestaurantForLock) return;
+    const isLocking = !selectedRestaurantForLock.isLocked;
+
+    if (isLocking && !lockReason.trim()) {
+      toast.error('Vui lòng nhập lý do khóa gian hàng');
+      return;
+    }
+
+    setLockSubmitting(true);
+    try {
+      await foodService.toggleLockRestaurant(selectedRestaurantForLock.id, {
+        isLocked: isLocking,
+        reason: isLocking ? lockReason.trim() : '',
+      });
+      toast.success(isLocking ? 'Đã khóa gian hàng nhà hàng thành công' : 'Đã mở khóa gian hàng thành công');
+      setOpenLockModal(false);
+      setSelectedRestaurantForLock(null);
+      fetchRestaurants();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Thao tác thất bại';
+      toast.error(msg);
+    } finally {
+      setLockSubmitting(false);
+    }
+  };
 
   // Add Partner Modal State
   const [openAddPartnerModal, setOpenAddPartnerModal] = useState(false);
@@ -541,13 +589,14 @@ export const Restaurants = () => {
                 <TableCell sx={{ fontWeight: 700 }}>Số Điện Thoại</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Giờ Phục Vụ</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Trạng Thái</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Gian Hàng</TableCell>
                 <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao Tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={36} />
                     <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
                       Đang tải danh sách quán ăn...
@@ -556,7 +605,7 @@ export const Restaurants = () => {
                 </TableRow>
               ) : paginatedList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <RestaurantIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
                     <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       Không tìm thấy nhà hàng nào
@@ -603,8 +652,30 @@ export const Restaurants = () => {
                         {getStatusChip(r.status)}
                       </Box>
                     </TableCell>
+                    <TableCell>
+                      {r.isLocked ? (
+                        <Tooltip title={`Lý do: ${r.lockedReason || 'Gian hàng bị khóa bởi Admin'}`}>
+                          <Chip
+                            icon={<LockIcon sx={{ fontSize: '13px !important' }} />}
+                            label="ĐÃ KHÓA"
+                            color="error"
+                            size="small"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Chip
+                          icon={<UnlockIcon sx={{ fontSize: '13px !important' }} />}
+                          label="HOẠT ĐỘNG"
+                          color="success"
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      )}
+                    </TableCell>
                     <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                         <Button
                           size="small"
                           variant="outlined"
@@ -628,6 +699,16 @@ export const Restaurants = () => {
                           }}
                         >
                           Đổi Trạng Thái
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={r.isLocked ? 'outlined' : 'contained'}
+                          color={r.isLocked ? 'success' : 'error'}
+                          startIcon={r.isLocked ? <UnlockIcon /> : <LockIcon />}
+                          onClick={() => handleOpenLockRestaurant(r)}
+                          sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.78rem', fontWeight: 700 }}
+                        >
+                          {r.isLocked ? 'Mở Khóa' : 'Khóa'}
                         </Button>
                       </Box>
                     </TableCell>
@@ -662,7 +743,7 @@ export const Restaurants = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <MenuIcon sx={{ color: '#008cff' }} />
             <Box>
@@ -751,7 +832,7 @@ export const Restaurants = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ fontWeight: 800 }}>
+        <DialogTitle component="div" sx={{ fontWeight: 800 }}>
           🔄 Cập Nhật Trạng Thái Quán
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
@@ -795,7 +876,7 @@ export const Restaurants = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
       >
-        <DialogTitle sx={{ fontWeight: 800, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle component="div" sx={{ fontWeight: 800, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Avatar sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
               <AddIcon />
@@ -1151,6 +1232,51 @@ export const Restaurants = () => {
             ) : (
               'Hoàn Tất Đăng Ký Đối Tác'
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Khóa / Mở Khóa Gian Hàng */}
+      <Dialog open={openLockModal} onClose={handleCloseLockRestaurant} maxWidth="xs" fullWidth>
+        <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {selectedRestaurantForLock?.isLocked ? 'Mở khóa gian hàng quán ăn' : 'Khóa gian hàng quán ăn'}
+          </Typography>
+          <IconButton onClick={handleCloseLockRestaurant} size="small" disabled={lockSubmitting}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            {selectedRestaurantForLock?.isLocked
+              ? `Bạn có chắc muốn mở khóa cho gian hàng "${selectedRestaurantForLock?.name}" không? Quán sẽ có thể mở cửa phục vụ trở lại.`
+              : `Khóa gian hàng "${selectedRestaurantForLock?.name}" sẽ tự động chuyển quán sang trạng thái Đóng cửa và ẩn khỏi kết quả tìm kiếm của khách hàng.`}
+          </Typography>
+          {!selectedRestaurantForLock?.isLocked && (
+            <TextField
+              label="Lý do khóa gian hàng"
+              fullWidth
+              multiline
+              rows={3}
+              required
+              value={lockReason}
+              onChange={(e) => setLockReason(e.target.value)}
+              placeholder="Nhập lý do vi phạm (ví dụ: Vi phạm vệ sinh ATTP, gian lận giá...)"
+              size="small"
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseLockRestaurant} disabled={lockSubmitting} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            onClick={handleToggleLockRestaurantSubmit}
+            variant="contained"
+            color={selectedRestaurantForLock?.isLocked ? 'success' : 'error'}
+            disabled={lockSubmitting}
+          >
+            {lockSubmitting ? <CircularProgress size={20} color="inherit" /> : selectedRestaurantForLock?.isLocked ? 'Mở Khóa Ngay' : 'Xác Nhận Khóa'}
           </Button>
         </DialogActions>
       </Dialog>

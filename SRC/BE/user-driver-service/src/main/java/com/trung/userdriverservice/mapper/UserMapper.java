@@ -62,11 +62,17 @@ public class UserMapper {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .isLocked(user.getIsLocked())
+                .lockedReason(user.getLockedReason())
+                .lockedAt(user.getLockedAt())
                 .createdAt(user.getCreatedAt());
 
         if (user.getRole() == Role.DRIVER) {
             driverProfileRepository.findById(user.getId()).ifPresent(dp -> {
                 builder.status(dp.getStatus());
+                builder.approvalStatus(dp.getApprovalStatus() != null ? dp.getApprovalStatus() : com.trung.userdriverservice.util.enums.ApprovalStatus.APPROVED);
+                builder.rejectionReason(dp.getRejectionReason());
+                builder.approvedAt(dp.getApprovedAt());
                 builder.vehicleType(dp.getVehicleType());
                 builder.licensePlate(dp.getLicensePlate());
                 builder.vehicleModel(dp.getVehicleModel());
@@ -77,16 +83,22 @@ public class UserMapper {
     }
 
     public DriverInternalResponse toDriverInternalResponse(DriverProfile profile) {
+        User user = profile.getUser();
         return DriverInternalResponse.builder()
                 .driverId(profile.getDriverId())
-                .fullName(profile.getUser() != null ? profile.getUser().getFullName() : "")
-                .phoneNumber(profile.getUser() != null ? profile.getUser().getPhoneNumber() : "")
-                .email(profile.getUser() != null ? profile.getUser().getEmail() : "")
+                .fullName(user != null ? user.getFullName() : "")
+                .phoneNumber(user != null ? user.getPhoneNumber() : "")
+                .email(user != null ? user.getEmail() : "")
+                .isLocked(user != null ? user.getIsLocked() : false)
+                .lockedReason(user != null ? user.getLockedReason() : null)
                 .vehicleType(profile.getVehicleType())
                 .licensePlate(profile.getLicensePlate())
                 .vehicleModel(profile.getVehicleModel())
                 .status(profile.getStatus())
-                .createdAt(profile.getUser() != null ? profile.getUser().getCreatedAt() : null)
+                .approvalStatus(profile.getApprovalStatus())
+                .rejectionReason(profile.getRejectionReason())
+                .approvedAt(profile.getApprovedAt())
+                .createdAt(user != null ? user.getCreatedAt() : null)
                 .build();
     }
 

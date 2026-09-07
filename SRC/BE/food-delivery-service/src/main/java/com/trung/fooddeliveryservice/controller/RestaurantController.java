@@ -1,5 +1,6 @@
 package com.trung.fooddeliveryservice.controller;
 
+import com.trung.fooddeliveryservice.dto.request.RestaurantLockRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantStatusRequest;
@@ -86,5 +87,13 @@ public class RestaurantController {
         Long ownerId = SecurityUtils.getCurrentUserId();
         RestaurantResponse response = restaurantService.toggleRestaurantStatus(id, ownerId, request.getStatus());
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật trạng thái nhà hàng thành công"));
+    }
+
+    @PatchMapping("/{id}/lock")
+    public ResponseEntity<ApiResponse<RestaurantResponse>> toggleLock(
+            @PathVariable Long id,
+            @Valid @RequestBody RestaurantLockRequest request) throws ResourceNotFoundException {
+        RestaurantResponse response = restaurantService.toggleLockRestaurant(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật trạng thái khóa nhà hàng thành công"));
     }
 }

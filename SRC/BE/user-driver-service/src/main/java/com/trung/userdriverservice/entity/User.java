@@ -34,6 +34,15 @@ public class User {
 
     private Boolean isDeleted = false;
 
+    @Column(name = "is_locked")
+    private Boolean isLocked = false;
+
+    @Column(name = "locked_reason")
+    private String lockedReason;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
+
     @Enumerated(EnumType.STRING)
     private Role role;
     @CreationTimestamp

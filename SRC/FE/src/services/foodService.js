@@ -63,6 +63,20 @@ export const foodService = {
   },
 
   /**
+   * Khóa / Mở khóa gian hàng nhà hàng (Admin)
+   * Endpoint: PATCH /api/v1/restaurants/{id}/lock
+   */
+  toggleLockRestaurant: async (restaurantId, payload) => {
+    try {
+      const res = await patch(`/api/v1/restaurants/${restaurantId}/lock`, payload);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi khóa/mở khóa quán #${restaurantId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
    * Đăng ký đối tác nhà hàng mới (đồng thời tạo user role RESTAURANT)
    * Endpoint: POST /api/v1/restaurants/partner
    */

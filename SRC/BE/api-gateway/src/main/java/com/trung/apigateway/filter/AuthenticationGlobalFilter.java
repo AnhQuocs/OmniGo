@@ -83,17 +83,26 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
 
                     Claims claims = jwtUtil.getClaimsFromToken(token);
                     String userId = String.valueOf(claims.get("userId"));
-                    String role = claims.get("role", String.class);
-                    String phoneNumber = claims.getSubject();
 
-                    ServerHttpRequest mutatedRequest = request.mutate()
-                            .header("X-User-Id", userId)
-                            .header("X-User-Role", role)
-                            .header("X-User-Phone", phoneNumber)
-                            .build();
+                    return redisTemplate.hasKey("user_locked:" + userId)
+                            .flatMap(isLocked -> {
+                                if (Boolean.TRUE.equals(isLocked)) {
+                                    log.warn("Tài khoản người dùng ID {} đã bị khóa truy cập.", userId);
+                                    return onError(exchange, "Tài khoản của bạn đã bị khóa bởi Quản trị viên.", HttpStatus.UNAUTHORIZED);
+                                }
 
-                    ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
-                    return chain.filter(mutatedExchange);
+                                String role = claims.get("role", String.class);
+                                String phoneNumber = claims.getSubject();
+
+                                ServerHttpRequest mutatedRequest = request.mutate()
+                                        .header("X-User-Id", userId)
+                                        .header("X-User-Role", role)
+                                        .header("X-User-Phone", phoneNumber)
+                                        .build();
+
+                                ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
+                                return chain.filter(mutatedExchange);
+                            });
                 });
     }
 

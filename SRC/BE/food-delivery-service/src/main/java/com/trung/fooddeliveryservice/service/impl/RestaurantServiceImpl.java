@@ -1,5 +1,6 @@
 package com.trung.fooddeliveryservice.service.impl;
 
+import com.trung.fooddeliveryservice.dto.request.RestaurantLockRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
 import com.trung.fooddeliveryservice.dto.response.RestaurantResponse;
@@ -34,6 +35,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantMapper restaurantMapper;
     private final RestTemplate directRestTemplate;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     @Value("${app.driver-service-url:http://localhost:8081}")
     private String driverServiceBaseUrl;
@@ -195,6 +197,61 @@ public class RestaurantServiceImpl implements RestaurantService {
         Restaurant updated = restaurantRepository.save(restaurant);
         log.info("Cập nhật thành công thông tin nhà hàng ID {}", updated.getId());
         return restaurantMapper.toResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "restaurants", key = "#id")
+    public RestaurantResponse toggleLockRestaurant(Long id, RestaurantLockRequest request) throws ResourceNotFoundException {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Không tìm thấy nhà hàng để khóa/mở khóa với ID {}", id);
+                    return new ResourceNotFoundException("Không tìm thấy nhà hàng với ID: " + id);
+                });
+
+        boolean isLocked = Boolean.TRUE.equals(request.getIsLocked());
+        restaurant.setIsLocked(isLocked);
+        if (isLocked) {
+            restaurant.setLockedReason(request.getReason() != null ? request.getReason().trim() : "Gian hàng bị khóa bởi Admin");
+            restaurant.setLockedAt(java.time.LocalDateTime.now());
+            restaurant.setStatus(RestaurantStatus.CLOSED);
+        } else {
+            restaurant.setLockedReason(null);
+            restaurant.setLockedAt(null);
+        }
+
+        Restaurant saved = restaurantRepository.save(restaurant);
+        log.info("Cập nhật trạng thái khóa nhà hàng ID {} thành {}", saved.getId(), isLocked);
+
+        // Đồng bộ khóa tài khoản người dùng chủ quán qua Redis & user-driver-service
+        if (restaurant.getOwnerId() != null) {
+            try {
+                if (isLocked) {
+                    redisTemplate.opsForValue().set("user_locked:" + restaurant.getOwnerId(), "true", java.time.Duration.ofDays(30));
+                } else {
+                    redisTemplate.delete("user_locked:" + restaurant.getOwnerId());
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi ghi cờ Redis user_locked cho ownerId {}: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+
+            try {
+                String lockUserUrl = driverServiceBaseUrl + "/api/v1/internal/users/" + restaurant.getOwnerId() + "/lock";
+                Map<String, Object> lockPayload = Map.of(
+                        "isLocked", isLocked,
+                        "reason", isLocked ? (request.getReason() != null ? request.getReason().trim() : "Gian hàng bị khóa bởi Admin") : ""
+                );
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(lockPayload, headers);
+                directRestTemplate.postForEntity(lockUserUrl, entity, Map.class);
+                log.info("Đã đồng bộ trạng thái khóa cho User chủ quán ID {} qua user-driver-service (POST)", restaurant.getOwnerId());
+            } catch (Exception e) {
+                log.warn("Lỗi khi đồng bộ khóa User chủ quán ID {} qua user-driver-service: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+        }
+
+        return restaurantMapper.toResponse(saved);
     }
 
     @Override

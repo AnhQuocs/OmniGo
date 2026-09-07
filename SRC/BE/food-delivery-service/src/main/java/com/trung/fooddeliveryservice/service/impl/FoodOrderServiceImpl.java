@@ -65,6 +65,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     return new ResourceNotFoundException("Không tìm thấy nhà hàng với ID: " + request.getRestaurantId());
                 });
 
+        if (Boolean.TRUE.equals(restaurant.getIsLocked())) {
+            log.warn("Nhà hàng '{}' (ID: {}) đã bị khóa bởi quản trị viên", restaurant.getName(), restaurant.getId());
+            String reason = org.springframework.util.StringUtils.hasText(restaurant.getLockedReason()) ? restaurant.getLockedReason() : "Vi phạm quy định của hệ thống";
+            throw new BadRequestException("Nhà hàng này hiện đang bị khóa (" + reason + "), quý khách không thể đặt món từ quán này.");
+        }
+
         if (restaurant.getStatus() != RestaurantStatus.OPEN) {
             log.warn("Nhà hàng '{}' (ID: {}) đang ở trạng thái {} nên không nhận đơn", restaurant.getName(), restaurant.getId(), restaurant.getStatus());
             throw new BadRequestException("Nhà hàng hiện đang đóng cửa hoặc bận, không thể nhận đơn đặt");

@@ -38,13 +38,31 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ApiResponse<LoginResponse> login(LoginRequest request) throws ResourceNotFoundException, InvalidCredentialsException {
-        try {
+        // 1. Kiểm tra trước nếu tài khoản đã bị khóa trong CSDL
+        var userOpt = userRepository.findByPhoneNumber(request.getPhoneNumber());
+        if (userOpt.isPresent()) {
+            User u = userOpt.get();
+            if (Boolean.TRUE.equals(u.getIsLocked())) {
+                String reasonMsg = (u.getLockedReason() != null && !u.getLockedReason().trim().isEmpty())
+                        ? u.getLockedReason()
+                        : "Vi phạm quy định hệ thống";
+                throw new InvalidCredentialsException("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Lý do: " + reasonMsg);
+            }
+        }
 
+        try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getPhoneNumber(), request.getPassword())
             );
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
             User user = userPrincipal.getUser();
+
+            if (Boolean.TRUE.equals(user.getIsLocked())) {
+                String reasonMsg = (user.getLockedReason() != null && !user.getLockedReason().trim().isEmpty())
+                        ? user.getLockedReason()
+                        : "Vi phạm quy định hệ thống";
+                throw new InvalidCredentialsException("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Lý do: " + reasonMsg);
+            }
 
             // 3. Tạo các token
             String accessToken = jwtTokenProvider.generateAccessToken(user);
@@ -62,6 +80,9 @@ public class AuthServiceImpl implements AuthService {
                     .timestamp(LocalDateTime.now())
                     .error(null)
                     .build();
+        } catch (org.springframework.security.authentication.LockedException | org.springframework.security.authentication.DisabledException ex) {
+            String reasonMsg = userOpt.map(User::getLockedReason).filter(r -> r != null && !r.trim().isEmpty()).orElse("Vi phạm quy định hệ thống");
+            throw new InvalidCredentialsException("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Lý do: " + reasonMsg);
         } catch (AuthenticationException ex) {
             throw new InvalidCredentialsException("Số điện thoại hoặc mật khẩu không hợp lệ.");
         }

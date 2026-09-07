@@ -1,5 +1,6 @@
 package com.trung.userdriverservice.entity;
 
+import com.trung.userdriverservice.util.enums.ApprovalStatus;
 import com.trung.userdriverservice.util.enums.DriverStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,16 @@ public class DriverProfile {
 
     @Enumerated(EnumType.STRING)
     private DriverStatus status = DriverStatus.OFFLINE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", length = 30)
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING_APPROVAL;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")

@@ -15,10 +15,14 @@ import com.trung.userdriverservice.util.enums.DriverStatus;
 import java.util.List;
 import java.util.Map;
 
+import com.trung.userdriverservice.dto.request.DriverApprovalRequest;
+
 public interface DriverService {
     ApiResponse<LoginResponse> registerDriver(DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException;
     ApiResponse<UserResponse> updateDriverVehicle(Long driverId, DriverUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException;
+    ApiResponse<UserResponse> resubmitDriver(Long driverId, com.trung.userdriverservice.dto.request.DriverResubmitRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException;
     ApiResponse<UserResponse> adminUpdateDriver(Long driverId, DriverAdminUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException;
+    ApiResponse<UserResponse> approveOrRejectDriver(Long driverId, DriverApprovalRequest request) throws ResourceNotFoundException, BadRequestException;
     void toggleDriverActiveStatus(Long driverId, boolean isActive) throws ResourceNotFoundException, BadRequestException;
 
     void updateDriverStatusInternal(Long driverId, boolean isOnline) throws ResourceNotFoundException;

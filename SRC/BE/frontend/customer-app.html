@@ -933,6 +933,9 @@
         if (!options.headers['X-User-Role']) {
             options.headers['X-User-Role'] = 'CUSTOMER';
         }
+        if (options.body && !options.headers['Content-Type']) {
+            options.headers['Content-Type'] = 'application/json';
+        }
         options.credentials = 'include';
 
         let response = await fetch(url, options);
@@ -1231,7 +1234,13 @@
 
                     const banner = document.getElementById('restaurant-status-banner');
                     if (banner) {
-                        if (found.status === 'CLOSED') {
+                        if (found.isLocked) {
+                            banner.style.display = 'block';
+                            banner.style.background = '#212529';
+                            banner.style.color = '#f8f9fa';
+                            banner.style.border = '1px solid #dc3545';
+                            banner.innerHTML = `🔒 <b>QUÁN ĐÃ BỊ QUẢN TRỊ VIÊN KHÓA HOẠT ĐỘNG.</b> Lý do: ${found.lockedReason || 'Vi phạm điều khoản chính sách'}. Quý khách không thể đặt món từ quán này.`;
+                        } else if (found.status === 'CLOSED') {
                             banner.style.display = 'block';
                             banner.style.background = '#fee2e2';
                             banner.style.color = '#b91c1c';
@@ -1287,13 +1296,16 @@
             return;
         }
 
-        const isResOpen = (currentSelectedRestaurant && currentSelectedRestaurant.status === 'OPEN');
+        const isLocked = (currentSelectedRestaurant && currentSelectedRestaurant.isLocked);
+        const isResOpen = (currentSelectedRestaurant && currentSelectedRestaurant.status === 'OPEN' && !isLocked);
 
         container.innerHTML = items.map(item => {
             const isItemAvailable = (item.isAvailable !== false);
 
             let buttonHtml = '';
-            if (!isResOpen) {
+            if (isLocked) {
+                buttonHtml = `<button class="btn-add-cart" style="background:#475569; cursor:not-allowed;" onclick="alert('🔒 Quán này đã bị Admin khóa hoạt động (${currentSelectedRestaurant?.lockedReason || ''}), không thể đặt món!')" title="Quán đã bị khóa">🔒 Bị khóa</button>`;
+            } else if (!isResOpen) {
                 buttonHtml = `<button class="btn-add-cart" style="background:#94a3b8; cursor:not-allowed;" onclick="alert('⚠️ Quán hiện đang ${currentSelectedRestaurant?.status === 'BUSY' ? 'tạm bận' : 'đóng cửa'}, tạm thời chưa nhận đặt món!')" title="Quán đang đóng cửa">🚫 Tạm đóng</button>`;
             } else if (!isItemAvailable) {
                 buttonHtml = `<button class="btn-add-cart" style="background:#cbd5e1; color:#64748b; cursor:not-allowed;" disabled>Hết món</button>`;
@@ -1320,8 +1332,12 @@
     }
 
     function addToCart(menuItemId) {
-        if (!currentSelectedRestaurant || currentSelectedRestaurant.status !== 'OPEN') {
-            alert("⚠️ Quán hiện đang đóng cửa hoặc tạm ngưng nhận đơn, không thể đặt món vào lúc này!");
+        if (!currentSelectedRestaurant || currentSelectedRestaurant.isLocked || currentSelectedRestaurant.status !== 'OPEN') {
+            if (currentSelectedRestaurant && currentSelectedRestaurant.isLocked) {
+                alert(`🚨 Nhà hàng này hiện đã bị QUẢN TRỊ VIÊN KHÓA HOẠT ĐỘNG (Lý do: ${currentSelectedRestaurant.lockedReason || 'Vi phạm chính sách'}). Không thể thêm món!`);
+            } else {
+                alert("⚠️ Quán hiện đang đóng cửa hoặc tạm ngưng nhận đơn, không thể đặt món vào lúc này!");
+            }
             return;
         }
 
@@ -1511,7 +1527,11 @@
 
         const resId = cart[0].restaurantId;
         const targetRes = allRestaurants.find(r => r.id === resId);
-        if (targetRes && targetRes.status !== 'OPEN') {
+        if (targetRes && (targetRes.isLocked || targetRes.status !== 'OPEN')) {
+            if (targetRes.isLocked) {
+                let reason = targetRes.lockedReason ? `Lý do: ${targetRes.lockedReason}` : 'Vi phạm quy định của hệ thống';
+                return alert(`🚨 Nhà hàng này hiện đã bị QUẢN TRỊ VIÊN KHÓA HOẠT ĐỘNG (${reason}).\nBạn không thể thanh toán hoặc đặt món từ nhà hàng này!`);
+            }
             return alert("⚠️ Nhà hàng này hiện đang đóng cửa hoặc tạm ngưng nhận đơn, không thể đặt hàng lúc này!");
         }
 

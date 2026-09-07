@@ -146,9 +146,10 @@
             <div class="form-group">
                 <label>Loại xe</label>
                 <select id="reg-vehicle-type">
-                    <option value="MOTORBIKE">Xe Máy</option>
-                    <option value="CAR_4_SEATS">Ô tô 4 chỗ</option>
-                    <option value="CAR_7_SEATS">Ô tô 7 chỗ</option>
+                    <option value="BIKE">OmniBike (Xe Máy 2 Bánh)</option>
+                    <option value="CAR_4_SEAT">OmniCar (Ô tô 4 chỗ)</option>
+                    <option value="CAR_7_SEAT">OmniCar (Ô tô 7 chỗ)</option>
+                    <option value="EXPRESS">OmniExpress (Giao hàng siêu tốc)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -202,9 +203,19 @@
                 credentials: 'include',
                 body: JSON.stringify({phoneNumber: phone, password: password})
             });
-            let data = await res.json();
 
-            if (!res.ok || !data.success) throw new Error(data.error || data.message || "Đăng nhập thất bại");
+            let resText = await res.text();
+            let data;
+            try {
+                data = JSON.parse(resText);
+            } catch (e) {
+                throw new Error(resText || "Lỗi máy chủ (" + res.status + ")");
+            }
+
+            if (!res.ok || !data.success) {
+                const errorMsg = data.message || data.error || "Đăng nhập thất bại";
+                throw new Error(errorMsg);
+            }
 
             // Lưu Token & Thông tin User
             const token = data.data.accessToken;

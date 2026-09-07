@@ -59,6 +59,16 @@ public class Restaurant extends BaseEntity {
     @Builder.Default
     private Double rating = 5.0;
 
+    @Column(name = "is_locked")
+    @Builder.Default
+    private Boolean isLocked = false;
+
+    @Column(name = "locked_reason")
+    private String lockedReason;
+
+    @Column(name = "locked_at")
+    private java.time.LocalDateTime lockedAt;
+
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<MenuItem> menuItems = new ArrayList<>();

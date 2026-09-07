@@ -24,6 +24,9 @@ public class RestaurantResponse implements Serializable {
     private String openTime;
     private String closeTime;
     private Double rating;
+    private Boolean isLocked;
+    private String lockedReason;
+    private LocalDateTime lockedAt;
     private List<MenuItemResponse> menuItems;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

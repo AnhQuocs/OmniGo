@@ -1,6 +1,7 @@
 package com.trung.userdriverservice.service.impl;
 
 import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
+import com.trung.userdriverservice.dto.request.DriverApprovalRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
@@ -21,6 +22,7 @@ import com.trung.userdriverservice.security.RefreshTokenService;
 import com.trung.userdriverservice.service.DriverService;
 import com.trung.userdriverservice.service.FirebaseAuthService;
 import com.trung.userdriverservice.service.client.LocationClient;
+import com.trung.userdriverservice.util.enums.ApprovalStatus;
 import com.trung.userdriverservice.util.enums.DriverStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,16 +52,6 @@ public class DriverServiceImpl implements DriverService {
     @Transactional
     public ApiResponse<LoginResponse> registerDriver(DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
         
-        /*
-        // Nếu có Firebase ID Token từ Mobile gửi lên -> Giải mã lấy số điện thoại đã xác thực
-        if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
-            String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
-            request.setPhoneNumber(verifiedPhoneNumber);
-        } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
-            throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký tài xế.");
-        }
-        */
-
         if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
             throw new BadRequestException("Vui lòng cung cấp số điện thoại để đăng ký tài xế.");
         }
@@ -78,6 +71,7 @@ public class DriverServiceImpl implements DriverService {
         User savedUser = userRepository.save(user);
 
         DriverProfile driverProfile = userMapper.toDriverProfileEntity(request, savedUser);
+        driverProfile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
         driverProfileRepository.save(driverProfile);
 
         try {
@@ -103,52 +97,82 @@ public class DriverServiceImpl implements DriverService {
                 .build();
     }
 
+    public static String normalizeVehicleType(String type) {
+        if (type == null || type.trim().isEmpty()) return "BIKE";
+        String upper = type.trim().toUpperCase();
+        if (upper.equals("MOTORBIKE") || upper.equals("BIKE") || upper.equals("XE MÁY") || upper.equals("XE_MAY")) return "BIKE";
+        if (upper.equals("CAR_4_SEATS") || upper.equals("CAR_4_SEAT") || upper.equals("CAR_4") || upper.equals("CAR4")) return "CAR_4_SEAT";
+        if (upper.equals("CAR_7_SEATS") || upper.equals("CAR_7_SEAT") || upper.equals("CAR_7") || upper.equals("CAR7")) return "CAR_7_SEAT";
+        if (upper.equals("EXPRESS") || upper.equals("DELIVERY")) return "EXPRESS";
+        return upper;
+    }
+
     @Override
     @Transactional
     public ApiResponse<UserResponse> adminUpdateDriver(Long driverId, DriverAdminUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         DriverProfile profile = driverProfileRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế với ID: " + driverId));
-
         User user = profile.getUser();
-        if (user == null) {
-            user = userRepository.findById(driverId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người dùng của tài xế."));
+
+        if (!user.getPhoneNumber().equals(request.getPhoneNumber()) &&
+                userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new ResourceConflictException("Số điện thoại đã được đăng ký bởi người dùng khác.");
         }
 
-        // Validate phone uniqueness if changed
-        if (!user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new ResourceConflictException("Số điện thoại " + request.getPhoneNumber() + " đã được đăng ký bởi tài khoản khác.");
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty() &&
+                !request.getEmail().equals(user.getEmail()) &&
+                userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceConflictException("Email đã được đăng ký bởi người dùng khác.");
         }
 
-        // Validate email uniqueness if changed
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (!request.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceConflictException("Email " + request.getEmail() + " đã được đăng ký bởi tài khoản khác.");
-            }
-            user.setEmail(request.getEmail());
+        String cleanPlate = request.getLicensePlate().trim().toUpperCase();
+        if (!profile.getLicensePlate().equals(cleanPlate) &&
+                driverProfileRepository.existsByLicensePlate(cleanPlate)) {
+            throw new ResourceConflictException("Biển số xe đã được đăng ký bởi tài xế khác.");
         }
 
-        // Validate license plate uniqueness if changed
-        if (profile.getLicensePlate() != null && !profile.getLicensePlate().equalsIgnoreCase(request.getLicensePlate())
-                && driverProfileRepository.existsByLicensePlate(request.getLicensePlate())) {
-            throw new ResourceConflictException("Biển số xe " + request.getLicensePlate() + " đã tồn tại trên hệ thống.");
-        }
-
-        // Update User info
-        user.setFullName(request.getFullName());
-        user.setPhoneNumber(request.getPhoneNumber());
+        user.setFullName(request.getFullName().trim());
+        user.setPhoneNumber(request.getPhoneNumber().trim());
+        user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
         userRepository.save(user);
 
-        // Update DriverProfile info
-        profile.setVehicleType(request.getVehicleType());
-        profile.setLicensePlate(request.getLicensePlate());
-        profile.setVehicleModel(request.getVehicleModel());
+        profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
+        profile.setLicensePlate(cleanPlate);
+        profile.setVehicleModel(request.getVehicleModel().trim());
         driverProfileRepository.save(profile);
 
         return ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("Cập nhật thông tin tài xế và phương tiện thành công")
                 .data(userMapper.toUserResponse(user))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserResponse> approveOrRejectDriver(Long driverId, DriverApprovalRequest request) throws ResourceNotFoundException, BadRequestException {
+        DriverProfile profile = driverProfileRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế với ID: " + driverId));
+
+        if (request.getStatus() == ApprovalStatus.APPROVED) {
+            profile.setApprovalStatus(ApprovalStatus.APPROVED);
+            profile.setApprovedAt(LocalDateTime.now());
+            profile.setRejectionReason(null);
+        } else if (request.getStatus() == ApprovalStatus.REJECTED) {
+            profile.setApprovalStatus(ApprovalStatus.REJECTED);
+            profile.setRejectionReason(request.getReason() != null ? request.getReason().trim() : "Hồ sơ không đáp ứng yêu cầu");
+            profile.setStatus(DriverStatus.OFFLINE);
+        } else {
+            profile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
+            profile.setStatus(DriverStatus.OFFLINE);
+        }
+
+        driverProfileRepository.save(profile);
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Cập nhật trạng thái duyệt tài xế thành công")
+                .data(userMapper.toUserResponse(profile.getUser()))
                 .build();
     }
 
@@ -161,18 +185,57 @@ public class DriverServiceImpl implements DriverService {
             throw new BadRequestException("Không thể cập nhật thông tin xe khi đang trong chuyến đi.");
         }
 
-        if (!profile.getLicensePlate().equals(request.getLicensePlate()) &&
-                driverProfileRepository.existsByLicensePlate(request.getLicensePlate())) {
+        String cleanPlate = request.getLicensePlate().trim().toUpperCase();
+        if (!profile.getLicensePlate().equals(cleanPlate) &&
+                driverProfileRepository.existsByLicensePlate(cleanPlate)) {
             throw new ResourceConflictException("Biển số xe này đã được đăng ký bởi người khác.");
         }
 
-        profile.setLicensePlate(request.getLicensePlate());
+        profile.setLicensePlate(cleanPlate);
         profile.setVehicleModel(request.getVehicleModel());
-        profile.setVehicleType(request.getVehicleType());
+        profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
         driverProfileRepository.save(profile);
 
         return ApiResponse.<UserResponse>builder()
                 .data(userMapper.toUserResponse(profile.getUser()))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserResponse> resubmitDriver(Long driverId, com.trung.userdriverservice.dto.request.DriverResubmitRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
+        DriverProfile profile = driverProfileRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế với ID: " + driverId));
+        User user = profile.getUser();
+
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            user.setFullName(request.getFullName().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            if (!request.getEmail().trim().equals(user.getEmail()) && userRepository.existsByEmail(request.getEmail().trim())) {
+                throw new ResourceConflictException("Email đã được đăng ký bởi người dùng khác.");
+            }
+            user.setEmail(request.getEmail().trim());
+        }
+        userRepository.save(user);
+
+        String cleanPlate = request.getLicensePlate().trim().toUpperCase();
+        if (!cleanPlate.equals(profile.getLicensePlate()) && driverProfileRepository.existsByLicensePlate(cleanPlate)) {
+            throw new ResourceConflictException("Biển số xe này đã được đăng ký bởi tài xế khác.");
+        }
+
+        profile.setLicensePlate(cleanPlate);
+        profile.setVehicleModel(request.getVehicleModel().trim());
+        profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
+        profile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
+        profile.setRejectionReason(null);
+        profile.setStatus(DriverStatus.OFFLINE);
+        driverProfileRepository.save(profile);
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Đã cập nhật thông tin và gửi lại yêu cầu duyệt hồ sơ thành công!")
+                .data(userMapper.toUserResponse(user))
                 .build();
     }
 
@@ -181,6 +244,14 @@ public class DriverServiceImpl implements DriverService {
     public void toggleDriverActiveStatus(Long driverId, boolean isActive) throws ResourceNotFoundException, BadRequestException {
         DriverProfile profile = driverProfileRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế."));
+
+        if (Boolean.TRUE.equals(profile.getUser().getIsLocked())) {
+            throw new BadRequestException("Tài khoản tài xế đã bị khóa bởi Quản trị viên.");
+        }
+
+        if (profile.getApprovalStatus() != null && profile.getApprovalStatus() != ApprovalStatus.APPROVED) {
+            throw new BadRequestException("Hồ sơ tài xế đang chờ duyệt hoặc đã bị từ chối, không thể chuyển trạng thái hoạt động.");
+        }
 
         if (profile.getStatus() == DriverStatus.BUSY) {
             throw new BadRequestException("Không thể thay đổi trạng thái khi tài xế đang trong chuyến đi.");

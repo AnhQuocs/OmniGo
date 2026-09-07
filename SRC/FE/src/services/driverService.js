@@ -1,4 +1,4 @@
-import { get, post, put } from './api';
+import { get, post, put, patch } from './api';
 
 export const driverService = {
   /**
@@ -15,6 +15,14 @@ export const driverService = {
    */
   getAllDriverProfiles: async () => {
     return await get('/api/v1/drivers/admin/all');
+  },
+
+  /**
+   * Duyệt hoặc từ chối hồ sơ tài xế (Admin)
+   * Endpoint BE: PATCH /api/v1/drivers/{driverId}/approval
+   */
+  approveDriver: async (driverId, payload) => {
+    return await patch(`/api/v1/drivers/${driverId}/approval`, payload);
   },
 
   /**

@@ -93,64 +93,129 @@
 
 <h2>App Tài Xế (Mô phỏng Bản đồ & Nhận cuốc)</h2>
 
-<div style="margin-bottom: 15px;">
-    <button id="btnConnect" onclick="connect()"
-            style="padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:bold; display: inline-block;">
-        Bật App (Đi làm)
-    </button>
-    <button id="btnDisconnect" onclick="disconnect()"
-            style="padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:bold; display: none;">
-        Tắt App (Nghỉ ngơi)
-    </button>
+<!-- Banners & Modal Trạng Thái Duyệt / Khóa -->
+<div id="locked-card" style="display:none; background:#212529; color:#f8f9fa; padding:20px; border-radius:8px; margin-bottom:15px; border-left: 5px solid #dc3545;">
+    <h3 style="margin-top:0; color:#ff6b6b;">🔒 TÀI KHOẢN ĐÃ BỊ KHÓA</h3>
+    <p>Tài khoản của bạn đã bị Quản trị viên tạm khóa do vi phạm chính sách hoặc khiếu nại.</p>
+    <p><b>Lý do khóa:</b> <span id="locked-reason-text" style="color:#ffc107;"></span></p>
+    <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
 </div>
 
-<div id="status" style="margin-top: 20px; font-weight: bold;">Trạng thái: OFFLINE</div>
+<div id="pending-approval-card" style="display:none; background:#fff8e1; color:#856404; padding:20px; border-radius:8px; margin-bottom:15px; border-left: 5px solid #ffb800;">
+    <h3 style="margin-top:0; color:#d97706;">⏳ HỒ SƠ TÀI XẾ ĐANG CHỜ DUYỆT</h3>
+    <p>Hồ sơ đối tác tài xế của bạn đang được Ban Quản trị OmniGo thẩm định và phê duyệt thông tin phương tiện. Trong thời gian này bạn chưa thể bật ứng dụng để nhận cuốc xe.</p>
+    <div style="margin-top:12px; display:flex; gap:10px;">
+        <button onclick="checkDriverProfile(true)" style="padding:8px 16px; background:#008cff; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🔄 Kiểm tra trạng thái duyệt</button>
+    </div>
+</div>
 
-<div id="wallet-section" class="wallet-panel">
-    <h3 style="color: #385723; margin-top: 0;">💳 VÍ TÀI XẾ</h3>
-    <p style="font-size: 16px; font-weight: bold;">Số dư hiện tại: <span id="wallet-balance"
-                                                                         style="color: #d32f2f; font-size: 20px;">0</span>
-        VND
-        <button onclick="fetchWallet()" style="margin-left:10px; cursor:pointer;">🔄 Làm mới</button>
-    </p>
-    <button class="momo-btn" onclick="depositMoney()">+ Nạp tiền</button>
-    <button class="history-btn" onclick="withdrawMoney()" style="background-color: #007bff;">- Rút tiền</button>
-    <button class="history-btn" onclick="fetchTransactions()">Xem lịch sử giao dịch</button>
-    <ul id="tx-list"
-        style="margin-top: 15px; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px; max-height: 150px; overflow-y: auto; display: none;"></ul>
+<div id="rejected-card" style="display:none; background:#fff5f5; color:#991b1b; padding:20px; border-radius:8px; margin-bottom:15px; border-left: 5px solid #ef4444;">
+    <h3 style="margin-top:0; color:#ef4444;">❌ HỒ SƠ TÀI XẾ BỊ TỪ CHỐI</h3>
+    <p>Ban Quản trị đã từ chối hồ sơ đăng ký tài xế của bạn với lý do sau:</p>
+    <div style="background:#fee2e2; padding:10px 15px; border-radius:6px; font-weight:bold; margin:10px 0; color:#b91c1c;" id="rejected-reason-text">
+        Chưa rõ lý do
+    </div>
+    <p>Bạn có thể chỉnh sửa lại thông tin cá nhân và phương tiện rồi gửi lại để Admin xem xét duyệt lại:</p>
+    <button onclick="openResubmitModal()" style="padding:10px 20px; background:#ef4444; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">✏️ Chỉnh Sửa & Gửi Lại Hồ Sơ</button>
+</div>
 
-    <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Báo cáo hôm nay</button>
-
-    <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
-        <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU NGÀY HÔM NAY</h4>
-        <div style="font-size: 15px; line-height: 1.8;">
-            <div>🚗 Tổng số cuốc xe hoàn thành: <b id="rep-trips" style="color: blue;">0</b> cuốc</div>
-            <hr style="border-top: 1px solid #eee;">
-            <div>💰 Tổng doanh thu cước phí: <b id="rep-revenue">0 đ</b></div>
-            <div>💵 <b>Tiền mặt đang cầm của khách: <span id="rep-cash" style="color: green;">0 đ</span></b></div>
-            <div>💳 Tiền khách trả qua App: <b id="rep-app">0 đ</b></div>
-            <hr style="border-top: 1px solid #eee;">
-            <div>📉 Tổng phí sàn đã trừ (20%): <b id="rep-commission" style="color: red;">-0 đ</b></div>
-            <div style="margin-top: 10px; padding: 10px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 5px; text-align: center;">
-                ✨ Thu nhập ròng của bạn: <span id="rep-net-income" style="font-size: 18px;">0 đ</span>
-            </div>
+<!-- Modal Chỉnh sửa & Gửi duyệt lại -->
+<div id="resubmit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:25px; border-radius:10px; width:450px; max-width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <h3 style="margin-top:0; color:#008cff;">✏️ Cập Nhật Thông Tin & Gửi Duyệt Lại</h3>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">Họ và tên</label>
+            <input type="text" id="resubmit-name" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">Email</label>
+            <input type="email" id="resubmit-email" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">Loại phương tiện</label>
+            <select id="resubmit-vehicle-type" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+                <option value="BIKE">OmniBike (Xe Máy 2 Bánh)</option>
+                <option value="CAR_4_SEAT">OmniCar 4C (Ô tô 4 chỗ)</option>
+                <option value="CAR_7_SEAT">OmniCar 7C (Ô tô 7 chỗ)</option>
+                <option value="EXPRESS">OmniExpress (Giao hàng siêu tốc)</option>
+            </select>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">Biển số xe</label>
+            <input type="text" id="resubmit-plate" placeholder="VD: 29A-123.45" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; text-transform:uppercase;">
+        </div>
+        <div style="margin-bottom:15px;">
+            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">Dòng xe / Model xe</label>
+            <input type="text" id="resubmit-model" placeholder="VD: Honda Wave, Toyota Vios" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+        </div>
+        <div id="resubmit-error" style="color:red; font-size:13px; margin-bottom:10px;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button onclick="closeResubmitModal()" style="padding:8px 15px; border:1px solid #ccc; background:#f8f9fa; border-radius:4px; cursor:pointer;">Hủy</button>
+            <button onclick="submitResubmitProfile()" id="btnSubmitResubmit" style="padding:8px 18px; background:#008cff; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">Gửi Yêu Cầu Duyệt Lại</button>
         </div>
     </div>
 </div>
 
-<div id="map"></div>
+<div id="driver-working-area" style="display:none;">
+    <div id="driver-app-controls" style="margin-bottom: 15px;">
+        <button id="btnConnect" onclick="connect()"
+                style="padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:bold; display: inline-block;">
+            Bật App (Đi làm)
+        </button>
+        <button id="btnDisconnect" onclick="disconnect()"
+                style="padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:bold; display: none;">
+            Tắt App (Nghỉ ngơi)
+        </button>
+    </div>
 
-<div id="match-box"
-     style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeba8; display: none;">
-    <h3 style="color: #856404; margin-top: 0;">
-        <span id="box-title">🔔 CÓ CUỐC XE MỚI!</span>
-        <span id="driver-timer" style="color: red; margin-left: 15px; font-size: 16px;"></span>
-    </h3>
-    <p id="match-info"></p>
-    <div id="action-buttons"></div>
+    <div id="status" style="margin-top: 20px; font-weight: bold;">Trạng thái: OFFLINE</div>
+
+    <div id="wallet-section" class="wallet-panel">
+        <h3 style="color: #385723; margin-top: 0;">💳 VÍ TÀI XẾ</h3>
+        <p style="font-size: 16px; font-weight: bold;">Số dư hiện tại: <span id="wallet-balance"
+                                                                             style="color: #d32f2f; font-size: 20px;">0</span>
+            VND
+            <button onclick="fetchWallet()" style="margin-left:10px; cursor:pointer;">🔄 Làm mới</button>
+        </p>
+        <button class="momo-btn" onclick="depositMoney()">+ Nạp tiền</button>
+        <button class="history-btn" onclick="withdrawMoney()" style="background-color: #007bff;">- Rút tiền</button>
+        <button class="history-btn" onclick="fetchTransactions()">Xem lịch sử giao dịch</button>
+        <ul id="tx-list"
+            style="margin-top: 15px; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px; max-height: 150px; overflow-y: auto; display: none;"></ul>
+
+        <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Báo cáo hôm nay</button>
+
+        <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
+            <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU NGÀY HÔM NAY</h4>
+            <div style="font-size: 15px; line-height: 1.8;">
+                <div>🚗 Tổng số cuốc xe hoàn thành: <b id="rep-trips" style="color: blue;">0</b> cuốc</div>
+                <hr style="border-top: 1px solid #eee;">
+                <div>💰 Tổng doanh thu cước phí: <b id="rep-revenue">0 đ</b></div>
+                <div>💵 <b>Tiền mặt đang cầm của khách: <span id="rep-cash" style="color: green;">0 đ</span></b></div>
+                <div>💳 Tiền khách trả qua App: <b id="rep-app">0 đ</b></div>
+                <hr style="border-top: 1px solid #eee;">
+                <div>📉 Tổng phí sàn đã trừ (20%): <b id="rep-commission" style="color: red;">-0 đ</b></div>
+                <div style="margin-top: 10px; padding: 10px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 5px; text-align: center;">
+                    ✨ Thu nhập ròng của bạn: <span id="rep-net-income" style="font-size: 18px;">0 đ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="match-box"
+         style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeba8; display: none;">
+        <h3 style="color: #856404; margin-top: 0;">
+            <span id="box-title">🔔 CÓ CUỐC XE MỚI!</span>
+            <span id="driver-timer" style="color: red; margin-left: 15px; font-size: 16px;"></span>
+        </h3>
+        <p id="match-info"></p>
+        <div id="action-buttons"></div>
+    </div>
+
+    <ul id="log"></ul>
 </div>
-
-<ul id="log"></ul>
 
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -196,6 +261,12 @@
     async function fetchWithAuth(url, options = {}) {
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = 'Bearer ' + getStoredToken();
+        if (DRIVER_ID) {
+            options.headers['X-User-Id'] = DRIVER_ID.toString();
+        }
+        if (options.body && !options.headers['Content-Type']) {
+            options.headers['Content-Type'] = 'application/json';
+        }
         options.credentials = 'include';
 
         let response = await fetch(url, options);
@@ -262,6 +333,8 @@
         });
     }
 
+    let currentDriverProfile = null;
+
     window.onload = function () {
         let t = getStoredToken();
         if (!t) return;
@@ -271,8 +344,159 @@
             DRIVER_ID = decoded.userId || decoded.id;
             let displayName = decoded.fullName || decoded.name || decoded.sub;
             document.getElementById('display-driver').innerText = displayName + ' (ID: ' + DRIVER_ID + ')';
+            
+            // Hiển thị ngay trạng thái ban đầu từ localStorage nếu có để tránh giật / trắng màn hình
+            try {
+                let cached = JSON.parse(localStorage.getItem('user'));
+                if (cached && (cached.id == DRIVER_ID || cached.userId == DRIVER_ID)) {
+                    currentDriverProfile = cached;
+                    renderApprovalUI(cached);
+                }
+            } catch(e) {}
+
+            checkDriverProfile();
         }
     };
+
+    async function checkDriverProfile(isManual = false) {
+        if (!DRIVER_ID) return;
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/drivers/${DRIVER_ID}/profile`);
+            if (!res.ok) {
+                // Thử endpoint fallback /api/v1/users/{id}
+                res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${DRIVER_ID}`);
+            }
+
+            if (res.ok) {
+                let data = await res.json();
+                let profile = (data && data.data) ? data.data : data;
+                if (profile && (profile.id || profile.userId || profile.phoneNumber || profile.approvalStatus)) {
+                    currentDriverProfile = profile;
+                    localStorage.setItem('user', JSON.stringify(profile));
+                    renderApprovalUI(currentDriverProfile);
+                    if (isManual) {
+                        let statusText = 'CHỜ DUYỆT';
+                        if (profile.approvalStatus === 'APPROVED') statusText = 'ĐÃ DUYỆT';
+                        if (profile.approvalStatus === 'REJECTED') statusText = 'BỊ TỪ CHỐI (Lý do: ' + (profile.rejectionReason || 'Chưa rõ') + ')';
+                        alert('Cập nhật trạng thái thành công!\nTrạng thái hiện tại: ' + statusText);
+                    }
+                    return;
+                }
+            } else {
+                if (isManual) {
+                    alert('Không thể kết nối đến máy chủ để lấy thông tin hồ sơ tài xế (HTTP ' + res.status + ')');
+                }
+            }
+        } catch (e) {
+            console.error('Lỗi kiểm tra hồ sơ tài xế:', e);
+            if (isManual) {
+                alert('Lỗi kiểm tra hồ sơ: ' + e.message);
+            }
+        }
+
+        // Fallback: nếu chưa lấy được profile qua mạng, dùng profile hiện có hoặc mặc định APPROVED
+        if (currentDriverProfile) {
+            renderApprovalUI(currentDriverProfile);
+        } else {
+            renderApprovalUI({ approvalStatus: 'APPROVED', isLocked: false });
+        }
+    }
+
+    function renderApprovalUI(driver) {
+        if (!driver) driver = { approvalStatus: 'APPROVED', isLocked: false };
+        const lockedCard = document.getElementById('locked-card');
+        const pendingCard = document.getElementById('pending-approval-card');
+        const rejectedCard = document.getElementById('rejected-card');
+        const workingArea = document.getElementById('driver-working-area');
+
+        // Ẩn tất cả card trước
+        if (lockedCard) lockedCard.style.display = 'none';
+        if (pendingCard) pendingCard.style.display = 'none';
+        if (rejectedCard) rejectedCard.style.display = 'none';
+        if (workingArea) workingArea.style.display = 'none';
+
+        if (driver.isLocked) {
+            if (lockedCard) {
+                lockedCard.style.display = 'block';
+                document.getElementById('locked-reason-text').innerText = driver.lockedReason || 'Vi phạm điều khoản hoạt động';
+            }
+            return;
+        }
+
+        const approval = driver.approvalStatus || 'APPROVED';
+        if (approval === 'PENDING_APPROVAL') {
+            if (pendingCard) pendingCard.style.display = 'block';
+        } else if (approval === 'REJECTED') {
+            if (rejectedCard) {
+                rejectedCard.style.display = 'block';
+                document.getElementById('rejected-reason-text').innerText = driver.rejectionReason || 'Hồ sơ chưa đạt tiêu chuẩn phê duyệt của hệ thống';
+            }
+        } else {
+            // APPROVED
+            if (workingArea) workingArea.style.display = 'block';
+        }
+    }
+
+    function openResubmitModal() {
+        if (!currentDriverProfile) return;
+        document.getElementById('resubmit-name').value = currentDriverProfile.fullName || '';
+        document.getElementById('resubmit-email').value = currentDriverProfile.email || '';
+        document.getElementById('resubmit-vehicle-type').value = currentDriverProfile.vehicleType || 'BIKE';
+        document.getElementById('resubmit-plate').value = currentDriverProfile.licensePlate || '';
+        document.getElementById('resubmit-model').value = currentDriverProfile.vehicleModel || '';
+        document.getElementById('resubmit-error').innerText = '';
+        document.getElementById('resubmit-modal').style.display = 'flex';
+    }
+
+    function closeResubmitModal() {
+        document.getElementById('resubmit-modal').style.display = 'none';
+    }
+
+    async function submitResubmitProfile() {
+        const name = document.getElementById('resubmit-name').value.trim();
+        const email = document.getElementById('resubmit-email').value.trim();
+        const vehicleType = document.getElementById('resubmit-vehicle-type').value;
+        const licensePlate = document.getElementById('resubmit-plate').value.trim().toUpperCase();
+        const vehicleModel = document.getElementById('resubmit-model').value.trim();
+        const errorEl = document.getElementById('resubmit-error');
+        const submitBtn = document.getElementById('btnSubmitResubmit');
+
+        if (!name) return errorEl.innerText = 'Vui lòng nhập họ và tên';
+        if (!licensePlate) return errorEl.innerText = 'Vui lòng nhập biển số xe';
+        if (!vehicleModel) return errorEl.innerText = 'Vui lòng nhập dòng xe';
+
+        errorEl.innerText = '';
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Đang gửi...';
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/drivers/${DRIVER_ID}/resubmit`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: name,
+                    email: email || undefined,
+                    vehicleType: vehicleType,
+                    licensePlate: licensePlate,
+                    vehicleModel: vehicleModel
+                })
+            });
+
+            let data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || data.error || 'Gửi duyệt lại thất bại');
+            }
+
+            alert('Đã gửi lại hồ sơ thành công! Trạng thái hiện tại: CHỜ DUYỆT.');
+            closeResubmitModal();
+            await checkDriverProfile();
+        } catch (err) {
+            errorEl.innerText = err.message || 'Lỗi khi gửi hồ sơ';
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Gửi Yêu Cầu Duyệt Lại';
+        }
+    }
 
     function initMap() {
         if (map) map.remove();

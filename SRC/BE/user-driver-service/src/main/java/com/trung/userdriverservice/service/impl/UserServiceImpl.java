@@ -1,6 +1,7 @@
 package com.trung.userdriverservice.service.impl;
 
 import com.trung.userdriverservice.dto.request.PageRequestDTO;
+import com.trung.userdriverservice.dto.request.UserLockRequest;
 import com.trung.userdriverservice.dto.request.UserRegisterRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.LoginResponse;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class UserServiceImpl implements UserService {
     private final FirebaseAuthService firebaseAuthService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     @Transactional
@@ -99,8 +102,46 @@ public class UserServiceImpl implements UserService {
     @Override
     public ApiResponse<UserResponse> getUserById(Long id) throws ResourceNotFoundException {
         return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Lấy thông tin người dùng thành công")
                 .data(userMapper.toUserResponse(userRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + id))))
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserResponse> toggleUserLock(Long userId, UserLockRequest request) throws ResourceNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
+
+        boolean isLocked = Boolean.TRUE.equals(request.getIsLocked());
+        user.setIsLocked(isLocked);
+        if (isLocked) {
+            user.setLockedReason(request.getReason() != null ? request.getReason().trim() : "Tài khoản bị khóa bởi Admin");
+            user.setLockedAt(java.time.LocalDateTime.now());
+            // Invalidate token & store lock flag in Redis
+            try {
+                refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
+                redisTemplate.opsForValue().set("user_locked:" + userId, "true", java.time.Duration.ofDays(30));
+            } catch (Exception ignored) {
+            }
+        } else {
+            user.setLockedReason(null);
+            user.setLockedAt(null);
+            try {
+                redisTemplate.delete("user_locked:" + userId);
+            } catch (Exception ignored) {
+            }
+        }
+
+        userRepository.save(user);
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message(isLocked ? "Đã khóa tài khoản thành công" : "Đã mở khóa tài khoản thành công")
+                .data(userMapper.toUserResponse(user))
                 .build();
     }
 
@@ -108,8 +149,14 @@ public class UserServiceImpl implements UserService {
     public void lockUserAccount(Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
-        // Ràng buộc bổ sung: Có thể kiểm tra xem user này có cuốc xe nào chưa thanh toán không trước khi khóa
-        user.setIsDeleted(true);
+        user.setIsLocked(true);
+        user.setLockedReason("Tài khoản bị khóa bởi hệ thống");
+        user.setLockedAt(java.time.LocalDateTime.now());
+        try {
+            refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
+            redisTemplate.opsForValue().set("user_locked:" + userId, "true", java.time.Duration.ofDays(30));
+        } catch (Exception ignored) {
+        }
         userRepository.save(user);
     }
 }

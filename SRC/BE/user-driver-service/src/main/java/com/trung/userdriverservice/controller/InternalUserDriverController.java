@@ -27,6 +27,7 @@ public class InternalUserDriverController {
 
     private final InternalUserDriverService internalUserDriverService;
     private final DriverService driverService;
+    private final com.trung.userdriverservice.service.UserService userService;
 
     @GetMapping("/drivers/{id}")
     public ResponseEntity<ApiResponse<DriverInternalResponse>> getDriverProfileInternal(@PathVariable Long id) throws ResourceNotFoundException {
@@ -71,5 +72,12 @@ public class InternalUserDriverController {
     @PostMapping("/drivers/batch/online-status")
     public ResponseEntity<Map<Long, Boolean>> getBatchDriversOnlineStatus(@RequestBody List<Long> driverIds) {
         return ResponseEntity.ok(driverService.getBatchDriversOnlineStatus(driverIds));
+    }
+
+    @RequestMapping(value = "/users/{id}/lock", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
+    public ResponseEntity<ApiResponse<com.trung.userdriverservice.dto.response.UserResponse>> lockUserInternal(
+            @PathVariable Long id,
+            @RequestBody com.trung.userdriverservice.dto.request.UserLockRequest request) throws ResourceNotFoundException {
+        return ResponseEntity.ok(userService.toggleUserLock(id, request));
     }
 }

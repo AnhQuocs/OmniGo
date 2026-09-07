@@ -1,5 +1,6 @@
 package com.trung.userdriverservice.controller;
 import com.trung.userdriverservice.dto.request.PageRequestDTO;
+import com.trung.userdriverservice.dto.request.UserLockRequest;
 import com.trung.userdriverservice.dto.request.UserRegisterRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.LoginResponse;
@@ -46,10 +47,18 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #currentUserId == #id")
+    @PreAuthorize("hasRole('ADMIN') or isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(
             @PathVariable Long id,
-            @RequestHeader(name = "X-User-Id") Long currentUserId) throws ResourceNotFoundException {
+            @RequestHeader(name = "X-User-Id", required = false) Long currentUserId) throws ResourceNotFoundException {
         return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    @PatchMapping("/{id}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> toggleUserLock(
+            @PathVariable Long id,
+            @Valid @RequestBody UserLockRequest request) throws ResourceNotFoundException {
+        return ResponseEntity.ok(userService.toggleUserLock(id, request));
     }
 }
