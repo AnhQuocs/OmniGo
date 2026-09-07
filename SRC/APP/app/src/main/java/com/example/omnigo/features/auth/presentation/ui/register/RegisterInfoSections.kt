@@ -56,7 +56,6 @@ import com.example.omnigo.ui.theme.InputBackgroundColor
 import com.example.omnigo.ui.theme.InputFocusedBorderColor
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.RoleCardSelectedBg
-import com.example.omnigo.ui.theme.RoleCardSelectedBorder
 import com.example.omnigo.ui.theme.RoleCardUnselectedBg
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary

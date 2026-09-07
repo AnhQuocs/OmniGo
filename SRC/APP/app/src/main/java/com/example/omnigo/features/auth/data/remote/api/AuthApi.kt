@@ -19,7 +19,7 @@ interface AuthApi {
         @Body request: CustomerRegisterRequest
     ): Response<UserResponse>
 
-    @POST(ApiEndpoints.DRIVER_CUSTOMER)
+    @POST(ApiEndpoints.REGISTER_DRIVER)
     suspend fun registerDriver(
         @Body request: DriverRegisterRequest
     ): Response<UserResponse>
