@@ -274,7 +274,7 @@ public class WalletServiceImpl implements WalletService {
                         .build()));
 
         boolean alreadyProcessed = transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId())
-                .stream().anyMatch(tx -> tx.getOrderId() != null && tx.getOrderId().startsWith("FOOD_FEE_" + orderId + "_"));
+                .stream().anyMatch(tx -> tx.getOrderId() != null && (tx.getOrderId().startsWith("FOOD_FEE_" + orderId + "_") || tx.getOrderId().startsWith("FOOD_INC_" + orderId + "_")));
 
         if (alreadyProcessed) {
             log.info("Đơn đồ ăn #{} đã được quyết toán hoa hồng/cước phí trước đó, bỏ qua.", orderId);
@@ -282,53 +282,38 @@ public class WalletServiceImpl implements WalletService {
         }
 
         BigDecimal commissionFee = deliveryFee.multiply(BigDecimal.valueOf(0.20)).setScale(0, java.math.RoundingMode.HALF_UP);
+        BigDecimal netIncome = deliveryFee.subtract(commissionFee);
 
-        if ("CASH".equalsIgnoreCase(paymentMethod)) {
-            // Đơn tiền mặt: Khách trả tiền mặt cho tài xế. Hệ thống trừ 20% phí hoa hồng cước ship từ ví tài xế
-            wallet.setBalance(wallet.getBalance().subtract(commissionFee));
-            walletRepository.save(wallet);
+        // Cộng thu nhập ròng tiền ship (80% sau khi trừ 20% phí hoa hồng sàn) vào ví tài xế
+        wallet.setBalance(wallet.getBalance().add(netIncome));
+        walletRepository.save(wallet);
 
-            Transaction feeTx = Transaction.builder()
-                    .walletId(wallet.getId())
-                    .bookingId(orderId)
-                    .orderId("FOOD_FEE_" + orderId + "_" + System.currentTimeMillis())
-                    .amount(commissionFee)
-                    .transactionType(TransactionType.COMMISSION_FEE)
-                    .paymentMethod(PaymentMethod.WALLET)
-                    .status(TransactionStatus.SUCCESS)
-                    .build();
-            transactionRepository.save(feeTx);
-            log.info("Đã trừ 20% hoa hồng đơn giao đồ ăn COD #{}: -{} VND từ ví tài xế ID {}", orderId, commissionFee, driverId);
-        } else {
-            // Đơn online (MOMO/VNPAY): Khách đã trả trước, cộng cước ship vào ví và trừ 20% hoa hồng sàn
-            BigDecimal netIncome = deliveryFee.subtract(commissionFee);
-            wallet.setBalance(wallet.getBalance().add(netIncome));
-            walletRepository.save(wallet);
+        // Ghi nhận giao dịch cộng cước ship (+deliveryFee)
+        Transaction incTx = Transaction.builder()
+                .walletId(wallet.getId())
+                .bookingId(orderId)
+                .orderId("FOOD_INC_" + orderId + "_" + System.currentTimeMillis())
+                .amount(deliveryFee)
+                .transactionType(TransactionType.FOOD_DELIVERY_INCOME)
+                .paymentMethod(PaymentMethod.WALLET)
+                .status(TransactionStatus.SUCCESS)
+                .build();
+        transactionRepository.save(incTx);
 
-            Transaction incTx = Transaction.builder()
-                    .walletId(wallet.getId())
-                    .bookingId(orderId)
-                    .orderId("FOOD_INC_" + orderId + "_" + System.currentTimeMillis())
-                    .amount(deliveryFee)
-                    .transactionType(TransactionType.FOOD_DELIVERY_INCOME)
-                    .paymentMethod(PaymentMethod.WALLET)
-                    .status(TransactionStatus.SUCCESS)
-                    .build();
-            transactionRepository.save(incTx);
+        // Ghi nhận giao dịch khấu trừ phí sàn 20% (-commissionFee)
+        Transaction feeTx = Transaction.builder()
+                .walletId(wallet.getId())
+                .bookingId(orderId)
+                .orderId("FOOD_FEE_" + orderId + "_" + System.currentTimeMillis())
+                .amount(commissionFee)
+                .transactionType(TransactionType.COMMISSION_FEE)
+                .paymentMethod(PaymentMethod.WALLET)
+                .status(TransactionStatus.SUCCESS)
+                .build();
+        transactionRepository.save(feeTx);
 
-            Transaction feeTx = Transaction.builder()
-                    .walletId(wallet.getId())
-                    .bookingId(orderId)
-                    .orderId("FOOD_FEE_" + orderId + "_" + System.currentTimeMillis())
-                    .amount(commissionFee)
-                    .transactionType(TransactionType.COMMISSION_FEE)
-                    .paymentMethod(PaymentMethod.WALLET)
-                    .status(TransactionStatus.SUCCESS)
-                    .build();
-            transactionRepository.save(feeTx);
-
-            log.info("Đã cộng cước ship online đơn đồ ăn #{} vào ví tài xế ID {}: +{} VND (sau trừ phí sàn)", orderId, netIncome, driverId);
-        }
+        log.info("Đã cộng cước ship đơn đồ ăn #{} vào ví tài xế ID {}: +{} VND (Cước: {} VND, Phí sàn 20%: -{} VND). Phương thức thanh toán: {}",
+                orderId, driverId, netIncome, deliveryFee, commissionFee, paymentMethod);
 
         if (wallet.getBalance().compareTo(BigDecimal.valueOf(-50000)) <= 0) {
             log.warn("Tài xế ID {} nợ cước hệ thống quá hạn mức (-50k). Số dư: {}. Ép OFFLINE!", driverId, wallet.getBalance());

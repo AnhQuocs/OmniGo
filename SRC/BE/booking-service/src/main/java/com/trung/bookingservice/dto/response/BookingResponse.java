@@ -19,4 +19,5 @@ public class BookingResponse {
     private BookingStatus status;
     private Double distanceInKm;
     private Double price;
+    private String paymentMethod;
 }

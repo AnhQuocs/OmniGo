@@ -583,6 +583,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .distanceInKm(distance)
                 .price(booking.getPrice())
+                .paymentMethod(booking.getPaymentMethod())
                 .build();
     }
 }

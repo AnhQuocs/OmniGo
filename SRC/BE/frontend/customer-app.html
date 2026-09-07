@@ -803,11 +803,11 @@
         <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex:1;">
                 <label class="form-label">Vĩ độ (Lat)</label>
-                <input type="number" step="any" id="order-delivery-lat" class="form-control" value="21.033333">
+                <input type="number" step="any" id="order-delivery-lat" class="form-control" value="21.033333" oninput="renderCartModalItems()">
             </div>
             <div class="form-group" style="flex:1;">
                 <label class="form-label">Kinh độ (Lng)</label>
-                <input type="number" step="any" id="order-delivery-lng" class="form-control" value="105.789123">
+                <input type="number" step="any" id="order-delivery-lng" class="form-control" value="105.789123" oninput="renderCartModalItems()">
             </div>
         </div>
 
@@ -1370,9 +1370,35 @@
         }
     }
 
+    function calculateFoodDistanceInKm(lat1, lon1, lat2, lon2) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            return 0.0;
+        }
+        const earthRadius = 6371; // km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadius * c;
+    }
+
+    function calculateFoodDeliveryFee(lat1, lon1, lat2, lon2) {
+        const distanceKm = calculateFoodDistanceInKm(lat1, lon1, lat2, lon2);
+        // Phí cơ sở: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
+        let fee = 15000.0;
+        if (distanceKm > 2.0) {
+            fee += (distanceKm - 2.0) * 5000.0;
+        }
+        return {
+            fee: Math.round(fee),
+            distanceKm: distanceKm
+        };
+    }
+
     function openCartModal() {
         if (cart.length === 0) return;
-        renderCartModalItems();
 
         let nameInput = document.getElementById('order-customer-name');
         let phoneInput = document.getElementById('order-customer-phone');
@@ -1417,14 +1443,37 @@
             phoneInput.value = customerPhone;
         }
 
+        // Tự động điền tọa độ nếu có điểm ghim hiện tại trên bản đồ
+        if (typeof startPoint !== 'undefined' && Array.isArray(startPoint) && startPoint.length === 2 && startPoint[0]) {
+            document.getElementById('order-delivery-lat').value = startPoint[0];
+            document.getElementById('order-delivery-lng').value = startPoint[1];
+        }
+
+        renderCartModalItems();
         openModal('modal-cart');
     }
 
     function renderCartModalItems() {
         const listEl = document.getElementById('cart-items-list');
         const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-        const shipping = 15000;
-        const total = subtotal + shipping;
+
+        // Lấy thông tin nhà hàng để tính tiền ship theo tọa độ
+        let resId = cart.length > 0 ? cart[0].restaurantId : (currentSelectedRestaurant ? currentSelectedRestaurant.id : null);
+        let targetRes = allRestaurants.find(r => r.id === resId) || currentSelectedRestaurant;
+
+        let deliveryLat = parseFloat(document.getElementById('order-delivery-lat').value);
+        let deliveryLng = parseFloat(document.getElementById('order-delivery-lng').value);
+
+        if (isNaN(deliveryLat)) deliveryLat = 21.033333;
+        if (isNaN(deliveryLng)) deliveryLng = 105.789123;
+
+        let resLat = (targetRes && targetRes.latitude != null) ? targetRes.latitude : 21.0245;
+        let resLng = (targetRes && targetRes.longitude != null) ? targetRes.longitude : 105.8574;
+
+        let feeCalc = calculateFoodDeliveryFee(resLat, resLng, deliveryLat, deliveryLng);
+        let shipping = feeCalc.fee;
+        let distanceKm = feeCalc.distanceKm;
+        let total = subtotal + shipping;
 
         listEl.innerHTML = cart.map((item, idx) => `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9;">
@@ -1441,7 +1490,7 @@
         `).join('');
 
         document.getElementById('summary-subtotal').innerText = subtotal.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('summary-shipping').innerText = shipping.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('summary-shipping').innerHTML = `${shipping.toLocaleString('vi-VN')} đ <span style="font-size:11px; color:#64748b; font-weight:normal;">(~${distanceKm.toFixed(1)} km)</span>`;
         document.getElementById('summary-total').innerText = total.toLocaleString('vi-VN') + ' đ';
     }
 
@@ -1897,14 +1946,29 @@
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
             btnCancel.style.display = "none";
-            btnMomo.style.display = "inline-block";
-            btnVnpay.style.display = "inline-block";
-            if (btnWallet) btnWallet.style.display = "inline-block";
             card.style.backgroundColor = "#e2f0d9";
             card.style.borderColor = "#c8e1b7";
             currentTripPrice = event.price || 0;
-            text.innerHTML = `🏁 Chuyến đi hoàn tất! Cước phí: <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b>.`;
-            logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+
+            if (event.paymentMethod === 'CASH') {
+                btnMomo.style.display = "none";
+                btnVnpay.style.display = "none";
+                if (btnWallet) btnWallet.style.display = "none";
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế. Cảm ơn bạn!`;
+                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+
+                setTimeout(() => {
+                    card.style.display = "none";
+                    currentBookingId = null;
+                    assignedDriverId = null;
+                }, 6000);
+            } else {
+                btnMomo.style.display = "inline-block";
+                btnVnpay.style.display = "inline-block";
+                if (btnWallet) btnWallet.style.display = "inline-block";
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b> Cước phí: <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b>.<br><span style="font-size:13px; color:#475569;">Vui lòng chọn phương thức thanh toán bên dưới:</span>`;
+                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+            }
         } else if (event.status === 'CANCELLED' || event.status === 'NO_DRIVER_FOUND') {
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
