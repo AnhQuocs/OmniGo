@@ -119,8 +119,8 @@ Tích hợp **GitHub Actions** để tự động:
 
 #### DEMO:
 - Deploy trên server staging: https://ridehailingsystem.online
-- Demo khách hàng: https://ridehailingsystem.online/customer-app.html (sử dụng số điện thoại 0987658652 và mật khẩu 123456 để đăng nhập)
-- Demo tài xế: https://ridehailingsystem.online/driver-app.html (sủ dụng số điện thoại 0999999999 và mật khẩu 123456 để đăng nhập)
+- Demo khách hàng: https://ridehailingsystem.online/customer-app.html (sử dụng số điện thoại 0923456987 và mật khẩu 123456 để đăng nhập)
+- Demo tài xế: https://ridehailingsystem.online/driver-app.html (sủ dụng số điện thoại 0867993172 và mật khẩu 123456 để đăng nhập)
 
 **1. Demo Đặt xe & Định giá động**
 Khách hàng đăng nhập tạo booking; hệ thống kiểm tra spam, gọi Pricing Service để tính giá, và hiển

@@ -216,15 +216,15 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     throw new BadRequestException("Chỉ có thể chuẩn bị món khi trạng thái là Đã nhận đơn (ACCEPTED). Hiện tại: " + current);
                 }
             } else if (newStatus == OrderStatus.READY_FOR_PICKUP) {
-                if (current != OrderStatus.PREPARING) {
-                    throw new BadRequestException("Chỉ có thể báo sẵn sàng lấy hàng khi đang Chuẩn bị (PREPARING). Hiện tại: " + current);
+                if (current != OrderStatus.PREPARING && current != OrderStatus.READY_FOR_PICKUP && current != OrderStatus.NO_DRIVER_FOUND) {
+                    throw new BadRequestException("Chỉ có thể báo sẵn sàng lấy hàng khi đang Chuẩn bị (PREPARING) hoặc Tìm lại tài xế. Hiện tại: " + current);
                 }
             } else if (newStatus == OrderStatus.REJECTED) {
                 if (current != OrderStatus.PENDING) {
                     throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái Chờ xác nhận (PENDING). Hiện tại: " + current);
                 }
             } else if (newStatus == OrderStatus.CANCELLED) {
-                if (current == OrderStatus.COMPLETED || current == OrderStatus.REJECTED || current == OrderStatus.CANCELLED || current == OrderStatus.NO_DRIVER_FOUND) {
+                if (current == OrderStatus.COMPLETED || current == OrderStatus.REJECTED || current == OrderStatus.CANCELLED) {
                     throw new BadRequestException("Không thể hủy đơn hàng đã kết thúc (" + current + ")");
                 }
             } else {
@@ -255,23 +255,20 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 foodEventPublisher.publishFindDriverDirect(event);
                 log.info("Đã phát trực tiếp sự kiện tìm tài xế giao đồ ăn lên Kafka cho đơn hàng ID {}", saved.getId());
 
-                // Timeout 30s: Nếu sau 30s chưa có tài xế nhận, tự động hủy đơn và hoàn tiền nếu đã thanh toán
+                // Timeout 90s: Nếu sau 90s chưa có tài xế nhận, tự động chuyển sang NO_DRIVER_FOUND để quán có thể bấm Tìm lại hoặc Hủy
                 final Long targetOrderId = saved.getId();
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Thread.sleep(30000);
+                        Thread.sleep(90000);
                         foodOrderRepository.findById(targetOrderId).ifPresent(o -> {
                             if (o.getStatus() == OrderStatus.READY_FOR_PICKUP) {
-                                log.warn("Đơn hàng ID {} không có tài xế nhận sau 30s, tự động chuyển sang NO_DRIVER_FOUND", targetOrderId);
+                                log.warn("Đơn hàng ID {} không có tài xế nhận sau 90s, tự động chuyển sang NO_DRIVER_FOUND", targetOrderId);
                                 o.setStatus(OrderStatus.NO_DRIVER_FOUND);
                                 foodOrderRepository.save(o);
-                                if (Boolean.TRUE.equals(o.getIsPaid())) {
-                                    triggerRefund(o.getCustomerId(), o.getId(), o.getTotalPrice(), "Hệ thống tự động hủy đơn #" + o.getId() + " do không tìm thấy tài xế sau 30s");
-                                }
                             }
                         });
                     } catch (Exception e) {
-                        log.error("Lỗi trong quá trình kiểm tra timeout 30s của đơn #{}: {}", targetOrderId, e.getMessage());
+                        log.error("Lỗi trong quá trình kiểm tra timeout 90s của đơn #{}: {}", targetOrderId, e.getMessage());
                     }
                 });
             } else if (newStatus == OrderStatus.CANCELLED) {

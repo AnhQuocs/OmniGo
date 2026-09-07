@@ -269,7 +269,8 @@
         let decoded = parseJwt(t);
         if (decoded) {
             DRIVER_ID = decoded.userId || decoded.id;
-            document.getElementById('display-driver').innerText = decoded.sub + ' (ID: ' + DRIVER_ID + ')';
+            let displayName = decoded.fullName || decoded.name || decoded.sub;
+            document.getElementById('display-driver').innerText = displayName + ' (ID: ' + DRIVER_ID + ')';
         }
     };
 

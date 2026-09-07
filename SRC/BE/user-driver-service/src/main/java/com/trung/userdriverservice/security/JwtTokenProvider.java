@@ -38,6 +38,8 @@ public class JwtTokenProvider {
                 .claim("role", user.getRole())
                 .claim("userId", user.getId())
                 .claim("email", user.getEmail())
+                .claim("fullName", user.getFullName())
+                .claim("name", user.getFullName())
                 .claim("type", "access")
                 .setIssuedAt(now)
                 .setExpiration(expiration)

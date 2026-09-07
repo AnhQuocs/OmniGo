@@ -854,6 +854,7 @@
     const WS_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
 
     let customerId = null;
+    let currentCustomerProfile = null;
 
     // Ride Hailing State
     let stompClient = null;
@@ -969,6 +970,36 @@
         });
     }
 
+    async function loadCustomerProfile() {
+        try {
+            let storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                currentCustomerProfile = JSON.parse(storedUser);
+                if (currentCustomerProfile && currentCustomerProfile.fullName) {
+                    document.getElementById('display-user').innerText = currentCustomerProfile.fullName + ' (ID: ' + customerId + ')';
+                }
+            }
+        } catch (e) {}
+
+        if (customerId) {
+            try {
+                let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/${customerId}`);
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data && data.data) {
+                        currentCustomerProfile = data.data;
+                        localStorage.setItem('user', JSON.stringify(data.data));
+                        if (data.data.fullName) {
+                            document.getElementById('display-user').innerText = data.data.fullName + ' (ID: ' + customerId + ')';
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load user profile", e);
+            }
+        }
+    }
+
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -1001,8 +1032,15 @@
         let decoded = parseJwt(t);
         if (decoded) {
             customerId = decoded.userId || decoded.id;
-            document.getElementById('display-user').innerText = decoded.sub + ' (ID: ' + customerId + ')';
+            let displayName = decoded.fullName || decoded.name;
+            try {
+                let u = JSON.parse(localStorage.getItem('user'));
+                if (u && u.fullName) displayName = u.fullName;
+            } catch(e) {}
+            if (!displayName) displayName = decoded.sub;
+            document.getElementById('display-user').innerText = displayName + ' (ID: ' + customerId + ')';
             fetchCustomerWallet();
+            loadCustomerProfile();
         }
 
         map = L.map('map').setView([21.0415, 105.8388], 13);
@@ -1339,18 +1377,44 @@
         let nameInput = document.getElementById('order-customer-name');
         let phoneInput = document.getElementById('order-customer-phone');
         let t = getStoredToken();
+        
+        let customerName = '';
+        let customerPhone = '';
+
+        if (currentCustomerProfile) {
+            if (currentCustomerProfile.fullName) customerName = currentCustomerProfile.fullName;
+            if (currentCustomerProfile.phoneNumber) customerPhone = currentCustomerProfile.phoneNumber;
+        }
+
+        if (!customerName || !customerPhone) {
+            try {
+                let userObj = JSON.parse(localStorage.getItem('user'));
+                if (userObj) {
+                    if (!customerName && userObj.fullName) customerName = userObj.fullName;
+                    if (!customerPhone && userObj.phoneNumber) customerPhone = userObj.phoneNumber;
+                }
+            } catch(e) {}
+        }
+
         if (t) {
             let decoded = parseJwt(t);
             if (decoded) {
-                if (!nameInput.value && (decoded.fullName || decoded.name || decoded.sub)) {
-                    nameInput.value = decoded.fullName || decoded.name || decoded.sub;
+                if (!customerName && (decoded.fullName || decoded.name)) {
+                    customerName = decoded.fullName || decoded.name;
                 }
-                if (!phoneInput.value) {
-                    if (decoded.phoneNumber) phoneInput.value = decoded.phoneNumber;
-                    else if (decoded.phone) phoneInput.value = decoded.phone;
-                    else if (decoded.sub && /^\d{9,11}$/.test(decoded.sub)) phoneInput.value = decoded.sub;
+                if (!customerPhone) {
+                    if (decoded.phoneNumber) customerPhone = decoded.phoneNumber;
+                    else if (decoded.phone) customerPhone = decoded.phone;
+                    else if (decoded.sub && /^\d{9,11}$/.test(decoded.sub)) customerPhone = decoded.sub;
                 }
             }
+        }
+
+        if (customerName) {
+            nameInput.value = customerName;
+        }
+        if (customerPhone) {
+            phoneInput.value = customerPhone;
         }
 
         openModal('modal-cart');
@@ -1608,7 +1672,7 @@
             case 'COMPLETED': return `<span class="badge-food" style="background:#d1fae5; color:#047857;">✅ Giao thành công</span>`;
             case 'CANCELLED': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">❌ Khách đã hủy</span>`;
             case 'REJECTED': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Quán từ chối</span>`;
-            case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Không tìm thấy tài xế</span>`;
+            case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fee2e2; color:#b91c1c;">⚠️ Chưa có xế (Quán đang tìm lại)</span>`;
             default: return `<span class="badge-food">${status}</span>`;
         }
     }

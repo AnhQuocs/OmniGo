@@ -206,10 +206,13 @@
 
             if (!res.ok || !data.success) throw new Error(data.error || data.message || "Đăng nhập thất bại");
 
-            // Lưu Token
+            // Lưu Token & Thông tin User
             const token = data.data.accessToken;
             const role = data.data.user.role;
             localStorage.setItem('accessToken', token);
+            if (data.data.user) {
+                localStorage.setItem('user', JSON.stringify(data.data.user));
+            }
 
             // Điều hướng tự động chính xác 100% theo Role của User
             if (role === 'DRIVER' || role === 'ROLE_DRIVER') {

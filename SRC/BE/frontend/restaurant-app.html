@@ -1249,7 +1249,7 @@
 
         const payload = parseJwt(token);
         if (payload) {
-            document.getElementById('user-display-name').innerText = payload.sub || `User #${payload.userId}`;
+            document.getElementById('user-display-name').innerText = payload.fullName || payload.name || payload.sub || `User #${payload.userId}`;
         }
 
         await loadMyRestaurant();
@@ -1462,13 +1462,13 @@
         currentOrders.forEach(o => {
             if (o.status === 'PENDING') counts.PENDING++;
             else if (o.status === 'ACCEPTED' || o.status === 'PREPARING') counts.COOKING++;
-            else if (o.status === 'READY_FOR_PICKUP') counts.READY++;
+            else if (o.status === 'READY_FOR_PICKUP' || o.status === 'NO_DRIVER_FOUND') counts.READY++;
             else if (o.status === 'DELIVERING') counts.DELIVERING++;
             else if (o.status === 'COMPLETED') {
                 counts.COMPLETED++;
                 let foodPrice = (o.totalPrice || 0) - (o.deliveryFee || 0);
                 revenue += (foodPrice > 0 ? foodPrice : (o.totalPrice || 0));
-            } else if (o.status === 'CANCELLED' || o.status === 'REJECTED' || o.status === 'NO_DRIVER_FOUND') {
+            } else if (o.status === 'CANCELLED' || o.status === 'REJECTED') {
                 counts.CANCELLED++;
             }
         });
@@ -1503,10 +1503,10 @@
 
         if (currentFilter === 'PENDING') filtered = currentOrders.filter(o => o.status === 'PENDING');
         else if (currentFilter === 'COOKING') filtered = currentOrders.filter(o => o.status === 'ACCEPTED' || o.status === 'PREPARING');
-        else if (currentFilter === 'READY') filtered = currentOrders.filter(o => o.status === 'READY_FOR_PICKUP');
+        else if (currentFilter === 'READY') filtered = currentOrders.filter(o => o.status === 'READY_FOR_PICKUP' || o.status === 'NO_DRIVER_FOUND');
         else if (currentFilter === 'DELIVERING') filtered = currentOrders.filter(o => o.status === 'DELIVERING');
         else if (currentFilter === 'COMPLETED') filtered = currentOrders.filter(o => o.status === 'COMPLETED');
-        else if (currentFilter === 'CANCELLED') filtered = currentOrders.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED' || o.status === 'NO_DRIVER_FOUND');
+        else if (currentFilter === 'CANCELLED') filtered = currentOrders.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED');
 
         if (filtered.length === 0) {
             container.innerHTML = `
@@ -1590,12 +1590,12 @@
             case 'PENDING': return `<span class="order-status-badge badge-pending">⏳ Chờ duyệt</span>`;
             case 'ACCEPTED': return `<span class="order-status-badge badge-accepted">👌 Đã nhận đơn</span>`;
             case 'PREPARING': return `<span class="order-status-badge badge-preparing">🍳 Đang nấu món</span>`;
-            case 'READY_FOR_PICKUP': return `<span class="order-status-badge badge-ready">🛵 Sẵn sàng / Tìm xế</span>`;
+            case 'READY_FOR_PICKUP': return `<span class="order-status-badge badge-ready">🛵 Đang tìm tài xế...</span>`;
             case 'DELIVERING': return `<span class="order-status-badge badge-delivering">🚀 Đang giao hàng</span>`;
             case 'COMPLETED': return `<span class="order-status-badge badge-completed">✅ Đã hoàn tất</span>`;
             case 'CANCELLED': return `<span class="order-status-badge badge-cancelled">❌ Khách hủy</span>`;
             case 'REJECTED': return `<span class="order-status-badge badge-cancelled">🚫 Quán từ chối</span>`;
-            case 'NO_DRIVER_FOUND': return `<span class="order-status-badge badge-cancelled">🚫 Không tìm thấy tài xế</span>`;
+            case 'NO_DRIVER_FOUND': return `<span class="order-status-badge" style="background:#fee2e2; color:#b91c1c; font-weight:600;">⚠️ Chưa tìm thấy xế</span>`;
             default: return `<span class="order-status-badge">${status}</span>`;
         }
     }
@@ -1618,7 +1618,13 @@
             `;
         } else if (order.status === 'READY_FOR_PICKUP') {
             return `
+                <button class="btn-action btn-ready" onclick="retryFindDriver(${order.id})" title="Quét tìm lại tài xế lân cận">🔄 Tìm lại tài xế</button>
                 <button class="btn-action btn-reject" onclick="cancelOrderByRestaurant(${order.id})">❌ Hủy đơn (Tìm xế lâu)</button>
+            `;
+        } else if (order.status === 'NO_DRIVER_FOUND') {
+            return `
+                <button class="btn-action btn-ready" onclick="retryFindDriver(${order.id})" title="Quét tìm lại tài xế lân cận">🔄 Tìm lại tài xế</button>
+                <button class="btn-action btn-reject" onclick="cancelOrderByRestaurant(${order.id})">❌ Hủy đơn</button>
             `;
         } else if (order.status === 'DELIVERING') {
             return `
@@ -1626,6 +1632,11 @@
             `;
         }
         return '';
+    }
+
+    async function retryFindDriver(orderId) {
+        showToast(`Đang tìm lại tài xế cho đơn #${orderId}...`, 'info');
+        await updateOrderStatus(orderId, 'READY_FOR_PICKUP');
     }
 
     async function cancelOrderByRestaurant(orderId) {
