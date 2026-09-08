@@ -17,12 +17,12 @@ interface AuthApi {
     @POST(ApiEndpoints.REGISTER_CUSTOMER)
     suspend fun registerCustomer(
         @Body request: CustomerRegisterRequest
-    ): Response<UserResponse>
+    ): Response<ApiResponse<UserResponse>>
 
     @POST(ApiEndpoints.REGISTER_DRIVER)
     suspend fun registerDriver(
         @Body request: DriverRegisterRequest
-    ): Response<UserResponse>
+    ): Response<ApiResponse<UserResponse>>
 
     @POST(ApiEndpoints.LOGIN)
     suspend fun login(

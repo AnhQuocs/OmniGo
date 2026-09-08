@@ -97,4 +97,81 @@
     <string name="error_account_blocked">Account has been blocked or suspended</string>
     <string name="logout_success">Logged out successfully</string>
     <string name="logout_failed">Failed to log out</string>
+
+    <!-- BOTTOM NAVIGATION -->
+    <string name="nav_home">Home</string>
+    <string name="nav_activity">Activity</string>
+    <string name="nav_promos">Offers</string>
+    <string name="nav_account">Account</string>
+
+    <!-- HOME DASHBOARD SCREEN -->
+    <string name="home_location_label">Current Location</string>
+    <string name="home_location_default">Phenikaa University, Ha Dong</string>
+    <string name="home_search_placeholder">Where to or what to eat?</string>
+    <string name="home_wallet_balance">OmniPay Balance</string>
+    <string name="home_wallet_balance_mock">250,000 đ</string>
+    <string name="home_wallet_topup">Top Up</string>
+    <string name="home_wallet_qr">Scan QR</string>
+    <string name="home_filter_all">All</string>
+    <string name="home_filter_nearby">Nearby</string>
+    <string name="home_filter_promos">Hot Deals</string>
+    <string name="home_filter_top_rated">Top 4.8★</string>
+    <string name="home_badge_50off">50% Off</string>
+    <string name="home_badge_freeship">Free Ship</string>
+    <string name="home_badge_fast">15 mins</string>
+    <string name="home_badge_express">Express</string>
+    <string name="home_banner_cta">Book Now</string>
+    <string name="home_banner_food_cta">Explore</string>
+    <string name="home_view_all">View all</string>
+    <string name="home_service_ride">OmniRide</string>
+    <string name="home_service_food">OmniFood</string>
+    <string name="home_service_mart">OmniMart</string>
+    <string name="home_service_express">OmniExpress</string>
+    <string name="home_section_services">OmniGo Services</string>
+    <string name="home_section_promos">Special Offers</string>
+    <string name="home_section_popular">Popular Places &amp; Food</string>
+    <string name="home_banner_title_1">50% Off First Ride</string>
+    <string name="home_banner_desc_1">Code: OMNIRIDE50</string>
+    <string name="home_banner_title_2">Free Food Delivery</string>
+    <string name="home_banner_desc_2">For orders from 50k</string>
+    <string name="home_suggest_pho">Pho Bo Ha Noi</string>
+    <string name="home_suggest_pho_desc">1.2km • 4.9 (500+ reviews)</string>
+    <string name="home_suggest_coffee">Highlands Coffee</string>
+    <string name="home_suggest_coffee_desc">0.8km • 4.8 (1k+ reviews)</string>
+    <string name="home_suggest_bmt">Banh Mi Pate</string>
+    <string name="home_suggest_bmt_desc">1.5km • 4.7 (300+ reviews)</string>
+
+    <!-- ACTIVITY SCREEN -->
+    <string name="activity_title">Activity &amp; History</string>
+    <string name="activity_tab_ongoing">Ongoing</string>
+    <string name="activity_tab_history">History</string>
+    <string name="activity_empty_ongoing">No ongoing rides or orders</string>
+    <string name="activity_empty_history">No order history yet</string>
+
+    <!-- PROMOS SCREEN -->
+    <string name="promos_title">Offers &amp; Vouchers</string>
+    <string name="promos_input_hint">Enter promo code</string>
+    <string name="promos_apply_btn">Apply</string>
+    <string name="promos_filter_all">All</string>
+    <string name="promos_filter_ride">Rides</string>
+    <string name="promos_filter_food">Food</string>
+    <string name="promos_voucher_title_1">20k Off OmniRide</string>
+    <string name="promos_voucher_desc_1">Min spend 50k • Exp: 30/09</string>
+    <string name="promos_voucher_title_2">Free Ship Food 15k</string>
+    <string name="promos_voucher_desc_2">Min spend 60k • Exp: 15/09</string>
+    <string name="promos_use_now">Use Now</string>
+
+    <!-- ACCOUNT SCREEN -->
+    <string name="account_title">My Account</string>
+    <string name="account_wallet_title">OmniPay Balance</string>
+    <string name="account_wallet_balance_mock">250,000 đ</string>
+    <string name="account_wallet_topup">Top Up</string>
+    <string name="account_saved_places">Saved Places</string>
+    <string name="account_help_center">Help Center</string>
+    <string name="account_terms">Terms &amp; Privacy Policy</string>
+    <string name="account_app_version">Version %1$s</string>
+    <string name="account_logout">Log Out</string>
+    <string name="account_logout_confirm_title">Confirm Log Out</string>
+    <string name="account_logout_confirm_msg">Are you sure you want to log out?</string>
+    <string name="cancel">Cancel</string>
 </resources>

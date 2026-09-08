@@ -97,4 +97,81 @@
     <string name="error_account_blocked">Tài khoản đã bị khóa hoặc tạm ngưng</string>
     <string name="logout_success">Đăng xuất thành công</string>
     <string name="logout_failed">Đăng xuất thất bại</string>
+
+    <!-- BOTTOM NAVIGATION -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_activity">Hoạt động</string>
+    <string name="nav_promos">Ưu đãi</string>
+    <string name="nav_account">Tài khoản</string>
+
+    <!-- HOME DASHBOARD SCREEN -->
+    <string name="home_location_label">Vị trí hiện tại</string>
+    <string name="home_location_default">Đại học Phenikaa, Hà Đông</string>
+    <string name="home_search_placeholder">Bạn muốn đi đâu hay ăn gì hôm nay?</string>
+    <string name="home_wallet_balance">Số dư OmniPay</string>
+    <string name="home_wallet_balance_mock">250.000 đ</string>
+    <string name="home_wallet_topup">Nạp tiền</string>
+    <string name="home_wallet_qr">Quét mã</string>
+    <string name="home_filter_all">Tất cả</string>
+    <string name="home_filter_nearby">Gần bạn</string>
+    <string name="home_filter_promos">Ưu đãi sốc</string>
+    <string name="home_filter_top_rated">Top 4.8★</string>
+    <string name="home_badge_50off">Giảm 50%</string>
+    <string name="home_badge_freeship">Freeship</string>
+    <string name="home_badge_fast">15 phút</string>
+    <string name="home_badge_express">Hỏa tốc</string>
+    <string name="home_banner_cta">Đặt ngay</string>
+    <string name="home_banner_food_cta">Khám phá</string>
+    <string name="home_view_all">Xem tất cả</string>
+    <string name="home_service_ride">Đặt xe</string>
+    <string name="home_service_food">Đồ ăn</string>
+    <string name="home_service_mart">Đi chợ</string>
+    <string name="home_service_express">Giao hàng</string>
+    <string name="home_section_services">Dịch vụ OmniGo</string>
+    <string name="home_section_promos">Ưu đãi hấp dẫn</string>
+    <string name="home_section_popular">Địa điểm &amp; Món ngon gợi ý</string>
+    <string name="home_banner_title_1">Giảm 50% chuyến đầu tiên</string>
+    <string name="home_banner_desc_1">Nhập mã: OMNIRIDE50</string>
+    <string name="home_banner_title_2">Miễn phí giao đồ ăn</string>
+    <string name="home_banner_desc_2">Áp dụng cho đơn từ 50k</string>
+    <string name="home_suggest_pho">Phở Bò Hà Nội</string>
+    <string name="home_suggest_pho_desc">1.2km • 4.9 (500+ đánh giá)</string>
+    <string name="home_suggest_coffee">Highlands Coffee</string>
+    <string name="home_suggest_coffee_desc">0.8km • 4.8 (1k+ đánh giá)</string>
+    <string name="home_suggest_bmt">Bánh Mì Pate</string>
+    <string name="home_suggest_bmt_desc">1.5km • 4.7 (300+ đánh giá)</string>
+
+    <!-- ACTIVITY SCREEN -->
+    <string name="activity_title">Hoạt động &amp; Lịch sử</string>
+    <string name="activity_tab_ongoing">Đang diễn ra</string>
+    <string name="activity_tab_history">Lịch sử</string>
+    <string name="activity_empty_ongoing">Không có chuyến đi hoặc đơn hàng nào đang diễn ra</string>
+    <string name="activity_empty_history">Bạn chưa có lịch sử chuyến đi nào</string>
+
+    <!-- PROMOS SCREEN -->
+    <string name="promos_title">Ưu đãi &amp; Khuyến mãi</string>
+    <string name="promos_input_hint">Nhập mã khuyến mãi</string>
+    <string name="promos_apply_btn">Áp dụng</string>
+    <string name="promos_filter_all">Tất cả</string>
+    <string name="promos_filter_ride">Đặt xe</string>
+    <string name="promos_filter_food">Đồ ăn</string>
+    <string name="promos_voucher_title_1">Giảm 20k chuyến OmniRide</string>
+    <string name="promos_voucher_desc_1">Đơn tối thiểu 50k • HSD: 30/09</string>
+    <string name="promos_voucher_title_2">Miễn phí ship đồ ăn 15k</string>
+    <string name="promos_voucher_desc_2">Đơn tối thiểu 60k • HSD: 15/09</string>
+    <string name="promos_use_now">Dùng ngay</string>
+
+    <!-- ACCOUNT SCREEN -->
+    <string name="account_title">Tài khoản của tôi</string>
+    <string name="account_wallet_title">Số dư ví OmniPay</string>
+    <string name="account_wallet_balance_mock">250.000 đ</string>
+    <string name="account_wallet_topup">Nạp tiền</string>
+    <string name="account_saved_places">Địa chỉ đã lưu</string>
+    <string name="account_help_center">Trung tâm trợ giúp</string>
+    <string name="account_terms">Điều khoản &amp; Chính sách bảo mật</string>
+    <string name="account_app_version">Phiên bản %1$s</string>
+    <string name="account_logout">Đăng xuất</string>
+    <string name="account_logout_confirm_title">Xác nhận đăng xuất</string>
+    <string name="account_logout_confirm_msg">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?</string>
+    <string name="cancel">Hủy</string>
 </resources>

@@ -86,6 +86,34 @@ class SessionManager @Inject constructor(
         }
     }
 
+    suspend fun getPhoneNumber(): String? {
+        return dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[KEY_PHONE_NUMBER] }
+            .firstOrNull()
+    }
+
+    suspend fun getFullName(): String? {
+        return dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[KEY_FULL_NAME] }
+            .firstOrNull()
+    }
+
+    suspend fun getRole(): String? {
+        return dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[KEY_ROLE] }
+            .firstOrNull()
+    }
+
+    suspend fun getUserId(): Long? {
+        return dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[KEY_USER_ID] }
+            .firstOrNull()
+    }
+
     suspend fun clearSession() {
         dataStore.edit { preferences ->
             preferences.clear()

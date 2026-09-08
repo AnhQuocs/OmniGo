@@ -13,7 +13,9 @@ import com.example.omnigo.features.auth.domain.model.VehicleType
 import java.time.LocalDateTime
 
 fun UserResponse.toDomain(): AuthUser {
-    val userRole = UserRole.entries.find { it.name.equals(role.trim(), ignoreCase = true) } ?: UserRole.CUSTOMER
+    val userRole = role?.trim()?.let { r ->
+        UserRole.entries.find { it.name.equals(r, ignoreCase = true) }
+    } ?: UserRole.CUSTOMER
 
     val userStatus = status?.trim()?.let { s ->
         UserStatus.entries.find { it.name.equals(s, ignoreCase = true) }
@@ -35,9 +37,9 @@ fun UserResponse.toDomain(): AuthUser {
 
     return AuthUser(
         id = id,
-        phoneNumber = phoneNumber,
+        phoneNumber = phoneNumber.orEmpty(),
         email = email,
-        fullName = fullName,
+        fullName = fullName.orEmpty(),
         role = userRole,
         status = userStatus,
         driverInfo = parsedDriverInfo,
