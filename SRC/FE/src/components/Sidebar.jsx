@@ -684,7 +684,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
                     fontSize: '0.88rem',
                   }}
                 >
-                  Cấu hình giá cước
+                  Cấu hình hệ thống
                 </Typography>
               }
             />

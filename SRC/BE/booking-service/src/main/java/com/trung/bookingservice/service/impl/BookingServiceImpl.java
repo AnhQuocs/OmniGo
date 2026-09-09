@@ -12,6 +12,7 @@ import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
 import com.trung.bookingservice.repository.BookingRepository;
 import com.trung.bookingservice.service.BookingService;
+import com.trung.bookingservice.service.DispatchConfigService;
 import com.trung.bookingservice.service.client.LocationClient;
 import com.trung.bookingservice.service.client.PricingClient;
 import com.trung.bookingservice.service.client.UserDriverClient;
@@ -50,6 +51,7 @@ public class BookingServiceImpl implements BookingService {
     private final PricingClient pricingClient;
     private final BookingReassignService bookingReassignService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final DispatchConfigService dispatchConfigService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -79,11 +81,14 @@ public class BookingServiceImpl implements BookingService {
 
         redisTemplate.opsForValue().set(spamKey, "locked", 5, TimeUnit.SECONDS);
 
-        // Gọi location service MỘT LẦN với bán kính lớn nhất
+        // Lấy cấu hình bán kính tối đa từ Redis / Admin config
+        Double maxRideRadius = dispatchConfigService.getMaxRideDistanceKm();
+
+        // Gọi location service MỘT LẦN với bán kính lớn nhất được cấu hình
         List<DriverNearbyResponse> allNearbyDrivers = locationClient.getNearbyDrivers(
                 request.getStartLongitude(),
                 request.getStartLatitude(),
-                8.0
+                maxRideRadius
         );
 
         // Đếm tài xế trong bán kính 5km cho pricing (filter in-memory)
@@ -127,10 +132,12 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
         bookingRepository.flush();
 
-        log.info("Khách hàng {} đặt xe. Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND",
-                customerId, String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice());
+        log.info("Khách hàng {} đặt xe. Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
+                customerId, String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice(), maxRideRadius);
 
-        double[] searchRadiuses = {3.0, 5.0, 8.0};
+        double[] searchRadiuses = (maxRideRadius <= 3.0)
+                ? new double[]{maxRideRadius}
+                : ((maxRideRadius <= 6.0) ? new double[]{3.0, maxRideRadius} : new double[]{3.0, 5.0, maxRideRadius});
 
         for (double radius : searchRadiuses) {
             // Filter in-memory theo từng nấc bán kính, không gọi thêm Feign
@@ -191,7 +198,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Nếu quét hết các nấc bán kính mà vẫn không giành được tài xế nào
-        log.warn("Đã mở rộng đến bán kính tối đa 8km nhưng không có tài xế nào rảnh.");
+        log.warn("Đã mở rộng đến bán kính tối đa {} km nhưng không có tài xế nào rảnh.", maxRideRadius);
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
         return convertToResponse(booking, pricingInfo.getDistanceInKm());

@@ -5,6 +5,7 @@ import com.trung.bookingservice.dto.response.DriverNearbyResponse;
 import com.trung.bookingservice.event.DriverAssignedToFoodOrderEvent;
 import com.trung.bookingservice.event.FindDriverForFoodOrderEvent;
 import com.trung.bookingservice.exception.BadRequestException;
+import com.trung.bookingservice.service.DispatchConfigService;
 import com.trung.bookingservice.service.FoodDeliveryDispatchService;
 import com.trung.bookingservice.service.client.LocationClient;
 import com.trung.bookingservice.service.client.UserDriverClient;
@@ -35,6 +36,7 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
     private final SimpMessagingTemplate messagingTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final DispatchConfigService dispatchConfigService;
 
     @Override
     public void dispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event) {
@@ -61,12 +63,14 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
         Double restLng = event.getRestaurantLongitude() != null ? event.getRestaurantLongitude() : 105.8574;
         Double restLat = event.getRestaurantLatitude() != null ? event.getRestaurantLatitude() : 21.0245;
 
+        Double maxDeliveryRadius = dispatchConfigService.getMaxFoodDeliveryDistanceKm();
+
         List<DriverNearbyResponse> allNearbyDrivers;
         try {
             allNearbyDrivers = locationClient.getNearbyDeliveryDrivers(
                     restLng,
                     restLat,
-                    20.0
+                    maxDeliveryRadius
             );
         } catch (Exception e) {
             log.error("Lỗi khi gọi location-service tìm tài xế giao đồ ăn: {}", e.getMessage());
