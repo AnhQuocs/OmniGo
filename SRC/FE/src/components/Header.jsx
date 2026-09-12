@@ -93,7 +93,7 @@ export const Header = ({ handleDrawerToggle }) => {
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                bgcolor: '#008cff',
+                bgcolor: '#f97316',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -159,7 +159,7 @@ export const Header = ({ handleDrawerToggle }) => {
               sx={{
                 width: 34,
                 height: 34,
-                bgcolor: '#008cff',
+                bgcolor: '#f97316',
                 color: '#ffffff',
                 fontSize: '0.85rem',
                 fontWeight: 700,

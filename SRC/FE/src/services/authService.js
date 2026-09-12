@@ -15,10 +15,10 @@ export const authService = {
 
       // Backend returns: ApiResponse<LoginResponse> { success, message, data: { accessToken, refreshToken, user } }
       if (response && response.success && response.data) {
-        // Check if user has ADMIN role
+        // Chỉ cho phép role ADMIN và RESTAURANT
         const user = response.data.user;
-        if (user.role !== 'ADMIN') {
-          throw new Error('Tài khoản không có quyền Quản trị viên (ADMIN)');
+        if (user.role !== 'ADMIN' && user.role !== 'RESTAURANT') {
+          throw new Error('Tài khoản của bạn không có quyền truy cập Cổng Quản trị & Đối tác Nhà hàng!');
         }
         return {
           user: response.data.user,

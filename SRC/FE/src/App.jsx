@@ -19,6 +19,13 @@ import Restaurants from './pages/Restaurants';
 import FoodOrders from './pages/FoodOrders';
 import NotFound from './pages/NotFound';
 
+// Merchant Portal Components
+import MerchantLayout from './components/merchant/MerchantLayout';
+import MerchantOrders from './pages/merchant/MerchantOrders';
+import MerchantMenu from './pages/merchant/MerchantMenu';
+import MerchantSettings from './pages/merchant/MerchantSettings';
+import MerchantMap from './pages/merchant/MerchantMap';
+
 export function App() {
   return (
     <Provider store={store}>
@@ -28,7 +35,7 @@ export function App() {
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#172334',
+              background: '#0F172A',
               color: '#FFFFFF',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               fontSize: '0.88rem',
@@ -41,8 +48,8 @@ export function App() {
             {/* Public Route */}
             <Route path="/login" element={<Login />} />
 
-            {/* Protected Admin Routes */}
-            <Route element={<PrivateRoute />}>
+            {/* Protected Admin Routes (ADMIN only) */}
+            <Route element={<PrivateRoute allowedRoles={['ADMIN']} />}>
               <Route element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="dashboard" element={<Navigate to="/" replace />} />
@@ -53,6 +60,17 @@ export function App() {
                 <Route path="food-orders" element={<FoodOrders />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="pricing" element={<Pricing />} />
+              </Route>
+            </Route>
+
+            {/* Protected Merchant Routes (RESTAURANT & ADMIN) */}
+            <Route element={<PrivateRoute allowedRoles={['RESTAURANT', 'ADMIN']} />}>
+              <Route path="/merchant" element={<MerchantLayout />}>
+                <Route index element={<Navigate to="/merchant/orders" replace />} />
+                <Route path="orders" element={<MerchantOrders />} />
+                <Route path="menu" element={<MerchantMenu />} />
+                <Route path="settings" element={<MerchantSettings />} />
+                <Route path="map" element={<MerchantMap />} />
               </Route>
             </Route>
 

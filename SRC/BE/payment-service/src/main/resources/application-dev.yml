@@ -10,6 +10,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

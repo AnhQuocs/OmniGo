@@ -7,17 +7,17 @@ export const getAppTheme = (mode = 'dark') => {
     palette: {
       mode,
       background: {
-        default: isDark ? '#0f1724' : '#f0f3f8',
-        paper: isDark ? '#172334' : '#ffffff',
+        default: isDark ? '#0f172a' : '#f8fafc',
+        paper: isDark ? '#1e293b' : '#ffffff',
       },
       primary: {
-        main: '#008cff',
-        light: '#33a3ff',
-        dark: '#0070cc',
+        main: '#f97316',
+        light: '#fb923c',
+        dark: '#ea580c',
         contrastText: '#ffffff',
       },
       secondary: {
-        main: '#ff6633',
+        main: '#3b82f6',
         contrastText: '#ffffff',
       },
       text: {
@@ -196,18 +196,18 @@ export const getAppTheme = (mode = 'dark') => {
             },
           },
           containedPrimary: {
-            backgroundColor: '#008cff',
+            backgroundColor: '#f97316',
             color: '#ffffff',
             '&:hover': {
-              backgroundColor: '#0070cc',
+              backgroundColor: '#ea580c',
             },
           },
           outlined: {
             borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#cbd5e1',
             color: isDark ? '#ffffff' : '#1e293b',
             '&:hover': {
-              borderColor: '#008cff',
-              backgroundColor: isDark ? 'rgba(0, 140, 255, 0.08)' : 'rgba(0, 140, 255, 0.04)',
+              borderColor: '#f97316',
+              backgroundColor: isDark ? 'rgba(249, 115, 22, 0.08)' : 'rgba(249, 115, 22, 0.04)',
             },
           },
         },
@@ -230,7 +230,7 @@ export const getAppTheme = (mode = 'dark') => {
               borderColor: isDark ? 'rgba(255, 255, 255, 0.25)' : '#94a3b8',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#008cff',
+              borderColor: '#f97316',
               borderWidth: '1.5px',
             },
           },

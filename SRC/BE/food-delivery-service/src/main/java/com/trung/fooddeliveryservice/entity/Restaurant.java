@@ -41,7 +41,7 @@ public class Restaurant extends BaseEntity {
     @Column(name = "h3_index", length = 30)
     private String h3Index;
 
-    @Column(name = "image_url", length = 500)
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)

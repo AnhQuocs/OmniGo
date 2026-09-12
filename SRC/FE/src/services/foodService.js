@@ -1,4 +1,4 @@
-import { get, patch, post } from './api';
+import { get, patch, post, put, del } from './api';
 
 export const foodService = {
   /**
@@ -161,6 +161,121 @@ export const foodService = {
       return res?.data || res;
     } catch (error) {
       console.warn(`Lỗi xác nhận thanh toán đơn #${orderId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy thông tin nhà hàng của người dùng hiện tại (Merchant Portal)
+   * Endpoint: GET /api/v1/restaurants/my-restaurant
+   */
+  getMyRestaurant: async () => {
+    try {
+      const res = await get('/api/v1/restaurants/my-restaurant');
+      return res?.data || res;
+    } catch (error) {
+      console.warn('Lỗi lấy thông tin nhà hàng cá nhân:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Đăng ký nhà hàng mới cho người dùng
+   * Endpoint: POST /api/v1/restaurants
+   */
+  createRestaurant: async (data) => {
+    try {
+      const res = await post('/api/v1/restaurants', data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn('Lỗi tạo nhà hàng mới:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật thông tin nhà hàng
+   * Endpoint: PUT /api/v1/restaurants/{id}
+   */
+  updateRestaurant: async (id, data) => {
+    try {
+      const res = await put(`/api/v1/restaurants/${id}`, data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi cập nhật nhà hàng #${id}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách đơn hàng của một nhà hàng cụ thể
+   * Endpoint: GET /api/v1/food-orders/restaurant/{restaurantId}
+   */
+  getRestaurantOrders: async (restaurantId) => {
+    try {
+      const res = await get(`/api/v1/food-orders/restaurant/${restaurantId}`);
+      if (res && res.data) {
+        return Array.isArray(res.data) ? res.data : [];
+      }
+      return Array.isArray(res) ? res : [];
+    } catch (error) {
+      console.warn(`Lỗi lấy đơn hàng của quán #${restaurantId}:`, error.message);
+      return [];
+    }
+  },
+
+  /**
+   * Cập nhật trạng thái đơn hàng (ACCEPTED, PREPARING, READY_FOR_PICKUP, CANCELLED, REJECTED)
+   * Endpoint: PATCH /api/v1/food-orders/{orderId}/status
+   */
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      const res = await patch(`/api/v1/food-orders/${orderId}/status`, { status });
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi cập nhật trạng thái đơn hàng #${orderId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Thêm món ăn mới cho nhà hàng
+   * Endpoint: POST /api/v1/restaurants/{restaurantId}/items
+   */
+  createMenuItem: async (restaurantId, data) => {
+    try {
+      const res = await post(`/api/v1/restaurants/${restaurantId}/items`, data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi thêm món ăn cho quán #${restaurantId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật món ăn
+   * Endpoint: PUT /api/v1/items/{itemId}
+   */
+  updateMenuItem: async (itemId, data) => {
+    try {
+      const res = await put(`/api/v1/items/${itemId}`, data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi cập nhật món ăn #${itemId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Xóa món ăn
+   * Endpoint: DELETE /api/v1/items/{itemId}
+   */
+  deleteMenuItem: async (itemId) => {
+    try {
+      const res = await del(`/api/v1/items/${itemId}`);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi xóa món ăn #${itemId}:`, error.message);
       throw error;
     }
   },

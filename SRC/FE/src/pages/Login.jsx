@@ -65,8 +65,13 @@ export const Login = () => {
 
       if (loginUser.fulfilled.match(resultAction)) {
         toast.dismiss(loadingToast);
-        toast.success(`Đăng nhập thành công! Xin chào ${resultAction.payload.user.fullName || resultAction.payload.user.phoneNumber}`);
-        navigate(from, { replace: true });
+        const loggedUser = resultAction.payload.user;
+        toast.success(`Đăng nhập thành công! Xin chào ${loggedUser.fullName || loggedUser.phoneNumber}`);
+        if (loggedUser.role === 'RESTAURANT') {
+          navigate('/merchant/orders', { replace: true });
+        } else {
+          navigate(from === '/' ? '/dashboard' : from, { replace: true });
+        }
       } else {
         toast.dismiss(loadingToast);
         const errMsg = resultAction.payload || 'Đăng nhập thất bại';
@@ -121,10 +126,10 @@ export const Login = () => {
               O
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
-              OmniGo Admin Portal
+              OmniGo & OmniFood Portal
             </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
-              Hệ thống Quản trị Đa dịch vụ Gọi xe & Giao hàng
+              Cổng Quản trị Viên & Đối Tác Nhà Hàng
             </Typography>
           </Box>
 
