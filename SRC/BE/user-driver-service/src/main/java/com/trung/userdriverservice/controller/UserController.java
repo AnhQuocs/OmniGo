@@ -46,8 +46,18 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers(requestDTO));
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
+            @RequestHeader(name = "X-User-Id", required = false) Long currentUserId) throws ResourceNotFoundException, BadRequestException {
+        if (currentUserId == null) {
+            throw new BadRequestException("Không tìm thấy thông tin định danh người dùng (X-User-Id)");
+        }
+        return ResponseEntity.ok(userService.getUserById(currentUserId));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN') or (#currentUserId != null and #currentUserId == #id)")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(
             @PathVariable Long id,
             @RequestHeader(name = "X-User-Id", required = false) Long currentUserId) throws ResourceNotFoundException {

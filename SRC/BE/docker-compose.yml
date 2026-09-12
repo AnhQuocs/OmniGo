@@ -282,7 +282,7 @@ services:
 
   fluentd:
     build:
-      context: ./infra/fluentd
+      context: food-delivery-service/infra/fluentd
     restart: unless-stopped
     networks:
       - ride-hailing
