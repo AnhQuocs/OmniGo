@@ -19,6 +19,8 @@ import com.trung.fooddeliveryservice.repository.MenuItemRepository;
 import com.trung.fooddeliveryservice.repository.RestaurantRepository;
 import com.trung.fooddeliveryservice.service.FoodOrderService;
 import com.trung.fooddeliveryservice.util.enums.OrderStatus;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelledBy;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,12 +89,20 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         BigDecimal itemsTotal = BigDecimal.ZERO;
         List<FoodOrderItem> orderItems = new ArrayList<>();
 
+        OrderStatus initialStatus = OrderStatus.PENDING;
+        if (request.getPaymentMethod() != null && (
+                "VNPAY".equalsIgnoreCase(request.getPaymentMethod().trim()) ||
+                "MOMO".equalsIgnoreCase(request.getPaymentMethod().trim()) ||
+                "WALLET".equalsIgnoreCase(request.getPaymentMethod().trim()))) {
+            initialStatus = OrderStatus.AWAITING_PAYMENT;
+        }
+
         FoodOrder order = FoodOrder.builder()
                 .customerId(customerId)
                 .customerName(request.getCustomerName())
                 .customerPhone(request.getCustomerPhone())
                 .restaurant(restaurant)
-                .status(OrderStatus.PENDING)
+                .status(initialStatus)
                 .deliveryAddress(request.getDeliveryAddress())
                 .deliveryLatitude(request.getDeliveryLatitude())
                 .deliveryLongitude(request.getDeliveryLongitude())
@@ -178,7 +188,10 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             throw new UnauthorizedException("Bạn không có quyền xem đơn hàng của nhà hàng này");
         }
 
-        List<FoodOrder> orders = foodOrderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId);
+        List<FoodOrder> orders = foodOrderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId)
+                .stream()
+                .filter(o -> o.getStatus() != OrderStatus.AWAITING_PAYMENT)
+                .collect(Collectors.toList());
         return foodOrderMapper.toResponseList(orders);
     }
 
@@ -192,6 +205,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        return updateOrderStatusByRestaurant(orderId, newStatus, ownerId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         String lockKey = "lock:order:" + orderId;
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(5));
         if (Boolean.FALSE.equals(acquired)) {
@@ -222,17 +241,28 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     throw new BadRequestException("Chỉ có thể chuẩn bị món khi trạng thái là Đã nhận đơn (ACCEPTED). Hiện tại: " + current);
                 }
             } else if (newStatus == OrderStatus.READY_FOR_PICKUP) {
-                if (current != OrderStatus.PREPARING && current != OrderStatus.READY_FOR_PICKUP && current != OrderStatus.NO_DRIVER_FOUND) {
-                    throw new BadRequestException("Chỉ có thể báo sẵn sàng lấy hàng khi đang Chuẩn bị (PREPARING) hoặc Tìm lại tài xế. Hiện tại: " + current);
+                if (current != OrderStatus.ACCEPTED && current != OrderStatus.PREPARING && current != OrderStatus.READY_FOR_PICKUP && current != OrderStatus.NO_DRIVER_FOUND) {
+                    throw new BadRequestException("Chỉ có thể báo sẵn sàng lấy hàng khi đang Chuẩn bị (PREPARING), Đã nhận đơn (ACCEPTED) hoặc Tìm lại tài xế. Hiện tại: " + current);
+                }
+                if (current == OrderStatus.NO_DRIVER_FOUND) {
+                    int nextRetry = (order.getDriverRetryCount() != null ? order.getDriverRetryCount() : 0) + 1;
+                    order.setDriverRetryCount(nextRetry);
+                    log.info("Chủ quán ID {} quét tìm lại tài xế cho đơn #{} (lần thử thứ {})", ownerId, orderId, nextRetry);
                 }
             } else if (newStatus == OrderStatus.REJECTED) {
                 if (current != OrderStatus.PENDING) {
                     throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái Chờ xác nhận (PENDING). Hiện tại: " + current);
                 }
+                order.setCancelledBy(OrderCancelledBy.RESTAURANT);
+                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán từ chối tiếp nhận đơn"));
+                order.setCancelReasonCode(reasonCode);
             } else if (newStatus == OrderStatus.CANCELLED) {
                 if (current == OrderStatus.COMPLETED || current == OrderStatus.REJECTED || current == OrderStatus.CANCELLED) {
                     throw new BadRequestException("Không thể hủy đơn hàng đã kết thúc (" + current + ")");
                 }
+                order.setCancelledBy(OrderCancelledBy.RESTAURANT);
+                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán hủy đơn"));
+                order.setCancelReasonCode(reasonCode);
             } else {
                 throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía nhà hàng: " + newStatus);
             }
@@ -261,32 +291,45 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 foodEventPublisher.publishFindDriverDirect(event);
                 log.info("Đã phát trực tiếp sự kiện tìm tài xế giao đồ ăn lên Kafka cho đơn hàng ID {}", saved.getId());
 
-                // Timeout 90s: Nếu sau 90s chưa có tài xế nhận, tự động chuyển sang NO_DRIVER_FOUND để quán có thể bấm Tìm lại hoặc Hủy
+                // Timeout 60s: Kiểm tra tài xế nhận đơn
                 final Long targetOrderId = saved.getId();
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Thread.sleep(90000);
+                        Thread.sleep(60000);
                         foodOrderRepository.findById(targetOrderId).ifPresent(o -> {
                             if (o.getStatus() == OrderStatus.READY_FOR_PICKUP) {
-                                log.warn("Đơn hàng ID {} không có tài xế nhận sau 90s, tự động chuyển sang NO_DRIVER_FOUND", targetOrderId);
-                                o.setStatus(OrderStatus.NO_DRIVER_FOUND);
-                                foodOrderRepository.save(o);
+                                int retryCount = o.getDriverRetryCount() != null ? o.getDriverRetryCount() : 0;
+                                if (retryCount < 1) {
+                                    log.warn("Đơn hàng ID {} không có tài xế nhận sau lần quét đầu, chuyển sang NO_DRIVER_FOUND", targetOrderId);
+                                    o.setStatus(OrderStatus.NO_DRIVER_FOUND);
+                                    foodOrderRepository.save(o);
+                                } else {
+                                    log.warn("Đơn hàng ID {} không có tài xế nhận sau khi quét lại lần 2, tự động hủy CANCELLED", targetOrderId);
+                                    o.setStatus(OrderStatus.CANCELLED);
+                                    o.setCancelledBy(OrderCancelledBy.SYSTEM);
+                                    o.setCancelReason("Không tìm thấy tài xế sau nhiều lần tìm kiếm");
+                                    o.setCancelReasonCode(OrderCancelReason.SYSTEM_NO_DRIVER_FOUND);
+                                    FoodOrder savedCancelled = foodOrderRepository.save(o);
+                                    if (Boolean.TRUE.equals(savedCancelled.getIsPaid())) {
+                                        triggerRefund(savedCancelled.getCustomerId(), savedCancelled.getId(), savedCancelled.getTotalPrice(), "Hệ thống hủy đơn do không tìm thấy tài xế");
+                                    }
+                                }
                             }
                         });
                     } catch (Exception e) {
-                        log.error("Lỗi trong quá trình kiểm tra timeout 90s của đơn #{}: {}", targetOrderId, e.getMessage());
+                        log.error("Lỗi trong quá trình kiểm tra timeout tìm xế của đơn #{}: {}", targetOrderId, e.getMessage());
                     }
                 });
             } else if (newStatus == OrderStatus.CANCELLED) {
                 if (Boolean.TRUE.equals(saved.getIsPaid())) {
-                    triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng hủy đơn #" + saved.getId());
+                    triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
                 }
                 if (saved.getDriverId() != null) {
                     updateDriverStatusOnline(saved.getDriverId());
                 }
             } else if (newStatus == OrderStatus.REJECTED) {
                 if (Boolean.TRUE.equals(saved.getIsPaid())) {
-                    triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng từ chối tiếp nhận đơn #" + saved.getId());
+                    triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng từ chối tiếp nhận đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
                 }
             }
 
@@ -299,6 +342,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        return cancelOrderByCustomer(orderId, customerId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         String lockKey = "lock:order:" + orderId;
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(5));
         if (Boolean.FALSE.equals(acquired)) {
@@ -318,17 +367,20 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 throw new UnauthorizedException("Bạn không phải là người tạo đơn hàng này");
             }
 
-            if (order.getStatus() != OrderStatus.PENDING) {
+            if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
                 log.warn("Không thể hủy đơn hàng ID {} vì trạng thái hiện tại là {}", orderId, order.getStatus());
-                throw new BadRequestException("Không thể hủy đơn vì nhà hàng đã tiếp nhận hoặc đang xử lý. Chỉ có thể hủy đơn khi ở trạng thái Chờ xác nhận (PENDING).");
+                throw new BadRequestException("Không thể hủy đơn vì nhà hàng đã tiếp nhận hoặc đang xử lý. Chỉ có thể hủy đơn khi ở trạng thái Chờ thanh toán hoặc Chờ quán xác nhận.");
             }
 
             order.setStatus(OrderStatus.CANCELLED);
+            order.setCancelledBy(OrderCancelledBy.CUSTOMER);
+            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Khách hàng tự hủy đơn"));
+            order.setCancelReasonCode(reasonCode);
             FoodOrder saved = foodOrderRepository.save(order);
             log.info("Khách hàng ID {} đã hủy thành công đơn hàng ID {}", customerId, orderId);
 
             if (Boolean.TRUE.equals(saved.getIsPaid())) {
-                triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Khách hàng tự hủy đơn #" + saved.getId());
+                triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Khách hàng tự hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
             }
 
             return foodOrderMapper.toResponse(saved);
@@ -359,6 +411,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        return updateOrderStatusByDriver(orderId, newStatus, driverId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         FoodOrder order = foodOrderRepository.findById(orderId)
                 .orElseThrow(() -> {
                     log.warn("Không tìm thấy đơn hàng ID {}", orderId);
@@ -375,6 +433,11 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         } else if (newStatus == OrderStatus.COMPLETED) {
             order.setStatus(OrderStatus.COMPLETED);
             order.setIsPaid(true);
+        } else if (newStatus == OrderStatus.CANCELLED) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setCancelledBy(OrderCancelledBy.DRIVER);
+            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Tài xế hủy đơn"));
+            order.setCancelReasonCode(reasonCode);
         } else {
             throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía tài xế: " + newStatus);
         }
@@ -384,6 +447,11 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
         if (newStatus == OrderStatus.COMPLETED) {
             triggerFoodDeliveryPayout(driverId, saved.getId(), saved.getDeliveryFee(), saved.getPaymentMethod());
+            updateDriverStatusOnline(driverId);
+        } else if (newStatus == OrderStatus.CANCELLED) {
+            if (Boolean.TRUE.equals(saved.getIsPaid())) {
+                triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Tài xế hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
+            }
             updateDriverStatusOnline(driverId);
         }
 
@@ -396,8 +464,36 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         FoodOrder order = foodOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng ID: " + orderId));
         order.setIsPaid(true);
+        if (order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
+            order.setStatus(OrderStatus.PENDING);
+            log.info("Đơn hàng #{} đã thanh toán thành công, tự động chuyển từ AWAITING_PAYMENT sang PENDING để quán nhận đơn", orderId);
+        }
         FoodOrder saved = foodOrderRepository.save(order);
         log.info("Đã đánh dấu đơn hàng #{} là ĐÃ THANH TOÁN (isPaid = true)", orderId);
+        return foodOrderMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public FoodOrderResponse switchToCashPayment(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        FoodOrder order = foodOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng ID: " + orderId));
+
+        if (!order.getCustomerId().equals(customerId)) {
+            log.warn("Khách hàng ID {} không có quyền đổi phương thức cho đơn hàng ID {}", customerId, orderId);
+            throw new UnauthorizedException("Bạn không có quyền thay đổi hình thức thanh toán cho đơn hàng này");
+        }
+
+        if (order.getStatus() != OrderStatus.AWAITING_PAYMENT && order.getStatus() != OrderStatus.PENDING) {
+            log.warn("Không thể chuyển sang tiền mặt vì đơn #{} đang ở trạng thái {}", orderId, order.getStatus());
+            throw new BadRequestException("Chỉ có thể chuyển sang Tiền mặt khi đơn hàng đang Chờ thanh toán hoặc Chờ quán duyệt");
+        }
+
+        order.setPaymentMethod("CASH");
+        order.setIsPaid(false);
+        order.setStatus(OrderStatus.PENDING);
+        FoodOrder saved = foodOrderRepository.save(order);
+        log.info("Khách hàng ID {} đã chuyển đơn hàng #{} sang thanh toán TIỀN MẶT (CASH), chuyển trạng thái sang PENDING để quán nhận đơn", customerId, orderId);
         return foodOrderMapper.toResponse(saved);
     }
 

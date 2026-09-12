@@ -27,6 +27,7 @@ import {
   Cancel as ClosedIcon,
   Store as StoreIcon,
   Menu as HamburgerIcon,
+  BarChart as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/authSlice';
@@ -94,6 +95,7 @@ export const MerchantLayout = () => {
 
   const navItems = [
     { label: 'Đơn hàng', path: '/merchant/orders', icon: <OrderIcon fontSize="small" /> },
+    { label: 'Thống kê', path: '/merchant/analytics', icon: <AnalyticsIcon fontSize="small" /> },
     { label: 'Thực đơn', path: '/merchant/menu', icon: <MenuIcon fontSize="small" /> },
     { label: 'Cài đặt', path: '/merchant/settings', icon: <SettingsIcon fontSize="small" /> },
     { label: 'Bản đồ', path: '/merchant/map', icon: <MapIcon fontSize="small" /> },

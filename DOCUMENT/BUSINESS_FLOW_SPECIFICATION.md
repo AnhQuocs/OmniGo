@@ -138,7 +138,7 @@ sequenceDiagram
 ---
 
 ### 2.2. Sơ Đồ Tuần Tự 2: Vòng Đời Đặt Món 3 Bên (OmniFood Marketplace Lifecycle)
-> **Trạng thái thực tế trong mã nguồn (`OrderStatus`):** `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`, `NO_DRIVER_FOUND`).
+> **Trạng thái thực tế trong mã nguồn (`OrderStatus`):** `AWAITING_PAYMENT` (nếu Online) $\rightarrow$ `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` (hoặc `NO_DRIVER_FOUND` $\rightarrow$ Retry) $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`).
 
 ```mermaid
 sequenceDiagram
@@ -152,39 +152,68 @@ sequenceDiagram
     participant Kafka as Apache Kafka
     participant Payment as Payment Service (8086)
 
-    %% BƯỚC 1: ĐẶT MÓN
-    Note over Customer, FoodSvc: 1. Khách chọn món & Tạo đơn giao
-    Customer->>Gateway: POST /api/v1/food-orders (restaurantId, items, deliveryAddress, lat, lng)
+    %% BƯỚC 1: ĐẶT MÓN & XỬ LÝ THANH TOÁN
+    Note over Customer, FoodSvc: 1. Khách chọn món, chọn phương thức thanh toán & Tạo đơn
+    Customer->>Gateway: POST /api/v1/food-orders (restaurantId, items, deliveryAddress, lat, lng, paymentMethod)
     Gateway->>FoodSvc: Forward + Header X-User-Id
     FoodSvc->>FoodSvc: Tính Tổng tiền = Tiền món + Phí ship theo km - Voucher
-    FoodSvc->>FoodSvc: Khởi tạo đơn (Status: PENDING)
-    FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn đặt món mới!" (#FD-XXXX)
-    FoodSvc-->>Customer: 201 Created (orderId, status: PENDING)
+    
+    alt Thanh toán Online (Ví OmniPay, MoMo, VNPay)
+        FoodSvc->>FoodSvc: Khởi tạo đơn (Status: AWAITING_PAYMENT, isPaid: false)
+        FoodSvc-->>Customer: 201 Created (orderId, status: AWAITING_PAYMENT)
+        Customer->>Payment: Thực hiện thanh toán trực tuyến
+        alt Thanh toán Thành công
+            Payment->>FoodSvc: POST /api/v1/food-orders/{id}/paid
+            FoodSvc->>FoodSvc: isPaid = true, Status -> PENDING
+            FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn mới đã thanh toán!" (#FD-XXXX)
+        else Khách muốn đổi sang Tiền mặt (Fallback)
+            Customer->>Gateway: PATCH /api/v1/food-orders/{id}/switch-to-cash
+            Gateway->>FoodSvc: Forward
+            FoodSvc->>FoodSvc: paymentMethod = CASH, Status -> PENDING
+            FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn mới (Tiền mặt COD)!"
+        end
+    else Thanh toán Tiền mặt (CASH)
+        FoodSvc->>FoodSvc: Khởi tạo đơn (Status: PENDING, isPaid: false)
+        FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn đặt món mới (COD)!" (#FD-XXXX)
+        FoodSvc-->>Customer: 201 Created (orderId, status: PENDING)
+    end
 
-    %% BƯỚC 2: QUÁN TIẾP NHẬN & CHẾ BIẾN
-    Note over Merchant, Driver: 2. Quán duyệt đơn (ACCEPTED) & Chế biến (PREPARING)
-    Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "ACCEPTED"}
-    Gateway->>FoodSvc: Forward
-    FoodSvc->>FoodSvc: Chuyển Status -> ACCEPTED (Nhà hàng tiếp nhận đơn)
-    FoodSvc-->>Customer: Thông báo: "Nhà hàng đã tiếp nhận đơn"
+    %% BƯỚC 2: QUÁN TIẾP NHẬN & CHẾ BIẾN HOẶC TỪ CHỐI
+    Note over Merchant, Driver: 2. Quán duyệt đơn (ACCEPTED) & Chế biến (PREPARING) hoặc Từ chối (REJECTED)
+    alt Quán bận / Hết món / Đóng cửa
+        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "REJECTED", "reasonCode": "RESTAURANT_OUT_OF_STOCK", "reason": "Hết món"}
+        Gateway->>FoodSvc: Forward
+        FoodSvc->>FoodSvc: Status -> REJECTED (cancelledBy: RESTAURANT)
+        FoodSvc-->>Customer: Thông báo: "Nhà hàng từ chối nhận đơn: Hết món" (Hoàn tiền nếu Online)
+    else Quán nhận nấu
+        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "ACCEPTED"}
+        Gateway->>FoodSvc: Forward
+        FoodSvc->>FoodSvc: Chuyển Status -> ACCEPTED
+        FoodSvc-->>Customer: Thông báo: "Nhà hàng đã tiếp nhận đơn"
 
-    Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "PREPARING"}
-    Gateway->>FoodSvc: Forward
-    FoodSvc->>FoodSvc: Chuyển Status -> PREPARING (Bếp đang nấu món, khóa quyền tự hủy)
-    FoodSvc-->>Customer: Thông báo: "Nhà hàng đang chuẩn bị món ăn"
+        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "PREPARING"}
+        Gateway->>FoodSvc: Forward
+        FoodSvc->>FoodSvc: Chuyển Status -> PREPARING (Bếp đang nấu món, khóa hủy tự do)
+        FoodSvc-->>Customer: Thông báo: "Nhà hàng đang chuẩn bị món ăn"
+    end
 
-    %% TÌM TÀI XẾ GIAO MÓN QUA KAFKA & BOOKING DISPATCH
+    %% TÌM TÀI XẾ GIAO MÓN QUA KAFKA & XỬ LÝ RETRY
     Note over FoodSvc, Kafka: Phát sự kiện tìm tài xế giao món qua Kafka
     FoodSvc->>Kafka: Publish Event "FIND_DRIVER_FOR_FOOD_ORDER" (FindDriverForFoodOrderEvent)
-    Kafka->>Booking: Consume "FIND_DRIVER_FOR_FOOD_ORDER" (FoodOrderKafkaConsumer)
+    Kafka->>Booking: Consume "FIND_DRIVER_FOR_FOOD_ORDER"
     Booking->>Location: Quét tài xế giao hàng quanh nhà hàng (radius = 3km từ Redis Geo)
-    Location-->>Booking: Danh sách tài xế khả dụng
-    Booking->>Driver: Phát thông tin đơn giao hàng tới Driver gần nhất
-    Driver->>Booking: Tài xế chấp nhận nhận giao đơn món
-    Booking->>Kafka: Publish Event "DRIVER_ASSIGNED_TO_FOOD_ORDER" (DriverAssignedToFoodOrderEvent)
-    Kafka->>FoodSvc: Consume "DRIVER_ASSIGNED_TO_FOOD_ORDER" (FoodOrderDriverAssignedConsumer)
-    FoodSvc->>FoodSvc: Gán driverId vào đơn hàng
-    FoodSvc-->>Customer: Thông báo: "Đã có tài xế nhận giao đơn của bạn"
+    
+    alt Không tìm thấy tài xế khả dụng
+        Booking->>FoodSvc: Cập nhật Status -> NO_DRIVER_FOUND
+        FoodSvc-->>Merchant: Hiển thị: "Chưa tìm thấy tài xế - Có nút Quét tìm lại"
+        Merchant->>Gateway: POST /api/v1/food-orders/{id}/retry-driver (Quét lại, driverRetryCount++)
+        Gateway->>FoodSvc: Forward -> Kích hoạt lại vòng quét tìm tài xế (Tối đa 3 lần)
+    else Tìm thấy tài xế & Tài xế nhận cuốc
+        Booking->>Kafka: Publish Event "DRIVER_ASSIGNED_TO_FOOD_ORDER"
+        Kafka->>FoodSvc: Consume "DRIVER_ASSIGNED_TO_FOOD_ORDER"
+        FoodSvc->>FoodSvc: Gán driverId vào đơn hàng
+        FoodSvc-->>Customer: Thông báo: "Đã có tài xế nhận giao đơn của bạn"
+    end
 
     %% BƯỚC 3: QUÁN BÁO NẤU XONG & TÀI XẾ LẤY MÓN
     Note over Driver, Merchant: 3. Món đã sẵn sàng (READY_FOR_PICKUP) & Giao hàng
@@ -204,10 +233,16 @@ sequenceDiagram
         Location-->>Customer: Cập nhật đường đi của shipper trên bản đồ
     end
 
-    Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "COMPLETED"}
-    Gateway->>FoodSvc: Forward (Validate tọa độ Driver cách Khách <= 50m)
-    FoodSvc->>FoodSvc: Chuyển Status -> COMPLETED
-    FoodSvc-->>Customer: Mở màn hình Đánh giá riêng biệt: ⭐ Cho Quán & ⭐ Cho Tài xế
+    alt Tài xế gặp sự cố hủy giao
+        Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "CANCELLED", "reasonCode": "DRIVER_VEHICLE_BROKEN"}
+        Gateway->>FoodSvc: Forward (cancelledBy: DRIVER, cancelReason: "Hỏng xe")
+        FoodSvc-->>Customer: Thông báo: "Tài xế hủy đơn do sự cố xe"
+    else Giao hàng thành công
+        Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "COMPLETED"}
+        Gateway->>FoodSvc: Forward (Validate tọa độ Driver cách Khách <= 50m)
+        FoodSvc->>FoodSvc: Chuyển Status -> COMPLETED
+        FoodSvc-->>Customer: Mở màn hình Đánh giá riêng biệt: ⭐ Cho Quán & ⭐ Cho Tài xế
+    end
 ```
 
 ---
@@ -342,15 +377,16 @@ Khớp chính xác với enum `com.trung.fooddeliveryservice.util.enums.OrderSta
 
 | Trạng thái (`OrderStatus`) | Ý nghĩa | Điều kiện kích hoạt & Mô tả hành vi hệ thống |
 | :--- | :--- | :--- |
-| **`PENDING`** | Chờ nhà hàng tiếp nhận | Đơn đặt món được tạo thành công, hệ thống gửi chuông báo WebSocket tới màn hình quản lý đơn của Nhà Hàng. |
+| **`AWAITING_PAYMENT`** | Chờ thanh toán online | Khách hàng đặt đơn chọn phương thức thanh toán trực tuyến (`WALLET`, `MOMO`, `VNPAY`). Đơn hàng chưa gửi sang Nhà hàng để tránh rủi ro quỵt tiền / thiếu số dư. Khi thanh toán thành công chuyển sang `PENDING`. Khách có thể chủ động chuyển sang trả tiền mặt (`switch-to-cash`). |
+| **`PENDING`** | Chờ nhà hàng tiếp nhận | Đơn đặt món đã hợp lệ (đã thanh toán hoặc chọn trả tiền mặt `CASH`), hệ thống gửi chuông báo WebSocket tới màn hình quản lý đơn của Nhà Hàng. |
 | **`ACCEPTED`** | Nhà hàng đã tiếp nhận | Chủ quán/Bếp bấm nút tiếp nhận đơn hàng trên ứng dụng/web quản lý của quán. |
-| **`PREPARING`** | Đang nấu món | Nhà hàng bắt đầu chế biến món ăn. Tại trạng thái này, khách hàng **không thể tự ý hủy đơn miễn phí**. Hệ thống quét tìm tài xế giao hàng lân cận. |
+| **`PREPARING`** | Đang nấu món | Nhà hàng bắt đầu chế biến món ăn. Tại trạng thái này, khách hàng **không thể tự ý hủy đơn miễn phí**. Hệ thống quét tìm tài xế giao hàng lân cận qua Kafka. |
 | **`READY_FOR_PICKUP`** | Món đã nấu xong | Bếp nấu và đóng gói xong, bấm thông báo sẵn sàng để tài xế có thể nhận đồ ăn ngay khi đến quán. |
 | **`DELIVERING`** | Đang giao hàng | Tài xế có mặt tại quán (GPS $\le 50\text{m}$), nhận túi thức ăn và bắt đầu di chuyển tới địa chỉ của khách hàng (Live Tracking). |
-| **`COMPLETED`** | Giao hàng thành công | Tài xế giao đồ ăn tận tay khách (GPS $\le 50\text{m}$) và bấm hoàn thành đơn. Kích hoạt sự kiện Kafka quyết toán dòng tiền 3 bên (Quán - Tài xế - Sàn). |
-| **`CANCELLED`** | Đơn hàng đã hủy | Khách hủy đơn khi quán chưa nấu, hoặc tài xế/quán hủy đơn do sự cố. |
-| **`REJECTED`** | Nhà hàng từ chối | Nhà hàng bấm từ chối nhận đơn (do hết món, quá tải hoặc sắp đến giờ đóng cửa). Tự động hoàn tiền ví cho khách. |
-| **`NO_DRIVER_FOUND`** | Không tìm thấy tài xế | Hệ thống quét trong bán kính tối đa mà không có tài xế nào nhận giao đơn. Hệ thống tự động hủy đơn và hoàn tiền $100\%$ cho khách hàng. |
+| **`COMPLETED`** | Giao hàng thành công | Tài xế giao đồ ăn tận tay khách (GPS $\le 50\text{m}$) và bấm hoàn thành đơn. Kích hoạt quyết toán dòng tiền: quán nhận tiền món, tài xế nhận phí ship. |
+| **`CANCELLED`** | Đơn hàng đã hủy | Bị hủy bởi Khách hàng, Quán ăn, Tài xế hoặc Hệ thống. Lưu vết đầy đủ `cancelledBy`, `cancelReason`, và `cancelReasonCode`. |
+| **`REJECTED`** | Nhà hàng từ chối | Nhà hàng bấm từ chối nhận đơn ngay từ đầu (do hết món, quá tải hoặc sắp đến giờ đóng cửa). Tự động hoàn tiền ví nếu đã thanh toán. |
+| **`NO_DRIVER_FOUND`** | Không tìm thấy tài xế | Hệ thống quét trong bán kính tối đa mà không có tài xế nào nhận giao đơn. Hệ thống hỗ trợ Quán bấm quét tìm lại (`retry-driver`, tối đa 3 lần). Nếu vẫn không có tài xế thì chuyển sang `CANCELLED`. |
 
 ---
 
@@ -399,6 +435,49 @@ Khớp chính xác với enum `com.trung.fooddeliveryservice.util.enums.OrderSta
 * **`WALLET`**: Thanh toán trừ trực tiếp từ số dư ví điện tử OmniGo.
 * **`MOMO`**: Thanh toán trực tuyến qua cổng ví điện tử MoMo.
 * **`VNPAY`**: Thanh toán trực tuyến qua cổng VNPay.
+
+#### G. Tác nhân Hủy Đơn Đồ Ăn (`OrderCancelledBy`)
+*File: `com.trung.fooddeliveryservice.util.enums.OrderCancelledBy`*
+* **`CUSTOMER`**: Khách hàng chủ động hủy đơn (khi đơn đang chờ duyệt `AWAITING_PAYMENT` hoặc `PENDING`).
+* **`RESTAURANT`**: Quán ăn từ chối nhận đơn hoặc hủy đơn do hết nguyên liệu / quá tải.
+* **`DRIVER`**: Tài xế hủy nhận đơn giao do sự cố phương tiện hoặc thời tiết.
+* **`SYSTEM`**: Hệ thống tự động hủy đơn khi hết thời gian tìm tài xế hoặc quán không xác nhận kịp thời.
+
+#### H. Mã Lý Do Hủy Đơn (`OrderCancelReason`)
+*File: `com.trung.fooddeliveryservice.util.enums.OrderCancelReason`*
+* **Nhóm Khách hàng (`CUSTOMER_`):**
+  * `CUSTOMER_CHANGE_MIND`: Đổi ý không muốn đặt nữa.
+  * `CUSTOMER_WRONG_ADDRESS`: Đặt nhầm địa chỉ nhận hàng.
+  * `CUSTOMER_PAYMENT_FAILED`: Thanh toán trực tuyến thất bại hoặc không đủ số dư ví.
+* **Nhóm Quán ăn (`RESTAURANT_`):**
+  * `RESTAURANT_OUT_OF_STOCK`: Hết món / hết nguyên liệu chế biến.
+  * `RESTAURANT_OVERLOADED`: Quán đang quá tải, không kịp phục vụ.
+  * `RESTAURANT_CLOSING`: Quán sắp đến giờ đóng cửa.
+  * `RESTAURANT_OTHER`: Lý do khác từ phía nhà hàng.
+* **Nhóm Tài xế (`DRIVER_`):**
+  * `DRIVER_ACCIDENT`: Gặp sự cố va chạm giao thông.
+  * `DRIVER_VEHICLE_BROKEN`: Phương tiện bị hỏng hóc, thủng lốp.
+  * `DRIVER_WEATHER`: Thời tiết mưa bão nghiêm trọng, ngập lụt.
+  * `DRIVER_RESTAURANT_CLOSED`: Đến quán nhưng quán đóng cửa không hoạt động.
+  * `DRIVER_OTHER`: Sự cố phát sinh khác từ tài xế.
+* **Nhóm Hệ thống (`SYSTEM_`):**
+  * `SYSTEM_TIMEOUT_FINDING_DRIVER`: Hết số lần quét tìm lại (tối đa 3 lần) mà không tìm thấy tài xế nhận giao.
+  * `SYSTEM_TIMEOUT_RESTAURANT_CONFIRM`: Quá hạn thời gian quy định mà quán không xác nhận đơn.
+
+---
+
+### 3.4. Báo Cáo Doanh Thu & Bộ Chỉ Số KPI Nhà Hàng (Merchant Business Metrics)
+Nhằm phục vụ phân hệ Báo cáo kinh doanh chuyên biệt cho Quán ăn (`/merchant/analytics`), hệ thống chuẩn hóa 4 chỉ số cốt lõi:
+1. **Doanh Thu Hoàn Tất (Completed Food Revenue):**
+   $$\text{Doanh Thu Thực Thu} = \sum_{\text{COMPLETED}} (\text{totalPrice} - \text{deliveryFee})$$
+   *(Chỉ tính tiền món ăn thực tế quán nhận được, loại trừ phí giao hàng của tài xế).*
+2. **Tỉ Lệ Đơn Thành Công (% Success Rate):**
+   $$\text{Tỉ Lệ Thành Công} = \frac{\text{Số đơn COMPLETED}}{\text{Số đơn COMPLETED} + \text{Số đơn CANCELLED/REJECTED}} \times 100\%$$
+3. **Số Món Đã Bán (Total Dishes Sold):**
+   Tổng hợp số lượng từng phần ăn (`quantity`) của toàn bộ các mục món trong các đơn `COMPLETED`.
+4. **Giá Trị Trung Bình Mỗi Đơn (Average Order Value - AOV):**
+   $$\text{AOV} = \frac{\text{Doanh Thu Thực Thu}}{\text{Số đơn COMPLETED}}$$
+   *Ý nghĩa: Cho biết mức chi tiêu trung bình của một khách hàng trên mỗi lần đặt món thành công, làm cơ sở để quán xây dựng combo món ăn và chương trình khuyến mãi upsell.*
 
 ---
 

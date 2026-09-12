@@ -738,6 +738,7 @@
                 `;
                 document.getElementById('action-buttons').innerHTML = `
                     <button onclick="updateFoodDeliveryStatus(${orderId}, 'DELIVERING')" style="background-color: #0284c7; color: white; padding: 10px 18px; border: none; cursor: pointer; font-weight: bold; border-radius:6px; width:100%; font-size:14px;">🚗 ĐÃ LẤY MÓN & BẮT ĐẦU ĐI GIAO</button>
+                    <button onclick="cancelFoodDeliveryByDriver(${orderId})" style="background-color: #fee2e2; color: #dc2626; padding: 8px 14px; border: 1px solid #fca5a5; cursor: pointer; font-weight: bold; border-radius:6px; width:100%; font-size:13px; margin-top:8px;">❌ HỦY ĐƠN (SỰ CỐ KHÔNG THỂ GIAO)</button>
                 `;
                 document.getElementById('match-box').style.display = "block";
 
@@ -750,6 +751,31 @@
             }
         } catch(e) {
             alert("Lỗi khi nhận đơn: " + e.message);
+        }
+    }
+
+    async function cancelFoodDeliveryByDriver(orderId) {
+        let reason = prompt("Nhập lý do tài xế hủy đơn giao đồ ăn (VD: Sự cố xe cộ, thời tiết xấu...):", "Sự cố phương tiện di chuyển");
+        if (reason === null) return;
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/${orderId}/driver-status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-User-Id': DRIVER_ID.toString() },
+                body: JSON.stringify({
+                    status: 'CANCELLED',
+                    reason: reason || 'Tài xế hủy đơn',
+                    reasonCode: 'DRIVER_VEHICLE_BREAKDOWN'
+                })
+            });
+            let data = await res.json();
+            if (res.ok && data.success) {
+                alert("Đã hủy đơn giao đồ ăn.");
+                closeMatchBoxAndReset();
+            } else {
+                alert(data.message || "Không thể hủy đơn");
+            }
+        } catch(e) {
+            alert("Lỗi khi hủy đơn: " + e.message);
         }
     }
 
@@ -786,6 +812,7 @@
                     `;
                     document.getElementById('action-buttons').innerHTML = `
                         <button onclick="updateFoodDeliveryStatus(${orderId}, 'COMPLETED')" style="background-color: #16a34a; color: white; padding: 10px 18px; border: none; cursor: pointer; font-weight: bold; border-radius:6px; width:100%; font-size:14px;">✅ ĐÃ ĐẾN NƠI & HOÀN TẤT GIAO MÓN</button>
+                        <button onclick="cancelFoodDeliveryByDriver(${orderId})" style="background-color: #fee2e2; color: #dc2626; padding: 8px 14px; border: 1px solid #fca5a5; cursor: pointer; font-weight: bold; border-radius:6px; width:100%; font-size:13px; margin-top:8px;">❌ HỦY ĐƠN (SỰ CỐ KHÔNG THỂ GIAO)</button>
                     `;
                     let logEl = document.getElementById('log');
                     logEl.innerHTML += `<li style="color:#0284c7; font-weight:bold;">🚗 [Food] Đang đi giao món đơn #${orderId}...</li>`;

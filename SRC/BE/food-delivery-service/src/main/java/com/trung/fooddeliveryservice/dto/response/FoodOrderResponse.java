@@ -1,6 +1,8 @@
 package com.trung.fooddeliveryservice.dto.response;
 
 import com.trung.fooddeliveryservice.util.enums.OrderStatus;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelledBy;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import lombok.*;
 
 import java.io.Serializable;
@@ -30,6 +32,10 @@ public class FoodOrderResponse implements Serializable {
     private String note;
     private String paymentMethod;
     private Boolean isPaid;
+    private OrderCancelledBy cancelledBy;
+    private String cancelReason;
+    private OrderCancelReason cancelReasonCode;
+    private Integer driverRetryCount;
     private List<FoodOrderItemResponse> orderItems;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -325,6 +325,8 @@
         .icon-blue { background: var(--info-light); color: var(--info); }
         .icon-green { background: var(--success-light); color: var(--success); }
         .icon-amber { background: var(--warning-light); color: var(--warning); }
+        .icon-purple { background: #f3e8ff; color: #9333ea; }
+        .icon-emerald { background: #dcfce7; color: #16a34a; }
 
         /* Panel Sections */
         .panel {
@@ -857,6 +859,9 @@
                 <span>📋</span> Đơn hàng trực tiếp
                 <span class="badge" id="sidebar-pending-badge">0</span>
             </li>
+            <li class="nav-item" onclick="switchView('analytics')">
+                <span>📊</span> Báo cáo & Thống kê
+            </li>
             <li class="nav-item" onclick="switchView('menu')">
                 <span>🍽️</span> Quản lý thực đơn
             </li>
@@ -887,35 +892,73 @@
         <!-- Dashboard Views Container (Shown if restaurant exists) -->
         <div id="restaurant-dashboard" style="display: none; flex-direction: column; gap: 24px;">
 
-            <!-- Stats Bar -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h4>Đơn Chờ Duyệt</h4>
-                        <div class="stat-value" id="stat-pending" style="color: var(--warning);">0</div>
+            <!-- View: ANALYTICS & STATS -->
+            <div id="view-analytics" class="panel" style="display: none;">
+                <div class="panel-header" style="margin-bottom: 20px;">
+                    <div class="panel-title">
+                        <span>📊</span> Báo Cáo Doanh Thu & Thống Kê
                     </div>
-                    <div class="stat-icon icon-amber">⏳</div>
+                    <button class="btn-primary" onclick="fetchOrders(true)" style="padding: 6px 14px; font-size: 13px;">
+                        🔄 Làm mới
+                    </button>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h4>Đang Chế Biến</h4>
-                        <div class="stat-value" id="stat-cooking" style="color: var(--info);">0</div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Doanh Thu Hoàn Tất</h4>
+                            <div class="stat-value" id="stat-revenue" style="color: #15803d; font-size: 20px;">0 đ</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Tiền món đã giao thành công</span>
+                        </div>
+                        <div class="stat-icon icon-emerald">💰</div>
                     </div>
-                    <div class="stat-icon icon-blue">🍳</div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Tỉ Lệ Thành Công</h4>
+                            <div class="stat-value" id="stat-success-rate" style="color: #2563eb;">100%</div>
+                            <span style="font-size: 11px; color: var(--text-muted);" id="stat-finished-count">0/0 đơn kết thúc</span>
+                        </div>
+                        <div class="stat-icon icon-blue">📈</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Số Món Đã Bán</h4>
+                            <div class="stat-value" id="stat-items-sold" style="color: #c2410c;">0 <span style="font-size: 14px; font-weight: 600;">món</span></div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Từ đơn hoàn thành</span>
+                        </div>
+                        <div class="stat-icon icon-orange">🍔</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Đơn Chờ Duyệt</h4>
+                            <div class="stat-value" id="stat-pending" style="color: var(--warning);">0</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Cần nhận & nấu</span>
+                        </div>
+                        <div class="stat-icon icon-amber">⏳</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Đang Nấu / Giao</h4>
+                            <div class="stat-value" id="stat-cooking" style="color: #9333ea;">0</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Đang thực hiện</span>
+                        </div>
+                        <div class="stat-icon icon-purple">🍳</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h4>Đơn Hoàn Thành</h4>
+                            <div class="stat-value" id="stat-completed" style="color: var(--success);">0</div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Đã giao tận tay</span>
+                        </div>
+                        <div class="stat-icon icon-green">✅</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h4>Đơn Hoàn Thành</h4>
-                        <div class="stat-value" id="stat-completed" style="color: var(--success);">0</div>
+
+                <div style="margin-top: 24px; padding: 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 24px;">💡</span>
+                    <div style="font-size: 13px; color: #6b21a8; line-height: 1.5;">
+                        <b>Giải thích chỉ số Doanh thu:</b> Tổng số tiền món ăn thực tế quán nhận được từ các đơn đã hoàn thành (đã loại trừ phí giao hàng của tài xế).
                     </div>
-                    <div class="stat-icon icon-green">✅</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <h4>Doanh Thu Hôm Nay</h4>
-                        <div class="stat-value" id="stat-revenue" style="color: var(--primary); font-size: 18px;">0 đ</div>
-                    </div>
-                    <div class="stat-icon icon-orange">💰</div>
                 </div>
             </div>
 
@@ -926,6 +969,9 @@
                         <span>📋</span> Đơn Hàng Của Nhà Hàng
                     </div>
                     <div class="panel-actions">
+                        <button onclick="switchView('analytics')" style="padding: 6px 12px; font-size: 13px; font-weight: 700; color: #c2410c; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; cursor: pointer;">
+                            📊 Báo cáo doanh thu
+                        </button>
                         <label style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-muted);">
                             <input type="checkbox" id="auto-refresh-toggle" checked> Tự động làm mới (5s)
                         </label>
@@ -1458,6 +1504,7 @@
         };
 
         let revenue = 0;
+        let totalDishesSold = 0;
 
         currentOrders.forEach(o => {
             if (o.status === 'PENDING') counts.PENDING++;
@@ -1468,15 +1515,37 @@
                 counts.COMPLETED++;
                 let foodPrice = (o.totalPrice || 0) - (o.deliveryFee || 0);
                 revenue += (foodPrice > 0 ? foodPrice : (o.totalPrice || 0));
+
+                const items = o.orderItems || o.items || [];
+                if (items.length > 0) {
+                    items.forEach(it => {
+                        totalDishesSold += (Number(it.quantity) || 1);
+                    });
+                }
             } else if (o.status === 'CANCELLED' || o.status === 'REJECTED') {
                 counts.CANCELLED++;
             }
         });
 
+        const finishedTotal = counts.COMPLETED + counts.CANCELLED;
+        const successRate = finishedTotal > 0 
+            ? ((counts.COMPLETED / finishedTotal) * 100).toFixed(1) 
+            : (currentOrders.length > 0 ? '100.0' : '0.0');
+
         document.getElementById('stat-pending').innerText = counts.PENDING;
-        document.getElementById('stat-cooking').innerText = counts.COOKING;
+        document.getElementById('stat-cooking').innerText = counts.COOKING + counts.DELIVERING + counts.READY;
         document.getElementById('stat-completed').innerText = counts.COMPLETED;
         document.getElementById('stat-revenue').innerText = revenue.toLocaleString('vi-VN') + ' đ';
+
+        if (document.getElementById('stat-success-rate')) {
+            document.getElementById('stat-success-rate').innerText = successRate + '%';
+        }
+        if (document.getElementById('stat-finished-count')) {
+            document.getElementById('stat-finished-count').innerText = `${counts.COMPLETED}/${finishedTotal} đơn kết thúc`;
+        }
+        if (document.getElementById('stat-items-sold')) {
+            document.getElementById('stat-items-sold').innerHTML = `${totalDishesSold.toLocaleString('vi-VN')} <span style="font-size: 14px; font-weight: 600;">món</span>`;
+        }
 
         document.getElementById('sidebar-pending-badge').innerText = counts.PENDING;
         document.getElementById('count-all').innerText = counts.ALL;
@@ -1827,9 +1896,20 @@
     // Switch Tabs / Views
     function switchView(viewName) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        event.currentTarget.classList.add('active');
+        if (event && event.currentTarget && event.currentTarget.classList) {
+            event.currentTarget.classList.add('active');
+        } else {
+            // Find nav item by viewName if invoked programmatically
+            const navItems = document.querySelectorAll('.nav-menu .nav-item');
+            if (viewName === 'orders' && navItems[0]) navItems[0].classList.add('active');
+            else if (viewName === 'analytics' && navItems[1]) navItems[1].classList.add('active');
+            else if (viewName === 'menu' && navItems[2]) navItems[2].classList.add('active');
+            else if (viewName === 'settings' && navItems[3]) navItems[3].classList.add('active');
+            else if (viewName === 'map-view' && navItems[4]) navItems[4].classList.add('active');
+        }
 
         document.getElementById('view-orders').style.display = viewName === 'orders' ? 'block' : 'none';
+        document.getElementById('view-analytics').style.display = viewName === 'analytics' ? 'block' : 'none';
         document.getElementById('view-menu').style.display = viewName === 'menu' ? 'block' : 'none';
         document.getElementById('view-settings').style.display = viewName === 'settings' ? 'block' : 'none';
         document.getElementById('view-map').style.display = viewName === 'map-view' ? 'block' : 'none';

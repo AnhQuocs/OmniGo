@@ -70,16 +70,20 @@ public class FoodOrderController {
             @Valid @RequestBody FoodOrderStatusUpdateRequest request)
             throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         Long ownerId = SecurityUtils.getCurrentUserId();
-        FoodOrderResponse response = foodOrderService.updateOrderStatusByRestaurant(orderId, request.getStatus(), ownerId);
+        FoodOrderResponse response = foodOrderService.updateOrderStatusByRestaurant(
+                orderId, request.getStatus(), ownerId, request.getReason(), request.getReasonCode());
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật trạng thái đơn hàng thành công"));
     }
 
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<FoodOrderResponse>> cancelOrder(
-            @PathVariable Long orderId)
+            @PathVariable Long orderId,
+            @RequestBody(required = false) com.trung.fooddeliveryservice.dto.request.FoodOrderCancelRequest cancelRequest)
             throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         Long customerId = SecurityUtils.getCurrentUserId();
-        FoodOrderResponse response = foodOrderService.cancelOrderByCustomer(orderId, customerId);
+        String reason = cancelRequest != null ? cancelRequest.getReason() : null;
+        com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode = cancelRequest != null ? cancelRequest.getReasonCode() : null;
+        FoodOrderResponse response = foodOrderService.cancelOrderByCustomer(orderId, customerId, reason, reasonCode);
         return ResponseEntity.ok(ApiResponse.success(response, "Hủy đơn hàng thành công"));
     }
 
@@ -89,7 +93,8 @@ public class FoodOrderController {
             @Valid @RequestBody FoodOrderStatusUpdateRequest request)
             throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         Long driverId = SecurityUtils.getCurrentUserId();
-        FoodOrderResponse response = foodOrderService.updateOrderStatusByDriver(orderId, request.getStatus(), driverId);
+        FoodOrderResponse response = foodOrderService.updateOrderStatusByDriver(
+                orderId, request.getStatus(), driverId, request.getReason(), request.getReasonCode());
         return ResponseEntity.ok(ApiResponse.success(response, "Tài xế cập nhật trạng thái đơn hàng thành công"));
     }
 
@@ -98,6 +103,14 @@ public class FoodOrderController {
             @PathVariable Long orderId) throws ResourceNotFoundException {
         FoodOrderResponse response = foodOrderService.markOrderAsPaid(orderId);
         return ResponseEntity.ok(ApiResponse.success(response, "Đã cập nhật trạng thái thanh toán đơn hàng"));
+    }
+
+    @PatchMapping("/{orderId}/switch-to-cash")
+    public ResponseEntity<ApiResponse<FoodOrderResponse>> switchToCash(
+            @PathVariable Long orderId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        Long customerId = SecurityUtils.getCurrentUserId();
+        FoodOrderResponse response = foodOrderService.switchToCashPayment(orderId, customerId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Đã chuyển đổi sang phương thức thanh toán tiền mặt thành công"));
     }
 
     @GetMapping

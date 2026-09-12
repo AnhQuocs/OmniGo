@@ -22,6 +22,7 @@ import NotFound from './pages/NotFound';
 // Merchant Portal Components
 import MerchantLayout from './components/merchant/MerchantLayout';
 import MerchantOrders from './pages/merchant/MerchantOrders';
+import MerchantAnalytics from './pages/merchant/MerchantAnalytics';
 import MerchantMenu from './pages/merchant/MerchantMenu';
 import MerchantSettings from './pages/merchant/MerchantSettings';
 import MerchantMap from './pages/merchant/MerchantMap';
@@ -68,6 +69,7 @@ export function App() {
               <Route path="/merchant" element={<MerchantLayout />}>
                 <Route index element={<Navigate to="/merchant/orders" replace />} />
                 <Route path="orders" element={<MerchantOrders />} />
+                <Route path="analytics" element={<MerchantAnalytics />} />
                 <Route path="menu" element={<MerchantMenu />} />
                 <Route path="settings" element={<MerchantSettings />} />
                 <Route path="map" element={<MerchantMap />} />

@@ -160,7 +160,7 @@ export const FoodOrders = () => {
     page * rowsPerPage + rowsPerPage
   );
 
-  const getStatusChip = (status) => {
+  const getStatusChip = (status, order = null) => {
     switch (status) {
       case 'PENDING':
         return <Chip label="⏳ Chờ Duyệt" size="small" sx={{ bgcolor: 'rgba(255, 170, 0, 0.15)', color: '#ffaa00', fontWeight: 700 }} />;
@@ -175,11 +175,23 @@ export const FoodOrders = () => {
       case 'COMPLETED':
         return <Chip label="✅ Giao Hoàn Tất" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700 }} />;
       case 'CANCELLED':
-        return <Chip label="❌ Khách Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+        if (order?.cancelledBy === 'DRIVER') {
+          return <Chip label="🚫 Tài Xế Hủy" size="small" sx={{ bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626', fontWeight: 700 }} />;
+        }
+        if (order?.cancelledBy === 'RESTAURANT') {
+          return <Chip label="🚫 Quán Hủy" size="small" sx={{ bgcolor: 'rgba(217, 119, 6, 0.15)', color: '#d97706', fontWeight: 700 }} />;
+        }
+        if (order?.cancelledBy === 'CUSTOMER') {
+          return <Chip label="❌ Khách Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+        }
+        if (order?.cancelledBy === 'SYSTEM' || order?.cancelReasonCode === 'SYSTEM_NO_DRIVER_FOUND') {
+          return <Chip label="⚠️ Hết Giờ Tìm Xế" size="small" sx={{ bgcolor: 'rgba(147, 51, 234, 0.15)', color: '#9333ea', fontWeight: 700 }} />;
+        }
+        return <Chip label="❌ Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
       case 'REJECTED':
         return <Chip label="🚫 Quán Từ Chối" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
       case 'NO_DRIVER_FOUND':
-        return <Chip label="⚠️ Không Thấy Tài Xế" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+        return <Chip label="⚠️ Chưa Thấy Tài Xế" size="small" sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', color: '#d97706', fontWeight: 700 }} />;
       default:
         return <Chip label={status} size="small" />;
     }
@@ -535,7 +547,7 @@ export const FoodOrders = () => {
                           />
                         </Box>
                       </TableCell>
-                      <TableCell>{getStatusChip(order.status)}</TableCell>
+                      <TableCell>{getStatusChip(order.status, order)}</TableCell>
                       <TableCell align="center">
                         <Button
                           size="small"
@@ -633,6 +645,20 @@ export const FoodOrders = () => {
                       <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 600, display: 'block', mt: 0.5 }}>
                         📝 Ghi chú: {selectedOrder.note}
                       </Typography>
+                    )}
+                    {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (
+                      <Box sx={{ mt: 1.5, p: 1.2, bgcolor: 'rgba(255, 51, 102, 0.08)', borderRadius: 2, border: '1px solid rgba(255, 51, 102, 0.2)' }}>
+                        <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 700 }}>
+                          {selectedOrder.cancelledBy === 'DRIVER' ? '🚫 Tài xế hủy đơn'
+                            : selectedOrder.cancelledBy === 'RESTAURANT' ? '🚫 Quán hủy đơn'
+                            : selectedOrder.cancelledBy === 'CUSTOMER' ? '❌ Khách hàng hủy đơn'
+                            : selectedOrder.cancelledBy === 'SYSTEM' ? '⚠️ Hệ thống hủy (Không tìm thấy tài xế)'
+                            : 'Đơn hàng đã hủy'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#b91c1c', display: 'block', mt: 0.3 }}>
+                          Lý do: {selectedOrder.cancelReason || 'Không có ghi chú lý do'}
+                        </Typography>
+                      </Box>
                     )}
                   </Card>
                 </Grid>

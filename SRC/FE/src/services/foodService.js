@@ -228,12 +228,46 @@ export const foodService = {
    * Cập nhật trạng thái đơn hàng (ACCEPTED, PREPARING, READY_FOR_PICKUP, CANCELLED, REJECTED)
    * Endpoint: PATCH /api/v1/food-orders/{orderId}/status
    */
-  updateOrderStatus: async (orderId, status) => {
+  updateOrderStatus: async (orderId, status, reason = null, reasonCode = null) => {
     try {
-      const res = await patch(`/api/v1/food-orders/${orderId}/status`, { status });
+      const payload = { status };
+      if (reason) payload.reason = reason;
+      if (reasonCode) payload.reasonCode = reasonCode;
+      const res = await patch(`/api/v1/food-orders/${orderId}/status`, payload);
       return res?.data || res;
     } catch (error) {
       console.warn(`Lỗi cập nhật trạng thái đơn hàng #${orderId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Khách hàng hủy đơn hàng
+   * Endpoint: POST /api/v1/food-orders/{orderId}/cancel
+   */
+  cancelOrder: async (orderId, reason = null, reasonCode = null) => {
+    try {
+      const payload = {};
+      if (reason) payload.reason = reason;
+      if (reasonCode) payload.reasonCode = reasonCode;
+      const res = await post(`/api/v1/food-orders/${orderId}/cancel`, payload);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi hủy đơn hàng #${orderId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Chuyển phương thức thanh toán sang Tiền mặt (CASH)
+   * Endpoint: PATCH /api/v1/food-orders/{orderId}/switch-to-cash
+   */
+  switchToCashPayment: async (orderId) => {
+    try {
+      const res = await patch(`/api/v1/food-orders/${orderId}/switch-to-cash`);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi chuyển đơn #${orderId} sang tiền mặt:`, error.message);
       throw error;
     }
   },

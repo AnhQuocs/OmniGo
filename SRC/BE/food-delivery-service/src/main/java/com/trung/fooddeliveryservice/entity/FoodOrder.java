@@ -1,6 +1,8 @@
 package com.trung.fooddeliveryservice.entity;
 
 import com.trung.fooddeliveryservice.util.enums.OrderStatus;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelledBy;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -67,6 +69,25 @@ public class FoodOrder extends BaseEntity {
     @Column(name = "is_paid", nullable = false)
     @Builder.Default
     private Boolean isPaid = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancelled_by", length = 30)
+    private OrderCancelledBy cancelledBy;
+
+    @Column(name = "cancel_reason", length = 255)
+    private String cancelReason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancel_reason_code", length = 50)
+    private OrderCancelReason cancelReasonCode;
+
+    @Column(name = "driver_retry_count")
+    @Builder.Default
+    private Integer driverRetryCount = 0;
+
+    public Integer getDriverRetryCount() {
+        return driverRetryCount != null ? driverRetryCount : 0;
+    }
 
     @Version
     @Column(nullable = false)

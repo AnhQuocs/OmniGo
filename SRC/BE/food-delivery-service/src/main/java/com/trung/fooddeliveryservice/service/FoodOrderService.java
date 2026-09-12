@@ -23,13 +23,21 @@ public interface FoodOrderService {
 
     FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
+    FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+
     FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+
+    FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
     FoodOrderResponse assignDriver(Long orderId, Long driverId) throws ResourceNotFoundException;
 
     FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
+    FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+
     FoodOrderResponse markOrderAsPaid(Long orderId) throws ResourceNotFoundException;
+
+    FoodOrderResponse switchToCashPayment(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
     List<FoodOrderResponse> getAllOrders();
 

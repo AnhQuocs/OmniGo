@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -18,6 +18,7 @@ import {
   TextField,
   DialogTitle,
   DialogActions,
+  LinearProgress,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -31,6 +32,11 @@ import {
   Restaurant as DishIcon,
   Refresh as RefreshIcon,
   ReceiptLong as ReceiptIcon,
+  TrendingUp as TrendingUpIcon,
+  MonetizationOn as MonetizationOnIcon,
+  Fastfood as FastfoodIcon,
+  CheckCircle as CheckCircleIcon,
+  BarChart as BarChartIcon,
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
@@ -55,8 +61,112 @@ const playOrderBeep = () => {
   }
 };
 
+const getPaymentMethodInfo = (method, isPaid) => {
+  const m = (method || 'CASH').toUpperCase();
+  let label = 'Tiền mặt (COD)';
+  let color = '#0284C7';
+  let bgcolor = '#F0F9FF';
+  let borderColor = '#BAE6FD';
+
+  if (m === 'WALLET') {
+    label = 'Ví OmniPay';
+    color = '#7C3AED';
+    bgcolor = '#F5F3FF';
+    borderColor = '#DDD6FE';
+  } else if (m === 'MOMO') {
+    label = 'Ví MoMo';
+    color = '#C026D3';
+    bgcolor = '#FDF4FF';
+    borderColor = '#F5D0FE';
+  } else if (m === 'VNPAY') {
+    label = 'Cổng VNPay';
+    color = '#2563EB';
+    bgcolor = '#EFF6FF';
+    borderColor = '#BFDBFE';
+  } else if (m === 'E-WALLET' || m === 'EWALLET') {
+    label = 'Ví điện tử';
+    color = '#EA580C';
+    bgcolor = '#FFF7ED';
+    borderColor = '#FED7AA';
+  } else if (m !== 'CASH') {
+    label = m;
+  }
+
+  return {
+    label: `Thanh toán: ${label}`,
+    rawMethod: label,
+    color,
+    bgcolor,
+    borderColor,
+    isPaid: Boolean(isPaid),
+  };
+};
+
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'AWAITING_PAYMENT': return 'Chờ thanh toán';
+    case 'PENDING': return 'Đơn mới';
+    case 'ACCEPTED': return 'Đã nhận đơn';
+    case 'PREPARING': return 'Đang nấu';
+    case 'READY_FOR_PICKUP': return 'Đang tìm tài xế';
+    case 'DELIVERING': return 'Đang giao hàng';
+    case 'COMPLETED': return 'Hoàn tất';
+    case 'CANCELLED': return 'Đã hủy';
+    case 'REJECTED': return 'Từ chối';
+    case 'NO_DRIVER_FOUND': return 'Chưa có tài xế';
+    default: return status || 'Đơn hàng';
+  }
+};
+
+const getCancelledInfo = (order) => {
+  if (!order) return null;
+  const by = order.cancelledBy;
+  const reason = order.cancelReason;
+  let title = 'Đơn đã bị hủy';
+  let badgeLabel = 'Đã hủy';
+  let color = '#EF4444';
+  let bgcolor = '#FEF2F2';
+  let borderColor = '#FECACA';
+
+  if (by === 'DRIVER') {
+    title = 'Tài xế đã hủy đơn';
+    badgeLabel = 'Tài xế hủy';
+    color = '#DC2626';
+    bgcolor = '#FFF1F2';
+    borderColor = '#FECDD3';
+  } else if (by === 'CUSTOMER') {
+    title = 'Khách hàng đã hủy đơn';
+    badgeLabel = 'Khách hủy';
+    color = '#EA580C';
+    bgcolor = '#FFF7ED';
+    borderColor = '#FED7AA';
+  } else if (by === 'RESTAURANT') {
+    title = 'Quán đã hủy đơn';
+    badgeLabel = 'Quán hủy';
+    color = '#D97706';
+    bgcolor = '#FFFBEB';
+    borderColor = '#FDE68A';
+  } else if (by === 'SYSTEM' || order.cancelReasonCode === 'SYSTEM_NO_DRIVER_FOUND') {
+    title = 'Hệ thống tự động hủy';
+    badgeLabel = 'Không tìm thấy xế (Đã hủy)';
+    color = '#9333EA';
+    bgcolor = '#FAF5FF';
+    borderColor = '#E9D5FF';
+  }
+
+  return {
+    title,
+    badgeLabel,
+    reason: reason || 'Không có lý do cụ thể',
+    color,
+    bgcolor,
+    borderColor,
+  };
+};
+
 export const MerchantOrders = () => {
   const { restaurant, loadingRes, refreshRestaurant } = useOutletContext();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(() => {
@@ -75,6 +185,15 @@ export const MerchantOrders = () => {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Cancellation modal state
+  const [cancelDialog, setCancelDialog] = useState({
+    open: false,
+    orderId: null,
+    targetStatus: null,
+    reason: '',
+    reasonCode: 'RESTAURANT_OUT_OF_STOCK',
+  });
 
   // Registration modal state (when user has no restaurant yet)
   const [openRegister, setOpenRegister] = useState(false);
@@ -159,22 +278,23 @@ export const MerchantOrders = () => {
   }, [autoRefresh, restaurant?.id]);
 
   // Handle order status update
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus, reason = null, reasonCode = null) => {
     try {
       setActionLoading(true);
-      await foodService.updateOrderStatus(orderId, newStatus);
+      await foodService.updateOrderStatus(orderId, newStatus, reason, reasonCode);
       toast.success(
         newStatus === 'ACCEPTED'
           ? 'Đã nhận đơn và chuyển sang Đang nấu!'
           : newStatus === 'PREPARING'
           ? 'Bắt đầu nấu món!'
           : newStatus === 'READY_FOR_PICKUP'
-          ? 'Đã xong món & đang tìm tài xế giao!'
+          ? 'Đang tìm tài xế giao món!'
           : newStatus === 'CANCELLED' || newStatus === 'REJECTED'
           ? 'Đã từ chối / hủy đơn hàng.'
           : 'Đã cập nhật trạng thái đơn!'
       );
       setSelectedOrder(null);
+      setCancelDialog({ open: false, orderId: null, targetStatus: null, reason: '', reasonCode: 'RESTAURANT_OUT_OF_STOCK' });
       await fetchOrders(false);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi cập nhật đơn hàng');
@@ -189,9 +309,37 @@ export const MerchantOrders = () => {
   const readyOrders = orders.filter(
     (o) => o.status === 'READY_FOR_PICKUP' || o.status === 'DELIVERING' || o.status === 'NO_DRIVER_FOUND'
   );
+  const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
+  const cancelledOrders = orders.filter((o) => o.status === 'CANCELLED' || o.status === 'REJECTED');
   const historyOrders = orders.filter(
     (o) => o.status === 'COMPLETED' || o.status === 'CANCELLED' || o.status === 'REJECTED'
   );
+
+  // Business Performance Metrics
+  const totalCompletedRevenue = completedOrders.reduce((sum, o) => {
+    const foodPrice = (Number(o.totalPrice) || 0) - (Number(o.deliveryFee) || 0);
+    return sum + (foodPrice > 0 ? foodPrice : (Number(o.totalPrice) || 0));
+  }, 0);
+
+  const totalFinishedOrders = completedOrders.length + cancelledOrders.length;
+  const successRateNum = totalFinishedOrders > 0
+    ? (completedOrders.length / totalFinishedOrders) * 100
+    : (orders.length > 0 ? 100 : 0);
+  const successRate = successRateNum.toFixed(1);
+
+  const totalDishesSold = completedOrders.reduce((sum, o) => {
+    const items = o.orderItems || o.items || [];
+    if (items.length > 0) {
+      return sum + items.reduce((iSum, item) => iSum + (Number(item.quantity) || 1), 0);
+    }
+    return sum;
+  }, 0);
+
+  const avgOrderValue = completedOrders.length > 0
+    ? Math.round(totalCompletedRevenue / completedOrders.length)
+    : 0;
+
+  const activeOrdersCount = newOrders.length + cookingOrders.length + readyOrders.length;
 
   const formatPrice = (price) => {
     return (price || 0).toLocaleString('vi-VN') + 'đ';
@@ -362,7 +510,25 @@ export const MerchantOrders = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<BarChartIcon />}
+            onClick={() => navigate('/merchant/analytics')}
+            sx={{
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              borderColor: '#FED7AA',
+              bgcolor: '#FFF7ED',
+              color: '#C2410C',
+              '&:hover': { bgcolor: '#FFEDD5', borderColor: '#FDBA74' },
+            }}
+          >
+            Báo cáo doanh thu
+          </Button>
+
           <FormControlLabel
             control={
               <Switch
@@ -685,7 +851,7 @@ export const MerchantOrders = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Chip
                 icon={<ReceiptIcon sx={{ fontSize: '16px !important', color: '#EA580C !important' }} />}
-                label={`Đơn mới #OF${selectedOrder.id}`}
+                label={`${getStatusLabel(selectedOrder.status)} #OF${selectedOrder.id}`}
                 sx={{
                   bgcolor: '#FFF7ED',
                   color: '#EA580C',
@@ -732,20 +898,38 @@ export const MerchantOrders = () => {
               </Box>
 
               <Box sx={{ textAlign: 'right' }}>
-                <Chip
-                  icon={<WalletIcon sx={{ fontSize: '14px !important', color: '#EA580C !important' }} />}
-                  label="Thanh toán: E-wallet"
-                  size="small"
-                  sx={{
-                    bgcolor: '#FFF7ED',
-                    color: '#EA580C',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    border: '1px solid #FED7AA',
-                    height: 24,
-                    mb: 0.5,
-                  }}
-                />
+                {(() => {
+                  const payInfo = getPaymentMethodInfo(selectedOrder.paymentMethod, selectedOrder.isPaid);
+                  return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.8, mb: 0.5, flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<WalletIcon sx={{ fontSize: '14px !important', color: `${payInfo.color} !important` }} />}
+                        label={payInfo.label}
+                        size="small"
+                        sx={{
+                          bgcolor: payInfo.bgcolor,
+                          color: payInfo.color,
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          border: `1px solid ${payInfo.borderColor}`,
+                          height: 24,
+                        }}
+                      />
+                      <Chip
+                        label={selectedOrder.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                        size="small"
+                        sx={{
+                          bgcolor: selectedOrder.isPaid ? '#ECFDF5' : '#FFFBEB',
+                          color: selectedOrder.isPaid ? '#047857' : '#B45309',
+                          border: selectedOrder.isPaid ? '1px solid #A7F3D0' : '1px solid #FDE68A',
+                          fontWeight: 700,
+                          fontSize: '0.72rem',
+                          height: 24,
+                        }}
+                      />
+                    </Box>
+                  );
+                })()}
                 <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748B', justifyContent: 'flex-end' }}>
                   <TimeIcon sx={{ fontSize: 14 }} /> Thời gian đặt: {formatTime(selectedOrder.createdAt)}
                 </Typography>
@@ -794,9 +978,11 @@ export const MerchantOrders = () => {
                           <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
                             {item.itemName || item.dishName || 'Món ăn'}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
-                            {item.notes || 'Không hành, ít mỡ'}
-                          </Typography>
+                          {(item.notes || item.note) && (
+                            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
+                              {item.notes || item.note}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
 
@@ -815,24 +1001,62 @@ export const MerchantOrders = () => {
             </Box>
 
             {/* Customer Note Card (Soft pink/orange background) */}
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                bgcolor: '#FFF5F5',
-                border: '1px dashed #FECACA',
-                mb: 3,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: '#EF4444' }}>
-                  🏷️ Ghi chú từ khách hàng
+            {selectedOrder.note && selectedOrder.note.trim() && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  bgcolor: '#FFF5F5',
+                  border: '1px dashed #FECACA',
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#EF4444' }}>
+                    🏷️ Ghi chú từ khách hàng
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: '#475569', fontStyle: 'italic', fontSize: '0.88rem' }}>
+                  "{selectedOrder.note.trim()}"
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: '#475569', fontStyle: 'italic', fontSize: '0.88rem' }}>
-                "{selectedOrder.note || 'Vui lòng làm món ít mỡ, không hành. Cảm ơn shop!'}"
-              </Typography>
-            </Box>
+            )}
+
+            {/* Cancellation info card if cancelled/rejected */}
+            {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (() => {
+              const cancelInfo = getCancelledInfo(selectedOrder);
+              if (!cancelInfo) return null;
+              return (
+                <Box sx={{ p: 2, borderRadius: 3, bgcolor: cancelInfo.bgcolor, border: `1px solid ${cancelInfo.borderColor}`, mb: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: cancelInfo.color }}>
+                      {cancelInfo.title}
+                    </Typography>
+                    <Chip label={cancelInfo.badgeLabel} size="small" sx={{ bgcolor: cancelInfo.color, color: '#fff', fontWeight: 700, height: 22, fontSize: '0.7rem' }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ color: '#334155', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Lý do: <span style={{ color: cancelInfo.color, fontStyle: 'italic' }}>"{cancelInfo.reason}"</span>
+                  </Typography>
+                  {selectedOrder.isPaid && (
+                    <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 0.5 }}>
+                      ✓ Tiền thanh toán của khách đã được hệ thống xử lý hoàn tiền tự động.
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })()}
+
+            {/* Warning banner when no driver found */}
+            {selectedOrder.status === 'NO_DRIVER_FOUND' && (
+              <Box sx={{ p: 1.8, borderRadius: 2.5, bgcolor: '#FFFBEB', border: '1px solid #FDE68A', mb: 2.5 }}>
+                <Typography variant="body2" sx={{ color: '#B45309', fontWeight: 700 }}>
+                  ⚠️ Chưa tìm thấy tài xế sau lượt tìm kiếm đầu tiên!
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#92400E', display: 'block', mt: 0.3 }}>
+                  Bạn có thể bấm <b>"Quét tìm lại tài xế"</b> để hệ thống mở rộng phạm vi tìm kiếm một lần nữa. Nếu vẫn không có tài xế nhận, đơn sẽ tự động chuyển sang trạng thái Hủy để bảo đảm quyền lợi khách hàng.
+                </Typography>
+              </Box>
+            )}
 
             {/* Action Buttons */}
             <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
@@ -841,7 +1065,13 @@ export const MerchantOrders = () => {
                   <Button
                     variant="outlined"
                     disabled={actionLoading}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'REJECTED')}
+                    onClick={() => setCancelDialog({
+                      open: true,
+                      orderId: selectedOrder.id,
+                      targetStatus: 'REJECTED',
+                      reason: 'Hết món / hết nguyên liệu',
+                      reasonCode: 'RESTAURANT_OUT_OF_STOCK',
+                    })}
                     sx={{
                       flex: 1,
                       py: 1.3,
@@ -883,7 +1113,13 @@ export const MerchantOrders = () => {
                   <Button
                     variant="outlined"
                     disabled={actionLoading}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'CANCELLED')}
+                    onClick={() => setCancelDialog({
+                      open: true,
+                      orderId: selectedOrder.id,
+                      targetStatus: 'CANCELLED',
+                      reason: 'Hết món / hết nguyên liệu',
+                      reasonCode: 'RESTAURANT_OUT_OF_STOCK',
+                    })}
                     sx={{
                       flex: 1,
                       py: 1.3,
@@ -921,7 +1157,13 @@ export const MerchantOrders = () => {
                   <Button
                     variant="outlined"
                     disabled={actionLoading}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'CANCELLED')}
+                    onClick={() => setCancelDialog({
+                      open: true,
+                      orderId: selectedOrder.id,
+                      targetStatus: 'CANCELLED',
+                      reason: 'Hết món / hết nguyên liệu',
+                      reasonCode: 'RESTAURANT_OUT_OF_STOCK',
+                    })}
                     sx={{ flex: 1, py: 1.3, borderRadius: 3, borderColor: '#EF4444', color: '#EF4444', fontWeight: 800, textTransform: 'none' }}
                   >
                     ✕ Hủy đơn
@@ -949,6 +1191,78 @@ export const MerchantOrders = () => {
             </Box>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Cancellation / Rejection Dialog with Reasons */}
+      <Dialog
+        open={cancelDialog.open}
+        onClose={() => setCancelDialog({ open: false, orderId: null, targetStatus: null, reason: '', reasonCode: 'RESTAURANT_OUT_OF_STOCK' })}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3.5, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#DC2626', pb: 1 }}>
+          {cancelDialog.targetStatus === 'REJECTED' ? 'Từ chối nhận đơn hàng' : 'Hủy đơn hàng'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography variant="body2" sx={{ color: '#64748B', mb: 2 }}>
+            Vui lòng chọn lý do để thông báo đến khách hàng:
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+            {[
+              { code: 'RESTAURANT_OUT_OF_STOCK', text: 'Hết món / hết nguyên liệu' },
+              { code: 'RESTAURANT_OVERLOADED', text: 'Quán đang quá tải, không kịp làm món' },
+              { code: 'RESTAURANT_CLOSING', text: 'Quán sắp đến giờ đóng cửa' },
+              { code: 'RESTAURANT_OTHER', text: 'Lý do khác' },
+            ].map((r) => (
+              <Button
+                key={r.code}
+                variant={cancelDialog.reasonCode === r.code ? 'contained' : 'outlined'}
+                size="small"
+                onClick={() => setCancelDialog((prev) => ({ ...prev, reasonCode: r.code, reason: r.text }))}
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  py: 1,
+                  bgcolor: cancelDialog.reasonCode === r.code ? '#EF4444' : 'transparent',
+                  borderColor: cancelDialog.reasonCode === r.code ? '#EF4444' : '#CBD5E1',
+                  color: cancelDialog.reasonCode === r.code ? '#FFFFFF' : '#334155',
+                  '&:hover': { bgcolor: cancelDialog.reasonCode === r.code ? '#DC2626' : '#F1F5F9' },
+                }}
+              >
+                {r.text}
+              </Button>
+            ))}
+          </Box>
+          <TextField
+            label="Chi tiết lý do (tùy chọn)"
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            value={cancelDialog.reason}
+            onChange={(e) => setCancelDialog((prev) => ({ ...prev, reason: e.target.value }))}
+            placeholder="Nhập lý do chi tiết..."
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setCancelDialog({ open: false, orderId: null, targetStatus: null, reason: '', reasonCode: 'RESTAURANT_OUT_OF_STOCK' })}
+            sx={{ color: '#64748B', fontWeight: 700, textTransform: 'none' }}
+          >
+            Bỏ qua
+          </Button>
+          <Button
+            variant="contained"
+            disabled={actionLoading}
+            onClick={() => handleUpdateStatus(cancelDialog.orderId, cancelDialog.targetStatus, cancelDialog.reason || 'Quán hủy đơn', cancelDialog.reasonCode)}
+            sx={{ bgcolor: '#EF4444', color: '#FFFFFF', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#DC2626' } }}
+          >
+            {actionLoading ? <CircularProgress size={20} color="inherit" /> : 'Xác nhận hủy'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
@@ -1000,19 +1314,62 @@ const OrderKanbanCard = ({ order, accentColor, formatTime, formatPrice, onClick 
       </Box>
 
       {/* Payment tag */}
-      <Box sx={{ mb: 1.5 }}>
-        <Chip
-          label="Thanh toán: E-wallet"
-          size="small"
-          sx={{
-            bgcolor: '#EFF6FF',
-            color: '#2563EB',
-            fontWeight: 700,
-            fontSize: '0.7rem',
-            height: 22,
-          }}
-        />
-      </Box>
+      {(() => {
+        const payInfo = getPaymentMethodInfo(order.paymentMethod, order.isPaid);
+        return (
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+            <Chip
+              label={payInfo.label}
+              size="small"
+              sx={{
+                bgcolor: payInfo.bgcolor,
+                color: payInfo.color,
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                border: `1px solid ${payInfo.borderColor}`,
+                height: 22,
+              }}
+            />
+            <Chip
+              label={order.isPaid ? 'Đã TT' : 'Chưa TT'}
+              size="small"
+              sx={{
+                bgcolor: order.isPaid ? '#ECFDF5' : '#FFFBEB',
+                color: order.isPaid ? '#047857' : '#B45309',
+                border: order.isPaid ? '1px solid #A7F3D0' : '1px solid #FDE68A',
+                fontWeight: 700,
+                fontSize: '0.65rem',
+                height: 20,
+              }}
+            />
+          </Box>
+        );
+      })()}
+
+      {/* Cancellation info in card */}
+      {(order.status === 'CANCELLED' || order.status === 'REJECTED') && (() => {
+        const cancelInfo = getCancelledInfo(order);
+        if (!cancelInfo) return null;
+        return (
+          <Box sx={{ mb: 1.2, p: 1, borderRadius: 2, bgcolor: cancelInfo.bgcolor, border: `1px dashed ${cancelInfo.borderColor}` }}>
+            <Typography variant="caption" sx={{ color: cancelInfo.color, fontWeight: 800, display: 'block', fontSize: '0.72rem' }}>
+              {cancelInfo.badgeLabel}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.7rem', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {cancelInfo.reason}
+            </Typography>
+          </Box>
+        );
+      })()}
+
+      {/* No driver found warning in card */}
+      {order.status === 'NO_DRIVER_FOUND' && (
+        <Box sx={{ mb: 1.2, p: 0.8, borderRadius: 2, bgcolor: '#FEF3C7', border: '1px solid #FCD34D' }}>
+          <Typography variant="caption" sx={{ color: '#B45309', fontWeight: 800, display: 'block', fontSize: '0.72rem' }}>
+            ⚠️ Chưa tìm thấy xế (Bấm để quét lại)
+          </Typography>
+        </Box>
+      )}
 
       {/* Food items & Price row */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #F1F5F9' }}>
