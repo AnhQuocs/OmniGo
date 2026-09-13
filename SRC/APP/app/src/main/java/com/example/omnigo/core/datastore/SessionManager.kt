@@ -1,12 +1,12 @@
 package com.example.omnigo.core.datastore
 
-import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.example.omnigo.core.security.CryptoManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
@@ -15,11 +15,10 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.sessionDataStore by preferencesDataStore(name = "user_session")
-
 @Singleton
 class SessionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val dataStore: DataStore<Preferences>,
+    private val cryptoManager: CryptoManager
 ) {
 
     companion object {
@@ -31,41 +30,61 @@ class SessionManager @Inject constructor(
         private val KEY_ROLE = stringPreferencesKey("user_role")
     }
 
-    private val dataStore = context.sessionDataStore
-
     val accessTokenFlow: Flow<String?> = dataStore.data
         .catch { exception ->
             if (exception is IOException) emit(emptyPreferences())
             else throw exception
         }
-        .map { preferences -> preferences[KEY_ACCESS_TOKEN] }
+        .map { preferences -> 
+            val encrypted = preferences[KEY_ACCESS_TOKEN]
+            if (encrypted.isNullOrBlank()) null
+            else cryptoManager.decrypt(encrypted).getOrNull()
+        }
 
     val refreshTokenFlow: Flow<String?> = dataStore.data
         .catch { exception ->
             if (exception is IOException) emit(emptyPreferences())
             else throw exception
         }
-        .map { preferences -> preferences[KEY_REFRESH_TOKEN] }
+        .map { preferences -> 
+            val encrypted = preferences[KEY_REFRESH_TOKEN]
+            if (encrypted.isNullOrBlank()) null
+            else cryptoManager.decrypt(encrypted).getOrNull()
+        }
 
     val isLoggedInFlow: Flow<Boolean> = dataStore.data
         .catch { exception ->
             if (exception is IOException) emit(emptyPreferences())
             else throw exception
         }
-        .map { preferences -> !preferences[KEY_ACCESS_TOKEN].isNullOrBlank() }
+        .map { preferences -> 
+            val encrypted = preferences[KEY_ACCESS_TOKEN]
+            if (encrypted.isNullOrBlank()) false
+            else cryptoManager.decrypt(encrypted).isSuccess
+        }
 
     suspend fun getAccessToken(): String? {
-        return dataStore.data
+        val encrypted = dataStore.data
             .catch { emit(emptyPreferences()) }
             .map { it[KEY_ACCESS_TOKEN] }
             .firstOrNull()
+        
+        return decryptToken(encrypted).getOrElse {
+            clearSession()
+            null
+        }
     }
 
     suspend fun getRefreshToken(): String? {
-        return dataStore.data
+        val encrypted = dataStore.data
             .catch { emit(emptyPreferences()) }
             .map { it[KEY_REFRESH_TOKEN] }
             .firstOrNull()
+            
+        return decryptToken(encrypted).getOrElse {
+            clearSession()
+            null
+        }
     }
 
     suspend fun saveSession(
@@ -77,13 +96,34 @@ class SessionManager @Inject constructor(
         role: String? = null
     ) {
         dataStore.edit { preferences ->
-            if (accessToken != null) preferences[KEY_ACCESS_TOKEN] = accessToken
-            if (refreshToken != null) preferences[KEY_REFRESH_TOKEN] = refreshToken
+            if (accessToken != null) {
+                val result = cryptoManager.encrypt(accessToken)
+                if (result.isSuccess) {
+                    preferences[KEY_ACCESS_TOKEN] = result.getOrThrow()
+                } else {
+                    preferences.remove(KEY_ACCESS_TOKEN)
+                }
+            }
+            
+            if (refreshToken != null) {
+                val result = cryptoManager.encrypt(refreshToken)
+                if (result.isSuccess) {
+                    preferences[KEY_REFRESH_TOKEN] = result.getOrThrow()
+                } else {
+                    preferences.remove(KEY_REFRESH_TOKEN)
+                }
+            }
+            
             if (userId != null) preferences[KEY_USER_ID] = userId
             if (phoneNumber != null) preferences[KEY_PHONE_NUMBER] = phoneNumber
             if (fullName != null) preferences[KEY_FULL_NAME] = fullName
             if (role != null) preferences[KEY_ROLE] = role
         }
+    }
+
+    private fun decryptToken(encrypted: String?): Result<String?> {
+        if (encrypted.isNullOrBlank()) return Result.success(null)
+        return cryptoManager.decrypt(encrypted)
     }
 
     suspend fun getPhoneNumber(): String? {

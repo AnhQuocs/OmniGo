@@ -12,6 +12,7 @@ import com.example.omnigo.features.auth.data.remote.dto.response.UserResponse
 import com.example.omnigo.features.auth.data.remote.dto.request.LoginRequest
 import com.example.omnigo.features.auth.domain.error.LoginError
 import com.example.omnigo.features.auth.domain.error.RegisterError
+import com.example.omnigo.features.auth.domain.model.AuthUser
 import com.example.omnigo.features.auth.domain.model.LoginResult
 import com.example.omnigo.features.auth.domain.model.LogoutResult
 import com.example.omnigo.features.auth.domain.model.RegisterDriver
@@ -34,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import retrofit2.Response
@@ -254,12 +256,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout(): LogoutResult {
         try {
-            val token = sessionManager.getAccessToken()
             val refreshToken = sessionManager.getRefreshToken()
-            val authHeader = if (!token.isNullOrBlank()) "Bearer $token" else null
             val cookieHeader = if (!refreshToken.isNullOrBlank()) "refresh_token=$refreshToken" else null
 
-            authApi.logout(accessToken = authHeader, refreshTokenCookie = cookieHeader)
+            authApi.logout(refreshTokenCookie = cookieHeader)
         } catch (_: Exception) {
             // Ngay cả khi API logout lỗi mạng, vẫn xóa session local để đảm bảo bảo mật cho người dùng
         } finally {
@@ -270,12 +270,10 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshToken(): Boolean {
-        val oldToken = sessionManager.getAccessToken() ?: return false
         val refreshToken = sessionManager.getRefreshToken() ?: return false
 
         return try {
             val response = authApi.refreshToken(
-                oldAccessToken = "Bearer $oldToken",
                 refreshTokenCookie = "refresh_token=$refreshToken"
             )
             if (response.isSuccessful) {
@@ -298,6 +296,37 @@ class AuthRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override suspend fun getMe(): Flow<AuthUser> = flow {
+        try {
+            val response = authApi.getMe()
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                val userResponse = apiResponse?.data
+                if (apiResponse?.success == true && userResponse != null) {
+                    // Cập nhật thông tin phiên làm việc nếu có thay đổi
+                    sessionManager.saveSession(
+                        accessToken = sessionManager.getAccessToken().orEmpty(),
+                        refreshToken = sessionManager.getRefreshToken().orEmpty(),
+                        userId = userResponse.id,
+                        phoneNumber = userResponse.phoneNumber.orEmpty(),
+                        fullName = userResponse.fullName.orEmpty(),
+                        role = userResponse.role.orEmpty()
+                    )
+                    emit(userResponse.toDomain())
+                } else {
+                    Log.w(TAG, "getMe: API response success=false or data is null")
+                    throw Exception(apiResponse?.message ?: "Unknown error")
+                }
+            } else {
+                Log.e(TAG, "getMe: API failed with code=${response.code()}")
+                throw Exception("API Error: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMe: Exception during fetching user info", e)
+            throw e
         }
     }
 
