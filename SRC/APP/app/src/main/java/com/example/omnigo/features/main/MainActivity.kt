@@ -1,13 +1,16 @@
 package com.example.omnigo.features.main
 
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -19,6 +22,7 @@ import com.example.omnigo.features.auth.presentation.ui.register.RegisterScreen
 import com.example.omnigo.features.main.presentation.ui.MainCustomerScreen
 import com.example.omnigo.features.main.presentation.viewmodel.AuthState
 import com.example.omnigo.features.main.presentation.viewmodel.MainViewModel
+import com.example.omnigo.ui.theme.BackgroundAppBar
 import com.example.omnigo.ui.theme.BackgroundLight
 import com.example.omnigo.ui.theme.OmniGoTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,6 +33,21 @@ class MainActivity : BaseComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val systemBarColorArgb = BackgroundLight.toArgb()
+
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.light(
+                        scrim = systemBarColorArgb,
+                        darkScrim = systemBarColorArgb
+                    ),
+                    navigationBarStyle = SystemBarStyle.light(
+                        scrim = systemBarColorArgb,
+                        darkScrim = systemBarColorArgb
+                    )
+                )
+            }
+
             OmniGoTheme(darkTheme = false) {
                 val mainViewModel: MainViewModel = hiltViewModel()
                 val authState by mainViewModel.authState.collectAsStateWithLifecycle()

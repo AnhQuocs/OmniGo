@@ -1,4 +1,4 @@
-package com.example.omnigo.features.home.presentation.ui
+package com.example.omnigo.features.home.presentation.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -132,7 +132,10 @@ private fun ServiceItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.clickable { onClick() }
+        modifier = modifier
+            .clip(RoundedCornerShape(AppShape.ShapeM))
+            .clickable { onClick() }
+            .padding(AppSpacing.XXS)
     ) {
         Box(contentAlignment = Alignment.TopEnd) {
             Box(

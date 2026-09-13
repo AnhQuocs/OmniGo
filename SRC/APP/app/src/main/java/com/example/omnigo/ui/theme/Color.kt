@@ -56,3 +56,13 @@ val RoleCardUnselectedBg = Color(0xFFFFFFFF)
 val OtpBoxBorderColor = Color(0xFFCBD5E1)
 val OtpBoxFocusedBorderColor = Color(0xFF0077F6)
 val OtpBoxBackgroundColor = Color(0xFFFFFFFF)
+
+val BottomNavDefault = Color(0xFF8C8C8E)
+val BottomBarBorder = Color(0xFFE0E0E0)
+val BottomBarBg = Color.White
+
+val BackgroundAppBar = Color(0xFFFFFFFF)
+
+// Shimmer Effect Colors
+val ShimmerBase = Color(0xFFE2E8F0)
+val ShimmerHighlight = Color(0xFFF8FAFC)

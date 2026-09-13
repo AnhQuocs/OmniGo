@@ -2,6 +2,7 @@ package com.example.omnigo.features.auth.domain.repository
 
 import android.app.Activity
 import com.example.omnigo.features.auth.data.remote.dto.request.LoginRequest
+import com.example.omnigo.features.auth.domain.model.AuthUser
 import com.example.omnigo.features.auth.domain.model.LoginResult
 import com.example.omnigo.features.auth.domain.model.LogoutResult
 import com.example.omnigo.features.auth.domain.model.RegisterDriver
@@ -38,4 +39,6 @@ interface AuthRepository {
     suspend fun logout(): LogoutResult
 
     suspend fun refreshToken(): Boolean
+
+    suspend fun getMe(): Flow<AuthUser>
 }
