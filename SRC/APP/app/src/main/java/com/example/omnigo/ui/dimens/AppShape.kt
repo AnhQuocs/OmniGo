@@ -11,4 +11,7 @@ object AppShape {
     val ShapeXL = 20.dp
     val ShapeXL2 = 24.dp
     val ShapeXXL = 32.dp
+
+    val PillShape = 100.dp
+    val PromosShape = 50.dp
 }

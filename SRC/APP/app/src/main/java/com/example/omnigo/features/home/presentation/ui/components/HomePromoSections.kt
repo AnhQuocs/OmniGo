@@ -1,4 +1,4 @@
-package com.example.omnigo.features.home.presentation.ui
+package com.example.omnigo.features.home.presentation.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -124,9 +124,8 @@ private fun PromoBannerCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .width(280.dp)
-            .clickable { onClick() },
+        onClick = onClick,
+        modifier = Modifier.width(Dimen.WidthPromoBanner),
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
@@ -235,7 +234,10 @@ fun HomePopularPlacesSection(
                 text = stringResource(id = R.string.home_view_all),
                 style = MaterialTheme.typography.s12.bold(),
                 color = PrimaryColor,
-                modifier = Modifier.clickable { onPlaceClick("all") }
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AppShape.ShapeXS))
+                    .clickable { onPlaceClick("all") }
+                    .padding(horizontal = AppSpacing.XS, vertical = AppSpacing.XXS)
             )
         }
 
@@ -285,9 +287,8 @@ private fun PopularPlaceItem(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppShape.ShapeM),
         color = SurfaceLight,
         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor),

@@ -1,4 +1,4 @@
-package com.example.omnigo.features.home.presentation.ui
+package com.example.omnigo.features.home.presentation.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -211,7 +211,7 @@ fun HomeQuickWalletSection(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.clickable { onTopUpClick() },
+                    onClick = onTopUpClick,
                     shape = RoundedCornerShape(AppShape.ShapeXL2),
                     color = PrimaryColor
                 ) {
@@ -262,10 +262,10 @@ fun HomeSearchSection(
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onSearchClick,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimen.PaddingM)
-            .clickable { onSearchClick() },
+            .padding(horizontal = Dimen.PaddingM),
         shape = RoundedCornerShape(AppShape.ShapeXL2),
         color = SurfaceLight,
         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor),
