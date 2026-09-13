@@ -1,5 +1,6 @@
 package com.trung.fooddeliveryservice.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.*;
 
@@ -24,6 +25,12 @@ public class RestaurantResponse implements Serializable {
     private String openTime;
     private String closeTime;
     private Double rating;
+    private Integer reviewCount;
+
+    @JsonProperty("totalReviews")
+    public Integer getTotalReviews() {
+        return reviewCount != null ? reviewCount : 0;
+    }
     private Boolean isLocked;
     private String lockedReason;
     private LocalDateTime lockedAt;

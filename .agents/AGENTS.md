@@ -9,7 +9,7 @@ Tài liệu này định nghĩa các nguyên tắc cốt lõi, bắt buộc tuâ
 
 > **QUY TẮC BẤT KHẢ KHÁM PHẠM (ABSOLUTE CONSTRAINT):**
 > 1. **KHÔNG CODE NGOÀI YÊU CẦU**: Tuyệt đối không tự ý thêm các tính năng "tưởng như cần thiết", không viết thêm helper functions không được yêu cầu, không tự ý tái cấu trúc (refactor) các đoạn code lân cận không liên quan.
-> 2. **HARNESS-FIRST (Khung Neo Chặn)**: Mọi thay đổi logic nghiệp vụ quan trọng phải xác định rõ "Harness": Đầu vào (Input Spec), Đầu ra (Output Contract), Phạm vi ảnh hưởng (Blast Radius), và Tiêu chí Kiểm thử (Acceptance Tests).
+> 2. **HARNESS-FIRST (Khung Neo Chặn)**: Mọi thay đổi logic nghiệp vụ quan trọng phải xác định rõ "Harness": Đầu vào (Input Spec), Đầu ra (Output Contract), và Phạm vi ảnh hưởng (Blast Radius).
 > 3. **SURGICAL EDITING (Phẫu thuật chính xác)**: Sửa đổi số lượng dòng code tối thiểu cần thiết để hoàn thành yêu cầu. Giữ nguyên toàn bộ comment hiện có, style code, và cấu trúc đã định hình.
 > 4. **ZERO REGRESSION & PRESERVE WORKING STATE (Bảo toàn mã đang chạy & Cấm gây lỗi gián tiếp)**: Tuyệt đối không làm gãy, không gây lỗi hồi quy (regression bugs) hoặc tác dụng phụ (side-effects) lên các đoạn code/chức năng không liên quan vốn đang hoạt động bình thường. Sửa ở đâu thì chỉ ảnh hưởng đúng vùng đó, bảo đảm tương thích ngược (backward compatibility).
 
@@ -19,7 +19,7 @@ Tài liệu này định nghĩa các nguyên tắc cốt lõi, bắt buộc tuâ
 
 Tất cả các agent làm việc trong workspace này phải tự động áp dụng các quy tắc được định nghĩa chi tiết trong thư mục `.agents/rules/`:
 
-1. [01-harness-guidelines.md](file:///./.agents/rules/01-harness-guidelines.md): Phương pháp Harness - Cách thức xác lập ranh giới, thiết kế bài test harness và khóa chặt kỳ vọng trước khi code.
+1. [01-harness-guidelines.md](file:///./.agents/rules/01-harness-guidelines.md): Phương pháp Harness - Cách thức xác lập ranh giới hợp đồng dữ liệu và khóa chặt kỳ vọng trước khi code (không bắt buộc viết unit test).
 2. [02-scope-boundary.md](file:///./.agents/rules/02-scope-boundary.md): Giới hạn phạm vi - Chống phình to scope (Scope Creep), kỹ thuật chỉnh sửa tối thiểu và chống ảo giác (Anti-Hallucination).
 3. [03-architecture-standards.md](file:///./.agents/rules/03-architecture-standards.md): Chuẩn kiến trúc Microservices (Java Spring Boot, Eureka, Gateway, Kafka), React Vite Frontend, và Android App.
 4. [04-safety-and-quality.md](file:///./.agents/rules/04-safety-and-quality.md): An toàn dữ liệu, xử lý Exception, bảo mật Secret/API Key, Logging có kiểm soát.
@@ -35,14 +35,14 @@ Hệ thống kết hợp quy trình nghiêm ngặt của OmniGo Harness cùng ph
 
 1. **PLAN (Khảo sát & Lập kế hoạch)**:
    - Trước khi code bất kỳ tính năng hay refactor nào, bắt buộc kích hoạt `brainstorming` để đối thoại làm rõ yêu cầu, xác định các trường hợp biên và chốt spec.
-   - Sử dụng `writing-plans` để chia nhỏ đầu việc thành các task 2–5 phút, ghi rõ đường dẫn file, mã nguồn cần sửa và bước kiểm thử.
-2. **BUILD (Xây dựng TDD & Kiểm soát viền)**:
-   - Tuân thủ `test-driven-development` (RED-GREEN-REFACTOR): Viết test trước -> Chạy test fail -> Viết code tối thiểu để pass -> Refactor.
+   - Sử dụng `writing-plans` để chia nhỏ đầu việc thành các task 2–5 phút, ghi rõ đường dẫn file, mã nguồn cần sửa.
+2. **BUILD (Xây dựng & Kiểm soát viền)**:
+   - Viết code tối thiểu, chính xác để đáp ứng trọn vẹn yêu cầu người dùng mà không cần viết test tự động (dự án không yêu cầu viết test).
    - Áp dụng `code-boundary-guard` và `harness-spec-validator` để không sinh code ngoài phạm vi.
    - Có thể điều phối qua `subagent-driven-development` hoặc `executing-plans`.
 3. **VERIFY (Điều tra & Nghiệm thu có bằng chứng)**:
-   - Khi fix bug, bắt buộc kích hoạt `systematic-debugging` theo quy trình 4 giai đoạn tìm nguyên nhân gốc rễ, cấm đoán mò.
-   - Trước khi thông báo hoàn thành nhiệm vụ, kích hoạt `verification-before-completion` để chạy kiểm thử và cung cấp bằng chứng thực tế (test output/log).
+   - Khi fix bug, kích hoạt `systematic-debugging` theo quy trình điều tra khoanh vùng nguyên nhân gốc rễ.
+   - Trước khi thông báo hoàn thành nhiệm vụ, kích hoạt `verification-before-completion` để biên dịch (compile), build và cung cấp bằng chứng thực tế (build output/log).
 4. **ITERATE (Đánh giá & Hoàn tất)**:
    - Thực hiện `requesting-code-review` và `receiving-code-review` kiểm tra spec compliance và code quality.
    - Đóng nhánh an toàn bằng `finishing-a-development-branch`.
@@ -61,7 +61,7 @@ Hệ thống kết hợp quy trình nghiêm ngặt của OmniGo Harness cùng ph
 *   `brainstorming`: Đối thoại Socratic làm rõ ý đồ thiết kế trước khi viết code ([SKILL.md](file:///./.agents/skills/brainstorming/SKILL.md)).
 *   `writing-plans`: Phân rã công việc thành các bước siêu chi tiết ([SKILL.md](file:///./.agents/skills/writing-plans/SKILL.md)).
 *   `executing-plans`: Thực thi plan theo từng đợt có checkpoint nghiệm thu ([SKILL.md](file:///./.agents/skills/executing-plans/SKILL.md)).
-*   `test-driven-development`: Chu trình TDD Red-Green-Refactor ([SKILL.md](file:///./.agents/skills/test-driven-development/SKILL.md)).
+*   `test-driven-development`: (Tùy chọn, dự án không yêu cầu test tự động) ([SKILL.md](file:///./.agents/skills/test-driven-development/SKILL.md)).
 *   `systematic-debugging`: Quy trình 4 bước điều tra và khoanh vùng root-cause ([SKILL.md](file:///./.agents/skills/systematic-debugging/SKILL.md)).
 *   `verification-before-completion`: Xác minh bằng chứng thực nghiệm trước khi kết luận ([SKILL.md](file:///./.agents/skills/verification-before-completion/SKILL.md)).
 *   `subagent-driven-development`: Điều phối subagent giải quyết từng task độc lập ([SKILL.md](file:///./.agents/skills/subagent-driven-development/SKILL.md)).

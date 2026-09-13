@@ -5,9 +5,11 @@ import com.trung.fooddeliveryservice.dto.response.FoodOrderResponse;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
 import com.trung.fooddeliveryservice.exception.ResourceNotFoundException;
 import com.trung.fooddeliveryservice.exception.UnauthorizedException;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import com.trung.fooddeliveryservice.util.enums.OrderStatus;
 
 import java.util.List;
+import java.util.Map;
 
 public interface FoodOrderService {
 
@@ -23,17 +25,17 @@ public interface FoodOrderService {
 
     FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
-    FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+    FoodOrderResponse updateOrderStatusByRestaurant(Long orderId, OrderStatus newStatus, Long ownerId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
     FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
-    FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+    FoodOrderResponse cancelOrderByCustomer(Long orderId, Long customerId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
     FoodOrderResponse assignDriver(Long orderId, Long driverId) throws ResourceNotFoundException;
 
     FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
-    FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId, String reason, com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+    FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
     FoodOrderResponse markOrderAsPaid(Long orderId) throws ResourceNotFoundException;
 
@@ -41,5 +43,5 @@ public interface FoodOrderService {
 
     List<FoodOrderResponse> getAllOrders();
 
-    java.util.Map<String, Object> getAdminFoodStats();
+    Map<String, Object> getAdminFoodStats();
 }

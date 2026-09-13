@@ -59,6 +59,11 @@ eureka:
 jwt:
   secret: ${JWT_SECRET}
 
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
 
 management:
   endpoints:
@@ -85,4 +90,4 @@ logging:
 
 app:
   payment-service-url: ${PAYMENT_SERVICE_URL:https://api.ridehailingsystem.online}
-  driver-service-url: ${DRIVER_SERVICE_URL:https://api.ridehailingsystem.online}
+  driver-service-url: ${DRIVER_SERVICE_URL:https://api.ridehailingsystem.online}

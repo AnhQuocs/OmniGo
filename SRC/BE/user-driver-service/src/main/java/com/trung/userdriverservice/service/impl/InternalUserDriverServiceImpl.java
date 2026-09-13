@@ -1,17 +1,23 @@
 package com.trung.userdriverservice.service.impl;
 
+import com.trung.userdriverservice.dto.request.RestaurantUserCreateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.DriverInternalResponse;
 import com.trung.userdriverservice.dto.response.UserPaymentInfoResponse;
+import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.entity.User;
+import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.repository.UserRepository;
 import com.trung.userdriverservice.service.InternalUserDriverService;
 import com.trung.userdriverservice.util.enums.DriverStatus;
+import com.trung.userdriverservice.util.enums.Role;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,21 +30,21 @@ public class InternalUserDriverServiceImpl implements InternalUserDriverService 
     private final UserRepository userRepository;
     private final DriverProfileRepository driverProfileRepository;
     private final UserMapper userMapper;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
-    public ApiResponse<com.trung.userdriverservice.dto.response.UserResponse> createRestaurantUser(com.trung.userdriverservice.dto.request.RestaurantUserCreateRequest request)
-            throws com.trung.userdriverservice.exception.ResourceConflictException, com.trung.userdriverservice.exception.BadRequestException {
+    public ApiResponse<UserResponse> createRestaurantUser(RestaurantUserCreateRequest request)
+            throws ResourceConflictException, BadRequestException {
 
         if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
-            throw new com.trung.userdriverservice.exception.BadRequestException("Vui lòng cung cấp số điện thoại chủ quán.");
+            throw new BadRequestException("Vui lòng cung cấp số điện thoại chủ quán.");
         }
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new com.trung.userdriverservice.exception.ResourceConflictException("Số điện thoại này (" + request.getPhoneNumber() + ") đã được đăng ký trên hệ thống.");
+            throw new ResourceConflictException("Số điện thoại này (" + request.getPhoneNumber() + ") đã được đăng ký trên hệ thống.");
         }
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty() && userRepository.existsByEmail(request.getEmail())) {
-            throw new com.trung.userdriverservice.exception.ResourceConflictException("Email này (" + request.getEmail() + ") đã được đăng ký trên hệ thống.");
+            throw new ResourceConflictException("Email này (" + request.getEmail() + ") đã được đăng ký trên hệ thống.");
         }
 
         User user = new User();
@@ -48,11 +54,11 @@ public class InternalUserDriverServiceImpl implements InternalUserDriverService 
                 : request.getPhoneNumber().trim() + "@partner.restaurant");
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFullName(request.getFullName().trim());
-        user.setRole(com.trung.userdriverservice.util.enums.Role.RESTAURANT);
+        user.setRole(Role.RESTAURANT);
 
         User savedUser = userRepository.save(user);
 
-        return ApiResponse.<com.trung.userdriverservice.dto.response.UserResponse>builder()
+        return ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("Tạo tài khoản đối tác nhà hàng thành công")
                 .data(userMapper.toUserResponse(savedUser))

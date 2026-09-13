@@ -25,6 +25,7 @@ import {
   DialogActions,
   Avatar,
   Divider,
+  Stack,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -38,16 +39,32 @@ import {
   Close as CloseIcon,
   Restaurant as ResIcon,
   Person as PersonIcon,
+  Star as StarIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
+import FoodOrderReviewModal from '../components/food/FoodOrderReviewModal';
 
 export const FoodOrders = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [orderForReview, setOrderForReview] = useState(null);
+  const [existingReview, setExistingReview] = useState(null);
+
+  const handleOpenReview = async (order) => {
+    try {
+      const rev = await foodService.getOrderReview(order.id);
+      setExistingReview(rev);
+    } catch {
+      setExistingReview(null);
+    }
+    setOrderForReview(order);
+    setReviewModalOpen(true);
+  };
   const [stats, setStats] = useState({
     totalOrders: 0,
     completedOrders: 0,
@@ -549,15 +566,29 @@ export const FoodOrders = () => {
                       </TableCell>
                       <TableCell>{getStatusChip(order.status, order)}</TableCell>
                       <TableCell align="center">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<ViewIcon />}
-                          onClick={() => setSelectedOrder(order)}
-                          sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600 }}
-                        >
-                          Chi Tiết
-                        </Button>
+                        <Stack direction="row" spacing={1} justifyContent="center">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ViewIcon />}
+                            onClick={() => setSelectedOrder(order)}
+                            sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            Chi Tiết
+                          </Button>
+                          {order.status === 'COMPLETED' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="warning"
+                              startIcon={<StarIcon />}
+                              onClick={() => handleOpenReview(order)}
+                              sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 700 }}
+                            >
+                              Xem Đánh Giá
+                            </Button>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );
@@ -731,11 +762,32 @@ export const FoodOrders = () => {
               ✅ Xác Nhận Đã Thanh Toán
             </Button>
           )}
+          {selectedOrder && selectedOrder.status === 'COMPLETED' && (
+            <Button
+              onClick={() => handleOpenReview(selectedOrder)}
+              variant="contained"
+              color="warning"
+              startIcon={<StarIcon />}
+              sx={{ textTransform: 'none', fontWeight: 700, ml: 1 }}
+            >
+              ⭐ Xem Đánh Giá
+            </Button>
+          )}
           <Button onClick={() => setSelectedOrder(null)} variant="contained" sx={{ textTransform: 'none', ml: 'auto' }}>
             Đóng
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Xem Chi Tiết Đánh Giá Đơn Đồ Ăn (Chế độ xem dành cho Quản trị viên) */}
+      <FoodOrderReviewModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        order={orderForReview}
+        existingReview={existingReview}
+        onSuccess={fetchData}
+        readOnly={true}
+      />
     </Box>
   );
 };

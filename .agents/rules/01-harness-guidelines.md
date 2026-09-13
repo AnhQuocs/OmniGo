@@ -34,9 +34,9 @@ Mục tiêu tối thượng: **AI chỉ được phép hoạt động bên trong
 
 ### Bước 2: Xác Định Harness Verification (Kiểm thử Neo Chặn)
 - Xác định trước tiêu chí pass/fail cụ thể:
-  - Unit Test / Component Test có sẵn nào phải PASS?
-  - Payload test mẫu (Mock payload) là gì?
+  - Input/Output Contract đã đúng chuẩn DTO chưa?
   - Dòng log nào hoặc kết quả trả về nào chứng minh tính năng hoạt động đúng?
+  - Không bắt buộc viết unit test tự động (người dùng yêu cầu bỏ test).
 
 ### Bước 3: Triển Khai Logic Tối Giản
 - Viết mã vừa đủ để thỏa mãn Harness Constraints.
@@ -44,6 +44,6 @@ Mục tiêu tối thượng: **AI chỉ được phép hoạt động bên trong
 - Không import thêm thư viện thứ 3 khi hệ thống đã có sẵn thư viện tương đương (VD: đã có Jackson thì không tự thêm Gson; đã có Axios thì không tự thêm fetch bọc ngoài).
 
 ### Bước 4: Kiểm Chứng Khép Kín (Closed-loop Verification)
-- Chạy lệnh build / test / lint của module bị ảnh hưởng.
+- Chạy lệnh build / compile / lint của module bị ảnh hưởng.
 - So sánh kết quả thực tế với Harness Contract ban đầu.
-- Nếu có sai lệch: chỉ sửa logic bên trong, không nới lỏng bài test hay sửa contract để che giấu lỗi.
+- Đảm bảo mã biên dịch thành công 100% không có lỗi cú pháp hoặc import sai.

@@ -27,6 +27,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -106,7 +109,7 @@ public class UserServiceImpl implements UserService {
                 .message("Lấy thông tin người dùng thành công")
                 .data(userMapper.toUserResponse(userRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + id))))
-                .timestamp(java.time.LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -120,11 +123,11 @@ public class UserServiceImpl implements UserService {
         user.setIsLocked(isLocked);
         if (isLocked) {
             user.setLockedReason(request.getReason() != null ? request.getReason().trim() : "Tài khoản bị khóa bởi Admin");
-            user.setLockedAt(java.time.LocalDateTime.now());
+            user.setLockedAt(LocalDateTime.now());
             // Invalidate token & store lock flag in Redis
             try {
                 refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
-                redisTemplate.opsForValue().set("user_locked:" + userId, "true", java.time.Duration.ofDays(30));
+                redisTemplate.opsForValue().set("user_locked:" + userId, "true", Duration.ofDays(30));
             } catch (Exception ignored) {
             }
         } else {
@@ -151,10 +154,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
         user.setIsLocked(true);
         user.setLockedReason("Tài khoản bị khóa bởi hệ thống");
-        user.setLockedAt(java.time.LocalDateTime.now());
+        user.setLockedAt(LocalDateTime.now());
         try {
             refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
-            redisTemplate.opsForValue().set("user_locked:" + userId, "true", java.time.Duration.ofDays(30));
+            redisTemplate.opsForValue().set("user_locked:" + userId, "true", Duration.ofDays(30));
         } catch (Exception ignored) {
         }
         userRepository.save(user);

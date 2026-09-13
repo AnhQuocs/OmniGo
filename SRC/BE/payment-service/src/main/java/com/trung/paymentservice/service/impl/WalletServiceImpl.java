@@ -1,5 +1,6 @@
 package com.trung.paymentservice.service.impl;
 
+import com.trung.paymentservice.dto.request.FoodOrderPayoutRequest;
 import com.trung.paymentservice.dto.request.RefundRequest;
 import com.trung.paymentservice.entity.Transaction;
 import com.trung.paymentservice.entity.Wallet;
@@ -255,7 +256,7 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public void processFoodOrderPayout(com.trung.paymentservice.dto.request.FoodOrderPayoutRequest request) {
+    public void processFoodOrderPayout(FoodOrderPayoutRequest request) {
         if (request == null || request.getDriverId() == null || request.getOrderId() == null) {
             log.error("Dữ liệu payout đơn hàng giao đồ ăn không hợp lệ: {}", request);
             return;

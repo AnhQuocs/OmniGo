@@ -3,6 +3,7 @@ package com.trung.userdriverservice.controller;
 import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
 import com.trung.userdriverservice.dto.request.DriverApprovalRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
+import com.trung.userdriverservice.dto.request.DriverResubmitRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.DriverInternalResponse;
@@ -16,6 +17,7 @@ import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.service.DriverService;
+import com.trung.userdriverservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -34,7 +36,7 @@ public class DriverController {
     private final DriverService driverService;
     private final DriverProfileRepository driverProfileRepository;
     private final UserMapper userMapper;
-    private final com.trung.userdriverservice.service.UserService userService;
+    private final UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<LoginResponse>> registerDriver(@Valid @RequestBody DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
@@ -96,7 +98,7 @@ public class DriverController {
     @PreAuthorize("hasRole('ADMIN') or (hasRole('DRIVER') and #currentDriverId == #driverId)")
     public ResponseEntity<ApiResponse<UserResponse>> resubmitDriver(
             @PathVariable Long driverId,
-            @Valid @RequestBody com.trung.userdriverservice.dto.request.DriverResubmitRequest request,
+            @Valid @RequestBody DriverResubmitRequest request,
             @RequestHeader(name = "X-User-Id", required = false) Long currentDriverId) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         ApiResponse<UserResponse> response = driverService.resubmitDriver(driverId, request);
         return new ResponseEntity<>(response, HttpStatus.OK);

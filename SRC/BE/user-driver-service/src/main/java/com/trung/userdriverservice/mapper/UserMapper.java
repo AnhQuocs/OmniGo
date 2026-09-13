@@ -8,6 +8,7 @@ import com.trung.userdriverservice.dto.response.UserResponse;
 import com.trung.userdriverservice.entity.DriverProfile;
 import com.trung.userdriverservice.entity.User;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
+import com.trung.userdriverservice.util.enums.ApprovalStatus;
 import com.trung.userdriverservice.util.enums.DriverStatus;
 import com.trung.userdriverservice.util.enums.Role;
 import org.springframework.context.annotation.Lazy;
@@ -70,7 +71,7 @@ public class UserMapper {
         if (user.getRole() == Role.DRIVER) {
             driverProfileRepository.findById(user.getId()).ifPresent(dp -> {
                 builder.status(dp.getStatus());
-                builder.approvalStatus(dp.getApprovalStatus() != null ? dp.getApprovalStatus() : com.trung.userdriverservice.util.enums.ApprovalStatus.APPROVED);
+                builder.approvalStatus(dp.getApprovalStatus() != null ? dp.getApprovalStatus() : ApprovalStatus.APPROVED);
                 builder.rejectionReason(dp.getRejectionReason());
                 builder.approvedAt(dp.getApprovedAt());
                 builder.vehicleType(dp.getVehicleType());

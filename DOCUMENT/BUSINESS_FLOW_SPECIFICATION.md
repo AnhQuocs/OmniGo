@@ -29,275 +29,144 @@ Hệ thống **OmniGo** vận hành trên nền tảng kiến trúc Microservice
 
 ---
 
-## 2. CÁC SƠ ĐỒ TUẦN TỰ CHI TIẾT NHẤT (SEQUENCE DIAGRAMS)
+## 2. CÁC SƠ ĐỒ TUẦN TỰ HỆ THỐNG (SEQUENCE DIAGRAMS)
 
 ---
 
 ### 2.1. Sơ Đồ Tuần Tự 1: Vòng Đời Đặt Xe & Điều Phối Chuyến Đi (OmniRide Lifecycle)
-> **Trạng thái thực tế trong mã nguồn (`BookingStatus`):** `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `ARRIVED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`).
+> **Trạng thái cuốc xe (`BookingStatus`):** `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `ARRIVED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`).
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Customer as Khách Hàng (App)
-    participant Gateway as API Gateway (8080)
-    participant Booking as Booking Service (8082)
-    participant Pricing as Pricing Service (8085)
-    participant Location as Location Service (8083)
-    participant Redis as Redis (Geo & Lock)
+    participant OmniGo as Hệ Thống OmniGo (Backend)
     actor Driver as Tài Xế (App)
-    participant Kafka as Apache Kafka
-    participant Payment as Payment Service (8086)
+    participant Payment as Ví & Thanh Toán
 
-    %% BƯỚC 1: TÍNH GIÁ ĐỘNG & ĐẶT XE
-    Note over Customer, Pricing: 1. Khảo sát lộ trình & Định giá động (Surge Pricing)
-    Customer->>Gateway: POST /api/v1/pricing/calculate (Pickup, Dropoff)
-    Gateway->>Pricing: Forward Request
-    Pricing->>Location: Lấy số lượng tài xế khả dụng quanh điểm đón (Redis Geo)
-    Location-->>Pricing: Trả về mật độ tài xế (nearbyDriversCount)
-    Pricing->>Pricing: Tính cước = (BasePrice + Km * PricePerKm) * SurgeMultiplier (Lưới H3)
-    Pricing-->>Gateway: Trả về báo giá cước & Mức Surge (NORMAL, LIGHT, MODERATE, SEVERE)
-    Gateway-->>Customer: Hiển thị bảng giá các loại xe (OmniBike, OmniCar)
+    %% 1. TÍNH CƯỚC & ĐẶT XE
+    Note over Customer, OmniGo: 1. Khảo sát giá & Đặt xe
+    Customer->>OmniGo: POST /api/v1/pricing/calculate (Lộ trình điểm đón / điểm trả)
+    OmniGo-->>Customer: Báo giá cước động (Surge Pricing lưới H3)
+    Customer->>OmniGo: POST /api/v1/bookings (Khách bấm đặt xe)
+    OmniGo-->>Customer: 201 Created (Khởi tạo cuốc xe: PENDING)
 
-    %% BƯỚC 2: TẠO BOOKING
-    Note over Customer, Booking: 2. Khách hàng bấm "Đặt chuyến"
-    Customer->>Gateway: POST /api/v1/bookings (startLat/Lng, endLat/Lng) [Token JWT]
-    Gateway->>Booking: Forward + Header X-User-Id
-    Booking->>Redis: Kiểm tra Spam Check (Key: spam:booking:{userId}, TTL: 5s)
-    alt Bị Spam (Trong vòng 5 giây gọi liên tục)
-        Redis-->>Booking: Key tồn tại
-        Booking-->>Customer: 429 Too Many Requests ("Vui lòng chờ giây lát")
-    else Hợp lệ
-        Booking->>Booking: Khởi tạo cuốc xe (Status: PENDING)
-        Booking-->>Customer: 201 Created (bookingId, status: PENDING)
+    %% 2. ĐIỀU PHỐI TÀI XẾ
+    Note over OmniGo, Driver: 2. Quét vị trí & Phát cuốc xe (20s)
+    OmniGo->>Driver: Phát thông báo mời nhận cuốc (Giữ chỗ tài xế 20s)
+    alt Tài xế nhận cuốc
+        Driver->>OmniGo: PUT /api/v1/bookings/{id}/accept
+        OmniGo-->>Customer: Thông báo: "Đã tìm thấy tài xế" (Tên, Xe, Biển số)
+        OmniGo-->>Driver: Chuyển Status -> ACCEPTED
+    else Tài xế từ chối hoặc hết 20s
+        Driver-->>OmniGo: Từ chối / Timeout -> Hệ thống tự động chuyển cuốc cho tài xế kế tiếp
     end
 
-    %% BƯỚC 3: QUÉT REDIS GEO & ĐIỀU PHỐI (MATCHING)
-    Note over Booking, Driver: 3. Quét toạ độ & Giữ chỗ tài xế bằng Redis Lock (20 giây)
-    Booking->>Location: GET /api/v1/internal/locations/drivers/nearby?radius=3km
-    Location->>Redis: GEOSEARCH drivers_geo FROMLONLAT (lat, lng) BYRADIUS 3km
-    Redis-->>Location: Danh sách Driver ID gần nhất
-    Location-->>Booking: Trả về danh sách ứng viên tài xế
+    %% 3. ĐÓN KHÁCH & HÀNH TRÌNH
+    Note over Customer, Driver: 3. Di chuyển đón khách & Chở khách
+    Driver->>OmniGo: Cập nhật tọa độ GPS (STOMP /ws-location)
+    OmniGo-->>Customer: Live Tracking xe di chuyển mượt mà trên bản đồ
+    Driver->>OmniGo: PUT /api/v1/bookings/{id}/arrived (Khoảng cách <= 50m)
+    OmniGo-->>Customer: Thông báo: "Tài xế đã đến điểm đón" (ARRIVED)
+    Driver->>OmniGo: PUT /api/v1/bookings/{id}/start -> Bắt đầu chở khách (IN_PROGRESS)
 
-    loop Cho từng ứng viên tài xế (ưu tiên khoảng cách gần nhất)
-        Booking->>Redis: SET lock:driver:{driverId} bookingId NX EX 20
-        alt Khóa Lock thành công (Tài xế chưa bị giữ chỗ)
-            Booking->>Driver: Bắn WebSocket/FCM Popup: "Có cuốc xe mới!" (Đếm ngược 20s)
-            alt Tài xế bấm "Nhận Cuốc" (Trong vòng 20s)
-                Driver->>Gateway: PUT /api/v1/bookings/{id}/accept
-                Gateway->>Booking: Forward + Header X-User-Id (DriverId)
-                Booking->>Booking: Chuyển Status -> ACCEPTED
-                Booking->>Redis: Xóa khóa tạm, lưu cuốc chính thức
-                Booking-->>Customer: WebSocket thông báo: "Đã tìm thấy tài xế" (Tên, Xe, Biển số)
-            else Tài xế bấm "Từ chối" hoặc Hết 20s (Timeout)
-                Driver->>Booking: PUT /api/v1/bookings/{id}/driver-cancel (hoặc Timeout)
-                Booking->>Redis: DEL lock:driver:{driverId}
-                Booking->>Booking: Thêm driverId vào Blacklist cuốc này, luân chuyển cho tài xế kế tiếp
-            end
-        end
-    end
-
-    %% BƯỚC 4: LIVE TRACKING & HÀNH TRÌNH CHỞ KHÁCH
-    Note over Driver, Customer: 4. Di chuyển đón khách & Geofencing Validation
-    loop Cập nhật tọa độ di chuyển (Mỗi 2-3 giây)
-        Driver->>Location: STOMP /ws-location (lat, lng, bearing)
-        Location->>Redis: GEOADD drivers_geo lng lat driverId
-        Location-->>Customer: WebSocket Broadcast vị trí xe di chuyển mượt mà trên bản đồ
-    end
-
-    Driver->>Gateway: PUT /api/v1/bookings/{id}/arrived
-    Gateway->>Booking: Forward (Kiểm tra GPS: Distance <= 50m điểm đón)
-    Booking->>Booking: Chuyển Status -> ARRIVED
-    Booking-->>Customer: Thông báo: "Tài xế đã đến điểm đón"
-
-    Driver->>Gateway: PUT /api/v1/bookings/{id}/start
-    Gateway->>Booking: Forward
-    Booking->>Booking: Chuyển Status -> IN_PROGRESS
-    Booking-->>Customer: Thông báo: "Chuyến đi đang diễn ra"
-
-    %% BƯỚC 5: HOÀN THÀNH & QUYẾT TOÁN TỰ ĐỘNG
-    Note over Driver, Payment: 5. Hoàn thành chuyến xe & Thu chiết khấu qua Kafka
-    Driver->>Gateway: PUT /api/v1/bookings/{id}/complete (paymentMethod)
-    Gateway->>Booking: Forward (Kiểm tra GPS: Distance <= 50m điểm trả)
-    Booking->>Booking: Chuyển Status -> COMPLETED
-    Booking->>Kafka: Publish Event "booking-completed-topic" (bookingId, driverId, fare, paymentMethod)
-    Booking-->>Customer: Mở màn hình Hóa đơn & Đánh giá sao ⭐
-
-    Kafka->>Payment: Consume "booking-completed-topic"
-    alt Thanh toán Ví / Thẻ Online
-        Payment->>Payment: Trừ ví Khách hàng, Cộng ví Tài xế (trừ 15% hoa hồng sàn)
-    else Thanh toán Tiền mặt (CASH)
-        Payment->>Payment: Trừ 15% hoa hồng trực tiếp từ số dư ví ký quỹ của Tài xế
-        alt Số dư ví tài xế âm > 50.000 VNĐ
-            Payment->>Kafka: Publish "driver-low-balance-topic"
-            Kafka->>Booking: Tự động khóa trạng thái nhận cuốc, ép tài xế OFFLINE
-        end
-    end
+    %% 4. HOÀN TẤT & QUYẾT TOÁN
+    Note over Driver, Payment: 4. Hoàn thành chuyến xe & Quyết toán cước phí
+    Driver->>OmniGo: PUT /api/v1/bookings/{id}/complete (Khoảng cách <= 50m điểm trả)
+    OmniGo->>Payment: Quyết toán cước phí & Trừ 20% phí hoa hồng sàn
+    OmniGo-->>Customer: Hiển thị hóa đơn & Mở màn hình đánh giá sao ⭐
+    OmniGo-->>Driver: Chuyển Status -> COMPLETED & Cộng thu nhập ròng vào ví
 ```
 
 ---
 
 ### 2.2. Sơ Đồ Tuần Tự 2: Vòng Đời Đặt Món 3 Bên (OmniFood Marketplace Lifecycle)
-> **Trạng thái thực tế trong mã nguồn (`OrderStatus`):** `AWAITING_PAYMENT` (nếu Online) $\rightarrow$ `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` (hoặc `NO_DRIVER_FOUND` $\rightarrow$ Retry) $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`).
+> **Trạng thái đơn món (`OrderStatus`):** `AWAITING_PAYMENT` $\rightarrow$ `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` (hoặc `NO_DRIVER_FOUND` $\rightarrow$ Retry) $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`).
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Customer as Khách Hàng (App)
-    participant Gateway as API Gateway (8080)
-    participant FoodSvc as Food Delivery Service (8084)
-    actor Merchant as Nhà Hàng (Web/POS)
-    participant Location as Location Service (8083)
-    actor Driver as Tài Xế Giao Hàng (App)
-    participant Kafka as Apache Kafka
-    participant Payment as Payment Service (8086)
+    participant OmniGo as Hệ Thống OmniGo (Backend)
+    actor Merchant as Quán Ăn (Merchant)
+    actor Driver as Shipper (Driver App)
 
-    %% BƯỚC 1: ĐẶT MÓN & XỬ LÝ THANH TOÁN
-    Note over Customer, FoodSvc: 1. Khách chọn món, chọn phương thức thanh toán & Tạo đơn
-    Customer->>Gateway: POST /api/v1/food-orders (restaurantId, items, deliveryAddress, lat, lng, paymentMethod)
-    Gateway->>FoodSvc: Forward + Header X-User-Id
-    FoodSvc->>FoodSvc: Tính Tổng tiền = Tiền món + Phí ship theo km - Voucher
-    
+    %% 1. ĐẶT MÓN & THANH TOÁN
+    Note over Customer, OmniGo: 1. Đặt món & Thanh toán
+    Customer->>OmniGo: POST /api/v1/food-orders (Món ăn, Địa chỉ giao, Phương thức TT)
     alt Thanh toán Online (Ví OmniPay, MoMo, VNPay)
-        FoodSvc->>FoodSvc: Khởi tạo đơn (Status: AWAITING_PAYMENT, isPaid: false)
-        FoodSvc-->>Customer: 201 Created (orderId, status: AWAITING_PAYMENT)
-        Customer->>Payment: Thực hiện thanh toán trực tuyến
-        alt Thanh toán Thành công
-            Payment->>FoodSvc: POST /api/v1/food-orders/{id}/paid
-            FoodSvc->>FoodSvc: isPaid = true, Status -> PENDING
-            FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn mới đã thanh toán!" (#FD-XXXX)
-        else Khách muốn đổi sang Tiền mặt (Fallback)
-            Customer->>Gateway: PATCH /api/v1/food-orders/{id}/switch-to-cash
-            Gateway->>FoodSvc: Forward
-            FoodSvc->>FoodSvc: paymentMethod = CASH, Status -> PENDING
-            FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn mới (Tiền mặt COD)!"
-        end
+        OmniGo-->>Customer: Trạng thái AWAITING_PAYMENT -> Khách thanh toán thành công
+        OmniGo->>OmniGo: Cập nhật isPaid = true, Status -> PENDING
     else Thanh toán Tiền mặt (CASH)
-        FoodSvc->>FoodSvc: Khởi tạo đơn (Status: PENDING, isPaid: false)
-        FoodSvc-->>Merchant: WebSocket Chuông báo: "Có đơn đặt món mới (COD)!" (#FD-XXXX)
-        FoodSvc-->>Customer: 201 Created (orderId, status: PENDING)
+        OmniGo->>OmniGo: Tạo đơn thành công (Status -> PENDING)
+    end
+    OmniGo-->>Merchant: Chuông báo đơn mới qua WebSocket: "Có đơn đặt món mới!"
+
+    %% 2. QUÁN DUYỆT ĐƠN & NẤU MÓN
+    Note over Merchant, OmniGo: 2. Quán duyệt đơn (ACCEPTED) & Chế biến món (PREPARING)
+    alt Quán từ chối (Hết món / Đóng cửa)
+        Merchant->>OmniGo: PATCH /api/v1/food-orders/{id}/status (REJECTED)
+        OmniGo-->>Customer: Thông báo nhà hàng từ chối & Tự động hoàn tiền ví (nếu đã thanh toán)
+    else Quán tiếp nhận đơn
+        Merchant->>OmniGo: PATCH /api/v1/food-orders/{id}/status (ACCEPTED -> PREPARING)
+        OmniGo-->>Customer: Thông báo: "Quán đang chuẩn bị món ăn"
+        OmniGo->>Driver: Quét tìm shipper quanh quán (Bán kính 3km)
+        alt Chưa có tài xế nhận
+            OmniGo-->>Merchant: Hiển thị trạng thái NO_DRIVER_FOUND (Có nút Quét tìm lại tối đa 3 lần)
+        else Tài xế nhận đơn
+            Driver->>OmniGo: Tiếp nhận đơn giao đồ ăn thành công
+            OmniGo-->>Customer: Thông báo: "Đã có tài xế nhận giao đơn"
+        end
     end
 
-    %% BƯỚC 2: QUÁN TIẾP NHẬN & CHẾ BIẾN HOẶC TỪ CHỐI
-    Note over Merchant, Driver: 2. Quán duyệt đơn (ACCEPTED) & Chế biến (PREPARING) hoặc Từ chối (REJECTED)
-    alt Quán bận / Hết món / Đóng cửa
-        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "REJECTED", "reasonCode": "RESTAURANT_OUT_OF_STOCK", "reason": "Hết món"}
-        Gateway->>FoodSvc: Forward
-        FoodSvc->>FoodSvc: Status -> REJECTED (cancelledBy: RESTAURANT)
-        FoodSvc-->>Customer: Thông báo: "Nhà hàng từ chối nhận đơn: Hết món" (Hoàn tiền nếu Online)
-    else Quán nhận nấu
-        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "ACCEPTED"}
-        Gateway->>FoodSvc: Forward
-        FoodSvc->>FoodSvc: Chuyển Status -> ACCEPTED
-        FoodSvc-->>Customer: Thông báo: "Nhà hàng đã tiếp nhận đơn"
+    %% 3. BÀN GIAO MÓN & GIAO HÀNG
+    Note over Merchant, Driver: 3. Lấy món & Giao hàng (DELIVERING)
+    Merchant->>OmniGo: PATCH status -> READY_FOR_PICKUP (Món đã nấu xong)
+    Driver->>OmniGo: PATCH driver-status -> DELIVERING (Đã lấy món từ quán)
+    OmniGo-->>Customer: Live Tracking vị trí shipper di chuyển trên bản đồ
 
-        Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "PREPARING"}
-        Gateway->>FoodSvc: Forward
-        FoodSvc->>FoodSvc: Chuyển Status -> PREPARING (Bếp đang nấu món, khóa hủy tự do)
-        FoodSvc-->>Customer: Thông báo: "Nhà hàng đang chuẩn bị món ăn"
-    end
-
-    %% TÌM TÀI XẾ GIAO MÓN QUA KAFKA & XỬ LÝ RETRY
-    Note over FoodSvc, Kafka: Phát sự kiện tìm tài xế giao món qua Kafka
-    FoodSvc->>Kafka: Publish Event "FIND_DRIVER_FOR_FOOD_ORDER" (FindDriverForFoodOrderEvent)
-    Kafka->>Booking: Consume "FIND_DRIVER_FOR_FOOD_ORDER"
-    Booking->>Location: Quét tài xế giao hàng quanh nhà hàng (radius = 3km từ Redis Geo)
-    
-    alt Không tìm thấy tài xế khả dụng
-        Booking->>FoodSvc: Cập nhật Status -> NO_DRIVER_FOUND
-        FoodSvc-->>Merchant: Hiển thị: "Chưa tìm thấy tài xế - Có nút Quét tìm lại"
-        Merchant->>Gateway: POST /api/v1/food-orders/{id}/retry-driver (Quét lại, driverRetryCount++)
-        Gateway->>FoodSvc: Forward -> Kích hoạt lại vòng quét tìm tài xế (Tối đa 3 lần)
-    else Tìm thấy tài xế & Tài xế nhận cuốc
-        Booking->>Kafka: Publish Event "DRIVER_ASSIGNED_TO_FOOD_ORDER"
-        Kafka->>FoodSvc: Consume "DRIVER_ASSIGNED_TO_FOOD_ORDER"
-        FoodSvc->>FoodSvc: Gán driverId vào đơn hàng
-        FoodSvc-->>Customer: Thông báo: "Đã có tài xế nhận giao đơn của bạn"
-    end
-
-    %% BƯỚC 3: QUÁN BÁO NẤU XONG & TÀI XẾ LẤY MÓN
-    Note over Driver, Merchant: 3. Món đã sẵn sàng (READY_FOR_PICKUP) & Giao hàng
-    Merchant->>Gateway: PATCH /api/v1/food-orders/{id}/status {"status": "READY_FOR_PICKUP"}
-    Gateway->>FoodSvc: Forward
-    FoodSvc->>FoodSvc: Chuyển Status -> READY_FOR_PICKUP (Chờ tài xế lấy món)
-    
-    Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "DELIVERING"}
-    Gateway->>FoodSvc: Forward (Validate tọa độ Driver cách Restaurant <= 50m)
-    FoodSvc->>FoodSvc: Chuyển Status -> DELIVERING (Đã lấy món, đang trên đường giao)
-    FoodSvc-->>Customer: Thông báo: "Tài xế đã lấy món và đang di chuyển tới bạn"
-
-    %% BƯỚC 4: GIAO HÀNG & HOÀN TẤT
+    %% 4. HOÀN THÀNH ĐƠN
     Note over Driver, Customer: 4. Giao tận tay khách & Hoàn tất (COMPLETED)
-    loop Live Tracking giao đồ ăn
-        Driver->>Location: Gửi tọa độ GPS
-        Location-->>Customer: Cập nhật đường đi của shipper trên bản đồ
-    end
-
-    alt Tài xế gặp sự cố hủy giao
-        Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "CANCELLED", "reasonCode": "DRIVER_VEHICLE_BROKEN"}
-        Gateway->>FoodSvc: Forward (cancelledBy: DRIVER, cancelReason: "Hỏng xe")
-        FoodSvc-->>Customer: Thông báo: "Tài xế hủy đơn do sự cố xe"
-    else Giao hàng thành công
-        Driver->>Gateway: PATCH /api/v1/food-orders/{id}/driver-status {"status": "COMPLETED"}
-        Gateway->>FoodSvc: Forward (Validate tọa độ Driver cách Khách <= 50m)
-        FoodSvc->>FoodSvc: Chuyển Status -> COMPLETED
-        FoodSvc-->>Customer: Mở màn hình Đánh giá riêng biệt: ⭐ Cho Quán & ⭐ Cho Tài xế
-    end
+    Driver->>OmniGo: PATCH driver-status -> COMPLETED (Khoảng cách <= 50m)
+    OmniGo-->>Customer: Đơn hoàn tất! Mở màn hình Đánh giá: ⭐ Cho Quán & ⭐ Cho Tài xế
 ```
 
 ---
 
 ### 2.3. Sơ Đồ Tuần Tự 3: Nạp Tiền & Thanh Toán Trực Tuyến Qua Cổng MoMo / VNPay (IPN Webhook)
-> **Trạng thái thực tế trong mã nguồn (`TransactionStatus`):** `PENDING` $\rightarrow$ `SUCCESS` (hoặc `FAILED`, `CANCELLED`).
+> **Trạng thái giao dịch (`TransactionStatus`):** `PENDING` $\rightarrow$ `SUCCESS` (hoặc `FAILED`, `CANCELLED`).
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Customer as Khách Hàng / Tài Xế
-    participant Gateway as API Gateway (8080)
-    participant Payment as Payment Service (8086)
-    participant ExtGW as Cổng MoMo / VNPay
-    participant DB as PostgreSQL (payment_db)
-    participant Kafka as Apache Kafka
+    actor User as Khách Hàng / Tài Xế
+    participant OmniGo as Hệ Thống OmniGo (Payment)
+    participant Gateway as Cổng Thanh Toán (MoMo / VNPay)
 
-    Customer->>Gateway: POST /api/v1/payments/payment/create (method: MOMO/VNPAY, type: DEPOSIT/TRIP_PAYMENT, amount)
-    Gateway->>Payment: Forward + Header X-User-Id
-    Payment->>DB: Lưu bản ghi giao dịch (Status: PENDING, Mã: TXN_XXXX)
-    Payment->>Payment: Ký số dữ liệu bằng HMAC-SHA256 (Khóa bí mật SecretKey)
-    Payment->>ExtGW: Gửi API tạo giao dịch (partnerCode, orderId, amount, returnUrl, ipnUrl, signature)
-    ExtGW-->>Payment: Trả về URL thanh toán / PayUrl (Chứa mã QR)
-    Payment-->>Gateway: Trả về paymentUrl
-    Gateway-->>Customer: Điều hướng mở App MoMo / VNPay hoặc hiển thị mã QR
+    %% 1. TẠO GIAO DỊCH
+    Note over User, Gateway: 1. Khởi tạo giao dịch & Mở màn hình thanh toán
+    User->>OmniGo: POST /api/v1/payments/payment/create (Số tiền, Phương thức: MoMo/VNPay)
+    OmniGo->>OmniGo: Khởi tạo giao dịch PENDING & Ký số HMAC-SHA256
+    OmniGo->>Gateway: Gửi yêu cầu tạo thanh toán kèm IPN Webhook URL
+    Gateway-->>OmniGo: Trả về PaymentUrl (Chứa mã QR thanh toán)
+    OmniGo-->>User: Điều hướng mở App MoMo/VNPay hoặc quét mã QR
 
-    Customer->>ExtGW: Quét mã & Xác nhận chuyển tiền trên App MoMo / VNPay
-    
-    %% KÊNH ĐỒNG BỘ: RETURN URL (REDIRECT BROWSER)
-    ExtGW-->>Customer: Điều hướng người dùng về Frontend: GET /api/v1/payments/momo/return
-    Customer->>Gateway: Redirect hiển thị màn hình: "Giao dịch đang chờ xác nhận..."
+    %% 2. XÁC NHẬN THANH TOÁN
+    Note over User, Gateway: 2. Người dùng thanh toán trên App Ngân hàng / Ví điện tử
+    User->>Gateway: Xác nhận chuyển tiền trên App MoMo / VNPay
+    Gateway-->>User: Redirect về ứng dụng: "Giao dịch đang chờ hệ thống xác nhận..."
 
-    %% KÊNH BẤT ĐỒNG BỘ NỀN: IPN WEBHOOK (QUAN TRỌNG NHẤT)
-    Note over ExtGW, Payment: Kênh IPN ngầm giữa máy chủ Cổng thanh toán và Payment Service
-    ExtGW->>Gateway: POST /api/v1/payments/momo/ipn (Body: transId, resultCode, signature, extraData)
-    Gateway->>Payment: Bypass Auth (Public Webhook URL) -> Forward tới Payment Service
-    Payment->>Payment: Tái tạo chữ ký HMAC-SHA256 & So sánh với signature từ cổng
-    alt Chữ ký không hợp lệ (Giả mạo)
-        Payment-->>ExtGW: HTTP 400 Bad Request ("Chữ ký bảo mật không khớp")
-    else Chữ ký hợp lệ & resultCode == 0 (Thành công)
-        Payment->>DB: Kiểm tra trạng thái giao dịch hiện tại trong DB
-        alt Giao dịch đã xử lý trước đó (Idempotent)
-            Payment-->>ExtGW: HTTP 204 No Content
-        else Giao dịch đang PENDING
-            Payment->>DB: Cập nhật Transaction Status -> SUCCESS
-            alt Giao dịch NẠP TIỀN (DEPOSIT)
-                Payment->>DB: Cộng tiền vào Wallet của người dùng
-            else Giao dịch THANH TOÁN ĐƠN MÓN (FOOD_PAYMENT)
-                Payment->>Gateway: REST POST /api/v1/food-orders/{orderId}/paid
-                Gateway->>FoodSvc: Cập nhật isPaid = true cho đơn hàng
-            else Giao dịch THANH TOÁN CHUYẾN ĐI (TRIP_PAYMENT)
-                Payment->>DB: Cộng tiền TRIP_INCOME cho ví tài xế & Trừ 20% COMMISSION_FEE
-            end
-            Payment-->>ExtGW: HTTP 204 No Content (Xác nhận đã xử lý IPN thành công)
-        end
+    %% 3. IPN WEBHOOK XÁC THỰC NGẦM
+    Note over Gateway, OmniGo: 3. Kênh IPN Webhook ngầm đối soát tự động (Quan trọng nhất)
+    Gateway->>OmniGo: POST /api/v1/payments/momo/ipn (Kèm chữ ký số & resultCode)
+    OmniGo->>OmniGo: Kiểm tra chữ ký HMAC-SHA256 & Kiểm tra Idempotent chống trùng
+    alt Giao dịch thành công (resultCode == 0)
+        OmniGo->>OmniGo: Cập nhật Transaction -> SUCCESS & Tự động cộng tiền ví / duyệt đơn
+        OmniGo-->>Gateway: HTTP 204 No Content (Xác nhận xử lý thành công)
+        OmniGo-->>User: Bắn thông báo: "Giao dịch nạp tiền / thanh toán thành công!"
+    else Giao dịch thất bại / Chữ ký sai
+        OmniGo->>OmniGo: Cập nhật Transaction -> FAILED
+        OmniGo-->>Gateway: Phản hồi mã lỗi tương ứng
     end
 ```
 
@@ -309,49 +178,84 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor Client as Client (Mobile / Web)
-    participant Gateway as API Gateway (GlobalFilter)
+    participant Gateway as API Gateway (8080)
     participant Redis as Redis Cache
-    participant UserSvc as User-Driver Service (8081)
-    participant DB as PostgreSQL (user_db)
+    participant Service as Microservices Nội Bộ
 
+    %% 1. XÁC THỰC TOKEN TẠI CỬA NGÕ
+    Note over Client, Gateway: 1. Kiểm tra xác thực & Blacklist tại API Gateway
     Client->>Gateway: Gửi Request (Header: Authorization: Bearer <JWT_Token>)
-    Gateway->>Gateway: Kiểm tra định dạng Header & Cấu trúc JWT Token
-    alt Token sai định dạng / Hết hạn (Expired)
-        Gateway-->>Client: 401 Unauthorized ("Access Token không hợp lệ hoặc đã hết hạn")
-    else Token hợp lệ
-        Gateway->>Redis: Kiểm tra token trong Blacklist: EXISTS jwt_blacklist:{token}
-        alt Token nằm trong Blacklist (Đã đăng xuất)
-            Redis-->>Gateway: true
-            Gateway-->>Client: 401 Unauthorized ("Token đã bị vô hiệu hóa")
-        else Token chưa bị Blacklist
-            Gateway->>Gateway: Giải mã Claims lấy userId, role, phoneNumber
-            Gateway->>Redis: Kiểm tra tài khoản bị khóa: EXISTS user_locked:{userId}
-            alt Tài khoản đang bị Admin khóa
-                Redis-->>Gateway: true
-                Gateway-->>Client: 401 Unauthorized ("Tài khoản của bạn đã bị khóa bởi Quản trị viên")
-            else Tài khoản bình thường
-                Gateway->>Gateway: Đính kèm Header mới vào Request:<br>X-User-Id = userId<br>X-User-Role = role<br>X-User-Phone = phoneNumber
-                
-                %% KIỂM SOÁT TẠI SERVICE NỘI BỘ
-                alt Khách gọi API xem thông tin chính mình: GET /api/v1/users/me
-                    Gateway->>UserSvc: Forward kèm Header X-User-Id
-                    UserSvc->>DB: Truy vấn user theo X-User-Id
-                    DB-->>UserSvc: Trả về thông tin chính chủ
-                    UserSvc-->>Client: 200 OK (UserResponse)
-                else Khách gọi API có Path ID: GET /api/v1/users/{id}
-                    Gateway->>UserSvc: Forward kèm Path {id} và Header X-User-Id
-                    UserSvc->>UserSvc: Đánh giá SpEL: hasRole('ADMIN') or #currentUserId == #id
-                    alt Không phải Admin VÀ currentUserId != id (Cố tình đọc trộm dữ liệu người khác)
-                        UserSvc-->>Client: 403 Forbidden ("Bạn không có quyền truy cập tài nguyên này - IDOR Blocked")
-                    else Là Admin HOẶC Là chính chủ của ID đó
-                        UserSvc->>DB: Truy vấn chi tiết theo {id}
-                        DB-->>UserSvc: Dữ liệu hợp lệ
-                        UserSvc-->>Client: 200 OK (UserResponse)
-                    end
-                end
+    Gateway->>Gateway: Validate cấu trúc & Hạn dùng JWT
+    Gateway->>Redis: Kiểm tra token trong Blacklist (jwt_blacklist:{token})
+    alt Token hết hạn hoặc nằm trong Blacklist (Đã đăng xuất)
+        Gateway-->>Client: 401 Unauthorized ("Token không hợp lệ hoặc đã hết hạn")
+    else Token hợp lệ & Tài khoản hoạt động
+        Gateway->>Gateway: Trích xuất Identity: userId, role, phoneNumber
+        Gateway->>Service: Forward Request kèm Headers nội bộ:<br>X-User-Id, X-User-Role, X-User-Phone
+        
+        %% 2. CHỐNG IDOR TẠI SERVICE NỘI BỘ
+        Note over Service, Client: 2. Kiểm soát phân quyền & Ngăn chặn lộ dữ liệu (IDOR)
+        alt Client gọi thông tin chính mình (/me)
+            Service-->>Client: 200 OK (Truy vấn dữ liệu theo đúng X-User-Id của người gọi)
+        else Client gọi API có ID (/users/{id})
+            alt Không phải ADMIN và X-User-Id != id (Cố tình xem dữ liệu người khác)
+                Service-->>Client: 403 Forbidden ("IDOR Blocked - Bạn không có quyền truy cập")
+            else Là ADMIN hoặc chính chủ của ID
+                Service-->>Client: 200 OK (Trả về thông tin chi tiết)
             end
         end
     end
+```
+
+---
+
+### 2.5. Sơ Đồ Tuần Tự 5: Vòng Đời Đánh Giá Đơn Đồ Ăn & Phản Hồi Nhà Hàng (Food Order Review Lifecycle)
+> **Ràng buộc thời gian & số lượng ảnh:**
+> 1. **Giới hạn số lượng ảnh:** Tối đa **5 ảnh** trên mỗi đánh giá. Cả Frontend và Backend đều chặn nếu vượt quá.
+> 2. **Khóa tạo mới sau 1 tuần:** Khách chỉ có thể gửi đánh giá cho đơn `COMPLETED` trong vòng **7 ngày (1 tuần)**.
+> 3. **Khóa chỉnh sửa sau 48 giờ:** Khách có thể sửa đánh giá trong vòng **48 giờ** kể từ khi tạo (`createdAt + 48h`). Sau 48h tự động chuyển sang chỉ xem (`readOnly: true`).
+> 4. **Phân quyền Quản trị viên (Admin):** Admin chỉ có quyền xem (`readOnly`), không có quyền chỉnh sửa.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as Khách Hàng (App)
+    participant OmniGo as Hệ Thống OmniGo (Backend)
+    actor Merchant as Quán Ăn (Merchant)
+    actor Admin as Quản Trị Viên (Admin)
+
+    %% 1. TẢI ẢNH & GỬI ĐÁNH GIÁ (TRONG VÒNG 1 TUẦN)
+    Note over Customer, OmniGo: 1. Tải ảnh & Gửi đánh giá (Tối đa 5 ảnh; Hạn chót: 1 tuần từ khi hoàn tất)
+    opt Có tải ảnh món ăn thực tế
+        Customer->>OmniGo: POST /api/v1/food-reviews/upload-image (Tối đa 5 ảnh, định dạng PNG/JPG/WEBP)
+        OmniGo-->>Customer: Trả về danh sách URL ảnh Cloudinary
+    end
+
+    Customer->>OmniGo: POST /api/v1/food-reviews (orderId, rating quán, reviewPhotos <= 5, rating tài xế)
+    alt Đơn hàng hoàn thành quá 1 tuần (now > completedAt + 7 ngày)
+        OmniGo-->>Customer: 400 Bad Request ("Đơn hàng đã hoàn tất quá 1 tuần, không thể đánh giá")
+    else Hợp lệ
+        OmniGo->>OmniGo: Lưu đánh giá mới (Hạn chỉnh sửa: createdAt + 48h)
+        OmniGo->>OmniGo: Tự động tính lại điểm sao (rating) và tổng số đánh giá (reviewCount) của quán
+        OmniGo-->>Customer: 201 Created (Gửi đánh giá thành công)
+        OmniGo-->>Merchant: Thông báo: "Quán có đánh giá mới từ khách hàng!"
+    end
+
+    %% 2. CHỈNH SỬA ĐÁNH GIÁ (TRONG VÒNG 48 GIỜ)
+    Note over Customer, OmniGo: 2. Khách chỉnh sửa đánh giá (Chỉ cho phép trong vòng 48 giờ từ khi tạo)
+    Customer->>OmniGo: PUT /api/v1/food-reviews/{id} (Cập nhật bình luận / số sao / tối đa 5 ảnh)
+    alt Đã quá thời hạn 48 giờ (now > createdAt + 48h)
+        OmniGo-->>Customer: 400 Bad Request ("Đã quá thời hạn 48 giờ để chỉnh sửa - Khóa chỉ xem")
+    else Còn trong thời hạn 48 giờ
+        OmniGo->>OmniGo: Cập nhật đánh giá & Đồng bộ lại điểm sao quán ăn
+        OmniGo-->>Customer: 200 OK (Cập nhật thành công)
+    end
+
+    %% 3. QUÁN PHẢN HỒI & ADMIN GIÁM SÁT
+    Note over Merchant, Admin: 3. Quán gửi phản hồi & Admin giám sát ở chế độ chỉ xem
+    Merchant->>OmniGo: POST /api/v1/food-reviews/{id}/reply ("Cảm ơn quý khách đã ủng hộ quán!")
+    OmniGo-->>Customer: Thông báo: "Nhà hàng đã phản hồi nhận xét của bạn!"
+    Admin->>OmniGo: GET /api/v1/food-reviews/order/{orderId} -> Xem chi tiết (readOnly: true, không thể sửa)
 ```
 
 ---
@@ -494,6 +398,27 @@ Nhằm phục vụ phân hệ Báo cáo kinh doanh chuyên biệt cho Quán ăn 
 * Khóa phân tán: `SET lock:driver:{driverId} {bookingId} NX EX 20`
 * Đảm bảo tính nguyên tử (Atomic): Một tài xế chỉ nhận được tối đa 1 lời mời cuốc xe tại một thời điểm, triệt tiêu hoàn toàn lỗi tranh chấp cuốc (Race Condition).
 * Hết thời gian 20s không phản hồi, key Redis tự động giải phóng (TTL Expired), hệ thống tự động gán tài xế vào danh sách loại trừ (Blacklist) của cuốc này và chuyển lời mời cho tài xế gần tiếp theo.
+
+### 4.3. Quy Tắc Ràng Buộc Khóa Đánh Giá Đơn Hàng (Food Review Locking Rules)
+1. **Khóa tạo mới sau 1 tuần (7 ngày):**
+   * Đơn hàng bắt buộc phải ở trạng thái `COMPLETED`.
+   * Thời gian hoàn thành tính theo: `order.updatedAt != null ? order.updatedAt : order.createdAt`.
+   * Nếu $\text{Thời gian hiện tại} > \text{Thời gian hoàn tất} + 7\text{ ngày}$, hệ thống lập tức chặn tạo mới với lỗi `400 Bad Request` (*"Đơn hàng đã hoàn thành quá 1 tuần (7 ngày), không thể gửi đánh giá mới"*).
+   * Trên giao diện khách hàng: Nút đánh giá chuyển thành nhãn xám: `🔒 Đơn hoàn thành quá 1 tuần, hết hạn đánh giá`.
+2. **Khóa chỉnh sửa sau 48 giờ (Tính chuẩn xác theo `createdAt`):**
+   * Khách hàng gửi đánh giá lần đầu sẽ có 48 giờ để sửa đổi nội dung hoặc số sao nếu có thay đổi cảm nhận.
+   * Hạn chót thực tế được tính chuẩn xác theo: $\text{effectiveLimit} = \text{createdAt} + 48\text{ giờ}$.
+   * Nếu $\text{Thời gian hiện tại} > \text{effectiveLimit}$, hệ thống từ chối cập nhật với mã lỗi `400 Bad Request` (*"Đã quá thời hạn 48 giờ kể từ khi tạo để chỉnh sửa đánh giá này"*).
+   * Trên giao diện: Ẩn hoàn toàn nút *"Lưu Thay Đổi Đánh Giá"*, chỉ hiển thị nút *"Đóng"*, khóa chọn sao, ô nhập liệu và ẩn gợi ý tag.
+3. **Giới hạn số lượng & định dạng tệp ảnh (Strict Max 5 Images Validation):**
+   * Chỉ chấp nhận các tệp ảnh định dạng: `.png`, `.jpg`, `.jpeg`, `.webp` (MIME types: `image/png`, `image/jpeg`, `image/webp`).
+   * **Chặn cứng tối đa 5 ảnh:** Cả giao diện Frontend (chọn tệp) và Backend (`FoodOrderReviewServiceImpl`) đều áp dụng chốt chặn nghiêm ngặt tối đa 5 ảnh. Mọi thao tác tải lên hoặc gửi payload quá 5 ảnh sẽ lập tức bị chặn với cảnh báo hoặc mã lỗi HTTP `400 Bad Request` (*"Chỉ được tải lên tối đa 5 ảnh cho mỗi đánh giá"*).
+   * Hình ảnh được tải lên và lưu trữ an toàn trên dịch vụ đám mây Cloudinary.
+4. **Phân quyền Xem & Phản hồi:**
+   * **Chủ quán ăn (Merchant):** Chỉ có quyền xem đánh giá của quán mình và gửi phản hồi trả lời (`merchantReply`).
+   * **Quản trị viên (Admin):** Chỉ có quyền xem chi tiết đánh giá đơn hàng (`readOnly = true`), tuyệt đối không có quyền gửi đánh giá thay hoặc chỉnh sửa đánh giá của khách hàng.
+5. **Đồng bộ tự động Chỉ số Nhà hàng (Auto-sync Rating & Count):**
+   * Mỗi khi có đánh giá mới hoặc đánh giá được cập nhật, hệ thống tự động tính lại điểm trung bình sao `rating` (làm tròn 1 chữ số thập phân) và tổng số lượt đánh giá `reviewCount` / `totalReviews` của nhà hàng thông qua repository `FoodOrderReviewRepository`.
 
 ---
 

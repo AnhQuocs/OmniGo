@@ -9,14 +9,22 @@ import com.trung.fooddeliveryservice.exception.BadRequestException;
 import com.trung.fooddeliveryservice.exception.ResourceNotFoundException;
 import com.trung.fooddeliveryservice.exception.UnauthorizedException;
 import com.trung.fooddeliveryservice.mapper.RestaurantMapper;
+import com.trung.fooddeliveryservice.repository.FoodOrderReviewRepository;
 import com.trung.fooddeliveryservice.repository.RestaurantRepository;
 import com.trung.fooddeliveryservice.service.RestaurantService;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +32,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +45,9 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantMapper restaurantMapper;
     private final RestTemplate directRestTemplate;
-    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
+    @Lazy
+    private final FoodOrderReviewRepository reviewRepository;
 
     @Value("${app.driver-service-url:http://localhost:8081}")
     private String driverServiceBaseUrl;
@@ -88,7 +100,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             String errMessage = "Đăng ký tài khoản nhà hàng thất bại: ";
             try {
                 if (e.getResponseBodyAsString().contains("message")) {
-                    com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(e.getResponseBodyAsString());
+                    JsonNode node = new ObjectMapper().readTree(e.getResponseBodyAsString());
                     if (node.has("message")) {
                         errMessage += node.get("message").asText();
                     } else {
@@ -142,6 +154,7 @@ public class RestaurantServiceImpl implements RestaurantService {
                     log.warn("Không tìm thấy nhà hàng với ID {}", id);
                     return new ResourceNotFoundException("Không tìm thấy nhà hàng với ID: " + id);
                 });
+        syncRatingIfOutdated(restaurant);
         return restaurantMapper.toResponse(restaurant);
     }
 
@@ -153,21 +166,44 @@ public class RestaurantServiceImpl implements RestaurantService {
                     log.warn("Không tìm thấy nhà hàng của chủ quán ID {}", ownerId);
                     return new ResourceNotFoundException("Không tìm thấy nhà hàng của chủ quán ID: " + ownerId);
                 });
+        syncRatingIfOutdated(restaurant);
         return restaurantMapper.toResponse(restaurant);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<RestaurantResponse> getAllOpenRestaurants() {
         List<Restaurant> restaurants = restaurantRepository.findAll();
+        for (Restaurant r : restaurants) {
+            syncRatingIfOutdated(r);
+        }
         return restaurantMapper.toResponseList(restaurants);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<RestaurantResponse> searchRestaurants(String keyword) {
         List<Restaurant> restaurants = restaurantRepository.searchByNameOrAddress(keyword);
+        for (Restaurant r : restaurants) {
+            syncRatingIfOutdated(r);
+        }
         return restaurantMapper.toResponseList(restaurants);
+    }
+
+    private void syncRatingIfOutdated(Restaurant r) {
+        if (reviewRepository == null || r == null || r.getId() == null) return;
+        try {
+            long count = reviewRepository.countByRestaurantId(r.getId());
+            if (count > 0 && (r.getReviewCount() == null || r.getReviewCount() != (int) count)) {
+                Double avg = reviewRepository.calculateAverageRating(r.getId());
+                r.setReviewCount((int) count);
+                if (avg != null) {
+                    r.setRating(Math.round(avg * 10.0) / 10.0);
+                }
+                restaurantRepository.save(r);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -213,7 +249,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurant.setIsLocked(isLocked);
         if (isLocked) {
             restaurant.setLockedReason(request.getReason() != null ? request.getReason().trim() : "Gian hàng bị khóa bởi Admin");
-            restaurant.setLockedAt(java.time.LocalDateTime.now());
+            restaurant.setLockedAt(LocalDateTime.now());
             restaurant.setStatus(RestaurantStatus.CLOSED);
         } else {
             restaurant.setLockedReason(null);
@@ -227,7 +263,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         if (restaurant.getOwnerId() != null) {
             try {
                 if (isLocked) {
-                    redisTemplate.opsForValue().set("user_locked:" + restaurant.getOwnerId(), "true", java.time.Duration.ofDays(30));
+                    redisTemplate.opsForValue().set("user_locked:" + restaurant.getOwnerId(), "true", Duration.ofDays(30));
                 } else {
                     redisTemplate.delete("user_locked:" + restaurant.getOwnerId());
                 }
@@ -241,9 +277,9 @@ public class RestaurantServiceImpl implements RestaurantService {
                         "isLocked", isLocked,
                         "reason", isLocked ? (request.getReason() != null ? request.getReason().trim() : "Gian hàng bị khóa bởi Admin") : ""
                 );
-                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-                org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(lockPayload, headers);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(lockPayload, headers);
                 directRestTemplate.postForEntity(lockUserUrl, entity, Map.class);
                 log.info("Đã đồng bộ trạng thái khóa cho User chủ quán ID {} qua user-driver-service (POST)", restaurant.getOwnerId());
             } catch (Exception e) {

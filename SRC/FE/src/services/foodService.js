@@ -313,6 +313,81 @@ export const foodService = {
       throw error;
     }
   },
+
+  /**
+   * Tạo đánh giá cho đơn hàng (Quán + Tài xế + Ảnh)
+   * Endpoint: POST /api/v1/food-reviews
+   */
+  createReview: async (data) => {
+    try {
+      const res = await post('/api/v1/food-reviews', data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn('Lỗi tạo đánh giá đơn hàng:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật đánh giá trong vòng 48h
+   * Endpoint: PUT /api/v1/food-reviews/{id}
+   */
+  updateReview: async (reviewId, data) => {
+    try {
+      const res = await put(`/api/v1/food-reviews/${reviewId}`, data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi cập nhật đánh giá #${reviewId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy thông tin đánh giá theo mã đơn hàng
+   * Endpoint: GET /api/v1/food-reviews/order/{orderId}
+   */
+  getOrderReview: async (orderId) => {
+    try {
+      const res = await get(`/api/v1/food-reviews/order/${orderId}`);
+      return res?.data || res;
+    } catch (error) {
+      // 404 là bình thường khi đơn chưa được review
+      return null;
+    }
+  },
+
+  /**
+   * Lấy danh sách đánh giá của quán ăn kèm phân trang và rating filter
+   * Endpoint: GET /api/v1/restaurants/{restaurantId}/reviews
+   */
+  getRestaurantReviews: async (restaurantId, rating = null, page = 0, size = 10) => {
+    try {
+      let url = `/api/v1/restaurants/${restaurantId}/reviews?page=${page}&size=${size}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const res = await get(url);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi lấy danh sách đánh giá quán #${restaurantId}:`, error.message);
+      return null;
+    }
+  },
+
+  /**
+   * Chủ quán phản hồi đánh giá của khách
+   * Endpoint: POST /api/v1/food-reviews/{id}/reply
+   */
+  replyReview: async (reviewId, data) => {
+    try {
+      const res = await post(`/api/v1/food-reviews/${reviewId}/reply`, data);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi phản hồi đánh giá #${reviewId}:`, error.message);
+      throw error;
+    }
+  },
 };
 
 export default foodService;
+

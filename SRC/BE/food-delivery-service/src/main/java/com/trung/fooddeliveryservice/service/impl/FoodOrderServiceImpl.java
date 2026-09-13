@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -585,7 +586,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public java.util.Map<String, Object> getAdminFoodStats() {
+    public Map<String, Object> getAdminFoodStats() {
         List<FoodOrder> all = foodOrderRepository.findAll();
         long totalOrders = all.size();
         long completedOrders = all.stream().filter(o -> o.getStatus() == OrderStatus.COMPLETED).count();
@@ -604,7 +605,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .map(FoodOrder::getDeliveryFee)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        Map<String, Object> stats = new HashMap<>();
         stats.put("totalOrders", totalOrders);
         stats.put("completedOrders", completedOrders);
         stats.put("deliveringOrders", deliveringOrders);

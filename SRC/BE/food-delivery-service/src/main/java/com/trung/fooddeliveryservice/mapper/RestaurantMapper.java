@@ -49,6 +49,7 @@ public class RestaurantMapper {
                 .openTime(entity.getOpenTime())
                 .closeTime(entity.getCloseTime())
                 .rating(entity.getRating())
+                .reviewCount(entity.getReviewCount() != null ? entity.getReviewCount() : 0)
                 .isLocked(entity.getIsLocked())
                 .lockedReason(entity.getLockedReason())
                 .lockedAt(entity.getLockedAt())

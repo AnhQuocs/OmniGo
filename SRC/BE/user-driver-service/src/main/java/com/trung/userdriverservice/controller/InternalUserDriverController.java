@@ -1,24 +1,26 @@
 package com.trung.userdriverservice.controller;
 
+import com.trung.userdriverservice.dto.request.RestaurantUserCreateRequest;
+import com.trung.userdriverservice.dto.request.UserLockRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.DriverInternalResponse;
 import com.trung.userdriverservice.dto.response.UserPaymentInfoResponse;
+import com.trung.userdriverservice.dto.response.UserResponse;
+import com.trung.userdriverservice.exception.BadRequestException;
+import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.service.DriverService;
 import com.trung.userdriverservice.service.InternalUserDriverService;
+import com.trung.userdriverservice.service.UserService;
 import com.trung.userdriverservice.util.enums.DriverStatus;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
-import com.trung.userdriverservice.exception.BadRequestException;
-import com.trung.userdriverservice.exception.ResourceConflictException;
 
 @RestController
 @RequestMapping("/api/v1/internal")
@@ -27,7 +29,7 @@ public class InternalUserDriverController {
 
     private final InternalUserDriverService internalUserDriverService;
     private final DriverService driverService;
-    private final com.trung.userdriverservice.service.UserService userService;
+    private final UserService userService;
 
     @GetMapping("/drivers/{id}")
     public ResponseEntity<ApiResponse<DriverInternalResponse>> getDriverProfileInternal(@PathVariable Long id) throws ResourceNotFoundException {
@@ -47,8 +49,8 @@ public class InternalUserDriverController {
     }
 
     @PostMapping("/users/restaurant")
-    public ResponseEntity<ApiResponse<com.trung.userdriverservice.dto.response.UserResponse>> createRestaurantUser(
-            @jakarta.validation.Valid @RequestBody com.trung.userdriverservice.dto.request.RestaurantUserCreateRequest request)
+    public ResponseEntity<ApiResponse<UserResponse>> createRestaurantUser(
+            @Valid @RequestBody RestaurantUserCreateRequest request)
             throws ResourceConflictException, BadRequestException {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(internalUserDriverService.createRestaurantUser(request));
@@ -75,9 +77,9 @@ public class InternalUserDriverController {
     }
 
     @RequestMapping(value = "/users/{id}/lock", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
-    public ResponseEntity<ApiResponse<com.trung.userdriverservice.dto.response.UserResponse>> lockUserInternal(
+    public ResponseEntity<ApiResponse<UserResponse>> lockUserInternal(
             @PathVariable Long id,
-            @RequestBody com.trung.userdriverservice.dto.request.UserLockRequest request) throws ResourceNotFoundException {
+            @RequestBody UserLockRequest request) throws ResourceNotFoundException {
         return ResponseEntity.ok(userService.toggleUserLock(id, request));
     }
 }

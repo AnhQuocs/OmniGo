@@ -21,6 +21,7 @@ import com.trung.bookingservice.util.enums.BookingStatus;
 import com.trung.bookingservice.util.enums.DriverStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -537,7 +538,7 @@ public class BookingServiceImpl implements BookingService {
         report.put("appCollected", appCollected);
         report.put("commissionFee", totalRevenue * 0.20);
 
-        return ApiResponse.<java.util.Map<String, Object>>builder()
+        return ApiResponse.<Map<String, Object>>builder()
                 .success(true)
                 .data(report)
                 .build();
@@ -545,7 +546,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public ApiResponse<List<Booking>> getAllBookings() {
-        List<Booking> list = bookingRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        List<Booking> list = bookingRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
         return ApiResponse.<List<Booking>>builder()
                 .success(true)
                 .message("Lấy toàn bộ danh sách chuyến xe thành công")

@@ -1,7 +1,9 @@
 package com.trung.fooddeliveryservice.controller;
 
+import com.trung.fooddeliveryservice.dto.request.FoodOrderCancelRequest;
 import com.trung.fooddeliveryservice.dto.request.FoodOrderCreateRequest;
 import com.trung.fooddeliveryservice.dto.request.FoodOrderStatusUpdateRequest;
+import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import com.trung.fooddeliveryservice.dto.response.ApiResponse;
 import com.trung.fooddeliveryservice.dto.response.FoodOrderResponse;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/food-orders")
@@ -78,11 +81,11 @@ public class FoodOrderController {
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<FoodOrderResponse>> cancelOrder(
             @PathVariable Long orderId,
-            @RequestBody(required = false) com.trung.fooddeliveryservice.dto.request.FoodOrderCancelRequest cancelRequest)
+            @RequestBody(required = false) FoodOrderCancelRequest cancelRequest)
             throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
         Long customerId = SecurityUtils.getCurrentUserId();
         String reason = cancelRequest != null ? cancelRequest.getReason() : null;
-        com.trung.fooddeliveryservice.util.enums.OrderCancelReason reasonCode = cancelRequest != null ? cancelRequest.getReasonCode() : null;
+        OrderCancelReason reasonCode = cancelRequest != null ? cancelRequest.getReasonCode() : null;
         FoodOrderResponse response = foodOrderService.cancelOrderByCustomer(orderId, customerId, reason, reasonCode);
         return ResponseEntity.ok(ApiResponse.success(response, "Hủy đơn hàng thành công"));
     }
@@ -120,8 +123,8 @@ public class FoodOrderController {
     }
 
     @GetMapping("/admin/stats")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getAdminFoodStats() {
-        java.util.Map<String, Object> stats = foodOrderService.getAdminFoodStats();
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAdminFoodStats() {
+        Map<String, Object> stats = foodOrderService.getAdminFoodStats();
         return ResponseEntity.ok(ApiResponse.success(stats, "Lấy thống kê đồ ăn thành công"));
     }
 }

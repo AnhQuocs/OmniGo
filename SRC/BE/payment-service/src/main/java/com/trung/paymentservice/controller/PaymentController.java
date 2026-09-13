@@ -1,11 +1,15 @@
 package com.trung.paymentservice.controller;
 
+import com.trung.paymentservice.dto.request.FoodOrderPayoutRequest;
 import com.trung.paymentservice.dto.request.MomoIpnRequest;
+import com.trung.paymentservice.dto.request.RefundRequest;
 import com.trung.paymentservice.dto.response.PaymentUrlResponse;
 import com.trung.paymentservice.dto.response.WalletResponse;
 import com.trung.paymentservice.entity.Transaction;
+import com.trung.paymentservice.entity.Wallet;
 import com.trung.paymentservice.mapper.PaymentMapper;
 import com.trung.paymentservice.repository.TransactionRepository;
+import com.trung.paymentservice.repository.WalletRepository;
 import com.trung.paymentservice.service.WalletService;
 import com.trung.paymentservice.service.impl.MomoService;
 import com.trung.paymentservice.service.impl.VnpayService;
@@ -16,11 +20,14 @@ import com.trung.paymentservice.util.enums.TransactionType;
 import com.trung.paymentservice.util.enums.UserType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -33,11 +40,11 @@ public class PaymentController {
     private final MomoService momoService;
     private final VnpayService vnpayService;
     private final TransactionRepository transactionRepository;
-    private final com.trung.paymentservice.repository.WalletRepository walletRepository;
+    private final WalletRepository walletRepository;
     private final PaymentFactory paymentFactory;
 
     @GetMapping("/admin/wallets")
-    public ResponseEntity<List<com.trung.paymentservice.entity.Wallet>> getAllWalletsAdmin() {
+    public ResponseEntity<List<Wallet>> getAllWalletsAdmin() {
         return ResponseEntity.ok(walletRepository.findAll());
     }
 
@@ -68,14 +75,14 @@ public class PaymentController {
     }
 
     @PostMapping("/internal/food-order-payout")
-    public ResponseEntity<Void> payoutFoodOrder(@RequestBody com.trung.paymentservice.dto.request.FoodOrderPayoutRequest request) {
+    public ResponseEntity<Void> payoutFoodOrder(@RequestBody FoodOrderPayoutRequest request) {
         log.info("Nhận yêu cầu payout đơn giao đồ ăn: {}", request);
         walletService.processFoodOrderPayout(request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/internal/refund-order")
-    public ResponseEntity<Void> refundOrder(@RequestBody com.trung.paymentservice.dto.request.RefundRequest request) {
+    public ResponseEntity<Void> refundOrder(@RequestBody RefundRequest request) {
         log.info("Nhận yêu cầu hoàn tiền cho đơn hàng: {}", request);
         walletService.processRefund(request);
         return ResponseEntity.ok().build();
@@ -171,11 +178,11 @@ public class PaymentController {
 
     @GetMapping("/admin/transactions")
     public ResponseEntity<List<Transaction>> getAllTransactionsAdmin() {
-        return ResponseEntity.ok(transactionRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+        return ResponseEntity.ok(transactionRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @GetMapping("/admin/stats")
-    public ResponseEntity<java.util.Map<String, Object>> getAdminPaymentStats() {
+    public ResponseEntity<Map<String, Object>> getAdminPaymentStats() {
         List<Transaction> all = transactionRepository.findAll();
         long total = all.size();
         long successCount = all.stream().filter(t -> t.getStatus() == TransactionStatus.SUCCESS).count();
@@ -184,7 +191,7 @@ public class PaymentController {
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("totalTransactions", total);
         map.put("successTransactions", successCount);
         map.put("totalVolume", totalVolume);

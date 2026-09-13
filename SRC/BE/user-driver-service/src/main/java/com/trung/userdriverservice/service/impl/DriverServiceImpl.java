@@ -3,6 +3,7 @@ package com.trung.userdriverservice.service.impl;
 import com.trung.userdriverservice.dto.request.DriverAdminUpdateRequest;
 import com.trung.userdriverservice.dto.request.DriverApprovalRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
+import com.trung.userdriverservice.dto.request.DriverResubmitRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.LoginResponse;
@@ -203,7 +204,7 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     @Transactional
-    public ApiResponse<UserResponse> resubmitDriver(Long driverId, com.trung.userdriverservice.dto.request.DriverResubmitRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
+    public ApiResponse<UserResponse> resubmitDriver(Long driverId, DriverResubmitRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         DriverProfile profile = driverProfileRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế với ID: " + driverId));
         User user = profile.getUser();

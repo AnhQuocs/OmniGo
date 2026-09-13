@@ -58,6 +58,11 @@ eureka:
 jwt:
   secret: DayLaChuoiBiMatMacDinhCuaToiChoMoiTruongDev123456
 
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
 
 management:
   endpoints:
@@ -82,4 +87,4 @@ logging:
 
 app:
   payment-service-url: http://localhost:8085
-  driver-service-url: http://localhost:8081
+  driver-service-url: http://localhost:8081

@@ -4,6 +4,7 @@ import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,6 +60,10 @@ public class Restaurant extends BaseEntity {
     @Builder.Default
     private Double rating = 5.0;
 
+    @Column(name = "review_count")
+    @Builder.Default
+    private Integer reviewCount = 0;
+
     @Column(name = "is_locked")
     @Builder.Default
     private Boolean isLocked = false;
@@ -67,7 +72,7 @@ public class Restaurant extends BaseEntity {
     private String lockedReason;
 
     @Column(name = "locked_at")
-    private java.time.LocalDateTime lockedAt;
+    private LocalDateTime lockedAt;
 
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

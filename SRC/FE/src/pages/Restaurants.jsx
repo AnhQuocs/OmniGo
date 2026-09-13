@@ -56,6 +56,7 @@ import {
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
+import RestaurantReviewsList from '../components/food/RestaurantReviewsList';
 
 export const Restaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -71,6 +72,7 @@ export const Restaurants = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [openMenuModal, setOpenMenuModal] = useState(false);
+  const [menuModalTab, setMenuModalTab] = useState(0);
 
   // Status Change Dialog State
   const [statusDialogData, setStatusDialogData] = useState(null);
@@ -256,6 +258,7 @@ export const Restaurants = () => {
 
   const handleOpenMenu = async (restaurant) => {
     setSelectedRestaurant(restaurant);
+    setMenuModalTab(0);
     setOpenMenuModal(true);
     setLoadingMenu(true);
     try {
@@ -632,9 +635,17 @@ export const Restaurants = () => {
                           <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                             {r.name}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Chủ quán ID: #{r.ownerId || 'N/A'}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
+                            <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 700 }}>
+                              ⭐ {Number(r.rating || 5.0).toFixed(1)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              ({r.reviewCount || 0} đánh giá)
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              • Chủ: #{r.ownerId || 'N/A'}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Box>
                     </TableCell>
@@ -760,61 +771,79 @@ export const Restaurants = () => {
           </IconButton>
         </DialogTitle>
         <Divider />
+        <Tabs
+          value={menuModalTab}
+          onChange={(_, v) => setMenuModalTab(v)}
+          sx={{ px: 3, borderBottom: 1, borderColor: 'divider', bgcolor: '#f8fafc' }}
+        >
+          <Tab
+            label={`🍽️ Thực Đơn (${menuItems.length})`}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          />
+          <Tab
+            label={`⭐ Đánh Giá & Nhận Xét (${selectedRestaurant?.reviewCount || 0})`}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          />
+        </Tabs>
         <DialogContent sx={{ p: 3 }}>
-          {loadingMenu ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : menuItems.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 5 }}>
-              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                Quán chưa có món ăn nào trong thực đơn.
-              </Typography>
-            </Box>
-          ) : (
-            <Grid container spacing={2}>
-              {menuItems.map((item) => (
-                <Grid item xs={12} sm={6} md={4} key={item.id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      borderRadius: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}
-                      alt={item.name}
-                      sx={{ height: 120, width: '100%', objectFit: 'cover' }}
-                    />
-                    <Box sx={{ p: 1.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {item.name}
+          {menuModalTab === 0 ? (
+            loadingMenu ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+                <CircularProgress />
+              </Box>
+            ) : menuItems.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 5 }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                  Quán chưa có món ăn nào trong thực đơn.
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={2}>
+                {menuItems.map((item) => (
+                  <Grid item xs={12} sm={6} md={4} key={item.id}>
+                    <Card
+                      sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderRadius: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}
+                        alt={item.name}
+                        sx={{ height: 120, width: '100%', objectFit: 'cover' }}
+                      />
+                      <Box sx={{ p: 1.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {item.name}
+                          </Typography>
+                          <Chip
+                            label={item.isAvailable !== false ? 'Còn món' : 'Hết món'}
+                            size="small"
+                            color={item.isAvailable !== false ? 'success' : 'default'}
+                            sx={{ fontSize: '0.7rem', height: 20 }}
+                          />
+                        </Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, flexGrow: 1 }}>
+                          {item.description || 'Không có mô tả chi tiết'}
                         </Typography>
-                        <Chip
-                          label={item.isAvailable !== false ? 'Còn món' : 'Hết món'}
-                          size="small"
-                          color={item.isAvailable !== false ? 'success' : 'default'}
-                          sx={{ fontSize: '0.7rem', height: 20 }}
-                        />
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#f97316' }}>
+                          {Number(item.price || 0).toLocaleString('vi-VN')} đ
+                        </Typography>
                       </Box>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, flexGrow: 1 }}>
-                        {item.description || 'Không có mô tả chi tiết'}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#f97316' }}>
-                        {Number(item.price || 0).toLocaleString('vi-VN')} đ
-                      </Typography>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )
+          ) : (
+            <RestaurantReviewsList restaurantId={selectedRestaurant?.id} />
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
