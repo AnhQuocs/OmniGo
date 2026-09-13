@@ -26,20 +26,50 @@ Tất cả các agent làm việc trong workspace này phải tự động áp d
 
 ---
 
-## 3. Quy Trình Làm Việc Tiêu Chuẩn (Workflows)
+## 3. Quy Trình Làm Việc Tiêu Chuẩn (Workflows & Superpowers Cycle)
 
-Khi thực hiện các tác vụ, hãy vận hành theo các workflow chuẩn trong `.agents/workflows/`:
+Hệ thống kết hợp quy trình nghiêm ngặt của OmniGo Harness cùng phương pháp luận **Superpowers** theo chu trình khép kín:
+```
+[PLAN] ───► [BUILD] ───► [VERIFY] ───► [ITERATE]
+```
 
-*   **Phát triển tính năng mới**: Theo quy trình 4 bước Harness tại [feature-development.md](file:///./.agents/workflows/feature-development.md).
-*   **Điều tra & Fix Bug**: Quy trình tái hiện, khoanh vùng và sửa chữa an toàn tại [bugfix-investigation.md](file:///./.agents/workflows/bugfix-investigation.md).
-*   **Review & Nghiệm thu Code**: Tiêu chuẩn kiểm tra diff và verify tại [code-review-verification.md](file:///./.agents/workflows/code-review-verification.md).
+1. **PLAN (Khảo sát & Lập kế hoạch)**:
+   - Trước khi code bất kỳ tính năng hay refactor nào, bắt buộc kích hoạt `brainstorming` để đối thoại làm rõ yêu cầu, xác định các trường hợp biên và chốt spec.
+   - Sử dụng `writing-plans` để chia nhỏ đầu việc thành các task 2–5 phút, ghi rõ đường dẫn file, mã nguồn cần sửa và bước kiểm thử.
+2. **BUILD (Xây dựng TDD & Kiểm soát viền)**:
+   - Tuân thủ `test-driven-development` (RED-GREEN-REFACTOR): Viết test trước -> Chạy test fail -> Viết code tối thiểu để pass -> Refactor.
+   - Áp dụng `code-boundary-guard` và `harness-spec-validator` để không sinh code ngoài phạm vi.
+   - Có thể điều phối qua `subagent-driven-development` hoặc `executing-plans`.
+3. **VERIFY (Điều tra & Nghiệm thu có bằng chứng)**:
+   - Khi fix bug, bắt buộc kích hoạt `systematic-debugging` theo quy trình 4 giai đoạn tìm nguyên nhân gốc rễ, cấm đoán mò.
+   - Trước khi thông báo hoàn thành nhiệm vụ, kích hoạt `verification-before-completion` để chạy kiểm thử và cung cấp bằng chứng thực tế (test output/log).
+4. **ITERATE (Đánh giá & Hoàn tất)**:
+   - Thực hiện `requesting-code-review` và `receiving-code-review` kiểm tra spec compliance và code quality.
+   - Đóng nhánh an toàn bằng `finishing-a-development-branch`.
 
 ---
 
-## 4. Kích Hoạt Kỹ Năng AI (Skills)
+## 4. Danh Mục Kỹ Năng AI (Skills Ecosystem)
 
-Kích hoạt các kỹ năng chuyên biệt khi xử lý các phần việc tương ứng:
+### Kỹ năng cốt lõi dự án (OmniGo Specialized):
 *   `harness-spec-validator`: Xác thực ràng buộc trước/sau khi code ([SKILL.md](file:///./.agents/skills/harness-spec-validator/SKILL.md)).
 *   `code-boundary-guard`: Tự động rà soát diff, ngăn chặn code rác / ngoài yêu cầu ([SKILL.md](file:///./.agents/skills/code-boundary-guard/SKILL.md)).
 *   `microservice-dev`: Quy chuẩn phát triển Backend Spring Boot ([SKILL.md](file:///./.agents/skills/microservice-dev/SKILL.md)).
 *   `frontend-react-dev`: Quy chuẩn phát triển Frontend React + Vite ([SKILL.md](file:///./.agents/skills/frontend-react-dev/SKILL.md)).
+
+### Kỹ năng phương pháp luận (Superpowers Framework):
+*   `brainstorming`: Đối thoại Socratic làm rõ ý đồ thiết kế trước khi viết code ([SKILL.md](file:///./.agents/skills/brainstorming/SKILL.md)).
+*   `writing-plans`: Phân rã công việc thành các bước siêu chi tiết ([SKILL.md](file:///./.agents/skills/writing-plans/SKILL.md)).
+*   `executing-plans`: Thực thi plan theo từng đợt có checkpoint nghiệm thu ([SKILL.md](file:///./.agents/skills/executing-plans/SKILL.md)).
+*   `test-driven-development`: Chu trình TDD Red-Green-Refactor ([SKILL.md](file:///./.agents/skills/test-driven-development/SKILL.md)).
+*   `systematic-debugging`: Quy trình 4 bước điều tra và khoanh vùng root-cause ([SKILL.md](file:///./.agents/skills/systematic-debugging/SKILL.md)).
+*   `verification-before-completion`: Xác minh bằng chứng thực nghiệm trước khi kết luận ([SKILL.md](file:///./.agents/skills/verification-before-completion/SKILL.md)).
+*   `subagent-driven-development`: Điều phối subagent giải quyết từng task độc lập ([SKILL.md](file:///./.agents/skills/subagent-driven-development/SKILL.md)).
+*   `requesting-code-review`: Tự kiểm tra và yêu cầu review code trước khi bàn giao ([SKILL.md](file:///./.agents/skills/requesting-code-review/SKILL.md)).
+*   `receiving-code-review`: Xử lý phản hồi review một cách kỷ luật ([SKILL.md](file:///./.agents/skills/receiving-code-review/SKILL.md)).
+*   `dispatching-parallel-agents`: Phân phối các nhánh công việc song song ([SKILL.md](file:///./.agents/skills/dispatching-parallel-agents/SKILL.md)).
+*   `using-git-worktrees`: Cô lập workspace phát triển song song an toàn ([SKILL.md](file:///./.agents/skills/using-git-worktrees/SKILL.md)).
+*   `finishing-a-development-branch`: Nghiệm thu và dọn dẹp nhánh/worktree ([SKILL.md](file:///./.agents/skills/finishing-a-development-branch/SKILL.md)).
+*   `writing-skills`: Hướng dẫn tạo skill mới chuẩn chỉnh ([SKILL.md](file:///./.agents/skills/writing-skills/SKILL.md)).
+*   `using-superpowers`: Cơ chế kích hoạt và quy tắc ưu tiên skill ([SKILL.md](file:///./.agents/skills/using-superpowers/SKILL.md)).
+
