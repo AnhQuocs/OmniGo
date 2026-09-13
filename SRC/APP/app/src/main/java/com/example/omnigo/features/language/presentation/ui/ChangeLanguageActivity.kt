@@ -3,7 +3,6 @@ package com.example.omnigo.features.language.presentation.ui
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,7 +58,7 @@ class ChangeLanguageActivity : BaseComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        setContent {
+        setOmniGoContent {
             ChangeLanguageScreen(
                 onBackClick = { finish() }
             )

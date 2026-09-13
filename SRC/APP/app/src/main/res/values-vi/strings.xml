@@ -174,4 +174,46 @@
     <string name="account_logout_confirm_title">Xác nhận đăng xuất</string>
     <string name="account_logout_confirm_msg">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?</string>
     <string name="cancel">Hủy</string>
+
+    <!-- CONNECTIVITY -->
+    <string name="connectivity_no_internet">Không có kết nối Internet</string>
+    <string name="connectivity_restored">Đã khôi phục kết nối Internet</string>
+
+    <!-- ONBOARDING -->
+    <string name="onboarding_skip">Bỏ qua</string>
+    <string name="onboarding_next">Tiếp tục</string>
+    <string name="onboarding_get_started">Bắt đầu ngay</string>
+    <string name="onboarding_title_1">Di chuyển nhanh chóng &amp; Tiện lợi</string>
+    <string name="onboarding_desc_1">Đặt xe máy hoặc ô tô công nghệ chỉ trong tích tắc với các đối tác tài xế tin cậy.</string>
+    <string name="onboarding_title_2">Món ngon &amp; Đi chợ siêu tốc</string>
+    <string name="onboarding_desc_2">Thưởng thức hàng ngàn món ngon nóng hổi và nhận thực phẩm tươi sạch tận cửa nhà.</string>
+    <string name="onboarding_title_3">Giao hàng an toàn &amp; Thanh toán tiện lợi</string>
+    <string name="onboarding_desc_3">Giao nhận bưu kiện thần tốc cùng trải nghiệm thanh toán 1-chạm không tiền mặt.</string>
+
+    <!-- DRIVER -->
+    <string name="driver_nav_home">Trang chủ</string>
+    <string name="driver_nav_trips">Cuốc xe</string>
+    <string name="driver_nav_earnings">Thu nhập</string>
+    <string name="driver_nav_account">Tài khoản</string>
+    <string name="driver_status_online">Đang trực tuyến</string>
+    <string name="driver_status_offline">Đang ngoại tuyến</string>
+    <string name="driver_status_online_hint">Sẵn sàng nhận cuốc xe &amp; đơn hàng</string>
+    <string name="driver_status_offline_hint">Bật trực tuyến để bắt đầu nhận đơn</string>
+    <string name="driver_today_earnings">Thu nhập hôm nay</string>
+    <string name="driver_completed_trips">Cuốc hoàn thành</string>
+    <string name="driver_acceptance_rate">Tỷ lệ nhận cuốc</string>
+    <string name="driver_rating">Đánh giá</string>
+    <string name="driver_scanning_orders">Đang quét tìm cuốc xe gần bạn…</string>
+    <string name="driver_trips_tab_active">Đang chạy</string>
+    <string name="driver_trips_tab_history">Lịch sử</string>
+    <string name="driver_no_active_trip">Hiện không có cuốc xe nào đang chạy</string>
+    <string name="driver_no_trip_history">Chưa có lịch sử cuốc xe nào</string>
+    <string name="driver_wallet_income">Ví thu nhập</string>
+    <string name="driver_wallet_credit">Ví ký quỹ</string>
+    <string name="driver_topup">Nạp ví</string>
+    <string name="driver_cashout">Rút tiền</string>
+    <string name="driver_quests">Nhiệm vụ thưởng ngày</string>
+    <string name="driver_vehicle_info">Thông tin phương tiện</string>
+    <string name="driver_vehicle_type">Loại xe</string>
+    <string name="driver_license_plate">Biển số xe</string>
 </resources>
