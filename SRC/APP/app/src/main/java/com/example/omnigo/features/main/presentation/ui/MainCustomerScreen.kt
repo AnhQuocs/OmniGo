@@ -19,14 +19,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.omnigo.features.activity.presentation.ui.ActivityScreen
-import com.example.omnigo.features.home.presentation.ui.HomeScreen
+import com.example.omnigo.features.customer.activity.presentation.ui.ActivityScreen
+import com.example.omnigo.features.customer.home.presentation.ui.HomeScreen
 import com.example.omnigo.features.main.presentation.navigation.BottomNavDestination
 import com.example.omnigo.features.main.presentation.ui.components.BottomNavVisibilityState
 import com.example.omnigo.features.main.presentation.ui.components.LocalBottomNavVisibility
 import com.example.omnigo.features.main.presentation.ui.components.OmniBottomNavBar
-import com.example.omnigo.features.profile.presentation.ui.AccountScreen
-import com.example.omnigo.features.promos.presentation.ui.PromosScreen
+import com.example.omnigo.features.customer.profile.presentation.ui.AccountScreen
+import com.example.omnigo.features.customer.promos.presentation.ui.PromosScreen
 import com.example.omnigo.ui.theme.BackgroundLight
 
 @Composable

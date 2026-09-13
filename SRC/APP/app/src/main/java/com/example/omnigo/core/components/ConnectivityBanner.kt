@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.example.omnigo.R
@@ -38,19 +37,24 @@ fun ConnectivityBanner(
     status: ConnectivityObserver.Status,
     modifier: Modifier = Modifier
 ) {
+    var previousStatus by remember { mutableStateOf<ConnectivityObserver.Status?>(null) }
     var showRestored by remember { mutableStateOf(false) }
 
     LaunchedEffect(status) {
+        // Chỉ hiển thị "Đã khôi phục" khi trước đó THỰC SỰ đã mất mạng (previousStatus != Available)
         if (status == ConnectivityObserver.Status.Available) {
-            showRestored = true
-            delay(3000L) // Hiển thị thông báo khôi phục trong 3s
-            showRestored = false
+            if (previousStatus != null && previousStatus != ConnectivityObserver.Status.Available) {
+                showRestored = true
+                delay(3000L) // Hiển thị thông báo khôi phục trong 3s
+                showRestored = false
+            }
         } else {
             showRestored = false
         }
+        previousStatus = status
     }
 
-    val isOffline = status != ConnectivityObserver.Status.Available && !showRestored
+    val isOffline = status != ConnectivityObserver.Status.Available
     val isRestored = showRestored
 
     AnimatedVisibility(

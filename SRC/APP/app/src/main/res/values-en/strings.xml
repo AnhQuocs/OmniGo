@@ -178,4 +178,42 @@
     <!-- CONNECTIVITY -->
     <string name="connectivity_no_internet">No Internet Connection</string>
     <string name="connectivity_restored">Internet connection restored</string>
+
+    <!-- ONBOARDING -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_title_1">Fast &amp; Convenient Rides</string>
+    <string name="onboarding_desc_1">Book a motorbike or car ride in seconds with trusted drivers.</string>
+    <string name="onboarding_title_2">Delicious Food &amp; Fast Grocery</string>
+    <string name="onboarding_desc_2">Hot meals from your favorite restaurants and fresh groceries delivered to your door.</string>
+    <string name="onboarding_title_3">Express Delivery &amp; Cashless Pay</string>
+    <string name="onboarding_desc_3">Safe parcel delivery and effortless 1-touch cashless payments.</string>
+
+    <!-- DRIVER -->
+    <string name="driver_nav_home">Home</string>
+    <string name="driver_nav_trips">Trips</string>
+    <string name="driver_nav_earnings">Earnings</string>
+    <string name="driver_nav_account">Account</string>
+    <string name="driver_status_online">Online</string>
+    <string name="driver_status_offline">Offline</string>
+    <string name="driver_status_online_hint">Ready to receive rides &amp; orders</string>
+    <string name="driver_status_offline_hint">Turn on to start receiving orders</string>
+    <string name="driver_today_earnings">Today\'s Earnings</string>
+    <string name="driver_completed_trips">Completed Trips</string>
+    <string name="driver_acceptance_rate">Acceptance Rate</string>
+    <string name="driver_rating">Rating</string>
+    <string name="driver_scanning_orders">Scanning for nearby orders…</string>
+    <string name="driver_trips_tab_active">Active</string>
+    <string name="driver_trips_tab_history">History</string>
+    <string name="driver_no_active_trip">No active trip right now</string>
+    <string name="driver_no_trip_history">No trip history yet</string>
+    <string name="driver_wallet_income">Income Wallet</string>
+    <string name="driver_wallet_credit">Credit Wallet</string>
+    <string name="driver_topup">Top Up</string>
+    <string name="driver_cashout">Withdraw</string>
+    <string name="driver_quests">Daily Quests</string>
+    <string name="driver_vehicle_info">Vehicle Information</string>
+    <string name="driver_vehicle_type">Vehicle Type</string>
+    <string name="driver_license_plate">License Plate</string>
 </resources>
