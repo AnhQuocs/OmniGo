@@ -174,4 +174,8 @@
     <string name="account_logout_confirm_title">Confirm Log Out</string>
     <string name="account_logout_confirm_msg">Are you sure you want to log out?</string>
     <string name="cancel">Cancel</string>
+
+    <!-- CONNECTIVITY -->
+    <string name="connectivity_no_internet">No Internet Connection</string>
+    <string name="connectivity_restored">Internet connection restored</string>
 </resources>

@@ -31,7 +31,8 @@ import com.example.omnigo.ui.theme.BackgroundLight
 
 @Composable
 fun MainCustomerScreen(
-    onNavigateToLogin: () -> Unit, modifier: Modifier = Modifier
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
 

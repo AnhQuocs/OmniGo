@@ -174,4 +174,8 @@
     <string name="account_logout_confirm_title">Xác nhận đăng xuất</string>
     <string name="account_logout_confirm_msg">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?</string>
     <string name="cancel">Hủy</string>
+
+    <!-- CONNECTIVITY -->
+    <string name="connectivity_no_internet">Không có kết nối Internet</string>
+    <string name="connectivity_restored">Đã khôi phục kết nối Internet</string>
 </resources>
