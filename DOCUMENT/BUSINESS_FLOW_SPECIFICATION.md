@@ -225,7 +225,7 @@ sequenceDiagram
     actor Admin as Quản Trị Viên (Admin)
 
     %% 1. TẢI ẢNH & GỬI ĐÁNH GIÁ (TRONG VÒNG 1 TUẦN)
-    Note over Customer, OmniGo: 1. Tải ảnh & Gửi đánh giá (Tối đa 5 ảnh; Hạn chót: 1 tuần từ khi hoàn tất)
+    Note over Customer, OmniGo: 1. Tải ảnh & Gửi đánh giá (Tối đa 5 ảnh - Hạn chót: 1 tuần từ khi hoàn tất)
     opt Có tải ảnh món ăn thực tế
         Customer->>OmniGo: POST /api/v1/food-reviews/upload-image (Tối đa 5 ảnh, định dạng PNG/JPG/WEBP)
         OmniGo-->>Customer: Trả về danh sách URL ảnh Cloudinary
@@ -389,9 +389,9 @@ Nhằm phục vụ phân hệ Báo cáo kinh doanh chuyên biệt cho Quán ăn 
 
 ### 4.1. Khóa Chặt Vị Trí Bằng GPS Geofencing ($\le 50\text{m}$)
 * **Tại bước tài xế bấm đã đến điểm đón (`ARRIVED`):**
-  $$\text{HaversineDistance}(\text{Driver\_GPS}, \text{Pickup\_GPS}) \le 50\text{ mét}$$
+  $$\text{HaversineDistance}(\text{DriverGPS}, \text{PickupGPS}) \le 50\text{m}$$
 * **Tại bước hoàn thành chuyến đi / giao món (`COMPLETED`):**
-  $$\text{HaversineDistance}(\text{Driver\_GPS}, \text{Dropoff\_GPS}) \le 50\text{ mét}$$
+  $$\text{HaversineDistance}(\text{DriverGPS}, \text{DropoffGPS}) \le 50\text{m}$$
 * Nếu tài xế đứng cách vị trí quy định $> 50\text{m}$ mà bấm xác nhận, Backend lập tức từ chối và trả về mã lỗi HTTP `400 Bad Request` (*"Bạn chưa có mặt tại điểm quy định, vui lòng di chuyển đến gần hơn"*).
 
 ### 4.2. Cơ Chế Chống Race Condition Bằng Redis Lock (20 giây)
