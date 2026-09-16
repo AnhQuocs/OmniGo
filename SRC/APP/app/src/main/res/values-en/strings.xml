@@ -147,6 +147,14 @@
     <string name="activity_tab_history">History</string>
     <string name="activity_empty_ongoing">No ongoing rides or orders</string>
     <string name="activity_empty_history">No order history yet</string>
+    <string name="activity_mock_ride_address">123 Nguyen Van Linh, Da Nang</string>
+    <string name="activity_mock_food_name">Pho Bo Ha Noi - 45 Le Loi</string>
+    <string name="activity_mock_status_completed">Completed</string>
+    <string name="activity_mock_status_ongoing">Finding Driver</string>
+    <string name="activity_mock_price_1">45,000 đ</string>
+    <string name="activity_mock_price_2">120,000 đ</string>
+    <string name="activity_mock_date_1">Today, 14:30</string>
+    <string name="activity_mock_date_2">Yesterday, 18:00</string>
 
     <!-- PROMOS SCREEN -->
     <string name="promos_title">Offers &amp; Vouchers</string>

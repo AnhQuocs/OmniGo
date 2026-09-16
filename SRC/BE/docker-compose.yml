@@ -79,6 +79,8 @@ services:
       JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION}
       JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION}
       FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
+    ports:
+      - "8081:8081"
     depends_on:
       - discovery-service
       - postgres
