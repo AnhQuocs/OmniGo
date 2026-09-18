@@ -69,7 +69,7 @@ abstract class NetworkModule {
                 .build()
         }
 
-        private const val BASE_LOCALHOST = "http://192.168.1.128:8081/"
+        private const val BASE_LOCALHOST = "http://192.168.1.128:8086/"
 
         @Provides
         @Singleton

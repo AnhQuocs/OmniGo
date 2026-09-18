@@ -134,12 +134,6 @@
     <string name="home_banner_desc_1">Nhập mã: OMNIRIDE50</string>
     <string name="home_banner_title_2">Miễn phí giao đồ ăn</string>
     <string name="home_banner_desc_2">Áp dụng cho đơn từ 50k</string>
-    <string name="home_suggest_pho">Phở Bò Hà Nội</string>
-    <string name="home_suggest_pho_desc">1.2km • 4.9 (500+ đánh giá)</string>
-    <string name="home_suggest_coffee">Highlands Coffee</string>
-    <string name="home_suggest_coffee_desc">0.8km • 4.8 (1k+ đánh giá)</string>
-    <string name="home_suggest_bmt">Bánh Mì Pate</string>
-    <string name="home_suggest_bmt_desc">1.5km • 4.7 (300+ đánh giá)</string>
 
     <!-- ACTIVITY SCREEN -->
     <string name="activity_title">Hoạt động &amp; Lịch sử</string>
@@ -186,6 +180,19 @@
     <!-- CONNECTIVITY -->
     <string name="connectivity_no_internet">Không có kết nối Internet</string>
     <string name="connectivity_restored">Đã khôi phục kết nối Internet</string>
+
+    <!-- FOOD SCREEN -->
+    <string name="food_title">OmniFood</string>
+    <string name="food_search_hint">Tìm quán ăn, món ăn hoặc đồ uống…</string>
+    <string name="food_filter_all">Tất cả</string>
+    <string name="food_filter_bun">Bún - Phở</string>
+    <string name="food_filter_com">Cơm tấm</string>
+    <string name="food_filter_pizza">Pizza</string>
+    <string name="food_filter_drink">Đồ uống</string>
+    <string name="food_empty_title">Không tìm thấy nhà hàng phù hợp</string>
+    <string name="food_open_status">Đang mở cửa</string>
+    <string name="food_closed_status">Đã đóng cửa</string>
+    <string name="food_rating_format">%1$.1f (%2$d đánh giá)</string>
 
     <!-- ONBOARDING -->
     <string name="onboarding_skip">Bỏ qua</string>

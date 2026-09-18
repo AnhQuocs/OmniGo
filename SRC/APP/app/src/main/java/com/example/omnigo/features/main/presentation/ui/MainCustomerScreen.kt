@@ -54,8 +54,15 @@ fun MainCustomerScreen(
                     .fillMaxSize()
             ) {
                 composable(BottomNavDestination.Home.route) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
                     HomeScreen(onNavigateToService = { serviceType ->
-                        // Future: Navigate to OmniRide / OmniFood detailed flow
+                        if (serviceType == "food") {
+                            val intent = android.content.Intent(context, com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity::class.java)
+                            context.startActivity(intent)
+                        } else if (serviceType == "ride") {
+                            // val intent = android.content.Intent(context, com.example.omnigo.features.customer.booking.presentation.ui.BookingActivity::class.java)
+                            // context.startActivity(intent)
+                        }
                     }, onNavigateToSearch = {
                         // Future: Navigate to Search Screen
                     }, onNavigateToNotifications = {

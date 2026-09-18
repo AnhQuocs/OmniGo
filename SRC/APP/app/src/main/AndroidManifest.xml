@@ -32,6 +32,10 @@
             android:name=".features.language.presentation.ui.ChangeLanguageActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".features.customer.food.presentation.ui.activity.FoodActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

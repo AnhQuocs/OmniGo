@@ -5,7 +5,9 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.example.omnigo.R
+import com.example.omnigo.features.auth.domain.error.LoginError
 import com.example.omnigo.features.auth.domain.error.RegisterError
+import com.example.omnigo.features.customer.food.domain.error.FoodError
 
 sealed interface UiText {
     data class DynamicString(val value: String) : UiText
@@ -54,16 +56,24 @@ fun RegisterError.asUiText(): UiText {
     }
 }
 
-fun com.example.omnigo.features.auth.domain.error.LoginError.asUiText(): UiText {
+fun LoginError.asUiText(): UiText {
     return when (this) {
-        com.example.omnigo.features.auth.domain.error.LoginError.EMPTY_PHONE -> UiText.StringResource(R.string.error_empty_phone)
-        com.example.omnigo.features.auth.domain.error.LoginError.INVALID_PHONE -> UiText.StringResource(R.string.error_invalid_phone)
-        com.example.omnigo.features.auth.domain.error.LoginError.EMPTY_PASSWORD -> UiText.StringResource(R.string.error_empty_password)
-        com.example.omnigo.features.auth.domain.error.LoginError.INVALID_CREDENTIALS -> UiText.StringResource(R.string.error_invalid_credentials)
-        com.example.omnigo.features.auth.domain.error.LoginError.ACCOUNT_NOT_FOUND -> UiText.StringResource(R.string.error_account_not_found)
-        com.example.omnigo.features.auth.domain.error.LoginError.ACCOUNT_BLOCKED -> UiText.StringResource(R.string.error_account_blocked)
-        com.example.omnigo.features.auth.domain.error.LoginError.SERVER_ERROR -> UiText.StringResource(R.string.error_server_error)
-        com.example.omnigo.features.auth.domain.error.LoginError.NETWORK_ERROR -> UiText.StringResource(R.string.error_network_error)
-        com.example.omnigo.features.auth.domain.error.LoginError.UNKNOWN -> UiText.StringResource(R.string.error_unknown)
+        LoginError.EMPTY_PHONE -> UiText.StringResource(R.string.error_empty_phone)
+        LoginError.INVALID_PHONE -> UiText.StringResource(R.string.error_invalid_phone)
+        LoginError.EMPTY_PASSWORD -> UiText.StringResource(R.string.error_empty_password)
+        LoginError.INVALID_CREDENTIALS -> UiText.StringResource(R.string.error_invalid_credentials)
+        LoginError.ACCOUNT_NOT_FOUND -> UiText.StringResource(R.string.error_account_not_found)
+        LoginError.ACCOUNT_BLOCKED -> UiText.StringResource(R.string.error_account_blocked)
+        LoginError.SERVER_ERROR -> UiText.StringResource(R.string.error_server_error)
+        LoginError.NETWORK_ERROR -> UiText.StringResource(R.string.error_network_error)
+        LoginError.UNKNOWN -> UiText.StringResource(R.string.error_unknown)
+    }
+}
+
+fun FoodError.asUiText(): UiText {
+    return when (this) {
+        FoodError.NETWORK_ERROR -> UiText.StringResource(R.string.error_network_error)
+        FoodError.SERVER_ERROR -> UiText.StringResource(R.string.error_server_error)
+        FoodError.UNKNOWN_ERROR -> UiText.StringResource(R.string.error_unknown)
     }
 }

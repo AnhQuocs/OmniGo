@@ -14,9 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,11 +59,15 @@ fun ActivityItemCard(
     val icon: ImageVector = if (type == ActivityType.RIDE) Icons.Filled.DirectionsCar else Icons.Filled.Fastfood
     val statusColor = if (isCompleted) SuccessColor else WarningColor
 
-    Surface(
+    ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppShape.ShapeM),
-        color = SurfaceLight,
-        shadowElevation = 2.dp
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = SurfaceLight
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 2.dp
+        )
     ) {
         Row(
             modifier = Modifier
