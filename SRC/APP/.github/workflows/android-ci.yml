@@ -3,13 +3,24 @@ name: OmniGo Android CI
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'SRC/APP/**'                             # Chỉ chạy CI nếu có file đổi trong thư mục APP
+      - '.github/workflows/android-ci.yml'       # Hoặc khi sửa chính cái file CI này
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'SRC/APP/**'
+      - '.github/workflows/android-ci.yml'
 
 jobs:
   build_and_test:
     name: Build & Run Unit Tests
     runs-on: ubuntu-latest
+    
+    # BẮT BUỘC: Bảo GitHub chạy các lệnh gradlew ở trong thư mục SRC/APP
+    defaults:
+      run:
+        working-directory: ./SRC/APP
 
     steps:
       - name: Checkout Code
@@ -36,4 +47,4 @@ jobs:
         if: success()
         with:
           name: OmniGo-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: SRC/APP/app/build/outputs/apk/debug/app-debug.apk
