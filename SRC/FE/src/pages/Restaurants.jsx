@@ -399,8 +399,8 @@ export const Restaurants = () => {
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-        <Grid item xs={6} sm={3}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5, width: '100%' }}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card
             sx={{
               p: { xs: 1.5, sm: 2 },
@@ -418,7 +418,7 @@ export const Restaurants = () => {
             </Avatar>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                TỔNG QUÁN
+                Tổng quán
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.total}
@@ -427,7 +427,7 @@ export const Restaurants = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card
             sx={{
               p: { xs: 1.5, sm: 2 },
@@ -445,7 +445,7 @@ export const Restaurants = () => {
             </Avatar>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                ĐANG MỞ CỬA
+                Đang mở cửa
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.open}
@@ -454,7 +454,7 @@ export const Restaurants = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card
             sx={{
               p: { xs: 1.5, sm: 2 },
@@ -472,7 +472,7 @@ export const Restaurants = () => {
             </Avatar>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                TẠM BẬN
+                Tạm bận
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#ffaa00', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.busy}
@@ -481,7 +481,7 @@ export const Restaurants = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card
             sx={{
               p: { xs: 1.5, sm: 2 },
@@ -499,7 +499,7 @@ export const Restaurants = () => {
             </Avatar>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                ĐÓNG CỬA
+                Đóng cửa
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {stats.closed}
@@ -510,7 +510,7 @@ export const Restaurants = () => {
       </Grid>
 
       {/* Main Table Container */}
-      <Card sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
+      <Card sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: 1, borderColor: 'divider', minHeight: 'calc(90vh - 160px)', display: 'flex', flexDirection: 'column' }}>
         {/* Filter & Search Bar */}
         <Box
           sx={{
@@ -582,18 +582,18 @@ export const Restaurants = () => {
         )}
 
         {/* Table */}
-        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
           <Table sx={{ minWidth: 700 }} size="small">
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, width: 60 }}>#ID</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Nhà Hàng</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Địa Chỉ</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Số Điện Thoại</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Giờ Phục Vụ</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Trạng Thái</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Gian Hàng</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao Tác</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Nhà hàng</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Địa chỉ</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Số điện thoại</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Giờ phục vụ</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Gian hàng</TableCell>
+                <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -743,6 +743,7 @@ export const Restaurants = () => {
           }}
           labelRowsPerPage="Số hàng mỗi trang:"
           rowsPerPageOptions={[5, 10, 25, 50]}
+          sx={{ mt: 'auto', pt: 1.5 }}
         />
       </Card>
 
@@ -800,7 +801,7 @@ export const Restaurants = () => {
             ) : (
               <Grid container spacing={2}>
                 {menuItems.map((item) => (
-                  <Grid item xs={12} sm={6} md={4} key={item.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
                     <Card
                       sx={{
                         height: '100%',

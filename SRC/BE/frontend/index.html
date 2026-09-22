@@ -10,8 +10,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px 0;
+            box-sizing: border-box;
         }
 
         .auth-container {
@@ -19,7 +21,9 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
+            width: 440px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .tabs {
@@ -80,9 +84,75 @@
         .driver-fields {
             display: none;
             background: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 14px;
+            border-radius: 8px;
             margin-top: 10px;
+            border: 1px solid #ced4da;
+        }
+
+        .doc-section-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #007bff;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border-bottom: 1px dashed #b8c2cc;
+            padding-bottom: 4px;
+        }
+
+        .doc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .doc-box {
+            background: #ffffff;
+            border: 1px dashed #007bff;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .doc-box:hover {
+            background: #f0f7ff;
+            border-color: #0056b3;
+        }
+
+        .doc-box label {
+            font-size: 12px;
+            color: #333;
+            font-weight: 600;
+            cursor: pointer;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .doc-box input[type="file"] {
+            display: none;
+        }
+
+        .doc-preview {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            display: none;
+            margin-top: 5px;
+        }
+
+        .doc-placeholder {
+            font-size: 11px;
+            color: #6c757d;
+            padding: 15px 4px;
+            display: block;
         }
 
         .error-msg {
@@ -159,6 +229,51 @@
             <div class="form-group">
                 <label>Dòng xe</label>
                 <input type="text" id="reg-model" placeholder="VD: Honda Wave, Toyota Vios">
+            </div>
+
+            <!-- HỒ SƠ GIẤY TỜ PHÁP LÝ (BẮT BUỘC) -->
+            <div class="doc-section-title">
+                <span>🪪 1. Căn Cước Công Dân (CCCD / CMND) *</span>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <label style="font-size: 12px;">Số CCCD (Tùy chọn)</label>
+                <input type="text" id="reg-cccd-number" placeholder="VD: 001201012345">
+            </div>
+            <div class="doc-grid">
+                <div class="doc-box" onclick="document.getElementById('file-cccd-front').click()">
+                    <label>Mặt trước CCCD *</label>
+                    <input type="file" id="file-cccd-front" accept="image/*" onchange="handleImagePick(event, 'cccdFront')">
+                    <span id="ph-cccd-front" class="doc-placeholder">📁 Bấm chọn ảnh</span>
+                    <img id="prev-cccd-front" class="doc-preview" alt="CCCD Mặt trước">
+                </div>
+                <div class="doc-box" onclick="document.getElementById('file-cccd-back').click()">
+                    <label>Mặt sau CCCD *</label>
+                    <input type="file" id="file-cccd-back" accept="image/*" onchange="handleImagePick(event, 'cccdBack')">
+                    <span id="ph-cccd-back" class="doc-placeholder">📁 Bấm chọn ảnh</span>
+                    <img id="prev-cccd-back" class="doc-preview" alt="CCCD Mặt sau">
+                </div>
+            </div>
+
+            <div class="doc-section-title">
+                <span>📄 2. Giấy Phép Lái Xe (GPLX) *</span>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <label style="font-size: 12px;">Số GPLX (Tùy chọn)</label>
+                <input type="text" id="reg-gplx-number" placeholder="VD: 790182391283">
+            </div>
+            <div class="doc-grid">
+                <div class="doc-box" onclick="document.getElementById('file-gplx-front').click()">
+                    <label>Mặt trước GPLX *</label>
+                    <input type="file" id="file-gplx-front" accept="image/*" onchange="handleImagePick(event, 'gplxFront')">
+                    <span id="ph-gplx-front" class="doc-placeholder">📁 Bấm chọn ảnh</span>
+                    <img id="prev-gplx-front" class="doc-preview" alt="GPLX Mặt trước">
+                </div>
+                <div class="doc-box" onclick="document.getElementById('file-gplx-back').click()">
+                    <label>Mặt sau GPLX *</label>
+                    <input type="file" id="file-gplx-back" accept="image/*" onchange="handleImagePick(event, 'gplxBack')">
+                    <span id="ph-gplx-back" class="doc-placeholder">📁 Bấm chọn ảnh</span>
+                    <img id="prev-gplx-back" class="doc-preview" alt="GPLX Mặt sau">
+                </div>
             </div>
         </div>
 
@@ -259,6 +374,44 @@
         }
     }
 
+    // Lưu trữ ảnh giấy tờ CCCD & GPLX dưới dạng Base64
+    const driverDocs = {
+        cccdFront: '',
+        cccdBack: '',
+        gplxFront: '',
+        gplxBack: ''
+    };
+
+    function handleImagePick(event, docType) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Vui lòng chọn tệp hình ảnh hợp lệ (PNG, JPG, JPEG, WEBP)!');
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            driverDocs[docType] = e.target.result;
+            const keyMap = {
+                'cccdFront': { ph: 'ph-cccd-front', prev: 'prev-cccd-front' },
+                'cccdBack': { ph: 'ph-cccd-back', prev: 'prev-cccd-back' },
+                'gplxFront': { ph: 'ph-gplx-front', prev: 'prev-gplx-front' },
+                'gplxBack': { ph: 'ph-gplx-back', prev: 'prev-gplx-back' }
+            };
+            const map = keyMap[docType];
+            if (map) {
+                document.getElementById(map.ph).style.display = 'none';
+                const img = document.getElementById(map.prev);
+                img.src = e.target.result;
+                img.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
     // Xử lý Register
     async function doRegister() {
         const name = document.getElementById('reg-name').value;
@@ -279,6 +432,20 @@
             payload.licensePlate = document.getElementById('reg-plate').value;
             payload.vehicleModel = document.getElementById('reg-model').value;
             if (!payload.licensePlate || !payload.vehicleModel) return errorEl.innerText = "Vui lòng nhập đủ thông tin xe";
+
+            payload.cccdNumber = document.getElementById('reg-cccd-number').value.trim() || undefined;
+            payload.cccdFrontImage = driverDocs.cccdFront;
+            payload.cccdBackImage = driverDocs.cccdBack;
+            payload.gplxNumber = document.getElementById('reg-gplx-number').value.trim() || undefined;
+            payload.gplxFrontImage = driverDocs.gplxFront;
+            payload.gplxBackImage = driverDocs.gplxBack;
+
+            if (!payload.cccdFrontImage || !payload.cccdBackImage) {
+                return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Căn cước công dân (CCCD)!";
+            }
+            if (!payload.gplxFrontImage || !payload.gplxBackImage) {
+                return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Giấy phép lái xe (GPLX)!";
+            }
         }
 
         errorEl.innerText = "Đang xử lý...";
@@ -295,10 +462,10 @@
             if (!res.ok || !data.success) throw new Error(data.message || data.error || "Đăng ký thất bại");
 
             errorEl.style.color = "green";
-            errorEl.innerText = "Đăng ký thành công! Đang tự động đăng nhập vào ứng dụng của bạn...";
+            errorEl.innerText = "Đăng ký thành công! Hồ sơ đang chờ Quản trị viên phê duyệt. Đang chuyển hướng...";
 
             // Tự động Login sau khi đăng ký và chuyển đúng trang tương ứng
-            setTimeout(() => doLogin(phone, password, accType), 1000);
+            setTimeout(() => doLogin(phone, password, accType), 1200);
         } catch (err) {
             errorEl.style.color = "red";
             errorEl.innerText = err.message;

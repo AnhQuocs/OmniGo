@@ -41,7 +41,81 @@ export const Users = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('CUSTOMER');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+
+  const getRoleChip = (role) => {
+    switch (role) {
+      case 'ADMIN':
+        return (
+          <Chip
+            label="Quản trị viên"
+            size="small"
+            sx={{
+              bgcolor: 'rgba(239, 68, 68, 0.12)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          />
+        );
+      case 'CUSTOMER':
+        return (
+          <Chip
+            label="Khách hàng"
+            size="small"
+            sx={{
+              bgcolor: 'rgba(0, 140, 255, 0.12)',
+              color: '#008cff',
+              border: '1px solid rgba(0, 140, 255, 0.25)',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          />
+        );
+      case 'DRIVER':
+        return (
+          <Chip
+            label="Tài xế"
+            size="small"
+            sx={{
+              bgcolor: 'rgba(245, 158, 11, 0.12)',
+              color: '#d97706',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          />
+        );
+      case 'RESTAURANT':
+        return (
+          <Chip
+            label="Quán ăn"
+            size="small"
+            sx={{
+              bgcolor: 'rgba(249, 115, 22, 0.12)',
+              color: '#ea580c',
+              border: '1px solid rgba(249, 115, 22, 0.25)',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          />
+        );
+      default:
+        return (
+          <Chip
+            label={role || 'Người dùng'}
+            size="small"
+            sx={{
+              bgcolor: 'rgba(148, 163, 184, 0.15)',
+              color: '#64748b',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          />
+        );
+    }
+  };
 
   // Lock Dialog state
   const [openLockDialog, setOpenLockDialog] = useState(false);
@@ -162,14 +236,14 @@ export const Users = () => {
       )}
 
       {/* Main Container Card */}
-      <Card sx={{ border: 1, borderColor: 'divider' }}>
-        <CardContent sx={{ p: { xs: 1.8, sm: 3 } }}>
+      <Card sx={{ border: 1, borderColor: 'divider', minHeight: 'calc(90vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ p: { xs: 1.8, sm: 3 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* Controls Bar */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
               {[
-                { label: 'Khách Hàng', value: 'CUSTOMER', count: allUsers.filter((u) => u.role === 'CUSTOMER').length },
                 { label: 'Tất Cả', value: 'ALL', count: allUsers.length },
+                { label: 'Khách Hàng', value: 'CUSTOMER', count: allUsers.filter((u) => u.role === 'CUSTOMER').length },
                 { label: 'Quản Trị Viên', value: 'ADMIN', count: allUsers.filter((u) => u.role === 'ADMIN').length },
               ].map((tab) => (
                 <Button
@@ -217,18 +291,18 @@ export const Users = () => {
             </Box>
           </Box>
 
-          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflowX: 'auto', width: '100%' }}>
+          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
             <Table sx={{ minWidth: 700 }} size="small">
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: 80, fontWeight: 700 }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HỌ VÀ TÊN</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>SỐ ĐIỆN THOẠI</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>EMAIL</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>VAI TRÒ</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>TRẠNG THÁI</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>NGÀY TẠO</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>HÀNH ĐỘNG</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Họ và tên</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Số điện thoại</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Vai trò</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Ngày tạo</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Hành động</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -265,33 +339,25 @@ export const Users = () => {
                         {user.email || '—'}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={user.role}
-                          color={user.role === 'ADMIN' ? 'primary' : 'default'}
-                          size="small"
-                          sx={{ fontWeight: 700 }}
-                        />
+                        {getRoleChip(user.role)}
                       </TableCell>
                       <TableCell>
                         {user.isLocked ? (
                           <Tooltip title={`Lý do: ${user.lockedReason || 'Không có lý do'}`}>
-                            <Chip
-                              icon={<LockIcon sx={{ fontSize: '14px !important' }} />}
-                              label="ĐÃ KHÓA"
-                              color="error"
-                              size="small"
-                              sx={{ fontWeight: 700 }}
-                            />
+                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, cursor: 'help' }}>
+                              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444' }} />
+                              <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 600, fontSize: '0.85rem' }}>
+                                Bị khóa
+                              </Typography>
+                            </Box>
                           </Tooltip>
                         ) : (
-                          <Chip
-                            icon={<UnlockIcon sx={{ fontSize: '14px !important' }} />}
-                            label="HOẠT ĐỘNG"
-                            color="success"
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontWeight: 700 }}
-                          />
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8 }}>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#15ca20' }} />
+                            <Typography variant="body2" sx={{ color: '#15ca20', fontWeight: 600, fontSize: '0.85rem' }}>
+                              Hoạt động
+                            </Typography>
+                          </Box>
                         )}
                       </TableCell>
                       <TableCell sx={{ color: 'text.secondary', fontSize: '0.9rem', fontWeight: 500 }}>
@@ -299,16 +365,27 @@ export const Users = () => {
                       </TableCell>
                       <TableCell align="center">
                         {user.role !== 'ADMIN' && (
-                          <Button
-                            size="small"
-                            variant={user.isLocked ? 'outlined' : 'contained'}
-                            color={user.isLocked ? 'success' : 'error'}
-                            startIcon={user.isLocked ? <UnlockIcon /> : <LockIcon />}
-                            onClick={() => handleOpenLockModal(user)}
-                            sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
-                          >
-                            {user.isLocked ? 'Mở Khóa' : 'Khóa'}
-                          </Button>
+                          <Tooltip title={user.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenLockModal(user)}
+                              sx={{
+                                color: user.isLocked ? '#15ca20' : '#ef4444',
+                                bgcolor: user.isLocked ? 'rgba(21, 202, 32, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid',
+                                borderColor: user.isLocked ? 'rgba(21, 202, 32, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                                borderRadius: 2,
+                                p: 0.9,
+                                transition: 'all 0.2s',
+                                '&:hover': {
+                                  bgcolor: user.isLocked ? 'rgba(21, 202, 32, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  transform: 'scale(1.05)',
+                                },
+                              }}
+                            >
+                              {user.isLocked ? <UnlockIcon sx={{ fontSize: 18 }} /> : <LockIcon sx={{ fontSize: 18 }} />}
+                            </IconButton>
+                          </Tooltip>
                         )}
                       </TableCell>
                     </TableRow>
@@ -330,7 +407,7 @@ export const Users = () => {
               setPage(0);
             }}
             labelRowsPerPage="Số dòng mỗi trang:"
-            sx={{ mt: 1 }}
+            sx={{ mt: 'auto', pt: 1.5 }}
           />
         </CardContent>
       </Card>

@@ -52,6 +52,12 @@ public class UserMapper {
         profile.setVehicleType(request.getVehicleType());
         profile.setLicensePlate(request.getLicensePlate());
         profile.setVehicleModel(request.getVehicleModel());
+        profile.setCccdNumber(request.getCccdNumber());
+        profile.setCccdFrontImage(request.getCccdFrontImage());
+        profile.setCccdBackImage(request.getCccdBackImage());
+        profile.setGplxNumber(request.getGplxNumber());
+        profile.setGplxFrontImage(request.getGplxFrontImage());
+        profile.setGplxBackImage(request.getGplxBackImage());
         profile.setStatus(DriverStatus.OFFLINE);
         return profile;
     }
@@ -77,6 +83,12 @@ public class UserMapper {
                 builder.vehicleType(dp.getVehicleType());
                 builder.licensePlate(dp.getLicensePlate());
                 builder.vehicleModel(dp.getVehicleModel());
+                builder.cccdNumber(dp.getCccdNumber());
+                builder.cccdFrontImage(dp.getCccdFrontImage());
+                builder.cccdBackImage(dp.getCccdBackImage());
+                builder.gplxNumber(dp.getGplxNumber());
+                builder.gplxFrontImage(dp.getGplxFrontImage());
+                builder.gplxBackImage(dp.getGplxBackImage());
             });
         }
 
@@ -95,6 +107,12 @@ public class UserMapper {
                 .vehicleType(profile.getVehicleType())
                 .licensePlate(profile.getLicensePlate())
                 .vehicleModel(profile.getVehicleModel())
+                .cccdNumber(profile.getCccdNumber())
+                .cccdFrontImage(profile.getCccdFrontImage())
+                .cccdBackImage(profile.getCccdBackImage())
+                .gplxNumber(profile.getGplxNumber())
+                .gplxFrontImage(profile.getGplxFrontImage())
+                .gplxBackImage(profile.getGplxBackImage())
                 .status(profile.getStatus())
                 .approvalStatus(profile.getApprovalStatus())
                 .rejectionReason(profile.getRejectionReason())

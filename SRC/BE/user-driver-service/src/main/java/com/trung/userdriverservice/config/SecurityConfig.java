@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users/register/**").permitAll()
                         .requestMatchers("/api/v1/drivers/register").permitAll()
+                        .requestMatchers("/api/v1/drivers/upload-document").permitAll()
                         .requestMatchers("/api/v1/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
