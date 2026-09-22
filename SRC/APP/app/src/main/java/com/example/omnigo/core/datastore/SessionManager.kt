@@ -2,10 +2,12 @@ package com.example.omnigo.core.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.core.security.CryptoManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -28,6 +30,10 @@ class SessionManager @Inject constructor(
         private val KEY_PHONE_NUMBER = stringPreferencesKey("phone_number")
         private val KEY_FULL_NAME = stringPreferencesKey("full_name")
         private val KEY_ROLE = stringPreferencesKey("user_role")
+        private val KEY_LOCATION_LAT = doublePreferencesKey("user_location_lat")
+        private val KEY_LOCATION_LNG = doublePreferencesKey("user_location_lng")
+        private val KEY_LOCATION_NAME = stringPreferencesKey("user_location_name")
+        private val KEY_LOCATION_FULL_ADDRESS = stringPreferencesKey("user_location_full_address")
     }
 
     val accessTokenFlow: Flow<String?> = dataStore.data
@@ -152,6 +158,33 @@ class SessionManager @Inject constructor(
             .catch { emit(emptyPreferences()) }
             .map { it[KEY_USER_ID] }
             .firstOrNull()
+    }
+
+    suspend fun saveUserLocation(location: UserLocation) {
+        dataStore.edit { preferences ->
+            preferences[KEY_LOCATION_LAT] = location.latitude
+            preferences[KEY_LOCATION_LNG] = location.longitude
+            preferences[KEY_LOCATION_NAME] = location.addressName
+            preferences[KEY_LOCATION_FULL_ADDRESS] = location.fullAddress
+        }
+    }
+
+    suspend fun getUserLocation(): UserLocation? {
+        val prefs = dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .firstOrNull() ?: return null
+
+        val lat = prefs[KEY_LOCATION_LAT] ?: return null
+        val lng = prefs[KEY_LOCATION_LNG] ?: return null
+        val name = prefs[KEY_LOCATION_NAME] ?: ""
+        val full = prefs[KEY_LOCATION_FULL_ADDRESS] ?: ""
+
+        return UserLocation(
+            latitude = lat,
+            longitude = lng,
+            addressName = name,
+            fullAddress = full
+        )
     }
 
     suspend fun clearSession() {

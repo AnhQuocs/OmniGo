@@ -97,4 +97,7 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }
