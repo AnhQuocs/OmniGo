@@ -121,7 +121,9 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         fetchPopularPlaces()
-        detectLocation()
+        if (_uiState.value.userLocation == null) {
+            detectLocation()
+        }
     }
 
     private fun fetchPopularPlaces() {
@@ -313,16 +315,11 @@ class HomeViewModel @Inject constructor(
     fun onEditSavedAddress(savedAddress: SavedAddress) {
         viewModelScope.launch {
             val provinces = getProvincesUseCase("")
-            val selectedProv = provinces.find { it.name.equals(savedAddress.provinceId, ignoreCase = true) || it.id == savedAddress.provinceId }
-                ?: provinces.find { savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
-
+            val selectedProv = provinces.find { it.name.equals(savedAddress.provinceId, ignoreCase = true) || it.id == savedAddress.provinceId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
             val districts = if (selectedProv != null) getDistrictsByProvinceUseCase(selectedProv.id, "") else emptyList()
-            val selectedDist = districts.find { it.name.equals(savedAddress.districtId, ignoreCase = true) || it.id == savedAddress.districtId }
-                ?: districts.find { savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
-
+            val selectedDist = districts.find { it.name.equals(savedAddress.districtId, ignoreCase = true) || it.id == savedAddress.districtId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
             val wards = if (selectedProv != null && selectedDist != null) getWardsByDistrictUseCase(selectedProv.id, selectedDist.id, "") else emptyList()
-            val selectedW = wards.find { it.name.equals(savedAddress.wardId, ignoreCase = true) || it.id == savedAddress.wardId }
-                ?: wards.find { savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
+            val selectedW = wards.find { it.name.equals(savedAddress.wardId, ignoreCase = true) || it.id == savedAddress.wardId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
 
             _uiState.update {
                 it.copy(

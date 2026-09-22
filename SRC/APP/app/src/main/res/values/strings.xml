@@ -260,4 +260,22 @@
     <string name="driver_vehicle_info">Vehicle Information</string>
     <string name="driver_vehicle_type">Vehicle Type</string>
     <string name="driver_license_plate">License Plate</string>
+
+    <!-- RESTAURANT DETAIL SCREEN -->
+    <string name="restaurant_detail_title">Restaurant Details</string>
+    <string name="restaurant_detail_status_open">Open</string>
+    <string name="restaurant_detail_status_closed">Closed</string>
+    <string name="restaurant_detail_rating">%1$.1f (%2$d+ reviews)</string>
+    <string name="restaurant_detail_distance">%1$.1f km • ~%2$d mins</string>
+    <string name="restaurant_detail_category_all">All Menu</string>
+    <string name="restaurant_detail_add_to_cart">Add</string>
+    <string name="restaurant_detail_item_unavailable">Sold out</string>
+    <string name="restaurant_detail_cart_summary">%1$d item(s) • %2$s</string>
+    <string name="restaurant_detail_cart_btn_checkout">View Cart</string>
+    <string name="restaurant_detail_phone_call">Call Restaurant</string>
+    <string name="restaurant_detail_address">Address</string>
+    <string name="restaurant_detail_open_hours">Hours: %1$s - %2$s</string>
+    <string name="restaurant_detail_empty_menu">No items available in this category</string>
+    <string name="restaurant_detail_error">Unable to load restaurant information</string>
+    <string name="restaurant_detail_retry">Retry</string>
 </resources>

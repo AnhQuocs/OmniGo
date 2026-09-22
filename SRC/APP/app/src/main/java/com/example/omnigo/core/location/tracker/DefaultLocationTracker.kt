@@ -71,7 +71,8 @@ class DefaultLocationTracker @Inject constructor(
     private suspend fun fetchCurrentAndroidLocation(): Location? {
         val cancellationTokenSource = CancellationTokenSource()
 
-        val freshLocation = kotlinx.coroutines.withTimeoutOrNull(4000L) {
+        // 1. Try High Accuracy GPS with 6s timeout
+        val freshHighAcc = kotlinx.coroutines.withTimeoutOrNull(6000L) {
             suspendCancellableCoroutine<Location?> { continuation ->
                 locationClient.getCurrentLocation(
                     Priority.PRIORITY_HIGH_ACCURACY,
@@ -89,9 +90,31 @@ class DefaultLocationTracker @Inject constructor(
                 }
             }
         }
+        if (freshHighAcc != null) return freshHighAcc
 
-        if (freshLocation != null) return freshLocation
+        // 2. Try Balanced Power Accuracy (WiFi / Cell) with 3s timeout for fast indoor fix
+        val balancedCts = CancellationTokenSource()
+        val balancedLocation = kotlinx.coroutines.withTimeoutOrNull(3000L) {
+            suspendCancellableCoroutine<Location?> { continuation ->
+                locationClient.getCurrentLocation(
+                    Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    balancedCts.token
+                ).addOnSuccessListener { location ->
+                    if (continuation.isActive) continuation.resume(location)
+                }.addOnFailureListener {
+                    if (continuation.isActive) continuation.resume(null)
+                }.addOnCanceledListener {
+                    if (continuation.isActive) continuation.cancel()
+                }
 
+                continuation.invokeOnCancellation {
+                    balancedCts.cancel()
+                }
+            }
+        }
+        if (balancedLocation != null) return balancedLocation
+
+        // 3. Fallback to last known location
         return kotlinx.coroutines.withTimeoutOrNull(2000L) {
             suspendCancellableCoroutine { continuation ->
                 locationClient.lastLocation
@@ -119,35 +142,30 @@ class DefaultLocationTracker @Inject constructor(
 
                 if (address != null) {
                     val rawLine0 = address.getAddressLine(0)?.trim().orEmpty()
-                    val cleanFull = rawLine0
-                        .replace(Regex(",?\\s*Việt Nam$", RegexOption.IGNORE_CASE), "")
-                        .replace(Regex(",?\\s*Vietnam$", RegexOption.IGNORE_CASE), "")
-                        .trim()
+                    val cleanFull = sanitizeAddress(rawLine0)
 
-                    val shortName = if (!address.thoroughfare.isNullOrBlank()) {
-                        val street = if (!address.subThoroughfare.isNullOrBlank()) {
-                            "${address.subThoroughfare.trim()} ${address.thoroughfare.trim()}"
+                    if (cleanFull.isNotBlank()) {
+                        val shortName = extractShortAddress(cleanFull)
+                        Pair(shortName, cleanFull)
+                    } else {
+                        val parts = listOfNotNull(
+                            address.subLocality,
+                            address.subAdminArea,
+                            address.adminArea
+                        ).filter { it.isNotBlank() }.distinct()
+
+                        val full = if (parts.isNotEmpty()) {
+                            parts.joinToString(", ")
                         } else {
-                            address.thoroughfare.trim()
+                            "Tọa độ: ${String.format(Locale.US, "%.5f, %.5f", latitude, longitude)}"
                         }
-                        val districtOrWard = address.subAdminArea?.trim()
-                            ?: address.subLocality?.trim()
-                            ?: address.adminArea?.trim()
-                            ?: ""
-                        if (districtOrWard.isNotBlank()) "$street, $districtOrWard" else street
-                    } else if (cleanFull.isNotBlank()) {
-                        extractShortAddress(cleanFull)
-                    } else {
-                        "Vị trí GPS (${String.format(Locale.US, "%.4f, %.4f", latitude, longitude)})"
+                        val short = if (parts.isNotEmpty()) {
+                            extractShortAddress(full)
+                        } else {
+                            "Vị trí GPS (${String.format(Locale.US, "%.4f, %.4f", latitude, longitude)})"
+                        }
+                        Pair(short, full)
                     }
-
-                    val full = if (cleanFull.isNotBlank()) {
-                        cleanFull
-                    } else {
-                        "Tọa độ: ${String.format(Locale.US, "%.5f, %.5f", latitude, longitude)}"
-                    }
-
-                    Pair(shortName, full)
                 } else {
                     Pair(
                         "Vị trí GPS (${String.format(Locale.US, "%.4f, %.4f", latitude, longitude)})",
@@ -161,6 +179,34 @@ class DefaultLocationTracker @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun sanitizeAddress(rawFullAddress: String): String {
+        var clean = rawFullAddress
+            .replace(Regex(",?\\s*Việt Nam$", RegexOption.IGNORE_CASE), "")
+            .replace(Regex(",?\\s*Vietnam$", RegexOption.IGNORE_CASE), "")
+            .trim()
+
+        val poiKeywords = listOf(
+            "Hợp tác xã", "Hợp Tác Xã", "HTX",
+            "Công ty", "Công Ty", "TNHH", "Cổ phần", "Cổ Phần",
+            "Cửa hàng", "Cửa Hàng", "Shop",
+            "Nhà xe", "Nhà Xe", "Bến xe", "Bến Xe",
+            "Trụ sở", "Trụ Sở", "Văn phòng", "Văn Phòng",
+            "Tòa nhà", "Tòa Nhà", "Chung cư", "Chung Cư",
+            "Ủy ban", "UBND"
+        )
+
+        val parts = clean.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        if (parts.size >= 3) {
+            val firstPart = parts[0]
+            val isPoi = poiKeywords.any { firstPart.startsWith(it, ignoreCase = true) }
+            if (isPoi) {
+                clean = parts.drop(1).joinToString(", ")
+            }
+        }
+
+        return clean
     }
 
     override suspend fun getAddressFromCoordinates(latitude: Double, longitude: Double): String? {
@@ -200,12 +246,23 @@ class DefaultLocationTracker @Inject constructor(
     }
 
     private fun extractShortAddress(fullAddress: String): String {
-        if (fullAddress.isBlank()) return ""
-        val parts = fullAddress.split(",")
-        return if (parts.size >= 2) {
-            "${parts[0].trim()}, ${parts[1].trim()}"
-        } else {
-            fullAddress
+        val clean = sanitizeAddress(fullAddress)
+        if (clean.isBlank()) return ""
+        val parts = clean.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        if (parts.isEmpty()) return clean
+
+        if (parts[0].matches(Regex("^[0-9]+[a-zA-Z0-9/\\-]*$")) && parts.size >= 2) {
+            return if (parts.size >= 3) {
+                "${parts[0]} ${parts[1]}, ${parts[2]}"
+            } else {
+                "${parts[0]} ${parts[1]}"
+            }
+        }
+
+        return when {
+            parts.size >= 2 -> "${parts[0]}, ${parts[1]}"
+            parts.size == 1 -> parts[0]
+            else -> clean
         }
     }
 }

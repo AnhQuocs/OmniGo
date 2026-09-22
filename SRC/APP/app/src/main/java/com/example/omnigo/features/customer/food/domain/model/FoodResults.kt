@@ -11,3 +11,13 @@ sealed interface GetRestaurantsResult {
         val error: FoodError
     ) : GetRestaurantsResult
 }
+
+sealed interface GetRestaurantDetailResult {
+    data class Success(
+        val restaurant: Restaurant
+    ) : GetRestaurantDetailResult
+
+    data class Error(
+        val error: FoodError
+    ) : GetRestaurantDetailResult
+}

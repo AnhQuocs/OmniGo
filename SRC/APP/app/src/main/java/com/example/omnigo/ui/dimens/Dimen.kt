@@ -50,6 +50,8 @@ object Dimen {
 
     val WidthPromoBanner = 280.dp
     val HeightPromoBanner = 140.dp
+    val HeightHeroBanner = 220.dp
+    val SizeMenuItemImage = 88.dp
     val SizeWalletIcon = 38.dp
     val SizeHeaderLocation = 38.dp
 }

@@ -262,4 +262,22 @@
     <string name="driver_vehicle_info">Thông tin phương tiện</string>
     <string name="driver_vehicle_type">Loại xe</string>
     <string name="driver_license_plate">Biển số xe</string>
+
+    <!-- RESTAURANT DETAIL SCREEN -->
+    <string name="restaurant_detail_title">Chi tiết nhà hàng</string>
+    <string name="restaurant_detail_status_open">Đang mở cửa</string>
+    <string name="restaurant_detail_status_closed">Đã đóng cửa</string>
+    <string name="restaurant_detail_rating">%1$.1f (%2$d+ đánh giá)</string>
+    <string name="restaurant_detail_distance">%1$.1f km • ~%2$d phút</string>
+    <string name="restaurant_detail_category_all">Tất cả món</string>
+    <string name="restaurant_detail_add_to_cart">Thêm</string>
+    <string name="restaurant_detail_item_unavailable">Hết món</string>
+    <string name="restaurant_detail_cart_summary">%1$d món • %2$s</string>
+    <string name="restaurant_detail_cart_btn_checkout">Xem giỏ hàng</string>
+    <string name="restaurant_detail_phone_call">Gọi nhà hàng</string>
+    <string name="restaurant_detail_address">Địa chỉ</string>
+    <string name="restaurant_detail_open_hours">Giờ mở cửa: %1$s - %2$s</string>
+    <string name="restaurant_detail_empty_menu">Chưa có món ăn nào trong danh mục này</string>
+    <string name="restaurant_detail_error">Không thể tải thông tin nhà hàng</string>
+    <string name="restaurant_detail_retry">Thử lại</string>
 </resources>
