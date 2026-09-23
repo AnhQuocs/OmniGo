@@ -206,28 +206,27 @@ export default function RestaurantReviewsList({ restaurantId, isMerchantOwner = 
             return (
               <Card key={review.id} variant="outlined" sx={{ borderRadius: 2 }}>
                 <CardContent sx={{ p: 2.5 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Avatar sx={{ width: 38, height: 38, bgcolor: 'primary.light', fontWeight: 700 }}>
-                        {name.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Box>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar sx={{ width: 38, height: 38, bgcolor: 'primary.light', fontWeight: 700 }}>
+                      {name.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="subtitle2" fontWeight={700}>
                           {maskedName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
-                          {review.isEdited && ' • Đã chỉnh sửa'}
-                        </Typography>
-                      </Box>
-                    </Stack>
-
-                    <Rating
-                      value={review.restaurantRating}
-                      readOnly
-                      size="small"
-                      emptyIcon={<StarIcon style={{ opacity: 0.3 }} fontSize="inherit" />}
-                    />
+                        <Rating
+                          value={review.restaurantRating}
+                          readOnly
+                          size="small"
+                          emptyIcon={<StarIcon style={{ opacity: 0.3 }} fontSize="inherit" />}
+                        />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
+                        {review.isEdited && ' • Đã chỉnh sửa'}
+                      </Typography>
+                    </Box>
                   </Stack>
 
                   {/* Nhận xét món ăn */}

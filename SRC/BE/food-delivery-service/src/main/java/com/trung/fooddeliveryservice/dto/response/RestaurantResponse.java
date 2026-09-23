@@ -21,6 +21,7 @@ public class RestaurantResponse implements Serializable {
     private Double latitude;
     private Double longitude;
     private String imageUrl;
+    private String licenseImageUrl;
     private RestaurantStatus status;
     private String openTime;
     private String closeTime;

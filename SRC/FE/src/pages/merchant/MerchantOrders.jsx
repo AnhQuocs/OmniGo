@@ -40,6 +40,7 @@ import {
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import AddressAutocomplete from '../../components/common/AddressAutocomplete';
 
 // Beep sound function using Web Audio API
 const playOrderBeep = () => {
@@ -429,27 +430,31 @@ export const MerchantOrders = () => {
                 value={regForm.phone}
                 onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
               />
-              <TextField
-                label="Địa chỉ chi tiết"
+              <AddressAutocomplete
+                label="Địa chỉ chi tiết quán"
                 required
-                fullWidth
                 value={regForm.address}
-                onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                latitude={regForm.latitude}
+                longitude={regForm.longitude}
+                onChangeAddress={(newAddr) =>
+                  setRegForm((prev) => ({ ...prev, address: newAddr }))
+                }
+                onSelectLocation={({ address, latitude, longitude }) => {
+                  setRegForm((prev) => ({
+                    ...prev,
+                    address,
+                    latitude: String(latitude),
+                    longitude: String(longitude),
+                  }));
+                }}
+                onChangeCoordinates={({ latitude, longitude }) => {
+                  setRegForm((prev) => ({
+                    ...prev,
+                    latitude: String(latitude),
+                    longitude: String(longitude),
+                  }));
+                }}
               />
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                <TextField
-                  label="Vĩ độ (Latitude)"
-                  fullWidth
-                  value={regForm.latitude}
-                  onChange={(e) => setRegForm({ ...regForm, latitude: e.target.value })}
-                />
-                <TextField
-                  label="Kinh độ (Longitude)"
-                  fullWidth
-                  value={regForm.longitude}
-                  onChange={(e) => setRegForm({ ...regForm, longitude: e.target.value })}
-                />
-              </Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                 <TextField
                   label="Giờ mở cửa"

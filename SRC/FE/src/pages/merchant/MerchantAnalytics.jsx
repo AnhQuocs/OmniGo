@@ -17,6 +17,7 @@ import {
   TableRow,
   Paper,
   Tooltip,
+  TextField,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -29,6 +30,8 @@ import {
   InfoOutlined as InfoIcon,
   ArrowForward as ArrowForwardIcon,
   Store as StoreIcon,
+  CalendarMonth as CalendarIcon,
+  DateRange as DateRangeIcon,
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
@@ -39,7 +42,58 @@ export const MerchantAnalytics = () => {
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState('ALL'); // 'ALL' | 'TODAY' | 'WEEK'
+  const [timeFilter, setTimeFilter] = useState('ALL'); // 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+
+  // Helper date formatting
+  const formatDateDM = (date) => {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${d}/${m}`;
+  };
+
+  const formatDateFull = (date) => {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
+  const now = new Date();
+  const todayStr = formatDateDM(now);
+  const weekStartDate = new Date(now);
+  weekStartDate.setDate(now.getDate() - 6);
+  const weekRangeStr = `${formatDateDM(weekStartDate)} - ${formatDateDM(now)}`;
+  const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthRangeStr = `Thg ${now.getMonth() + 1}`;
+
+  // Description of current period for chip and tooltips
+  const getTimePeriodDescription = () => {
+    if (timeFilter === 'TODAY') {
+      return `Hôm nay (ngày ${formatDateFull(now)})`;
+    }
+    if (timeFilter === 'WEEK') {
+      return `7 ngày qua (${formatDateFull(weekStartDate)} - ${formatDateFull(now)})`;
+    }
+    if (timeFilter === 'MONTH') {
+      return `Tháng ${now.getMonth() + 1}/${now.getFullYear()} (${formatDateFull(monthStartDate)} - ${formatDateFull(now)})`;
+    }
+    if (timeFilter === 'CUSTOM') {
+      if (customStartDate && customEndDate) {
+        return `Tùy chọn: ${formatDateFull(new Date(customStartDate))} đến ${formatDateFull(new Date(customEndDate))}`;
+      }
+      if (customStartDate) {
+        return `Tùy chọn: Từ ngày ${formatDateFull(new Date(customStartDate))}`;
+      }
+      if (customEndDate) {
+        return `Tùy chọn: Đến ngày ${formatDateFull(new Date(customEndDate))}`;
+      }
+      return 'Tùy chọn khoảng ngày';
+    }
+    return `Toàn thời gian (${orders.length} đơn hàng)`;
+  };
 
   const fetchOrders = async (showLoading = false) => {
     if (!restaurant?.id) return;
@@ -68,14 +122,35 @@ export const MerchantAnalytics = () => {
     if (timeFilter === 'ALL') return true;
     if (!o.createdAt) return true;
     const orderDate = new Date(o.createdAt);
-    const now = new Date();
+    const currentDate = new Date();
+
     if (timeFilter === 'TODAY') {
-      return orderDate.toDateString() === now.toDateString();
+      const startOfDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59, 999);
+      return orderDate >= startOfDay && orderDate <= endOfDay;
     }
     if (timeFilter === 'WEEK') {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(now.getDate() - 7);
-      return orderDate >= oneWeekAgo;
+      const startOfWeek = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 6, 0, 0, 0, 0);
+      const endOfWeek = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59, 999);
+      return orderDate >= startOfWeek && orderDate <= endOfWeek;
+    }
+    if (timeFilter === 'MONTH') {
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59, 999);
+      return orderDate >= startOfMonth && orderDate <= endOfMonth;
+    }
+    if (timeFilter === 'CUSTOM') {
+      if (customStartDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        if (orderDate < start) return false;
+      }
+      if (customEndDate) {
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (orderDate > end) return false;
+      }
+      return true;
     }
     return true;
   });
@@ -206,7 +281,7 @@ export const MerchantAnalytics = () => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3.5 }, maxWidth: 1440, mx: 'auto' }}>
-      {/* HEADER SECTION */}
+      {/* HEADER & TOP ACTIONS */}
       <Box
         sx={{
           display: 'flex',
@@ -214,7 +289,7 @@ export const MerchantAnalytics = () => {
           alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'space-between',
           gap: 2,
-          mb: 3,
+          mb: 2.5,
         }}
       >
         <Box>
@@ -226,36 +301,8 @@ export const MerchantAnalytics = () => {
           </Typography>
         </Box>
 
-        {/* Time Period Filter & Refresh */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', bgcolor: '#F1F5F9', p: 0.5, borderRadius: 2.5 }}>
-            {[
-              { key: 'ALL', label: 'Tất cả' },
-              { key: 'TODAY', label: 'Hôm nay' },
-              { key: 'WEEK', label: '7 ngày qua' },
-            ].map((tab) => (
-              <Button
-                key={tab.key}
-                size="small"
-                onClick={() => setTimeFilter(tab.key)}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.82rem',
-                  px: 1.8,
-                  py: 0.5,
-                  bgcolor: timeFilter === tab.key ? '#FFFFFF' : 'transparent',
-                  color: timeFilter === tab.key ? '#0F172A' : '#64748B',
-                  boxShadow: timeFilter === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  '&:hover': { bgcolor: timeFilter === tab.key ? '#FFFFFF' : '#E2E8F0' },
-                }}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </Box>
-
+        {/* Primary Action Buttons */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
           <Button
             variant="outlined"
             size="small"
@@ -265,9 +312,12 @@ export const MerchantAnalytics = () => {
               borderRadius: 2.5,
               textTransform: 'none',
               fontWeight: 700,
-              borderColor: '#E2E8F0',
-              color: '#475569',
+              borderColor: '#CBD5E1',
+              color: '#334155',
               bgcolor: '#FFFFFF',
+              height: 38,
+              px: 2,
+              '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
             }}
           >
             Làm mới
@@ -284,12 +334,185 @@ export const MerchantAnalytics = () => {
               fontWeight: 700,
               bgcolor: '#F97316',
               '&:hover': { bgcolor: '#EA580C' },
+              height: 38,
+              px: 2.2,
+              boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)',
+              whiteSpace: 'nowrap',
             }}
           >
             Quản lý đơn hàng
           </Button>
         </Box>
       </Box>
+
+      {/* FILTER & DATE RANGE TOOLBAR */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'flex-start', md: 'center' },
+          justifyContent: 'space-between',
+          gap: 1.5,
+          p: 1.5,
+          mb: 3,
+          bgcolor: '#FFFFFF',
+          borderRadius: 3,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Chip
+            size="small"
+            icon={<CalendarIcon sx={{ fontSize: '15px !important', color: '#EA580C !important' }} />}
+            label={`Kỳ thống kê: ${getTimePeriodDescription()}`}
+            sx={{
+              bgcolor: '#FFF7ED',
+              color: '#EA580C',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              border: '1px solid #FED7AA',
+              py: 0.5,
+            }}
+          />
+        </Box>
+
+        {/* Time Period Filter Tabs */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', bgcolor: '#F1F5F9', p: 0.5, borderRadius: 2.5, gap: 0.5, flexWrap: 'wrap' }}>
+            {[
+              { key: 'ALL', label: 'Tất cả', sub: 'Toàn thời gian' },
+              { key: 'TODAY', label: 'Hôm nay', sub: todayStr },
+              { key: 'WEEK', label: '7 ngày qua', sub: weekRangeStr },
+              { key: 'MONTH', label: 'Tháng này', sub: monthRangeStr },
+            ].map((tab) => (
+              <Button
+                key={tab.key}
+                size="small"
+                onClick={() => {
+                  setTimeFilter(tab.key);
+                  setShowCustomPicker(false);
+                }}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  px: 1.6,
+                  py: 0.5,
+                  bgcolor: timeFilter === tab.key ? '#FFFFFF' : 'transparent',
+                  color: timeFilter === tab.key ? '#0F172A' : '#64748B',
+                  boxShadow: timeFilter === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  border: timeFilter === tab.key ? '1px solid #FED7AA' : '1px solid transparent',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  lineHeight: 1.15,
+                  '&:hover': { bgcolor: timeFilter === tab.key ? '#FFFFFF' : '#E2E8F0' },
+                }}
+              >
+                <span>{tab.label}</span>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    color: timeFilter === tab.key ? '#F97316' : '#94A3B8',
+                  }}
+                >
+                  {tab.sub}
+                </Typography>
+              </Button>
+            ))}
+
+            <Button
+              size="small"
+              startIcon={<DateRangeIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setShowCustomPicker(!showCustomPicker)}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                px: 1.4,
+                py: 0.5,
+                bgcolor: timeFilter === 'CUSTOM' || showCustomPicker ? '#FFFFFF' : 'transparent',
+                color: timeFilter === 'CUSTOM' || showCustomPicker ? '#EA580C' : '#64748B',
+                boxShadow: timeFilter === 'CUSTOM' || showCustomPicker ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                border: timeFilter === 'CUSTOM' || showCustomPicker ? '1px solid #FED7AA' : '1px solid transparent',
+                '&:hover': { bgcolor: timeFilter === 'CUSTOM' || showCustomPicker ? '#FFFFFF' : '#E2E8F0' },
+              }}
+            >
+              Tùy chọn ngày
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Collapsible Custom Date Range Picker */}
+      {showCustomPicker && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                p: 1.2,
+                bgcolor: '#FFFFFF',
+                borderRadius: 2.5,
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 800, color: '#0F172A', mr: 0.5 }}>
+                Chọn khoảng ngày:
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
+                  Từ ngày:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => {
+                    setCustomStartDate(e.target.value);
+                    setTimeFilter('CUSTOM');
+                  }}
+                  sx={{ width: 145, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
+                  Đến ngày:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => {
+                    setCustomEndDate(e.target.value);
+                    setTimeFilter('CUSTOM');
+                  }}
+                  sx={{ width: 145, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
+                />
+              </Box>
+              {(customStartDate || customEndDate) && (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                    setTimeFilter('ALL');
+                    setShowCustomPicker(false);
+                  }}
+                  sx={{ textTransform: 'none', color: '#EF4444', fontSize: '0.78rem' }}
+                >
+                  Xóa lọc
+                </Button>
+              )}
+            </Box>
+          )}
 
       {/* 4 CORE KPI HERO CARDS (Responsive CSS Grid, zero attribute warnings) */}
       <Box
@@ -320,8 +543,8 @@ export const MerchantAnalytics = () => {
         >
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#15803D', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Doanh Thu Hoàn Tất
+              <Typography sx={{ fontWeight: 800, color: '#15803D', fontSize: '0.92rem', letterSpacing: 0.2 }}>
+                Doanh thu hoàn tất
               </Typography>
               <Avatar sx={{ bgcolor: '#DCFCE7', color: '#16A34A', width: 40, height: 40 }}>
                 <MonetizationOnIcon />
@@ -357,8 +580,8 @@ export const MerchantAnalytics = () => {
         >
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Tỉ Lệ Đơn Thành Công
+              <Typography sx={{ fontWeight: 800, color: '#1D4ED8', fontSize: '0.92rem', letterSpacing: 0.2 }}>
+                Tỉ lệ đơn thành công
               </Typography>
               <Avatar sx={{ bgcolor: '#DBEAFE', color: '#2563EB', width: 40, height: 40 }}>
                 <TrendingUpIcon />
@@ -408,8 +631,8 @@ export const MerchantAnalytics = () => {
         >
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#C2410C', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Số Món Đã Bán
+              <Typography sx={{ fontWeight: 800, color: '#C2410C', fontSize: '0.92rem', letterSpacing: 0.2 }}>
+                Số món đã bán
               </Typography>
               <Avatar sx={{ bgcolor: '#FFEDD5', color: '#EA580C', width: 40, height: 40 }}>
                 <FastfoodIcon />
@@ -446,8 +669,8 @@ export const MerchantAnalytics = () => {
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: '#6D28D9', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  TB / Đơn (AOV)
+                <Typography sx={{ fontWeight: 800, color: '#6D28D9', fontSize: '0.92rem', letterSpacing: 0.2 }}>
+                  TB / đơn (AOV)
                 </Typography>
                 <Tooltip title="Giá trị trung bình mỗi đơn hàng (Average Order Value) = Tổng doanh thu ÷ Số đơn hoàn thành. Thể hiện mức chi tiêu trung bình của 1 khách trên mỗi lần đặt món." arrow>
                   <InfoIcon sx={{ fontSize: 16, color: '#8B5CF6', cursor: 'pointer' }} />

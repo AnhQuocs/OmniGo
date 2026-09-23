@@ -77,6 +77,34 @@ export const foodService = {
   },
 
   /**
+   * Phê duyệt đơn đăng ký nhà hàng (Admin)
+   * Endpoint: POST /api/v1/restaurants/{id}/approve
+   */
+  approveRestaurant: async (restaurantId) => {
+    try {
+      const res = await post(`/api/v1/restaurants/${restaurantId}/approve`);
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi phê duyệt quán #${restaurantId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Từ chối đơn đăng ký nhà hàng (Admin)
+   * Endpoint: POST /api/v1/restaurants/{id}/reject
+   */
+  rejectRestaurant: async (restaurantId, reason) => {
+    try {
+      const res = await post(`/api/v1/restaurants/${restaurantId}/reject`, { reason });
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi từ chối quán #${restaurantId}:`, error.message);
+      throw error;
+    }
+  },
+
+  /**
    * Đăng ký đối tác nhà hàng mới (đồng thời tạo user role RESTAURANT)
    * Endpoint: POST /api/v1/restaurants/partner
    */
@@ -86,6 +114,24 @@ export const foodService = {
       return res?.data || res;
     } catch (error) {
       console.warn('Lỗi đăng ký đối tác nhà hàng:', error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Tải ảnh quán / món ăn / GPKD lên Cloudinary qua Backend
+   * Endpoint: POST /api/v1/restaurants/upload-image
+   */
+  uploadImage: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await post('/api/v1/restaurants/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res?.data?.url || res?.url || '';
+    } catch (error) {
+      console.warn('Lỗi tải ảnh lên Cloudinary:', error.message);
       throw error;
     }
   },

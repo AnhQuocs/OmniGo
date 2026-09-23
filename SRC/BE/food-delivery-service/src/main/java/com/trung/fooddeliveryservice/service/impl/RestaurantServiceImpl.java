@@ -11,6 +11,7 @@ import com.trung.fooddeliveryservice.exception.UnauthorizedException;
 import com.trung.fooddeliveryservice.mapper.RestaurantMapper;
 import com.trung.fooddeliveryservice.repository.FoodOrderReviewRepository;
 import com.trung.fooddeliveryservice.repository.RestaurantRepository;
+import com.trung.fooddeliveryservice.service.CloudinaryService;
 import com.trung.fooddeliveryservice.service.RestaurantService;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantMapper restaurantMapper;
     private final RestTemplate directRestTemplate;
     private final StringRedisTemplate redisTemplate;
+    private final CloudinaryService cloudinaryService;
     @Lazy
     private final FoodOrderReviewRepository reviewRepository;
 
@@ -61,6 +63,12 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
 
         Restaurant restaurant = restaurantMapper.toEntity(request, ownerId);
+        if (restaurant.getImageUrl() != null && restaurant.getImageUrl().startsWith("data:image")) {
+            restaurant.setImageUrl(cloudinaryService.uploadBase64(restaurant.getImageUrl()));
+        }
+        if (restaurant.getLicenseImageUrl() != null && restaurant.getLicenseImageUrl().startsWith("data:image")) {
+            restaurant.setLicenseImageUrl(cloudinaryService.uploadBase64(restaurant.getLicenseImageUrl()));
+        }
         Restaurant saved = restaurantRepository.save(restaurant);
         log.info("Tạo thành công nhà hàng ID {} cho chủ quán ID {}", saved.getId(), ownerId);
         return restaurantMapper.toResponse(saved);
@@ -125,7 +133,19 @@ public class RestaurantServiceImpl implements RestaurantService {
             throw new BadRequestException("Chủ quán ID " + ownerId + " đã sở hữu một nhà hàng trên hệ thống.");
         }
 
-        // 3. Tạo thông tin thực thể Restaurant
+        // 3. Xử lý ảnh nếu là Base64 -> chuyển qua Cloudinary
+        String imageUrl = request.getImageUrl();
+        if (imageUrl != null && imageUrl.startsWith("data:image")) {
+            imageUrl = cloudinaryService.uploadBase64(imageUrl);
+        }
+        String licenseImageUrl = request.getLicenseImageUrl();
+        if (licenseImageUrl != null && licenseImageUrl.startsWith("data:image")) {
+            licenseImageUrl = cloudinaryService.uploadBase64(licenseImageUrl);
+        }
+
+        boolean isAutoApprove = Boolean.TRUE.equals(request.getAutoApprove());
+
+        // 4. Tạo thông tin thực thể Restaurant
         Restaurant restaurant = Restaurant.builder()
                 .ownerId(ownerId)
                 .name(request.getName().trim())
@@ -133,15 +153,18 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .address(request.getAddress().trim())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
-                .imageUrl(request.getImageUrl())
+                .imageUrl(imageUrl)
+                .licenseImageUrl(licenseImageUrl)
                 .openTime(StringUtils.hasText(request.getOpenTime()) ? request.getOpenTime().trim() : "08:00")
                 .closeTime(StringUtils.hasText(request.getCloseTime()) ? request.getCloseTime().trim() : "22:00")
-                .status(RestaurantStatus.OPEN)
+                .status(isAutoApprove ? RestaurantStatus.OPEN : RestaurantStatus.CLOSED)
+                .isLocked(!isAutoApprove)
+                .lockedReason(isAutoApprove ? null : "Chờ Quản trị viên duyệt hồ sơ đối tác")
                 .rating(5.0)
                 .build();
 
         Restaurant saved = restaurantRepository.save(restaurant);
-        log.info("Tạo thành công nhà hàng đối tác ID {} cho chủ quán ID {} ({})", saved.getId(), ownerId, request.getOwnerPhone());
+        log.info("Tạo thành công nhà hàng đối tác ID {} cho chủ quán ID {} ({}) - Tự động duyệt: {}", saved.getId(), ownerId, request.getOwnerPhone(), isAutoApprove);
         return restaurantMapper.toResponse(saved);
     }
 
@@ -226,7 +249,21 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurant.setAddress(request.getAddress());
         restaurant.setLatitude(request.getLatitude());
         restaurant.setLongitude(request.getLongitude());
-        restaurant.setImageUrl(request.getImageUrl());
+        String imageUrl = request.getImageUrl();
+        if (imageUrl != null && imageUrl.startsWith("data:image")) {
+            restaurant.setImageUrl(cloudinaryService.uploadBase64(imageUrl));
+        } else {
+            restaurant.setImageUrl(imageUrl);
+        }
+
+        if (request.getLicenseImageUrl() != null) {
+            String licUrl = request.getLicenseImageUrl();
+            if (licUrl.startsWith("data:image")) {
+                restaurant.setLicenseImageUrl(cloudinaryService.uploadBase64(licUrl));
+            } else {
+                restaurant.setLicenseImageUrl(licUrl);
+            }
+        }
         restaurant.setOpenTime(request.getOpenTime());
         restaurant.setCloseTime(request.getCloseTime());
 
@@ -284,6 +321,88 @@ public class RestaurantServiceImpl implements RestaurantService {
                 log.info("Đã đồng bộ trạng thái khóa cho User chủ quán ID {} qua user-driver-service (POST)", restaurant.getOwnerId());
             } catch (Exception e) {
                 log.warn("Lỗi khi đồng bộ khóa User chủ quán ID {} qua user-driver-service: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+        }
+
+        return restaurantMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "restaurants", key = "#id")
+    public RestaurantResponse approveRestaurant(Long id) throws ResourceNotFoundException {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà hàng với ID: " + id));
+
+        restaurant.setIsLocked(false);
+        restaurant.setLockedReason(null);
+        restaurant.setLockedAt(null);
+        restaurant.setStatus(RestaurantStatus.OPEN);
+
+        Restaurant saved = restaurantRepository.save(restaurant);
+        log.info("Admin đã phê duyệt mở gian hàng nhà hàng ID {}", saved.getId());
+
+        // Mở khóa tài khoản chủ quán qua Redis & user-driver-service
+        if (restaurant.getOwnerId() != null) {
+            try {
+                redisTemplate.delete("user_locked:" + restaurant.getOwnerId());
+            } catch (Exception e) {
+                log.warn("Lỗi khi xóa cờ Redis user_locked cho ownerId {}: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+
+            try {
+                String lockUserUrl = driverServiceBaseUrl + "/api/v1/internal/users/" + restaurant.getOwnerId() + "/lock";
+                Map<String, Object> lockPayload = Map.of(
+                        "isLocked", false,
+                        "reason", ""
+                );
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(lockPayload, headers);
+                directRestTemplate.postForEntity(lockUserUrl, entity, Map.class);
+            } catch (Exception e) {
+                log.warn("Lỗi khi mở khóa User chủ quán ID {} qua user-driver-service: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+        }
+
+        return restaurantMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "restaurants", key = "#id")
+    public RestaurantResponse rejectRestaurant(Long id, String reason) throws ResourceNotFoundException {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhà hàng với ID: " + id));
+
+        String rejectMsg = StringUtils.hasText(reason) ? "Từ chối hồ sơ đăng ký: " + reason.trim() : "Từ chối hồ sơ đăng ký nhà hàng";
+        restaurant.setIsLocked(true);
+        restaurant.setLockedReason(rejectMsg);
+        restaurant.setLockedAt(LocalDateTime.now());
+        restaurant.setStatus(RestaurantStatus.CLOSED);
+
+        Restaurant saved = restaurantRepository.save(restaurant);
+        log.info("Admin đã từ chối hồ sơ nhà hàng ID {} với lý do: {}", saved.getId(), rejectMsg);
+
+        if (restaurant.getOwnerId() != null) {
+            try {
+                redisTemplate.opsForValue().set("user_locked:" + restaurant.getOwnerId(), "true", Duration.ofDays(30));
+            } catch (Exception e) {
+                log.warn("Lỗi khi ghi cờ Redis user_locked cho ownerId {}: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+
+            try {
+                String lockUserUrl = driverServiceBaseUrl + "/api/v1/internal/users/" + restaurant.getOwnerId() + "/lock";
+                Map<String, Object> lockPayload = Map.of(
+                        "isLocked", true,
+                        "reason", rejectMsg
+                );
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(lockPayload, headers);
+                directRestTemplate.postForEntity(lockUserUrl, entity, Map.class);
+            } catch (Exception e) {
+                log.warn("Lỗi khi khóa User chủ quán ID {} qua user-driver-service: {}", restaurant.getOwnerId(), e.getMessage());
             }
         }
 

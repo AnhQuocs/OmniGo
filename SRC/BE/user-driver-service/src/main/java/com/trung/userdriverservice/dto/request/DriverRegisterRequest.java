@@ -34,5 +34,7 @@ public class DriverRegisterRequest extends UserRegisterRequest {
 
     @NotBlank(message = "Vui lòng tải lên ảnh Giấy phép lái xe (GPLX) mặt sau")
     private String gplxBackImage;
+
+    private Boolean autoApprove;
 }
 

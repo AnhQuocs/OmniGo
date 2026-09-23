@@ -29,5 +29,9 @@ public interface RestaurantService {
 
     RestaurantResponse toggleLockRestaurant(Long id, RestaurantLockRequest request) throws ResourceNotFoundException;
 
+    RestaurantResponse approveRestaurant(Long id) throws ResourceNotFoundException;
+
+    RestaurantResponse rejectRestaurant(Long id, String reason) throws ResourceNotFoundException;
+
     RestaurantResponse toggleRestaurantStatus(Long id, Long ownerId, RestaurantStatus status) throws ResourceNotFoundException, UnauthorizedException;
 }

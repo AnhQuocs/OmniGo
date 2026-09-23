@@ -26,6 +26,8 @@ public class RestaurantRequest {
 
     private String imageUrl;
 
+    private String licenseImageUrl;
+
     private String openTime;
 
     private String closeTime;

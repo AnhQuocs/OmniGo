@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { logoutUser, logout } from '../redux/authSlice';
 import { useColorMode } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import ConfirmDialog from './common/ConfirmDialog';
 
 const DRAWER_WIDTH = 250;
 
@@ -38,6 +39,8 @@ export const Header = ({ handleDrawerToggle }) => {
   const { mode, toggleColorMode } = useColorMode();
 
   const [anchorEl, setAnchorEl] = useState(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const openMenu = Boolean(anchorEl);
 
   const handleOpenUserMenu = (event) => {
@@ -48,19 +51,28 @@ export const Header = ({ handleDrawerToggle }) => {
     setAnchorEl(null);
   };
 
-  const handleLogout = async () => {
+  const handleOpenLogoutConfirm = () => {
     handleCloseUserMenu();
+    setLogoutConfirmOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
     try {
+      setLoggingOut(true);
       await dispatch(logoutUser()).unwrap();
     } catch {
       dispatch(logout());
+    } finally {
+      setLoggingOut(false);
+      setLogoutConfirmOpen(false);
     }
     toast.success('Đã đăng xuất tài khoản và xóa phiên làm việc');
     navigate('/login');
   };
 
   return (
-    <AppBar
+    <>
+      <AppBar
       position="fixed"
       sx={{
         width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
@@ -200,7 +212,7 @@ export const Header = ({ handleDrawerToggle }) => {
               </Typography>
             </Box>
             <Divider />
-            <MenuItem onClick={handleLogout} sx={{ py: 1.2, color: 'error.main' }}>
+            <MenuItem onClick={handleOpenLogoutConfirm} sx={{ py: 1.2, color: 'error.main' }}>
               <ListItemIcon sx={{ color: 'error.main', minWidth: 28 }}>
                 <LogoutIcon fontSize="small" />
               </ListItemIcon>
@@ -210,6 +222,21 @@ export const Header = ({ handleDrawerToggle }) => {
         </Box>
       </Toolbar>
     </AppBar>
+
+      {/* CONFIRM LOGOUT DIALOG */}
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        onClose={() => !loggingOut && setLogoutConfirmOpen(false)}
+        onConfirm={handleConfirmLogout}
+        title="Đăng xuất tài khoản"
+        content="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?"
+        confirmText="Đăng xuất"
+        cancelText="Ở lại"
+        confirmColor="error"
+        iconType="logout"
+        loading={loggingOut}
+      />
+    </>
   );
 };
 

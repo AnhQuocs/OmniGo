@@ -17,11 +17,30 @@ import {
   VisibilityOffOutlined as VisibilityOff,
   LockOutlined as LockIcon,
   PhoneOutlined as PhoneIcon,
+  Store as StoreIcon,
+  Person as PersonIcon,
+  Email as EmailIcon,
+  AccessTime as TimeIcon,
+  Close as CloseIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tabs,
+  Tab,
+  Stack,
+  Avatar,
+} from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { loginUser, clearAuthError } from '../redux/authSlice';
+import foodService from '../services/foodService';
+import AddressAutocomplete from '../components/common/AddressAutocomplete';
+import ImageUploadField from '../components/common/ImageUploadField';
 import { API_BASE_URL } from '../services/api';
 
 export const Login = () => {
@@ -34,6 +53,126 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+
+  // Register Partner States
+  const [openRegisterModal, setOpenRegisterModal] = useState(false);
+  const [registerTab, setRegisterTab] = useState(0);
+  const [registerSubmitting, setRegisterSubmitting] = useState(false);
+  const [registerSuccessModal, setRegisterSuccessModal] = useState(false);
+  const [registeredRestaurantInfo, setRegisteredRestaurantInfo] = useState(null);
+
+  const [registerData, setRegisterData] = useState({
+    ownerName: '',
+    ownerPhone: '',
+    email: '',
+    password: '',
+    name: '',
+    phone: '',
+    address: '',
+    latitude: 21.033333,
+    longitude: 105.789123,
+    imageUrl: '',
+    licenseImageUrl: '',
+    openTime: '08:00',
+    closeTime: '22:00',
+  });
+
+  const resetRegisterForm = () => {
+    setRegisterData({
+      ownerName: '',
+      ownerPhone: '',
+      email: '',
+      password: '',
+      name: '',
+      phone: '',
+      address: '',
+      latitude: 21.033333,
+      longitude: 105.789123,
+      imageUrl: '',
+      licenseImageUrl: '',
+      openTime: '08:00',
+      closeTime: '22:00',
+    });
+    setRegisterTab(0);
+  };
+
+  const handleRegisterInputChange = (e) => {
+    const { name, value } = e.target;
+    setRegisterData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleNextRegisterTab = () => {
+    if (!registerData.ownerName.trim()) {
+      toast.error('Vui lòng nhập họ tên chủ nhà hàng');
+      return;
+    }
+    const cleanPhone = registerData.ownerPhone.replace(/\D/g, '').trim();
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      toast.error('Số điện thoại đăng nhập của chủ quán phải gồm đúng 10 số');
+      return;
+    }
+    if (!registerData.password || registerData.password.length < 6) {
+      toast.error('Mật khẩu đăng nhập phải có ít nhất 6 ký tự');
+      return;
+    }
+    setRegisterTab(1);
+  };
+
+  const handleSubmitRegister = async (e) => {
+    if (e) e.preventDefault();
+    if (!registerData.name.trim()) {
+      toast.error('Vui lòng nhập tên nhà hàng / quán ăn');
+      setRegisterTab(1);
+      return;
+    }
+    if (!registerData.address.trim()) {
+      toast.error('Vui lòng nhập hoặc chọn địa chỉ quán ăn');
+      setRegisterTab(1);
+      return;
+    }
+    if (!registerData.licenseImageUrl || !registerData.licenseImageUrl.trim()) {
+      toast.error('Vui lòng tải lên ảnh Giấy phép kinh doanh của quán');
+      setRegisterTab(1);
+      return;
+    }
+
+    try {
+      setRegisterSubmitting(true);
+      const payload = {
+        name: registerData.name.trim(),
+        phone: registerData.phone.trim() || registerData.ownerPhone.trim(),
+        address: registerData.address.trim(),
+        latitude: parseFloat(registerData.latitude) || 21.033333,
+        longitude: parseFloat(registerData.longitude) || 105.789123,
+        imageUrl:
+          registerData.imageUrl.trim() ||
+          'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500',
+        licenseImageUrl: registerData.licenseImageUrl.trim(),
+        openTime: registerData.openTime || '08:00',
+        closeTime: registerData.closeTime || '22:00',
+        ownerName: registerData.ownerName.trim(),
+        ownerPhone: registerData.ownerPhone.trim(),
+        email: registerData.email.trim() || undefined,
+        password: registerData.password,
+      };
+
+      await foodService.registerPartnerRestaurant(payload);
+
+      setRegisteredRestaurantInfo({
+        name: payload.name,
+        phone: payload.ownerPhone,
+      });
+      setPhoneNumber(payload.ownerPhone);
+      setOpenRegisterModal(false);
+      setRegisterSuccessModal(true);
+      resetRegisterForm();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi đăng ký đối tác';
+      toast.error(msg);
+    } finally {
+      setRegisterSubmitting(false);
+    }
+  };
 
   const from = location.state?.from?.pathname || '/';
 
@@ -226,8 +365,471 @@ export const Login = () => {
               {loading ? <CircularProgress size={24} sx={{ color: 'primary.contrastText' }} /> : 'Đăng Nhập'}
             </Button>
           </Box>
+
+          {/* REGISTER AS PARTNER RESTAURANT LINK / BUTTON */}
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #E2E8F0', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, fontSize: '0.88rem' }}>
+              Bạn muốn mở quán bán đồ ăn trên OmniFood?
+            </Typography>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="warning"
+              startIcon={<StoreIcon />}
+              onClick={() => {
+                resetRegisterForm();
+                setOpenRegisterModal(true);
+              }}
+              sx={{
+                py: 1.1,
+                borderRadius: 2.5,
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                textTransform: 'none',
+                borderColor: '#FED7AA',
+                bgcolor: '#FFF7ED',
+                color: '#EA580C',
+                '&:hover': {
+                  bgcolor: '#FFEDD5',
+                  borderColor: '#FDBA74',
+                },
+              }}
+            >
+              Đăng ký đối tác nhà hàng ngay
+            </Button>
+            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 1, fontSize: '0.75rem' }}>
+              * Quán đăng ký xong sẽ được Quản trị viên xét duyệt trước khi hoạt động
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
+
+      {/* DIALOG: ĐĂNG KÝ ĐỐI TÁC NHÀ HÀNG MỚI */}
+      <Dialog
+        open={openRegisterModal}
+        onClose={() => !registerSubmitting && setOpenRegisterModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3.5, overflow: 'hidden' } }}
+      >
+        <DialogTitle
+          component="div"
+          sx={{
+            fontWeight: 800,
+            bgcolor: 'background.paper',
+            borderBottom: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            py: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: 'rgba(249, 115, 22, 0.15)', color: '#F97316' }}>
+              <StoreIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                Đăng Ký Đối Tác Quán Ăn OmniFood
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Gia nhập nền tảng bán đồ ăn, tiếp cận hàng triệu khách hàng
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            onClick={() => setOpenRegisterModal(false)}
+            disabled={registerSubmitting}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3, pt: 1.5, bgcolor: '#F8FAFC' }}>
+            <Tabs
+              value={registerTab}
+              onChange={(e, val) => setRegisterTab(val)}
+              textColor="primary"
+              indicatorColor="primary"
+              variant="fullWidth"
+            >
+              <Tab
+                icon={<PersonIcon sx={{ fontSize: 20 }} />}
+                iconPosition="start"
+                label="1. Tài Khoản Chủ Quán"
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              />
+              <Tab
+                icon={<StoreIcon sx={{ fontSize: 20 }} />}
+                iconPosition="start"
+                label="2. Thông Tin Nhà Hàng"
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              />
+            </Tabs>
+          </Box>
+
+          <Box sx={{ p: 3 }}>
+            {/* Tab 0: Owner Account */}
+            {registerTab === 0 && (
+              <Stack spacing={2.5}>
+                <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.85rem' }}>
+                  Thông tin tài khoản đăng nhập dành cho chủ nhà hàng để quản lý đơn món và thực đơn.
+                </Alert>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                    Họ và tên chủ nhà hàng <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    required
+                    name="ownerName"
+                    value={registerData.ownerName}
+                    onChange={handleRegisterInputChange}
+                    placeholder="VD: Nguyễn Văn A"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                      Số điện thoại đăng nhập <span style={{ color: '#ef4444' }}>*</span>
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      required
+                      name="ownerPhone"
+                      value={registerData.ownerPhone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setRegisterData((prev) => ({ ...prev, ownerPhone: val }));
+                      }}
+                      placeholder="VD: 0987654321"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon sx={{ color: 'text.secondary' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                      Địa chỉ Email (tùy chọn)
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      name="email"
+                      type="email"
+                      value={registerData.email}
+                      onChange={handleRegisterInputChange}
+                      placeholder="VD: chuquan@gmail.com"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EmailIcon sx={{ color: 'text.secondary' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                    Mật khẩu đăng nhập <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    required
+                    type="password"
+                    name="password"
+                    value={registerData.password}
+                    onChange={handleRegisterInputChange}
+                    placeholder="Tối thiểu 6 ký tự"
+                    helperText="Mật khẩu này sẽ dùng để đăng nhập vào cổng Quản trị Nhà hàng"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+              </Stack>
+            )}
+
+            {/* Tab 1: Restaurant Info */}
+            {registerTab === 1 && (
+              <Stack spacing={2.5}>
+                <Alert severity="warning" sx={{ borderRadius: 2, fontSize: '0.85rem' }}>
+                  ⏳ <b>Lưu ý quan trọng:</b> Sau khi hoàn tất đăng ký, hồ sơ quán sẽ được gửi đến Quản trị viên để xét duyệt trước khi đi vào hoạt động chính thức.
+                </Alert>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                    Tên nhà hàng / quán ăn <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    required
+                    name="name"
+                    value={registerData.name}
+                    onChange={handleRegisterInputChange}
+                    placeholder="VD: Cơm Tấm Sài Gòn - Cơ Sở 1"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <StoreIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                    Số điện thoại hotline quán (tùy chọn)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    name="phone"
+                    value={registerData.phone}
+                    onChange={handleRegisterInputChange}
+                    placeholder="VD: 0283899999 (mặc định lấy theo SĐT chủ quán)"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PhoneIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                {/* Address & Coordinates with Autocomplete */}
+                <Box>
+                  <AddressAutocomplete
+                    label="Địa chỉ chi tiết quán ăn"
+                    required
+                    value={registerData.address}
+                    latitude={registerData.latitude}
+                    longitude={registerData.longitude}
+                    onChangeAddress={(newAddr) =>
+                      setRegisterData((prev) => ({ ...prev, address: newAddr }))
+                    }
+                    onSelectLocation={({ address, latitude, longitude }) => {
+                      setRegisterData((prev) => ({
+                        ...prev,
+                        address,
+                        latitude,
+                        longitude,
+                      }));
+                    }}
+                    onChangeCoordinates={({ latitude, longitude }) => {
+                      setRegisterData((prev) => ({
+                        ...prev,
+                        latitude,
+                        longitude,
+                      }));
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                      Giờ mở cửa
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      name="openTime"
+                      value={registerData.openTime}
+                      onChange={handleRegisterInputChange}
+                      placeholder="08:00"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <TimeIcon sx={{ color: 'text.secondary' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
+                      Giờ đóng cửa
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      name="closeTime"
+                      value={registerData.closeTime}
+                      onChange={handleRegisterInputChange}
+                      placeholder="22:00"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <TimeIcon sx={{ color: 'text.secondary' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Upload Ảnh đại diện quán */}
+                <ImageUploadField
+                  label="Ảnh đại diện quán ăn"
+                  value={registerData.imageUrl}
+                  onChange={(url) =>
+                    setRegisterData((prev) => ({ ...prev, imageUrl: url }))
+                  }
+                  helperText="Tải lên ảnh đại diện quán ăn hoặc dán link ảnh"
+                  placeholder="Dán liên kết ảnh quán (URL)..."
+                />
+
+                {/* Upload Giấy phép kinh doanh */}
+                <ImageUploadField
+                  label="Ảnh giấy phép kinh doanh"
+                  required
+                  value={registerData.licenseImageUrl}
+                  onChange={(url) =>
+                    setRegisterData((prev) => ({ ...prev, licenseImageUrl: url }))
+                  }
+                  helperText="Tải lên ảnh chụp rõ nét Giấy phép kinh doanh hoặc Giấy chứng nhận đăng ký hộ kinh doanh để ban quản trị duyệt quán"
+                />
+              </Stack>
+            )}
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2.5, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
+          <Button
+            onClick={() => setOpenRegisterModal(false)}
+            disabled={registerSubmitting}
+            sx={{ textTransform: 'none', color: 'text.secondary' }}
+          >
+            Hủy
+          </Button>
+
+          {registerTab === 0 ? (
+            <Button
+              variant="contained"
+              onClick={handleNextRegisterTab}
+              sx={{
+                bgcolor: '#F97316',
+                '&:hover': { bgcolor: '#EA580C' },
+                textTransform: 'none',
+                fontWeight: 700,
+                px: 3,
+              }}
+            >
+              Tiếp tục: Thông tin quán ➡
+            </Button>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button
+                onClick={() => setRegisterTab(0)}
+                disabled={registerSubmitting}
+                sx={{ textTransform: 'none' }}
+              >
+                ⬅ Quay lại bước 1
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSubmitRegister}
+                disabled={registerSubmitting}
+                sx={{
+                  bgcolor: '#10b981',
+                  '&:hover': { bgcolor: '#059669' },
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  px: 3,
+                }}
+              >
+                {registerSubmitting ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={18} color="inherit" />
+                    <span>Đang gửi hồ sơ...</span>
+                  </Box>
+                ) : (
+                  'Hoàn Tất & Gửi Duyệt'
+                )}
+              </Button>
+            </Box>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL THÔNG BÁO ĐĂNG KÝ THÀNH CÔNG VÀ CHỜ DUYỆT */}
+      <Dialog
+        open={registerSuccessModal}
+        onClose={() => setRegisterSuccessModal(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3.5, p: 2, textAlign: 'center' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pb: 1 }}>
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              bgcolor: 'rgba(16, 185, 129, 0.12)',
+              color: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 1.5,
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 36 }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+            Đăng Ký Đối Tác Thành Công!
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ py: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, mb: 2 }}>
+            Hồ sơ nhà hàng <b>{registeredRestaurantInfo?.name}</b> đã được tạo thành công trên hệ thống.
+          </Typography>
+          <Alert severity="warning" sx={{ textAlign: 'left', borderRadius: 2.5, mb: 1, fontSize: '0.85rem' }}>
+            ⏳ <b>Chờ Admin phê duyệt:</b> Nhà hàng đang ở trạng thái chờ Quản trị viên duyệt. Sau khi được duyệt, quán sẽ tự động được kích hoạt để mở bán.
+          </Alert>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+            Bạn có thể đăng nhập bằng SĐT <b>{registeredRestaurantInfo?.phone}</b> để theo dõi trạng thái hồ sơ quán.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pt: 1, pb: 1 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => setRegisterSuccessModal(false)}
+            sx={{
+              bgcolor: '#F97316',
+              '&:hover': { bgcolor: '#EA580C' },
+              fontWeight: 700,
+              textTransform: 'none',
+              borderRadius: 2.5,
+              py: 1,
+            }}
+          >
+            Đăng nhập ngay
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

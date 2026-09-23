@@ -26,6 +26,7 @@ import {
   Avatar,
   Divider,
   Stack,
+  Tooltip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -45,6 +46,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
 import FoodOrderReviewModal from '../components/food/FoodOrderReviewModal';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 export const FoodOrders = () => {
   const location = useLocation();
@@ -54,6 +56,8 @@ export const FoodOrders = () => {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [orderForReview, setOrderForReview] = useState(null);
   const [existingReview, setExistingReview] = useState(null);
+  const [confirmPaidOrderId, setConfirmPaidOrderId] = useState(null);
+  const [markingPaid, setMarkingPaid] = useState(false);
 
   const handleOpenReview = async (order) => {
     try {
@@ -130,17 +134,25 @@ export const FoodOrders = () => {
     }
   };
 
-  const handleMarkPaid = async (orderId) => {
-    if (!window.confirm(`Xác nhận đánh dấu đơn hàng #${orderId} đã thanh toán?`)) return;
+  const handleMarkPaid = (orderId) => {
+    setConfirmPaidOrderId(orderId);
+  };
+
+  const handleConfirmMarkPaid = async () => {
+    if (!confirmPaidOrderId) return;
     try {
-      await foodService.markOrderPaid(orderId);
-      toast.success(`Đã cập nhật trạng thái thanh toán đơn #${orderId}`);
+      setMarkingPaid(true);
+      await foodService.markOrderPaid(confirmPaidOrderId);
+      toast.success(`Đã cập nhật trạng thái thanh toán đơn #${confirmPaidOrderId}`);
       fetchData();
-      if (selectedOrder?.id === orderId) {
+      if (selectedOrder?.id === confirmPaidOrderId) {
         setSelectedOrder((prev) => ({ ...prev, isPaid: true }));
       }
+      setConfirmPaidOrderId(null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi cập nhật thanh toán');
+    } finally {
+      setMarkingPaid(false);
     }
   };
 
@@ -179,6 +191,8 @@ export const FoodOrders = () => {
 
   const getStatusChip = (status, order = null) => {
     switch (status) {
+      case 'AWAITING_PAYMENT':
+        return <Chip label="💳 Chờ Thanh Toán" size="small" sx={{ bgcolor: 'rgba(234, 88, 12, 0.15)', color: '#ea580c', fontWeight: 700 }} />;
       case 'PENDING':
         return <Chip label="⏳ Chờ Duyệt" size="small" sx={{ bgcolor: 'rgba(255, 170, 0, 0.15)', color: '#ffaa00', fontWeight: 700 }} />;
       case 'ACCEPTED':
@@ -446,17 +460,17 @@ export const FoodOrders = () => {
 
         {/* Table */}
         <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
-          <Table sx={{ minWidth: 850 }} size="small">
+          <Table sx={{ minWidth: 920 }} size="small">
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, width: 70 }}>#Mã đơn</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Khách hàng</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Nhà hàng</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Tài xế giao</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Món đã đặt</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Tổng tiền</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao tác</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 95, whiteSpace: 'nowrap' }}>#Mã đơn</TableCell>
+                <TableCell sx={{ fontWeight: 700, minWidth: 140, whiteSpace: 'nowrap' }}>Khách hàng</TableCell>
+                <TableCell sx={{ fontWeight: 700, minWidth: 130 }}>Nhà hàng</TableCell>
+                <TableCell sx={{ fontWeight: 700, minWidth: 110, whiteSpace: 'nowrap' }}>Tài xế giao</TableCell>
+                <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Món đã đặt</TableCell>
+                <TableCell sx={{ fontWeight: 700, textAlign: 'right', minWidth: 110, whiteSpace: 'nowrap' }}>Tổng tiền</TableCell>
+                <TableCell sx={{ fontWeight: 700, minWidth: 120, whiteSpace: 'nowrap' }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 700, textAlign: 'center', width: 90, whiteSpace: 'nowrap' }}>Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -496,28 +510,37 @@ export const FoodOrders = () => {
 
                   return (
                     <TableRow key={order.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                      <TableCell sx={{ fontWeight: 700 }}>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#f97316' }}>
                           #{order.id}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', display: 'block', mt: 0.2 }}>
                           🕒 {dateStr}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                           {order.customerName || `Khách #${order.customerId}`}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.2 }}>
                           📞 {order.customerPhone || 'Chưa có SĐT'}
                         </Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ maxWidth: 180 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={order.restaurantName || `Quán #${order.restaurantId}`}
+                        >
                           {order.restaurantName || `Quán #${order.restaurantId}`}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
                         {order.driverId ? (
                           <Chip
                             icon={<DriverIcon sx={{ fontSize: '14px !important' }} />}
@@ -531,14 +554,13 @@ export const FoodOrders = () => {
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ maxWidth: 220, fontSize: '0.85rem' }}>
+                      <TableCell sx={{ maxWidth: 220 }}>
                         <Typography
                           variant="body2"
                           sx={{
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            maxWidth: 200,
                             fontSize: '0.82rem',
                           }}
                           title={itemsSummary}
@@ -546,7 +568,7 @@ export const FoodOrders = () => {
                           🍛 {itemsSummary || 'Chi tiết món ăn'}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#008cff' }}>
                           {Number(order.totalPrice || order.totalAmount || 0).toLocaleString('vi-VN')} đ
                         </Typography>
@@ -564,29 +586,50 @@ export const FoodOrders = () => {
                           />
                         </Box>
                       </TableCell>
-                      <TableCell>{getStatusChip(order.status, order)}</TableCell>
-                      <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<ViewIcon />}
-                            onClick={() => setSelectedOrder(order)}
-                            sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600 }}
-                          >
-                            Chi Tiết
-                          </Button>
-                          {order.status === 'COMPLETED' && (
-                            <Button
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{getStatusChip(order.status, order)}</TableCell>
+                      <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                        <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                          <Tooltip title="Xem chi tiết đơn hàng">
+                            <IconButton
                               size="small"
-                              variant="contained"
-                              color="warning"
-                              startIcon={<StarIcon />}
-                              onClick={() => handleOpenReview(order)}
-                              sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 700 }}
+                              onClick={() => setSelectedOrder(order)}
+                              sx={{
+                                color: '#0284c7',
+                                bgcolor: 'rgba(2, 132, 199, 0.08)',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: 'rgba(2, 132, 199, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
+                              }}
                             >
-                              Xem Đánh Giá
-                            </Button>
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {order.status === 'COMPLETED' && (
+                            <Tooltip title="Xem đánh giá của khách">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenReview(order)}
+                                sx={{
+                                  color: '#f59e0b',
+                                  bgcolor: 'rgba(245, 158, 11, 0.1)',
+                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                  borderRadius: 1.5,
+                                  p: 0.8,
+                                  '&:hover': {
+                                    bgcolor: 'rgba(245, 158, 11, 0.2)',
+                                    transform: 'scale(1.05)',
+                                  },
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <StarIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           )}
                         </Stack>
                       </TableCell>
@@ -753,16 +796,18 @@ export const FoodOrders = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
-          {selectedOrder && !selectedOrder.isPaid && (
-            <Button
-              onClick={() => handleMarkPaid(selectedOrder.id)}
-              variant="outlined"
-              color="success"
-              sx={{ textTransform: 'none', fontWeight: 700 }}
-            >
-              ✅ Xác Nhận Đã Thanh Toán
-            </Button>
-          )}
+          {selectedOrder &&
+            !selectedOrder.isPaid &&
+            (selectedOrder.status === 'AWAITING_PAYMENT' || selectedOrder.status === 'COMPLETED') && (
+              <Button
+                onClick={() => handleMarkPaid(selectedOrder.id)}
+                variant="outlined"
+                color="success"
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                ✅ Xác Nhận Đã Thanh Toán
+              </Button>
+            )}
           {selectedOrder && selectedOrder.status === 'COMPLETED' && (
             <Button
               onClick={() => handleOpenReview(selectedOrder)}
@@ -771,7 +816,7 @@ export const FoodOrders = () => {
               startIcon={<StarIcon />}
               sx={{ textTransform: 'none', fontWeight: 700, ml: 1 }}
             >
-              ⭐ Xem Đánh Giá
+              Xem Đánh Giá
             </Button>
           )}
           <Button onClick={() => setSelectedOrder(null)} variant="contained" sx={{ textTransform: 'none', ml: 'auto' }}>
@@ -788,6 +833,20 @@ export const FoodOrders = () => {
         existingReview={existingReview}
         onSuccess={fetchData}
         readOnly={true}
+      />
+
+      {/* Confirm Mark Paid Dialog */}
+      <ConfirmDialog
+        open={Boolean(confirmPaidOrderId)}
+        title="Xác nhận thanh toán"
+        content={`Bạn có chắc chắn muốn xác nhận đơn hàng #${confirmPaidOrderId} đã được thanh toán đầy đủ?`}
+        confirmText="Xác nhận"
+        cancelText="Hủy"
+        confirmColor="success"
+        iconType="question"
+        loading={markingPaid}
+        onClose={() => !markingPaid && setConfirmPaidOrderId(null)}
+        onConfirm={handleConfirmMarkPaid}
       />
     </Box>
   );
