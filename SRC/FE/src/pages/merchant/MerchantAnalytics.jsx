@@ -532,10 +532,10 @@ export const MerchantAnalytics = () => {
               <Table size="small">
                 <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>HẠNG</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>TÊN MÓN ĂN</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>SỐ LƯỢNG BÁN</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>DOANH THU</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>Hạng</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>Tên món ăn</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>Số lượng bán</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.8rem' }}>Doanh thu</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

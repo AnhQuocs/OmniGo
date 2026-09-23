@@ -58,8 +58,20 @@ export const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [autoSync, setAutoSync] = useState(true);
+  const [autoSync, setAutoSync] = useState(() => {
+    const saved = localStorage.getItem('dashboard_auto_sync');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [countdown, setCountdown] = useState(10);
+
+  const handleToggleSync = () => {
+    setAutoSync((prev) => {
+      const next = !prev;
+      localStorage.setItem('dashboard_auto_sync', String(next));
+      if (next) setCountdown(10);
+      return next;
+    });
+  };
 
   const [stats, setStats] = useState({
     totalCustomers: 0,
@@ -313,15 +325,15 @@ export const Dashboard = () => {
   const getBookingStatusBadge = (status) => {
     switch (status) {
       case 'COMPLETED':
-        return <Chip label="Hoàn Thành" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }} />;
+        return <Chip label="Hoàn thành" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }} />;
       case 'IN_PROGRESS':
       case 'ACCEPTED':
       case 'ARRIVED':
-        return <Chip label="Đang Chạy" size="small" sx={{ bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff', fontWeight: 700, fontSize: '0.72rem' }} />;
+        return <Chip label="Đang chạy" size="small" sx={{ bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff', fontWeight: 700, fontSize: '0.72rem' }} />;
       case 'CANCELLED':
-        return <Chip label="Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700, fontSize: '0.72rem' }} />;
+        return <Chip label="Đã hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700, fontSize: '0.72rem' }} />;
       default:
-        return <Chip label="Chờ Ghép" size="small" sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', fontWeight: 700, fontSize: '0.72rem' }} />;
+        return <Chip label="Chờ ghép" size="small" sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', fontWeight: 700, fontSize: '0.72rem' }} />;
     }
   };
 
@@ -336,15 +348,14 @@ export const Dashboard = () => {
             </Typography>
             <Chip
               icon={<DotIcon sx={{ fontSize: '10px !important', color: autoSync ? '#15ca20 !important' : '#94a3b8 !important' }} />}
-              label={autoSync ? `REALTIME (${countdown}s)` : 'TẠM DỪNG'}
+              label={autoSync ? `Realtime (${countdown}s)` : 'Tạm dừng'}
               size="small"
               className={autoSync ? 'realtime-live-pulse' : ''}
               sx={{
                 bgcolor: autoSync ? 'rgba(21, 202, 32, 0.12)' : 'rgba(148, 163, 184, 0.12)',
                 color: autoSync ? '#15ca20' : 'text.secondary',
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: '0.72rem',
-                letterSpacing: '0.04em',
               }}
             />
           </Box>
@@ -359,7 +370,7 @@ export const Dashboard = () => {
             variant="outlined"
             size="small"
             startIcon={autoSync ? <PauseIcon /> : <PlayIcon />}
-            onClick={() => setAutoSync(!autoSync)}
+            onClick={handleToggleSync}
             sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.78rem', flex: { xs: 1, sm: 'none' } }}
           >
             {autoSync ? 'Dừng Sync' : 'Bật Sync'}
@@ -380,9 +391,9 @@ export const Dashboard = () => {
       </Box>
 
       {/* 4 Clean Fixed KPI Metric Cards Grid */}
-      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+      <Grid container spacing={2.5} sx={{ mb: 2.5, width: '100%' }}>
         {/* Card 1: Completed Bookings */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             className="page-enter-animation"
             sx={{
@@ -395,8 +406,8 @@ export const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Chuyến Xe Hoàn Thành
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Chuyến xe hoàn thành
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', my: 0.5 }}>
                   {loading ? <CircularProgress size={22} /> : stats.completedBookings.toLocaleString('vi-VN')}
@@ -422,7 +433,7 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Card 2: Total GMV Revenue */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             className="page-enter-animation"
             sx={{
@@ -435,8 +446,8 @@ export const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Tổng GMV Toàn Sàn
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Tổng GMV toàn sàn
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', my: 0.5 }}>
                   {loading ? <CircularProgress size={22} /> : `${Number(stats.totalGmv).toLocaleString('vi-VN')} đ`}
@@ -464,7 +475,7 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Card 3: Customers Registered */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             className="page-enter-animation"
             sx={{
@@ -477,11 +488,11 @@ export const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Khách Hàng Đăng Ký
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Khách hàng đăng ký
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', my: 0.5 }}>
-                  {loading ? <CircularProgress size={22} /> : `${stats.totalCustomers} Khách`}
+                  {loading ? <CircularProgress size={22} /> : `${stats.totalCustomers} khách`}
                 </Typography>
               </Box>
               <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(21, 202, 32, 0.12)', boxShadow: '0 4px 10px rgba(21, 202, 32, 0.2)' }}>
@@ -495,7 +506,7 @@ export const Dashboard = () => {
                 </ResponsiveContainer>
               </Box>
               <Chip
-                label="Role CUSTOMER"
+                label="Khách hàng (Customer)"
                 size="small"
                 sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}
               />
@@ -504,7 +515,7 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Card 4: Drivers Active */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             className="page-enter-animation"
             sx={{
@@ -517,11 +528,11 @@ export const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Tài Xế Hoạt Động
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Tài xế hoạt động
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', my: 0.5 }}>
-                  {loading ? <CircularProgress size={22} /> : `${stats.totalDrivers} Tài Xế`}
+                  {loading ? <CircularProgress size={22} /> : `${stats.totalDrivers} tài xế`}
                 </Typography>
               </Box>
               <Box sx={{ p: 1.2, borderRadius: 2.5, bgcolor: 'rgba(255, 184, 0, 0.12)', boxShadow: '0 4px 10px rgba(255, 184, 0, 0.2)' }}>
@@ -535,7 +546,7 @@ export const Dashboard = () => {
                 </ResponsiveContainer>
               </Box>
               <Chip
-                label={`${stats.activeDrivers} Trực tuyến`}
+                label={`${stats.activeDrivers} trực tuyến`}
                 size="small"
                 sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#d97706', fontWeight: 700, fontSize: '0.72rem' }}
               />
@@ -545,9 +556,9 @@ export const Dashboard = () => {
       </Grid>
 
       {/* 2 Food Delivery Telemetry Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+      <Grid container spacing={2.5} sx={{ mb: 2.5, width: '100%' }}>
         {/* Food Orders Card */}
-        <Grid item xs={12} sm={6} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
               p: 2.5,
@@ -571,21 +582,21 @@ export const Dashboard = () => {
                 <FoodIcon sx={{ fontSize: 28 }} />
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Đơn Giao Đồ Ăn (Food)
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Đơn giao đồ ăn (Food)
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
-                  {stats.totalFoodOrders} Đơn Hàng
+                  {stats.totalFoodOrders} đơn hàng
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
-                  ✅ {stats.completedFoodOrders} Hoàn tất
+                  ✅ {stats.completedFoodOrders} hoàn tất
                 </Typography>
               </Box>
             </Box>
             <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' }, borderTop: { xs: '1px solid rgba(255,255,255,0.06)', sm: 'none' }, pt: { xs: 1, sm: 0 }, display: 'flex', flexDirection: { xs: 'row', sm: 'column' }, justifyContent: { xs: 'space-between', sm: 'flex-start' }, alignItems: { xs: 'center', sm: 'flex-end' } }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
-                  Doanh Thu Đồ Ăn
+                  Doanh thu đồ ăn
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800, color: '#f97316' }}>
                   {Number(stats.foodRevenue).toLocaleString('vi-VN')} đ
@@ -599,7 +610,7 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Restaurants Card */}
-        <Grid item xs={12} sm={6} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
               p: 2.5,
@@ -623,14 +634,14 @@ export const Dashboard = () => {
                 <RestaurantIcon sx={{ fontSize: 28 }} />
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Đối Tác Quán Ăn
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.78rem' }}>
+                  Đối tác quán ăn
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', my: 0.3 }}>
-                  {stats.totalRestaurants} Nhà Hàng
+                  {stats.totalRestaurants} nhà hàng
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 600 }}>
-                  🟢 {stats.openRestaurants} Quán đang mở
+                  🟢 {stats.openRestaurants} quán đang mở
                 </Typography>
               </Box>
             </Box>
@@ -652,14 +663,14 @@ export const Dashboard = () => {
       </Grid>
 
       {/* Main Charts Row with 3D Depth */}
-      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+      <Grid container spacing={2.5} sx={{ mb: 2.5, width: '100%' }}>
         {/* Left Chart (8 cols): Ride Dispatch Overview */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
-                  Biểu Đồ Xu Hướng Cuốc Xe Trong Tuần
+                  Biểu đồ xu hướng cuốc xe trong tuần
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                   Lượng chuyến đặt và hoàn thành theo thời gian thực
@@ -712,12 +723,12 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Right Chart (4 cols): Monthly Growth Bar Chart */}
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
-                  Sản Lượng Chuyến Theo Tháng
+                  Sản lượng chuyến theo tháng
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Số chuyến xe 6 tháng gần nhất
@@ -756,13 +767,13 @@ export const Dashboard = () => {
       </Grid>
 
       {/* Bottom Row: Fleet Distribution & Live Recent Tables */}
-      <Grid container spacing={2.5}>
+      <Grid container spacing={2.5} sx={{ width: '100%' }}>
         {/* Fleet Distribution Donut */}
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
-                Phân Bố Dịch Vụ Xe
+                Phân bố dịch vụ xe
               </Typography>
             </Box>
 
@@ -794,13 +805,13 @@ export const Dashboard = () => {
                 }}
               >
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block' }}>
-                  Tổng Đội Xe
+                  Tổng đội xe
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.1 }}>
                   {stats.totalDrivers || 0}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}>
-                  {stats.activeDrivers} Trực Tuyến
+                  {stats.activeDrivers} trực tuyến
                 </Typography>
               </Box>
             </Box>
@@ -824,12 +835,12 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Live Recent Bookings Table */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
-                  Chuyến Xe Mới Nhất
+                  Chuyến xe mới nhất
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Dữ liệu trực tiếp thời gian thực từ booking-service
@@ -849,12 +860,12 @@ export const Dashboard = () => {
               <Table size="small" sx={{ minWidth: 550 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>MÃ CUỐC</TableCell>
-                    <TableCell>KHÁCH HÀNG</TableCell>
-                    <TableCell>TÀI XẾ</TableCell>
-                    <TableCell>TIỀN CƯỚC</TableCell>
-                    <TableCell>THANH TOÁN</TableCell>
-                    <TableCell>TRẠNG THÁI</TableCell>
+                    <TableCell>Mã cuốc</TableCell>
+                    <TableCell>Khách hàng</TableCell>
+                    <TableCell>Tài xế</TableCell>
+                    <TableCell>Tiền cước</TableCell>
+                    <TableCell>Thanh toán</TableCell>
+                    <TableCell>Trạng thái</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -882,7 +893,7 @@ export const Dashboard = () => {
                           {b.price ? `${Number(b.price).toLocaleString('vi-VN')} đ` : '—'}
                         </TableCell>
                         <TableCell>
-                          <Chip label={b.paymentMethod || 'CASH'} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                          <Chip label={b.paymentMethod || 'Tiền mặt'} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
                         </TableCell>
                         <TableCell>{getBookingStatusBadge(b.status)}</TableCell>
                       </TableRow>

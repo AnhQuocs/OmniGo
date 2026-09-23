@@ -53,6 +53,8 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
     // Firebase Admin SDK
     implementation 'com.google.firebase:firebase-admin:9.2.0'
+    // Cloudinary SDK for document and profile uploads
+    implementation 'com.cloudinary:cloudinary-http44:1.36.0'
 }
 
 dependencyManagement {

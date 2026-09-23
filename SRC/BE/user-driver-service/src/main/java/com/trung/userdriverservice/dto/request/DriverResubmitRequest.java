@@ -22,4 +22,11 @@ public class DriverResubmitRequest {
 
     @NotBlank(message = "Dòng xe không được để trống")
     private String vehicleModel;
+
+    private String cccdNumber;
+    private String cccdFrontImage;
+    private String cccdBackImage;
+    private String gplxNumber;
+    private String gplxFrontImage;
+    private String gplxBackImage;
 }

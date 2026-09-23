@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,9 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.RamenDining
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,9 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -211,7 +215,9 @@ private fun PromoBannerCard(
 
 @Composable
 fun HomePopularPlacesSection(
+    popularRestaurants: List<Restaurant>,
     onPlaceClick: (String) -> Unit,
+    onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -236,53 +242,26 @@ fun HomePopularPlacesSection(
                 color = PrimaryColor,
                 modifier = Modifier
                     .clip(RoundedCornerShape(AppShape.ShapeXS))
-                    .clickable { onPlaceClick("all") }
+                    .clickable { onViewAllClick() }
                     .padding(horizontal = AppSpacing.XS, vertical = AppSpacing.XXS)
             )
         }
 
         Spacer(modifier = Modifier.height(AppSpacing.M))
 
-        PopularPlaceItem(
-            name = stringResource(id = R.string.home_suggest_pho),
-            desc = stringResource(id = R.string.home_suggest_pho_desc),
-            icon = Icons.Filled.RamenDining,
-            iconTint = SecondaryColor,
-            rating = "4.9",
-            onClick = { onPlaceClick("pho_bo") }
-        )
-
-        Spacer(modifier = Modifier.height(AppSpacing.SPlus))
-
-        PopularPlaceItem(
-            name = stringResource(id = R.string.home_suggest_coffee),
-            desc = stringResource(id = R.string.home_suggest_coffee_desc),
-            icon = Icons.Filled.LocalCafe,
-            iconTint = PrimaryColor,
-            rating = "4.8",
-            onClick = { onPlaceClick("highlands") }
-        )
-
-        Spacer(modifier = Modifier.height(AppSpacing.SPlus))
-
-        PopularPlaceItem(
-            name = stringResource(id = R.string.home_suggest_bmt),
-            desc = stringResource(id = R.string.home_suggest_bmt_desc),
-            icon = Icons.Filled.Fastfood,
-            iconTint = SecondaryColor,
-            rating = "4.7",
-            onClick = { onPlaceClick("banh_mi") }
-        )
+        popularRestaurants.forEach { restaurant ->
+            PopularPlaceItem(
+                restaurant = restaurant,
+                onClick = { onPlaceClick(restaurant.id.toString()) }
+            )
+            Spacer(modifier = Modifier.height(AppSpacing.SPlus))
+        }
     }
 }
 
 @Composable
 private fun PopularPlaceItem(
-    name: String,
-    desc: String,
-    icon: ImageVector,
-    iconTint: Color,
-    rating: String,
+    restaurant: Restaurant,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -304,14 +283,17 @@ private fun PopularPlaceItem(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(RoundedCornerShape(AppShape.ShapeM))
-                    .background(iconTint.copy(alpha = 0.12f)),
+                    .background(SurfaceLight),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = name,
-                    tint = iconTint,
-                    modifier = Modifier.size(Dimen.SizeL)
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(restaurant.imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = restaurant.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
@@ -324,9 +306,11 @@ private fun PopularPlaceItem(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = name,
+                        text = restaurant.name,
                         style = MaterialTheme.typography.s14.semiBold(),
-                        color = TextPrimary
+                        color = TextPrimary,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f).padding(end = AppSpacing.S)
                     )
 
                     Surface(
@@ -345,7 +329,7 @@ private fun PopularPlaceItem(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = rating,
+                                text = restaurant.rating.toString(),
                                 style = MaterialTheme.typography.s10.bold(),
                                 color = WarningColor
                             )
@@ -355,10 +339,12 @@ private fun PopularPlaceItem(
 
                 Spacer(modifier = Modifier.height(AppSpacing.XXS))
 
+                val desc = restaurant.menuItems.firstOrNull()?.name ?: restaurant.address
                 Text(
                     text = desc,
                     style = MaterialTheme.typography.s12.normal(),
-                    color = TextSecondary
+                    color = TextSecondary,
+                    maxLines = 1
                 )
             }
         }

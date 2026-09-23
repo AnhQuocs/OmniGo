@@ -1,25 +1,18 @@
 package com.example.omnigo.features.customer.home.presentation.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.omnigo.core.components.OmniGoMainLayout
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeFilterChipsSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeHeaderSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomePopularPlacesSection
@@ -27,12 +20,8 @@ import com.example.omnigo.features.customer.home.presentation.ui.components.Home
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeQuickWalletSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeSearchSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeServicesGridSection
-import com.example.omnigo.features.main.presentation.ui.components.LocalBottomNavVisibility
-import com.example.omnigo.features.main.presentation.ui.components.animateToolbarOffset
-import com.example.omnigo.features.main.presentation.ui.components.rememberCollapsingBarsState
+import com.example.omnigo.features.customer.home.presentation.viewmodel.HomeViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
-import com.example.omnigo.ui.theme.BackgroundLight
-import com.example.omnigo.ui.theme.SurfaceLight
 
 private val TOP_BAR_HEIGHT = 60.dp
 
@@ -41,88 +30,75 @@ fun HomeScreen(
     onNavigateToService: (String) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val scrollState = rememberScrollState()
-    val density = LocalDensity.current
-    val statusBarHeightPx = WindowInsets.statusBars.getTop(density).toFloat()
-    val contentHeaderHeightPx = with(density) { TOP_BAR_HEIGHT.toPx() }
-    val fullHeaderHeightPx = statusBarHeightPx + contentHeaderHeightPx
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val bottomNavController = LocalBottomNavVisibility.current
-    val barsState = rememberCollapsingBarsState()
+    if (uiState.isPopularPlacesLoading && uiState.popularPlaces.isEmpty()) {
+        HomeScreenShimmer()
+    } else {
+        OmniGoMainLayout(
+            modifier = modifier,
+            headerHeight = TOP_BAR_HEIGHT,
+            isRefreshing = uiState.isPopularPlacesLoading,
+            onRefresh = viewModel::refresh,
+            header = {
+                HomeHeaderSection(
+                    onNotificationClick = onNavigateToNotifications,
+                    modifier = Modifier.height(TOP_BAR_HEIGHT)
+                )
+            }
+        ) { contentModifier ->
+            val scrollState = rememberScrollState()
 
-    val headerOffset = animateToolbarOffset(barsState.barsVisible, fullHeaderHeightPx)
+            Column(
+                modifier = contentModifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+            ) {
+                Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-    LaunchedEffect(barsState.barsVisible) {
-        bottomNavController.visible = barsState.barsVisible
-    }
+                HomeQuickWalletSection()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-    ) {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(BackgroundLight)
-                .nestedScroll(barsState.nestedScrollConnection)
-                .offset {
-                    val visibleHeaderHeight = (fullHeaderHeightPx + headerOffset).coerceAtLeast(0f)
-                    IntOffset(0, visibleHeaderHeight.toInt())
-                }
-                .verticalScroll(scrollState)
-        ) {
-            Spacer(modifier = Modifier.height(AppSpacing.XS))
+                Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            HomeQuickWalletSection()
+                HomeSearchSection(
+                    onSearchClick = onNavigateToSearch
+                )
 
-            Spacer(modifier = Modifier.height(AppSpacing.M))
+                Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            HomeSearchSection(
-                onSearchClick = onNavigateToSearch
-            )
+                HomeFilterChipsSection()
 
-            Spacer(modifier = Modifier.height(AppSpacing.M))
+                Spacer(modifier = Modifier.height(AppSpacing.L))
 
-            HomeFilterChipsSection()
+                HomeServicesGridSection(
+                    onServiceClick = onNavigateToService
+                )
 
-            Spacer(modifier = Modifier.height(AppSpacing.L))
+                Spacer(modifier = Modifier.height(AppSpacing.LPlus))
 
-            HomeServicesGridSection(
-                onServiceClick = onNavigateToService
-            )
+                HomePromoBannersSection(
+                    onBannerClick = { promoCode ->
+                        // Handle promo click
+                    }
+                )
 
-            Spacer(modifier = Modifier.height(AppSpacing.LPlus))
+                Spacer(modifier = Modifier.height(AppSpacing.LPlus))
 
-            HomePromoBannersSection(
-                onBannerClick = { promoCode ->
-                    // Handle promo click
-                }
-            )
+                HomePopularPlacesSection(
+                    popularRestaurants = uiState.popularPlaces,
+                    onPlaceClick = { placeId ->
+                        // Handle place click
+                    },
+                    onViewAllClick = {
+                        onNavigateToService("food")
+                    }
+                )
 
-            Spacer(modifier = Modifier.height(AppSpacing.LPlus))
-
-            HomePopularPlacesSection(
-                onPlaceClick = { placeId ->
-                    // Handle place click/.
-                }
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.XXL))
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .offset { IntOffset(0, headerOffset.toInt()) }
-        ) {
-            HomeHeaderSection(
-                onNotificationClick = onNavigateToNotifications,
-                modifier = Modifier.height(TOP_BAR_HEIGHT)
-            )
+                Spacer(modifier = Modifier.height(AppSpacing.XXL))
+            }
         }
     }
 }

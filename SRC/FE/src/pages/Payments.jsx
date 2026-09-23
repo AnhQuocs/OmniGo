@@ -179,49 +179,49 @@ export const Payments = () => {
       </Box>
 
       {/* 4 Summary Stats Mini Cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-        <Grid item xs={6} sm={3}>
+      <Grid container spacing={1.5} sx={{ mb: 2.5, width: '100%' }}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
               <PaymentIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG GIAO DỊCH</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng giao dịch</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{totalCount}</Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
               <SuccessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>THÀNH CÔNG</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Thành công</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{successCount}</Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', display: 'flex' }}>
               <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>TỔNG GMV</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng GMV</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {Number(totalVolume).toLocaleString('vi-VN')} đ
               </Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', display: 'flex' }}>
               <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>CUỐC ĐÃ TRẢ</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Cuốc đã trả</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{tripPaymentsCount}</Typography>
             </Box>
           </Card>
@@ -235,7 +235,7 @@ export const Payments = () => {
       )}
 
       {/* Main Table Card */}
-      <Card sx={{ p: { xs: 1.8, sm: 2.5 } }}>
+      <Card sx={{ p: { xs: 1.8, sm: 2.5 }, minHeight: 'calc(90vh - 160px)', display: 'flex', flexDirection: 'column' }}>
         {/* Filter buttons & Search */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
@@ -291,21 +291,21 @@ export const Payments = () => {
         </Box>
 
         {/* Payments Data Table with Complete Columns */}
-        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+        <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
           <Table sx={{ minWidth: 900 }} size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 80 }}>MÃ GD</TableCell>
-                <TableCell>MÃ ĐƠN HÀNG (ORDER ID)</TableCell>
-                <TableCell>MÃ CUỐC XE</TableCell>
-                <TableCell>MÃ VÍ</TableCell>
-                <TableCell align="right">SỐ TIỀN</TableCell>
-                <TableCell>LOẠI GIAO DỊCH</TableCell>
-                <TableCell>CỔNG THANH TOÁN</TableCell>
-                <TableCell>MÃ GD CỔNG</TableCell>
-                <TableCell>TRẠNG THÁI</TableCell>
-                <TableCell>NGÀY TẠO</TableCell>
-                <TableCell>CẬP NHẬT</TableCell>
+                <TableCell sx={{ width: 80 }}>Mã GD</TableCell>
+                <TableCell>Mã đơn hàng</TableCell>
+                <TableCell>Mã cuốc xe</TableCell>
+                <TableCell>Mã ví</TableCell>
+                <TableCell align="right">Số tiền</TableCell>
+                <TableCell>Loại giao dịch</TableCell>
+                <TableCell>Cổng thanh toán</TableCell>
+                <TableCell>Mã GD cổng</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell>Ngày tạo</TableCell>
+                <TableCell>Cập nhật</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -390,6 +390,7 @@ export const Payments = () => {
           }}
           labelRowsPerPage="Dòng trên trang:"
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} trên tổng ${count}`}
+          sx={{ mt: 'auto', pt: 1.5 }}
         />
       </Card>
     </Box>

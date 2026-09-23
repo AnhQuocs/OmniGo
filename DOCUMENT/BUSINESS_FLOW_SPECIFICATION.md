@@ -11,9 +11,9 @@ Hệ thống **OmniGo** vận hành trên nền tảng kiến trúc Microservice
 | Tác nhân (Actor) | Nền tảng giao diện | Quyền hạn & Vai trò nghiệp vụ |
 | :--- | :--- | :--- |
 | **Khách Hàng (Customer)** | Android Mobile App | Tìm kiếm chuyến xe, chọn quán ăn, đặt đồ ăn, thanh toán không tiền mặt, theo dõi vị trí trực tiếp (Live Tracking) và đánh giá dịch vụ. |
-| **Tài Xế (Driver)** | Android Mobile App | Bật/tắt trạng thái nhận cuốc (`ONLINE`/`OFFLINE`), phát tọa độ GPS liên tục, tiếp nhận cuốc xe trong 20 giây, đón trả khách hoặc đến quán lấy món đi giao. |
+| **Tài Xế (Driver)** | Android Mobile App / Web | Nộp hồ sơ đối tác trực tuyến (thông tin cá nhân, phương tiện, ảnh chụp 2 mặt CCCD và 2 mặt GPLX). Sau khi Admin phê duyệt (`APPROVED`), có quyền Bật/tắt trạng thái nhận cuốc (`ONLINE`/`OFFLINE`), phát tọa độ GPS liên tục, tiếp nhận cuốc xe trong 20 giây, chở khách hoặc giao món. |
 | **Nhà Hàng (Merchant)** | Web / Tablet Portal | Quản lý thực đơn, giờ mở cửa, nhận thông báo đơn hàng mới qua WebSocket, xác nhận chế biến và bàn giao món cho tài xế. |
-| **Quản Trị Viên (Admin)** | React Web Dashboard | Thẩm định hồ sơ tài xế (`PENDING_APPROVAL` $\rightarrow$ `APPROVED`), khóa tài khoản vi phạm, cấu hình bảng giá/hệ số Surge và theo dõi thống kê toàn sàn. |
+| **Quản Trị Viên (Admin)** | React Web Dashboard | Thẩm định hồ sơ đối tác tài xế (kiểm tra đối soát thông tin xe, phóng to kiểm tra ảnh gốc 2 mặt CCCD và 2 mặt GPLX; đưa ra quyết định `APPROVED` để kích hoạt hoặc `REJECTED` kèm lý do phản hồi), khóa tài khoản vi phạm, cấu hình giá và giám sát vận hành toàn sàn. |
 
 ### 1.2. Các Dịch Vụ Thành Phần & Hạ Tầng Phân Tán (Microservices & Middleware)
 * **API Gateway (Spring Cloud Gateway - Port 8080):** Cửa ngõ duy nhất lọc xác thực JWT, kiểm tra Blacklist/Khóa tài khoản qua Redis, đính kèm header `X-User-Id`, `X-User-Role`, `X-User-Phone` xuống các service nội bộ.
@@ -260,6 +260,58 @@ sequenceDiagram
 
 ---
 
+### 2.6. Sơ Đồ Tuần Tự 6: Đăng Ký Đối Tác Tài Xế & Thẩm Định Hồ Sơ Pháp Lý (Driver Onboarding & Legal Verification Lifecycle - UC9.1)
+> **Trạng thái phê duyệt hồ sơ (`ApprovalStatus`):** `PENDING_APPROVAL` $\rightarrow$ `APPROVED` (hoặc `REJECTED` $\rightarrow$ `/resubmit` $\rightarrow$ `PENDING_APPROVAL`).
+> **Quy định hồ sơ pháp lý:** Bắt buộc tải lên **ảnh chụp 2 mặt Căn cước công dân (CCCD)** và **ảnh chụp 2 mặt Giấy phép lái xe (GPLX)** cùng thông tin phương tiện.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Driver as Tài Xế (Driver App / Web)
+    participant OmniGo as Hệ Thống OmniGo (user-driver-service)
+    participant Kafka as Apache Kafka
+    participant Payment as Payment Service (Ví)
+    actor Admin as Quản Trị Viên (Web Admin)
+
+    %% 1. NỘP HỒ SƠ ĐỐI TÁC TRỰC TUYẾN
+    Note over Driver, OmniGo: 1. Đăng ký & Tải hồ sơ pháp lý trực tuyến (CCCD & GPLX 2 mặt)
+    Driver->>OmniGo: POST /api/v1/drivers/register<br>(Họ tên, SĐT, Mật khẩu, Thông tin xe,<br>Ảnh CCCD mặt trước/sau, Ảnh GPLX mặt trước/sau)
+    alt Thiếu ảnh CCCD hoặc GPLX mặt trước/sau
+        OmniGo-->>Driver: 400 Bad Request ("Vui lòng tải lên đầy đủ ảnh chụp 2 mặt CCCD và 2 mặt GPLX")
+    else Hồ sơ hợp lệ đầu vào
+        OmniGo->>OmniGo: Băm mật khẩu (BCrypt), Lưu User (Role DRIVER)
+        OmniGo->>OmniGo: Lưu DriverProfile (approvalStatus = PENDING_APPROVAL, status = OFFLINE)
+        OmniGo->>Kafka: Xuất bản sự kiện: driver-registered-topic {driverId}
+        Kafka->>Payment: Tạo ví tiền mới (Wallet) số dư 0 VNĐ cho tài xế
+        OmniGo-->>Driver: 201 Created (Hồ sơ đã tiếp nhận, đang chờ Admin thẩm định)
+    end
+
+    %% 2. ADMIN THẨM ĐỊNH HỒ SƠ & PHÓNG TO ẢNH GỐC
+    Note over Admin, OmniGo: 2. Thẩm định hồ sơ đối tác & Đối soát giấy tờ
+    Admin->>OmniGo: GET /api/v1/users?role=DRIVER (Bộ lọc: PENDING_APPROVAL)
+    OmniGo-->>Admin: Trả về danh sách tài xế chờ duyệt
+    Admin->>OmniGo: Xem chi tiết hồ sơ tài xế (Thông tin xe, Số & Ảnh 2 mặt CCCD, Số & Ảnh 2 mặt GPLX)
+    Admin->>Admin: Mở Lightbox phóng to ảnh gốc kiểm tra tính pháp lý (con dấu, hạn dùng, chữ ký)
+
+    %% 3. QUYẾT ĐỊNH PHÊ DUYỆT HOẶC TỪ CHỐI
+    Note over Admin, Driver: 3. Phê duyệt kích hoạt hoặc Từ chối kèm lý do
+    alt Hồ sơ hợp lệ & Chính chủ
+        Admin->>OmniGo: PATCH /api/v1/drivers/{id}/approval {status: "APPROVED"}
+        OmniGo->>OmniGo: Cập nhật DriverProfile.approvalStatus = APPROVED, approvedAt = NOW()
+        OmniGo-->>Admin: 200 OK ("Phê duyệt hồ sơ đối tác thành công")
+        OmniGo-->>Driver: Thông báo chúc mừng: Hồ sơ đã được duyệt! Tài xế có thể bật ONLINE nhận cuốc
+    else Hồ sơ không đạt (Ảnh mờ / Hết hạn / Sai lệch)
+        Admin->>OmniGo: PATCH /api/v1/drivers/{id}/approval {status: "REJECTED", reason: "Ảnh bằng lái mờ"}
+        OmniGo->>OmniGo: Cập nhật DriverProfile.approvalStatus = REJECTED, rejectionReason = "..."
+        OmniGo-->>Admin: 200 OK ("Đã từ chối hồ sơ đối tác")
+        OmniGo-->>Driver: Thông báo: Hồ sơ bị từ chối kèm lý do phản hồi chi tiết
+        Driver->>OmniGo: PUT /api/v1/drivers/{id}/resubmit (Chụp lại ảnh CCCD/GPLX chuẩn và nộp lại)
+        OmniGo->>OmniGo: Chuyển lại trạng thái -> PENDING_APPROVAL (Chờ duyệt lại vòng 2)
+    end
+```
+
+---
+
 ## 3. BẢNG MÁY TRẠNG THÁI CHUẨN XÁC THEO CODEBASE (STATE MACHINES)
 
 ### 3.1. Máy Trạng Thái Cuốc Xe (`BookingStatus`)
@@ -304,9 +356,9 @@ Khớp chính xác với enum `com.trung.fooddeliveryservice.util.enums.OrderSta
 
 #### B. Trạng thái Phê duyệt Tài xế (`ApprovalStatus`)
 *File: `com.trung.userdriverservice.util.enums.ApprovalStatus`*
-* **`PENDING_APPROVAL`**: Hồ sơ tài xế mới đăng ký, đang chờ Admin kiểm tra giấy tờ xe, bằng lái. Chưa thể bật `ONLINE`.
-* **`APPROVED`**: Hồ sơ đã được Admin phê duyệt, tài xế có thể kích hoạt nhận cuốc.
-* **`REJECTED`**: Hồ sơ bị từ chối do giấy tờ không hợp lệ. Tài xế cần gửi lại hồ sơ qua API `/resubmit`.
+* **`PENDING_APPROVAL`**: Hồ sơ tài xế mới đăng ký trực tuyến (đã nộp thông tin xe, ảnh chụp 2 mặt CCCD và 2 mặt GPLX), đang chờ Admin kiểm tra tính pháp lý và đối soát thông tin. Ở trạng thái này, tài xế **chưa thể bật `ONLINE`** để nhận cuốc xe hoặc đơn giao đồ ăn.
+* **`APPROVED`**: Hồ sơ đã được Admin phê duyệt sau khi đối soát ảnh gốc CCCD và GPLX hợp lệ. Hệ thống cập nhật `approvedAt = LocalDateTime.now()`, gửi thông báo kích hoạt và cho phép tài xế chuyển sang trạng thái `ONLINE` để hoạt động.
+* **`REJECTED`**: Hồ sơ bị từ chối do giấy tờ không hợp lệ (ảnh mờ, thông tin xe sai lệch, bằng lái hết hạn). Lý do từ chối được lưu trong `rejectionReason`. Tài xế nhận được thông báo phản hồi và có thể chụp/cập nhật lại giấy tờ mới qua API `PUT /api/v1/drivers/{id}/resubmit` để chuyển lại về `PENDING_APPROVAL` chờ xét duyệt lại.
 
 #### C. Vai trò Người dùng (`Role`)
 *File: `com.trung.userdriverservice.util.enums.Role`*
@@ -419,6 +471,22 @@ Nhằm phục vụ phân hệ Báo cáo kinh doanh chuyên biệt cho Quán ăn 
    * **Quản trị viên (Admin):** Chỉ có quyền xem chi tiết đánh giá đơn hàng (`readOnly = true`), tuyệt đối không có quyền gửi đánh giá thay hoặc chỉnh sửa đánh giá của khách hàng.
 5. **Đồng bộ tự động Chỉ số Nhà hàng (Auto-sync Rating & Count):**
    * Mỗi khi có đánh giá mới hoặc đánh giá được cập nhật, hệ thống tự động tính lại điểm trung bình sao `rating` (làm tròn 1 chữ số thập phân) và tổng số lượt đánh giá `reviewCount` / `totalReviews` của nhà hàng thông qua repository `FoodOrderReviewRepository`.
+
+---
+
+### 4.4. Quy Tắc Ràng Buộc Thẩm Định Hồ Sơ Pháp Lý Tài Xế (Driver Document Verification Rules)
+1. **Ràng buộc hồ sơ đầu vào khi đăng ký (Strict Registration Boundary):**
+   * Bắt buộc có đầy đủ 4 ảnh: **Mặt trước CCCD**, **Mặt sau CCCD**, **Mặt trước GPLX**, **Mặt sau GPLX**.
+   * Trường `cccdNumber` và `gplxNumber` phục vụ tra cứu và đối soát nhanh.
+   * Định dạng ảnh chấp nhận: Base64 Data URI hoặc HTTP/HTTPS Cloud URL (`image/png`, `image/jpeg`, `image/webp`).
+   * Nếu thiếu bất kỳ ảnh nào trong 4 ảnh trên, Backend chặn ngay tại tầng Validation với mã lỗi HTTP `400 Bad Request`.
+2. **Lưu trữ an toàn trong CSDL PostgreSQL:**
+   * Các trường `cccd_front_image`, `cccd_back_image`, `gplx_front_image`, `gplx_back_image` được lưu dưới dạng kiểu dữ liệu `TEXT` trong bảng `driver_profiles` để đảm bảo chuỗi Data URL Base64 dung lượng lớn không bị lỗi tràn giới hạn `VARCHAR(255)`.
+3. **Phân quyền và quy trình thẩm định (Admin Verification Protocol):**
+   * Chỉ tài khoản có quyền Quản trị viên (`ROLE_ADMIN`) mới có thể gọi API thẩm định: `PATCH /api/v1/drivers/{id}/approval`.
+   * Giao diện Quản trị viên cung cấp công cụ phóng to kiểm tra ảnh gốc (Lightbox Zoom) cho phép nhân viên vận hành soi rõ con dấu, số định danh, hạn dùng và chữ ký trên giấy tờ.
+   * Khi phê duyệt (`APPROVED`): Kích hoạt tài khoản tài xế (`approvedAt` ghi nhận thời điểm duyệt), tài xế mới có thể chuyển sang trạng thái `ONLINE` để nhận cuốc hoặc đơn hàng.
+   * Khi từ chối (`REJECTED`): Bắt buộc đính kèm `reason` cụ thể để gửi thông báo phản hồi đến ứng dụng tài xế, cho phép tài xế cập nhật lại ảnh giấy tờ hợp lệ qua API `PUT /api/v1/drivers/{id}/resubmit`.
 
 ---
 

@@ -20,6 +20,7 @@ import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.repository.UserRepository;
 import com.trung.userdriverservice.security.JwtTokenProvider;
 import com.trung.userdriverservice.security.RefreshTokenService;
+import com.trung.userdriverservice.service.CloudinaryService;
 import com.trung.userdriverservice.service.DriverService;
 import com.trung.userdriverservice.service.FirebaseAuthService;
 import com.trung.userdriverservice.service.client.LocationClient;
@@ -48,6 +49,20 @@ public class DriverServiceImpl implements DriverService {
     private final FirebaseAuthService firebaseAuthService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final CloudinaryService cloudinaryService;
+
+    private String resolveDocumentImage(String image) {
+        if (image == null || image.trim().isEmpty()) {
+            return null;
+        }
+        if (image.startsWith("http://") || image.startsWith("https://")) {
+            return image;
+        }
+        if (cloudinaryService != null) {
+            return cloudinaryService.uploadBase64(image);
+        }
+        return image;
+    }
 
     @Override
     @Transactional
@@ -72,6 +87,10 @@ public class DriverServiceImpl implements DriverService {
         User savedUser = userRepository.save(user);
 
         DriverProfile driverProfile = userMapper.toDriverProfileEntity(request, savedUser);
+        driverProfile.setCccdFrontImage(resolveDocumentImage(request.getCccdFrontImage()));
+        driverProfile.setCccdBackImage(resolveDocumentImage(request.getCccdBackImage()));
+        driverProfile.setGplxFrontImage(resolveDocumentImage(request.getGplxFrontImage()));
+        driverProfile.setGplxBackImage(resolveDocumentImage(request.getGplxBackImage()));
         driverProfile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
         driverProfileRepository.save(driverProfile);
 
@@ -140,6 +159,12 @@ public class DriverServiceImpl implements DriverService {
         profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
         profile.setLicensePlate(cleanPlate);
         profile.setVehicleModel(request.getVehicleModel().trim());
+        if (request.getCccdNumber() != null) profile.setCccdNumber(request.getCccdNumber().trim());
+        if (request.getCccdFrontImage() != null) profile.setCccdFrontImage(resolveDocumentImage(request.getCccdFrontImage()));
+        if (request.getCccdBackImage() != null) profile.setCccdBackImage(resolveDocumentImage(request.getCccdBackImage()));
+        if (request.getGplxNumber() != null) profile.setGplxNumber(request.getGplxNumber().trim());
+        if (request.getGplxFrontImage() != null) profile.setGplxFrontImage(resolveDocumentImage(request.getGplxFrontImage()));
+        if (request.getGplxBackImage() != null) profile.setGplxBackImage(resolveDocumentImage(request.getGplxBackImage()));
         driverProfileRepository.save(profile);
 
         return ApiResponse.<UserResponse>builder()
@@ -228,6 +253,20 @@ public class DriverServiceImpl implements DriverService {
         profile.setLicensePlate(cleanPlate);
         profile.setVehicleModel(request.getVehicleModel().trim());
         profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
+        if (request.getCccdNumber() != null) profile.setCccdNumber(request.getCccdNumber().trim());
+        if (request.getCccdFrontImage() != null && !request.getCccdFrontImage().trim().isEmpty()) {
+            profile.setCccdFrontImage(resolveDocumentImage(request.getCccdFrontImage()));
+        }
+        if (request.getCccdBackImage() != null && !request.getCccdBackImage().trim().isEmpty()) {
+            profile.setCccdBackImage(resolveDocumentImage(request.getCccdBackImage()));
+        }
+        if (request.getGplxNumber() != null) profile.setGplxNumber(request.getGplxNumber().trim());
+        if (request.getGplxFrontImage() != null && !request.getGplxFrontImage().trim().isEmpty()) {
+            profile.setGplxFrontImage(resolveDocumentImage(request.getGplxFrontImage()));
+        }
+        if (request.getGplxBackImage() != null && !request.getGplxBackImage().trim().isEmpty()) {
+            profile.setGplxBackImage(resolveDocumentImage(request.getGplxBackImage()));
+        }
         profile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
         profile.setRejectionReason(null);
         profile.setStatus(DriverStatus.OFFLINE);

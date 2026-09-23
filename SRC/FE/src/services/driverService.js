@@ -56,6 +56,18 @@ export const driverService = {
   toggleDriverStatus: async (driverId, isActive) => {
     return await put(`/api/v1/drivers/${driverId}/status?isActive=${isActive}`);
   },
+
+  /**
+   * Tải ảnh giấy tờ đối tác (CCCD, GPLX) lên Cloudinary qua Backend
+   * Endpoint BE: POST /api/v1/drivers/upload-document
+   */
+  uploadDocument: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await post('/api/v1/drivers/upload-document', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export default driverService;
