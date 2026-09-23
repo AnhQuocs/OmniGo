@@ -30,7 +30,7 @@ public class Restaurant extends BaseEntity {
     @Column(length = 20)
     private String phone;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String address;
 
     @Column(nullable = false)
@@ -44,6 +44,9 @@ public class Restaurant extends BaseEntity {
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
+
+    @Column(name = "license_image_url", columnDefinition = "TEXT")
+    private String licenseImageUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

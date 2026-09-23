@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Divider,
   Drawer,
+  Alert,
 } from '@mui/material';
 import {
   Assignment as OrderIcon,
@@ -34,6 +35,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/authSlice';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 export const MerchantLayout = () => {
   const navigate = useNavigate();
@@ -45,12 +47,15 @@ export const MerchantLayout = () => {
   const [loadingRes, setLoadingRes] = useState(true);
   const [statusAnchor, setStatusAnchor] = useState(null);
   const [userAnchor, setUserAnchor] = useState(null);
+  const [restaurantAnchor, setRestaurantAnchor] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unrepliedReviewCount, setUnrepliedReviewCount] = useState(0);
   const [recentReviews, setRecentReviews] = useState([]);
   const [reviewAnchor, setReviewAnchor] = useState(null);
   const [lastReviewTotal, setLastReviewTotal] = useState(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // Fetch Current Restaurant Info
   const fetchMyRestaurant = async () => {
@@ -112,6 +117,10 @@ export const MerchantLayout = () => {
   const handleStatusChange = async (newStatus) => {
     setStatusAnchor(null);
     if (!restaurant || !restaurant.id) return;
+    if (restaurant.isLocked) {
+      toast.error('Quán của bạn đang ở trạng thái chờ Quản trị viên duyệt hoặc tạm khóa');
+      return;
+    }
     try {
       setUpdatingStatus(true);
       await foodService.updateRestaurantStatus(restaurant.id, newStatus);
@@ -124,11 +133,23 @@ export const MerchantLayout = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleOpenLogoutConfirm = () => {
     setUserAnchor(null);
-    await dispatch(logoutUser());
-    toast.success('Đã đăng xuất tài khoản');
-    navigate('/login', { replace: true });
+    setLogoutConfirmOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await dispatch(logoutUser());
+      toast.success('Đã đăng xuất tài khoản');
+      navigate('/login', { replace: true });
+    } catch {
+      toast.error('Lỗi khi đăng xuất');
+    } finally {
+      setLoggingOut(false);
+      setLogoutConfirmOpen(false);
+    }
   };
 
   const navItems = [
@@ -144,7 +165,6 @@ export const MerchantLayout = () => {
         </Badge>
       ),
     },
-    { label: 'Cài đặt', path: '/merchant/settings', icon: <SettingsIcon fontSize="small" /> },
     { label: 'Bản đồ', path: '/merchant/map', icon: <MapIcon fontSize="small" /> },
   ];
 
@@ -208,8 +228,9 @@ export const MerchantLayout = () => {
         </Box>
       </Box>
 
-        {/* Center: Restaurant Information */}
+        {/* Center: Restaurant Information (Avatar Quán with Dropdown) */}
         <Box
+          onClick={(e) => setRestaurantAnchor(e.currentTarget)}
           sx={{
             display: { xs: 'none', sm: 'flex' },
             alignItems: 'center',
@@ -220,6 +241,12 @@ export const MerchantLayout = () => {
             bgcolor: '#F8FAFC',
             border: '1px solid #E2E8F0',
             maxWidth: 450,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: '#F1F5F9',
+              borderColor: '#CBD5E1',
+            },
           }}
         >
           <Avatar
@@ -232,12 +259,40 @@ export const MerchantLayout = () => {
               <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {restaurant?.name || (loadingRes ? 'Đang tải thông tin quán...' : 'Chưa đăng ký quán ăn')}
               </Typography>
+              <ArrowDownIcon sx={{ fontSize: 16, color: '#64748B' }} />
             </Box>
             <Typography variant="caption" sx={{ color: '#64748B', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {restaurant?.address || 'Vui lòng cập nhật thông tin tại mục Cài đặt'}
+              {restaurant?.address || 'Nhấn để xem hoặc cập nhật cài đặt quán'}
             </Typography>
           </Box>
         </Box>
+
+        {/* Dropdown Menu cho Avatar Quán */}
+        <Menu
+          anchorEl={restaurantAnchor}
+          open={Boolean(restaurantAnchor)}
+          onClose={() => setRestaurantAnchor(null)}
+          PaperProps={{ sx: { borderRadius: 3, minWidth: 200, p: 0.5 } }}
+        >
+          <MenuItem
+            onClick={() => {
+              setRestaurantAnchor(null);
+              navigate('/merchant/settings');
+            }}
+            sx={{ fontSize: '0.88rem', fontWeight: 600, gap: 1 }}
+          >
+            <SettingsIcon fontSize="small" sx={{ color: '#F97316' }} /> Cài đặt quán ăn
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setRestaurantAnchor(null);
+              navigate('/merchant/map');
+            }}
+            sx={{ fontSize: '0.88rem', fontWeight: 600, gap: 1 }}
+          >
+            <MapIcon fontSize="small" sx={{ color: '#64748B' }} /> Xem vị trí trên bản đồ
+          </MenuItem>
+        </Menu>
 
         {/* Right: Actions (Status, Notifications, User) */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -446,7 +501,7 @@ export const MerchantLayout = () => {
               <SettingsIcon fontSize="small" sx={{ color: '#64748B' }} /> Cài đặt quán
             </MenuItem>
             <Divider sx={{ my: 0.5 }} />
-            <MenuItem onClick={handleLogout} sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#EF4444', gap: 1 }}>
+            <MenuItem onClick={handleOpenLogoutConfirm} sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#EF4444', gap: 1 }}>
               <LogoutIcon fontSize="small" /> Đăng xuất
             </MenuItem>
           </Menu>
@@ -544,6 +599,22 @@ export const MerchantLayout = () => {
 
         {/* MAIN CONTENT AREA */}
         <Box component="main" sx={{ flex: 1, minWidth: 0 }}>
+          {restaurant?.isLocked && (
+            <Alert
+              severity="warning"
+              sx={{
+                mb: 2.5,
+                borderRadius: 3,
+                fontWeight: 600,
+                bgcolor: '#FFFBEB',
+                color: '#B45309',
+                border: '1px solid #FDE68A',
+                '& .MuiAlert-icon': { color: '#F59E0B' },
+              }}
+            >
+              ⏳ <b>Hồ sơ quán đang chờ xét duyệt:</b> Quán ăn của bạn đang ở trạng thái chờ Quản trị viên duyệt ({restaurant.lockedReason || 'Chờ Admin duyệt hồ sơ đối tác'}). Quán sẽ chưa thể mở cửa phục vụ hoặc nhận đơn hàng cho đến khi được Admin phê duyệt.
+            </Alert>
+          )}
           <Outlet context={{ restaurant, loadingRes, refreshRestaurant: fetchMyRestaurant }} />
         </Box>
       </Box>
@@ -628,6 +699,20 @@ export const MerchantLayout = () => {
           </Typography>
         </Box>
       </Drawer>
+
+      {/* CONFIRM LOGOUT DIALOG */}
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        onClose={() => !loggingOut && setLogoutConfirmOpen(false)}
+        onConfirm={handleConfirmLogout}
+        title="Đăng xuất tài khoản"
+        content="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?"
+        confirmText="Đăng xuất"
+        cancelText="Ở lại"
+        confirmColor="error"
+        iconType="logout"
+        loading={loggingOut}
+      />
     </Box>
   );
 };

@@ -17,6 +17,7 @@ import {
   Alert,
   Button,
   Chip,
+  Avatar,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -29,6 +30,8 @@ import {
   IconButton,
   Tooltip,
   Stack,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -73,6 +76,8 @@ export const Drivers = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [mainDriverTab, setMainDriverTab] = useState(0); // 0: Tài xế Omni (Đã duyệt), 1: Đơn tài xế chờ duyệt
+  const [driverAppFilter, setDriverAppFilter] = useState('PENDING'); // 'PENDING' | 'REJECTED' | 'ALL'
 
   // Dialog State: Create New Driver
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -330,8 +335,9 @@ export const Drivers = () => {
         gplxNumber: createForm.gplxNumber || undefined,
         gplxFrontImage: createForm.gplxFrontImage || defaultDocPlaceholder,
         gplxBackImage: createForm.gplxBackImage || defaultDocPlaceholder,
+        autoApprove: true,
       });
-      toast.success('Đăng ký tài xế thành công (Đang ở trạng thái Chờ Duyệt)!');
+      toast.success('Thêm tài xế mới thành công! Tài xế đã được tự động duyệt hoạt động.');
       setOpenCreateDialog(false);
       fetchDrivers();
     } catch (err) {
@@ -531,6 +537,7 @@ export const Drivers = () => {
       if (selectedDriverForVerify?.id === selectedDriverForReject.id) {
         setSelectedDriverForVerify((prev) => prev ? { ...prev, approvalStatus: 'REJECTED', rejectionReason: rejectReason.trim() } : null);
       }
+      setDriverAppFilter('REJECTED');
       setOpenRejectDialog(false);
       setSelectedDriverForReject(null);
       fetchDrivers();
@@ -728,7 +735,29 @@ export const Drivers = () => {
     );
   };
 
-  const filteredDrivers = drivers.filter((d) => {
+  const pendingDrivers = drivers.filter((d) => (d.approvalStatus || 'APPROVED') === 'PENDING_APPROVAL');
+  const rejectedDrivers = drivers.filter((d) => d.approvalStatus === 'REJECTED');
+  const applicationDrivers = drivers.filter((d) => d.approvalStatus === 'PENDING_APPROVAL' || d.approvalStatus === 'REJECTED');
+  const approvedDrivers = drivers.filter((d) => (d.approvalStatus || 'APPROVED') === 'APPROVED');
+
+  const pendingCount = pendingDrivers.length;
+  const rejectedCount = rejectedDrivers.length;
+  const approvedCount = approvedDrivers.length;
+  const lockedCount = approvedDrivers.filter((d) => d.isLocked).length;
+  const onlineCount = approvedDrivers.filter((d) => d.status === 'ONLINE' || d.isActive === true).length;
+  const offlineCount = approvedDrivers.length - onlineCount;
+
+  // Active list based on main tab (0: Tài xế Omni, 1: Đơn tài xế)
+  const currentDriverList =
+    mainDriverTab === 0
+      ? approvedDrivers
+      : driverAppFilter === 'PENDING'
+      ? pendingDrivers
+      : driverAppFilter === 'REJECTED'
+      ? rejectedDrivers
+      : applicationDrivers;
+
+  const filteredDrivers = currentDriverList.filter((d) => {
     const term = searchTerm.toLowerCase();
     const matchesSearch =
       (d.id && String(d.id).includes(term)) ||
@@ -739,11 +768,13 @@ export const Drivers = () => {
       (d.vehicleModel && d.vehicleModel.toLowerCase().includes(term));
 
     if (!matchesSearch) return false;
+
+    if (mainDriverTab === 1) return true;
+
     const isOnline = d.status === 'ONLINE' || d.isActive === true;
     const approval = d.approvalStatus || 'APPROVED';
 
     if (statusFilter === 'ALL') return true;
-    if (statusFilter === 'PENDING') return approval === 'PENDING_APPROVAL';
     if (statusFilter === 'APPROVED') return approval === 'APPROVED';
     if (statusFilter === 'REJECTED') return approval === 'REJECTED';
     if (statusFilter === 'ONLINE') return isOnline;
@@ -752,20 +783,13 @@ export const Drivers = () => {
     return true;
   });
 
-  const pendingCount = drivers.filter((d) => (d.approvalStatus || 'APPROVED') === 'PENDING_APPROVAL').length;
-  const approvedCount = drivers.filter((d) => (d.approvalStatus || 'APPROVED') === 'APPROVED').length;
-  const rejectedCount = drivers.filter((d) => d.approvalStatus === 'REJECTED').length;
-  const lockedCount = drivers.filter((d) => d.isLocked).length;
-  const onlineCount = drivers.filter((d) => d.status === 'ONLINE' || d.isActive === true).length;
-  const offlineCount = drivers.length - onlineCount;
-
   const paginatedDrivers = filteredDrivers.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Header bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -773,21 +797,23 @@ export const Drivers = () => {
             Quản Lý & Duyệt Tài Xế
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
-            Thẩm định hồ sơ đăng ký, quản lý trạng thái phương tiện và khóa/mở khóa đối tác
+            Thẩm định hồ sơ đăng ký, quản lý trạng thái phương tiện và cấu hình đối tác
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             startIcon={<AddDriverIcon />}
             onClick={handleOpenCreate}
             sx={{
-              bgcolor: '#15ca20',
-              '&:hover': { bgcolor: '#12b01c' },
+              bgcolor: '#10b981',
+              '&:hover': { bgcolor: '#059669' },
               borderRadius: 2,
+              textTransform: 'none',
               fontWeight: 700,
               fontSize: '0.82rem',
               flex: { xs: 1, sm: 'none' },
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
             }}
           >
             Thêm Tài Xế Mới
@@ -798,312 +824,574 @@ export const Drivers = () => {
             startIcon={<RefreshIcon />}
             onClick={fetchDrivers}
             disabled={loading}
-            sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.82rem', flex: { xs: 1, sm: 'none' } }}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              flex: { xs: 1, sm: 'none' },
+            }}
           >
             Làm Mới
           </Button>
         </Box>
       </Box>
 
-      {/* Mini Metric Overview Cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5, width: '100%' }}>
+      {/* Metric Cards */}
+      <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              borderRadius: 2.5,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.2,
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
               <BikeIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </Box>
+            </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng tài xế</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{drivers.length}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                Tổng tài xế
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                {drivers.length}
+              </Typography>
             </Box>
           </Card>
         </Grid>
+
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#d97706', display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              borderRadius: 2.5,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.2,
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', color: '#d97706', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
               <PendingIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </Box>
+            </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Chờ duyệt</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{pendingCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                Chờ duyệt
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                {pendingCount}
+              </Typography>
             </Box>
           </Card>
         </Grid>
+
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              borderRadius: 2.5,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.2,
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(21, 202, 32, 0.12)', color: '#15ca20', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
               <DotIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </Box>
+            </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Trực tuyến</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{onlineCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                Trực tuyến
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                {onlineCount}
+              </Typography>
             </Box>
           </Card>
         </Grid>
+
         <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              borderRadius: 2.5,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.2,
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(255, 51, 102, 0.12)', color: '#ff3366', width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 } }}>
               <LockIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </Box>
+            </Avatar>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Bị khóa</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ef4444', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{lockedCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                Bị khóa
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                {lockedCount}
+              </Typography>
             </Box>
           </Card>
         </Grid>
       </Grid>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2.5 }}>
-          {error}
-        </Alert>
-      )}
+      {/* Main Table Container */}
+      <Card sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: 1, borderColor: 'divider', minHeight: 'calc(90vh - 160px)', display: 'flex', flexDirection: 'column' }}>
+        {/* Main 2 Tabs: Tài xế Omni vs Đơn tài xế chờ duyệt */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: { xs: 1.5, sm: 2 }, pt: 0.5, bgcolor: 'action.hover' }}>
+          <Tabs
+            value={mainDriverTab}
+            onChange={(_, val) => {
+              setMainDriverTab(val);
+              setPage(0);
+            }}
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{
+              minHeight: 48,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                minHeight: 48,
+              },
+            }}
+          >
+            <Tab
+              icon={<BikeIcon sx={{ fontSize: 20 }} />}
+              iconPosition="start"
+              label={`Tài Xế Omni (${approvedDrivers.length})`}
+            />
+            <Tab
+              icon={<PendingIcon sx={{ fontSize: 20 }} />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>Đơn Tài Xế Chờ Duyệt</span>
+                  {pendingCount > 0 && (
+                    <Chip
+                      label={pendingCount}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        bgcolor: '#f59e0b',
+                        color: '#fff',
+                      }}
+                    />
+                  )}
+                </Box>
+              }
+            />
+          </Tabs>
+        </Box>
 
-      {/* Main Table Card */}
-      <Card sx={{ p: { xs: 1.8, sm: 2.5 }, minHeight: 'calc(90vh - 160px)', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
-            {[
-              { label: 'Tất Cả', value: 'ALL', count: drivers.length },
-              { label: 'Chờ Duyệt', value: 'PENDING', count: pendingCount, color: 'warning' },
-              { label: 'Đã Duyệt', value: 'APPROVED', count: approvedCount },
-              { label: 'Từ Chối', value: 'REJECTED', count: rejectedCount },
-              { label: 'Trực Tuyến', value: 'ONLINE', count: onlineCount },
-              { label: 'Đã Khóa', value: 'LOCKED', count: lockedCount },
-            ].map((tab) => (
+        {/* Filter & Search Bar */}
+        <Box
+          sx={{
+            p: { xs: 1.5, sm: 2 },
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 2,
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: 1,
+            borderColor: 'divider',
+          }}
+        >
+          {mainDriverTab === 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
               <Button
-                key={tab.value}
-                variant={statusFilter === tab.value ? 'contained' : 'outlined'}
-                onClick={() => {
-                  setStatusFilter(tab.value);
-                  setPage(0);
-                }}
+                variant={statusFilter === 'ALL' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('ALL'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
+              >
+                Tất cả ({approvedDrivers.length})
+              </Button>
+              <Button
+                variant={statusFilter === 'ONLINE' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('ONLINE'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'ONLINE' ? '#fff' : '#15ca20' }}
+              >
+                Trực tuyến ({onlineCount})
+              </Button>
+              <Button
+                variant={statusFilter === 'OFFLINE' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('OFFLINE'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'OFFLINE' ? '#fff' : '#64748b' }}
+              >
+                Ngoại tuyến ({offlineCount})
+              </Button>
+              <Button
+                variant={statusFilter === 'LOCKED' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('LOCKED'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'LOCKED' ? '#fff' : '#ef4444' }}
+              >
+                Đã khóa ({lockedCount})
+              </Button>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+              <Button
+                variant={driverAppFilter === 'PENDING' ? 'contained' : 'outlined'}
+                onClick={() => { setDriverAppFilter('PENDING'); setPage(0); }}
                 size="small"
                 sx={{
-                  px: { xs: 1.5, sm: 2 },
-                  py: 0.8,
+                  textTransform: 'none',
                   fontWeight: 700,
                   fontSize: { xs: '0.78rem', sm: '0.85rem' },
                   borderRadius: 2,
                   flex: { xs: 1, sm: 'none' },
-                  ...(tab.color === 'warning' && statusFilter !== tab.value ? { color: '#d97706', borderColor: '#d97706' } : {}),
+                  bgcolor: driverAppFilter === 'PENDING' ? '#f59e0b' : 'transparent',
+                  color: driverAppFilter === 'PENDING' ? '#fff' : '#d97706',
+                  borderColor: '#f59e0b',
+                  '&:hover': {
+                    bgcolor: driverAppFilter === 'PENDING' ? '#d97706' : 'rgba(245, 158, 11, 0.08)',
+                    borderColor: '#d97706',
+                  },
                 }}
               >
-                {tab.label} ({tab.count})
+                Chờ duyệt ({pendingCount})
               </Button>
-            ))}
-          </Box>
+              <Button
+                variant={driverAppFilter === 'REJECTED' ? 'contained' : 'outlined'}
+                onClick={() => { setDriverAppFilter('REJECTED'); setPage(0); }}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
+                  bgcolor: driverAppFilter === 'REJECTED' ? '#ef4444' : 'transparent',
+                  color: driverAppFilter === 'REJECTED' ? '#fff' : '#dc2626',
+                  borderColor: '#ef4444',
+                  '&:hover': {
+                    bgcolor: driverAppFilter === 'REJECTED' ? '#dc2626' : 'rgba(239, 68, 68, 0.08)',
+                    borderColor: '#dc2626',
+                  },
+                }}
+              >
+                Đã từ chối ({rejectedCount})
+              </Button>
+              <Button
+                variant={driverAppFilter === 'ALL' ? 'contained' : 'outlined'}
+                onClick={() => { setDriverAppFilter('ALL'); setPage(0); }}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
+                }}
+              >
+                Tất cả đơn ({applicationDrivers.length})
+              </Button>
+            </Box>
+          )}
 
-          <Box sx={{ width: { xs: '100%', md: 360 } }}>
-            <TextField
-              size="small"
-              placeholder="Tìm theo Tên, SĐT, Email, Biển số..."
-              fullWidth
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(0);
-              }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Box>
+          <TextField
+            size="small"
+            placeholder={mainDriverTab === 0 ? "Tìm theo tên tài xế, SĐT, Email, biển số..." : "Tìm đơn theo tên tài xế, SĐT, CCCD..."}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
+            sx={{ width: { xs: '100%', md: 320 } }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
         </Box>
 
-        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
-          <Table sx={{ minWidth: 950 }} size="small">
-            <TableHead>
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Table */}
+        <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
+          <Table sx={{ minWidth: 850 }} size="small">
+            <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ width: 70 }}>ID</TableCell>
-                <TableCell>Tài xế</TableCell>
-                <TableCell>Số điện thoại</TableCell>
-                <TableCell>Phương tiện</TableCell>
-                <TableCell>Biển số xe</TableCell>
-                <TableCell align="center">Duyệt hồ sơ</TableCell>
-                <TableCell align="center">Vận hành</TableCell>
-                <TableCell align="center">Tài khoản</TableCell>
-                <TableCell align="right" sx={{ pr: 3, width: 130, whiteSpace: 'nowrap' }}>Hành động</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 70 }}>#ID</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Tài xế</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Số điện thoại</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Phương tiện</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Biển số xe</TableCell>
+                {mainDriverTab === 0 ? (
+                  <>
+                    <TableCell sx={{ fontWeight: 700 }} align="center">Duyệt hồ sơ</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="center">Vận hành</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="center">Tài khoản</TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell sx={{ fontWeight: 700 }}>Số CCCD</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Số GPLX</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="center">Trạng thái hồ sơ</TableCell>
+                  </>
+                )}
+                <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={28} />
-                    <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                  <TableCell colSpan={mainDriverTab === 0 ? 9 : 8} align="center" sx={{ py: 6 }}>
+                    <CircularProgress size={36} />
+                    <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
                       Đang tải danh sách tài xế...
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : paginatedDrivers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 5, color: 'text.secondary' }}>
-                    {searchTerm ? 'Không tìm thấy tài xế phù hợp' : 'Không có tài xế nào theo bộ lọc này'}
+                  <TableCell colSpan={mainDriverTab === 0 ? 9 : 8} align="center" sx={{ py: 6 }}>
+                    <BikeIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      {searchTerm
+                        ? 'Không tìm thấy tài xế phù hợp'
+                        : mainDriverTab === 0
+                        ? 'Không có tài xế nào theo bộ lọc này'
+                        : driverAppFilter === 'PENDING'
+                        ? 'Không có đơn đăng ký tài xế nào chờ duyệt'
+                        : driverAppFilter === 'REJECTED'
+                        ? 'Không có hồ sơ tài xế nào bị từ chối'
+                        : 'Không tìm thấy đơn đăng ký tài xế nào'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedDrivers.map((driver) => {
-                  const isPending = (driver.approvalStatus || 'APPROVED') === 'PENDING_APPROVAL';
-                  const isRejected = driver.approvalStatus === 'REJECTED';
-
-                  return (
-                    <TableRow key={driver.id} hover>
-                      <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace', color: '#008cff' }}>
-                        #{driver.id}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BikeIcon sx={{ fontSize: 18, color: '#008cff' }} />
-                          {driver.fullName || 'Tài xế đối tác'}
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
-                        {driver.phoneNumber}
-                      </TableCell>
-                      <TableCell>
-                        {getVehicleChip(driver.vehicleType)}
-                      </TableCell>
-                      <TableCell>
-                        {driver.licensePlate ? (
-                          <Chip
-                            label={driver.licensePlate}
-                            size="small"
-                            sx={{
-                              fontFamily: 'monospace',
-                              fontWeight: 800,
-                              letterSpacing: '0.05em',
-                              bgcolor: 'rgba(0, 140, 255, 0.08)',
-                              border: '1px solid rgba(0, 140, 255, 0.3)',
-                              color: '#008cff',
-                            }}
-                          />
-                        ) : (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                            Chưa cập nhật
+                paginatedDrivers.map((driver) => (
+                  <TableRow key={driver.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                      #{driver.id}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ bgcolor: 'rgba(0, 140, 255, 0.12)', color: '#008cff', width: 44, height: 44, borderRadius: 2 }}>
+                          <BikeIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            {driver.fullName || 'Tài xế đối tác'}
                           </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ cursor: 'pointer' }} onClick={() => handleOpenVerifyDialog(driver)}>
-                          {getApprovalChip(driver)}
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {driver.email || 'Chưa có email'}
+                          </Typography>
                         </Box>
-                      </TableCell>
-                      <TableCell align="center">
-                        {getDriverStatusChip(driver)}
-                      </TableCell>
-                      <TableCell align="center">
-                        {driver.isLocked ? (
-                          <Tooltip title={`Lý do: ${driver.lockedReason || 'Không có lý do'}`}>
-                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, color: '#dc2626', fontWeight: 600, fontSize: '0.84rem' }}>
-                              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#dc2626' }} />
-                              Bị khóa
-                            </Box>
-                          </Tooltip>
-                        ) : (
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, color: '#16a34a', fontWeight: 600, fontSize: '0.84rem' }}>
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#16a34a' }} />
-                            Hoạt động
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                      {driver.phoneNumber}
+                    </TableCell>
+                    <TableCell>
+                      {getVehicleChip(driver.vehicleType)}
+                    </TableCell>
+                    <TableCell>
+                      {driver.licensePlate ? (
+                        <Chip
+                          label={driver.licensePlate}
+                          size="small"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 800,
+                            letterSpacing: '0.05em',
+                            bgcolor: 'rgba(0, 140, 255, 0.08)',
+                            border: '1px solid rgba(0, 140, 255, 0.3)',
+                            color: '#008cff',
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                          Chưa cập nhật
+                        </Typography>
+                      )}
+                    </TableCell>
+                    {mainDriverTab === 0 ? (
+                      <>
+                        <TableCell align="center">
+                          <Box sx={{ cursor: 'pointer', display: 'inline-block' }} onClick={() => handleOpenVerifyDialog(driver)}>
+                            {getApprovalChip(driver)}
                           </Box>
-                        )}
-                      </TableCell>
-                      <TableCell align="right" sx={{ pr: 2.5, whiteSpace: 'nowrap' }}>
-                        <Stack direction="row" spacing={0.8} justifyContent="flex-end" alignItems="center">
-                          {/* Thẩm định hồ sơ & Giấy tờ (CCCD, GPLX) */}
-                          <Tooltip title="Thẩm định hồ sơ & Giấy tờ (CCCD, GPLX)">
+                        </TableCell>
+                        <TableCell align="center">
+                          {getDriverStatusChip(driver)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {driver.isLocked ? (
+                            <Tooltip title={`Lý do: ${driver.lockedReason || 'Không có lý do'}`}>
+                              <Chip
+                                label="ĐÃ KHÓA"
+                                size="small"
+                                sx={{
+                                  fontWeight: 800,
+                                  bgcolor: 'rgba(239, 68, 68, 0.12)',
+                                  color: '#dc2626',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                }}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Chip
+                              label="HOẠT ĐỘNG"
+                              color="success"
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontWeight: 700 }}
+                            />
+                          )}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'text.secondary' }}>
+                          {driver.cccdNumber || '—'}
+                        </TableCell>
+                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'text.secondary' }}>
+                          {driver.gplxNumber || '—'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {getApprovalChip(driver)}
+                        </TableCell>
+                      </>
+                    )}
+                    <TableCell align="center">
+                      {mainDriverTab === 0 ? (
+                        <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                          <Tooltip title="Xem hồ sơ & Giấy tờ (CCCD, GPLX)">
                             <IconButton
                               size="small"
                               onClick={() => handleOpenVerifyDialog(driver)}
                               sx={{
-                                color: isPending ? '#d97706' : '#6366f1',
-                                bgcolor: isPending ? 'rgba(255, 184, 0, 0.15)' : 'rgba(99, 102, 241, 0.1)',
-                                '&:hover': { bgcolor: isPending ? 'rgba(255, 184, 0, 0.25)' : 'rgba(99, 102, 241, 0.2)' },
+                                color: '#6366f1',
+                                bgcolor: 'rgba(99, 102, 241, 0.08)',
+                                border: '1px solid rgba(99, 102, 241, 0.2)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: 'rgba(99, 102, 241, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
                               }}
                             >
                               <ViewDocIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
-                          {/* Phê duyệt nhanh */}
-                          {isPending && (
-                            <Tooltip title="Phê duyệt hồ sơ đối tác">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleApproveDriver(driver)}
-                                sx={{ color: '#15ca20', bgcolor: 'rgba(21, 202, 32, 0.1)', '&:hover': { bgcolor: 'rgba(21, 202, 32, 0.2)' } }}
-                              >
-                                <ApproveIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                          <Tooltip title="Chỉnh sửa thông tin">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenEdit(driver)}
+                              sx={{
+                                color: '#0284c7',
+                                bgcolor: 'rgba(2, 132, 199, 0.08)',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: 'rgba(2, 132, 199, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
 
-                          {/* Từ chối */}
-                          {isPending && (
-                            <Tooltip title="Từ chối hồ sơ (Nhập lý do)">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleOpenRejectDialog(driver)}
-                                sx={{ color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' } }}
-                              >
-                                <RejectIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-
-                          {/* Khóa / Mở khóa tài khoản */}
                           <Tooltip title={driver.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản tài xế'}>
                             <IconButton
                               size="small"
                               onClick={() => handleOpenLockDriver(driver)}
                               sx={{
-                                color: driver.isLocked ? '#15ca20' : '#ef4444',
-                                bgcolor: driver.isLocked ? 'rgba(21, 202, 32, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                '&:hover': { bgcolor: driver.isLocked ? 'rgba(21, 202, 32, 0.2)' : 'rgba(239, 68, 68, 0.2)' },
+                                color: driver.isLocked ? '#16a34a' : '#ef4444',
+                                bgcolor: driver.isLocked ? 'rgba(22, 163, 74, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                border: '1px solid',
+                                borderColor: driver.isLocked ? 'rgba(22, 163, 74, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: driver.isLocked ? 'rgba(22, 163, 74, 0.18)' : 'rgba(239, 68, 68, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
                               }}
                             >
                               {driver.isLocked ? <UnlockIcon fontSize="small" /> : <LockIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
-
-                          {/* Sửa thông tin */}
-                          <Tooltip title="Chỉnh sửa thông tin">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEdit(driver)}
-                              sx={{ color: '#008cff', bgcolor: 'rgba(0, 140, 255, 0.1)', '&:hover': { bgcolor: 'rgba(0, 140, 255, 0.2)' } }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
                         </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<ViewDocIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => handleOpenVerifyDialog(driver)}
+                          sx={{
+                            bgcolor: driver.approvalStatus === 'REJECTED' ? '#64748b' : '#f59e0b',
+                            '&:hover': { bgcolor: driver.approvalStatus === 'REJECTED' ? '#475569' : '#d97706' },
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            borderRadius: 2,
+                            fontSize: '0.8rem',
+                            py: 0.5,
+                            px: 1.8,
+                            whiteSpace: 'nowrap',
+                            boxShadow: driver.approvalStatus === 'REJECTED' ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.25)',
+                          }}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
           count={filteredDrivers.length}
-          rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => {
             setRowsPerPage(parseInt(e.target.value, 10));
             setPage(0);
           }}
-          labelRowsPerPage="Dòng trên trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} trên tổng ${count}`}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          rowsPerPageOptions={[5, 10, 25, 50]}
           sx={{ mt: 'auto', pt: 1.5 }}
         />
       </Card>
@@ -2390,17 +2678,19 @@ export const Drivers = () => {
               Đóng
             </Button>
 
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<RejectIcon />}
-              onClick={() => {
-                handleOpenRejectDialog(selectedDriverForVerify);
-              }}
-              sx={{ fontWeight: 700, borderRadius: 2 }}
-            >
-              {selectedDriverForVerify?.approvalStatus === 'APPROVED' ? 'Thu Hồi / Từ Chối' : 'Từ Chối Hồ Sơ'}
-            </Button>
+            {selectedDriverForVerify?.approvalStatus !== 'REJECTED' && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<RejectIcon />}
+                onClick={() => {
+                  handleOpenRejectDialog(selectedDriverForVerify);
+                }}
+                sx={{ fontWeight: 700, borderRadius: 2 }}
+              >
+                {selectedDriverForVerify?.approvalStatus === 'APPROVED' ? 'Thu Hồi / Từ Chối' : 'Từ Chối Hồ Sơ'}
+              </Button>
+            )}
 
             {selectedDriverForVerify?.approvalStatus !== 'APPROVED' && (
               <Button
@@ -2416,7 +2706,7 @@ export const Drivers = () => {
                   borderRadius: 2,
                 }}
               >
-                Phê Duyệt Hồ Sơ
+                {selectedDriverForVerify?.approvalStatus === 'REJECTED' ? 'Xem Xét Lại & Phê Duyệt' : 'Phê Duyệt Hồ Sơ'}
               </Button>
             )}
           </Box>

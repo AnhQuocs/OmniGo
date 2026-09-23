@@ -691,41 +691,6 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
           </ListItemButton>
         </ListItem>
 
-        {/* Chuyển nhanh sang Cổng Đối Tác Nhà Hàng */}
-        <ListItem disablePadding sx={{ mb: 0.5, mt: 1.5, px: 1 }}>
-          <ListItemButton
-            onClick={() => handleNav('/merchant/orders')}
-            sx={{
-              borderRadius: 2.5,
-              py: 1,
-              px: 1.5,
-              bgcolor: isDark ? 'rgba(249, 115, 22, 0.12)' : '#FFF7ED',
-              border: '1px solid',
-              borderColor: isDark ? 'rgba(249, 115, 22, 0.3)' : '#FED7AA',
-              '&:hover': {
-                bgcolor: isDark ? 'rgba(249, 115, 22, 0.2)' : '#FFEDD5',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 32, color: '#F97316' }}>
-              <RestaurantIcon sx={{ fontSize: 20 }} />
-            </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    color: '#EA580C',
-                    fontSize: '0.88rem',
-                  }}
-                >
-                  Cổng Quán Ăn (Live)
-                </Typography>
-              }
-            />
-          </ListItemButton>
-        </ListItem>
       </Box>
 
       {/* Footer copyright */}

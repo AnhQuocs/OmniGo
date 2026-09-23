@@ -39,6 +39,7 @@ import {
   Refresh as RefreshIcon,
   Store as RestaurantIcon,
   CheckCircle as OpenIcon,
+  CheckCircleRounded as CheckCircleIcon,
   Schedule as BusyIcon,
   Block as ClosedIcon,
   MenuBook as MenuIcon,
@@ -53,10 +54,13 @@ import {
   LocationOn as LocationIcon,
   Image as ImageIcon,
   AccessTime as TimeIcon,
+  Assignment as LicenseIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
 import RestaurantReviewsList from '../components/food/RestaurantReviewsList';
+import AddressAutocomplete from '../components/common/AddressAutocomplete';
+import ImageUploadField from '../components/common/ImageUploadField';
 
 export const Restaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -66,6 +70,9 @@ export const Restaurants = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [mainTab, setMainTab] = useState(0); // 0: Quán đã duyệt (Omni), 1: Đơn chờ duyệt
+  const [partnerAppFilter, setPartnerAppFilter] = useState('PENDING'); // 'PENDING' | 'REJECTED' | 'ALL'
+  const [appraisalModal, setAppraisalModal] = useState({ open: false, restaurant: null });
 
   // Menu Modal State
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -74,10 +81,6 @@ export const Restaurants = () => {
   const [openMenuModal, setOpenMenuModal] = useState(false);
   const [menuModalTab, setMenuModalTab] = useState(0);
 
-  // Status Change Dialog State
-  const [statusDialogData, setStatusDialogData] = useState(null);
-  const [newStatus, setNewStatus] = useState('');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Lock Restaurant Dialog State
   const [openLockModal, setOpenLockModal] = useState(false);
@@ -125,6 +128,13 @@ export const Restaurants = () => {
     }
   };
 
+  // View License Dialog State
+  const [viewLicenseDialog, setViewLicenseDialog] = useState({ open: false, restaurant: null });
+
+  // Reject Application Dialog State
+  const [rejectDialog, setRejectDialog] = useState({ open: false, restaurant: null, reason: '' });
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+
   // Add Partner Modal State
   const [openAddPartnerModal, setOpenAddPartnerModal] = useState(false);
   const [submittingPartner, setSubmittingPartner] = useState(false);
@@ -136,6 +146,7 @@ export const Restaurants = () => {
     latitude: 10.7769,
     longitude: 106.7009,
     imageUrl: '',
+    licenseImageUrl: '',
     openTime: '08:00',
     closeTime: '22:00',
     ownerName: '',
@@ -152,6 +163,7 @@ export const Restaurants = () => {
       latitude: 10.7769,
       longitude: 106.7009,
       imageUrl: '',
+      licenseImageUrl: '',
       openTime: '08:00',
       closeTime: '22:00',
       ownerName: '',
@@ -206,6 +218,11 @@ export const Restaurants = () => {
       setPartnerTab(1);
       return;
     }
+    if (!partnerFormData.licenseImageUrl || !partnerFormData.licenseImageUrl.trim()) {
+      toast.error('Vui lòng tải lên ảnh Giấy phép kinh doanh của quán');
+      setPartnerTab(1);
+      return;
+    }
 
     setSubmittingPartner(true);
     try {
@@ -216,16 +233,18 @@ export const Restaurants = () => {
         latitude: parseFloat(partnerFormData.latitude),
         longitude: parseFloat(partnerFormData.longitude),
         imageUrl: partnerFormData.imageUrl.trim() || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5',
+        licenseImageUrl: partnerFormData.licenseImageUrl.trim(),
         openTime: partnerFormData.openTime || '08:00',
         closeTime: partnerFormData.closeTime || '22:00',
         ownerName: partnerFormData.ownerName.trim(),
         ownerPhone: partnerFormData.ownerPhone.trim(),
         email: partnerFormData.email.trim() || undefined,
         password: partnerFormData.password,
+        autoApprove: true,
       };
 
       await foodService.registerPartnerRestaurant(payload);
-      toast.success(`Đăng ký đối tác "${payload.name}" và tạo tài khoản RESTAURANT thành công!`);
+      toast.success(`Thêm đối tác nhà hàng "${payload.name}" thành công! Quán đã được tự động duyệt hoạt động.`);
       setOpenAddPartnerModal(false);
       resetPartnerForm();
       fetchRestaurants();
@@ -272,35 +291,86 @@ export const Restaurants = () => {
     }
   };
 
-  const handleOpenStatusDialog = (restaurant) => {
-    setStatusDialogData(restaurant);
-    setNewStatus(restaurant.status || 'OPEN');
-  };
 
-  const handleSaveStatus = async () => {
-    if (!statusDialogData || !newStatus) return;
-    setUpdatingStatus(true);
+  const handleApproveRestaurant = async (restaurant) => {
     try {
-      await foodService.updateRestaurantStatus(statusDialogData.id, newStatus);
-      toast.success(`Đã cập nhật trạng thái quán sang: ${newStatus}`);
-      setStatusDialogData(null);
+      await foodService.approveRestaurant(restaurant.id);
+      toast.success(`Đã phê duyệt nhà hàng "${restaurant.name}" thành công! Quán đã có thể mở cửa hoạt động.`);
       fetchRestaurants();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi cập nhật trạng thái quán');
-    } finally {
-      setUpdatingStatus(false);
+      toast.error('Lỗi khi phê duyệt nhà hàng: ' + (err.response?.data?.message || err.message || ''));
     }
   };
 
-  // Filter logic
-  const filteredRestaurants = restaurants.filter((r) => {
+  const handleOpenReject = (restaurant) => {
+    setRejectDialog({
+      open: true,
+      restaurant,
+      reason: 'Hồ sơ chưa đạt yêu cầu (giấy phép kinh doanh không hợp lệ hoặc thông tin chưa chính xác)',
+    });
+  };
+
+  const handleSubmitReject = async () => {
+    if (!rejectDialog.restaurant) return;
+    if (!rejectDialog.reason.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối hồ sơ');
+      return;
+    }
+    setRejectSubmitting(true);
+    try {
+      await foodService.rejectRestaurant(rejectDialog.restaurant.id, rejectDialog.reason.trim());
+      toast.success(`Đã từ chối hồ sơ đăng ký của "${rejectDialog.restaurant.name}"`);
+      setRejectDialog({ open: false, restaurant: null, reason: '' });
+      setPartnerAppFilter('REJECTED');
+      fetchRestaurants();
+    } catch (err) {
+      toast.error('Lỗi khi từ chối hồ sơ: ' + (err.response?.data?.message || err.message || ''));
+    } finally {
+      setRejectSubmitting(false);
+    }
+  };
+
+  const isRejectedRestaurant = (r) => {
+    if (!r || !r.isLocked) return false;
+    const reason = (r.lockedReason || '').toLowerCase();
+    return reason.includes('từ chối') || reason.includes('reject');
+  };
+
+  const isPendingRestaurant = (r) => {
+    if (!r || !r.isLocked) return false;
+    if (isRejectedRestaurant(r)) return false;
+    const reason = (r.lockedReason || '').toLowerCase();
+    return reason.includes('chờ') || reason.includes('duyệt') || reason.includes('partner') || !reason;
+  };
+
+  const approvedRestaurants = restaurants.filter((r) => !isPendingRestaurant(r) && !isRejectedRestaurant(r));
+  const pendingRestaurants = restaurants.filter((r) => isPendingRestaurant(r));
+  const rejectedRestaurants = restaurants.filter((r) => isRejectedRestaurant(r));
+  const applicationRestaurants = restaurants.filter((r) => isPendingRestaurant(r) || isRejectedRestaurant(r));
+
+  // Filter logic based on main tab (0: Approved, 1: Pending & Rejected Applications)
+  const currentList =
+    mainTab === 0
+      ? approvedRestaurants
+      : partnerAppFilter === 'PENDING'
+      ? pendingRestaurants
+      : partnerAppFilter === 'REJECTED'
+      ? rejectedRestaurants
+      : applicationRestaurants;
+
+  const filteredRestaurants = currentList.filter((r) => {
     const matchSearch =
       searchTerm === '' ||
       r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.phone?.includes(searchTerm);
 
-    const matchStatus = statusFilter === 'ALL' || r.status === statusFilter;
+    if (mainTab === 1) return matchSearch;
+
+    const matchStatus =
+      statusFilter === 'ALL'
+        ? true
+        : r.status === statusFilter;
 
     return matchSearch && matchStatus;
   });
@@ -312,9 +382,13 @@ export const Restaurants = () => {
 
   const stats = {
     total: restaurants.length,
-    open: restaurants.filter((r) => r.status === 'OPEN').length,
-    busy: restaurants.filter((r) => r.status === 'BUSY').length,
-    closed: restaurants.filter((r) => r.status === 'CLOSED').length,
+    approved: approvedRestaurants.length,
+    open: approvedRestaurants.filter((r) => r.status === 'OPEN').length,
+    busy: approvedRestaurants.filter((r) => r.status === 'BUSY').length,
+    closed: approvedRestaurants.filter((r) => r.status === 'CLOSED').length,
+    pending: pendingRestaurants.length,
+    rejected: rejectedRestaurants.length,
+    applications: applicationRestaurants.length,
   };
 
   const getStatusChip = (status) => {
@@ -511,6 +585,56 @@ export const Restaurants = () => {
 
       {/* Main Table Container */}
       <Card sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: 1, borderColor: 'divider', minHeight: 'calc(90vh - 160px)', display: 'flex', flexDirection: 'column' }}>
+        {/* Main 2 Tabs: Quán đã duyệt vs Đơn chờ duyệt */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: { xs: 1.5, sm: 2 }, pt: 0.5, bgcolor: 'action.hover' }}>
+          <Tabs
+            value={mainTab}
+            onChange={(_, val) => {
+              setMainTab(val);
+              setPage(0);
+            }}
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{
+              minHeight: 48,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                minHeight: 48,
+              },
+            }}
+          >
+            <Tab
+              icon={<RestaurantIcon sx={{ fontSize: 20 }} />}
+              iconPosition="start"
+              label={`Quán Ăn Omni (${stats.approved})`}
+            />
+            <Tab
+              icon={<BusyIcon sx={{ fontSize: 20 }} />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>Đơn Quán Chờ Duyệt</span>
+                  {stats.pending > 0 && (
+                    <Chip
+                      label={stats.pending}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        bgcolor: '#f59e0b',
+                        color: '#fff',
+                      }}
+                    />
+                  )}
+                </Box>
+              }
+            />
+          </Tabs>
+        </Box>
+
         {/* Filter & Search Bar */}
         <Box
           sx={{
@@ -524,47 +648,108 @@ export const Restaurants = () => {
             borderColor: 'divider',
           }}
         >
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
-            <Button
-              variant={statusFilter === 'ALL' ? 'contained' : 'outlined'}
-              onClick={() => { setStatusFilter('ALL'); setPage(0); }}
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
-            >
-              Tất cả ({stats.total})
-            </Button>
-            <Button
-              variant={statusFilter === 'OPEN' ? 'contained' : 'outlined'}
-              onClick={() => { setStatusFilter('OPEN'); setPage(0); }}
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'OPEN' ? '#fff' : '#15ca20' }}
-            >
-              Mở cửa ({stats.open})
-            </Button>
-            <Button
-              variant={statusFilter === 'BUSY' ? 'contained' : 'outlined'}
-              onClick={() => { setStatusFilter('BUSY'); setPage(0); }}
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'BUSY' ? '#fff' : '#ffaa00' }}
-            >
-              Đang bận ({stats.busy})
-            </Button>
-            <Button
-              variant={statusFilter === 'CLOSED' ? 'contained' : 'outlined'}
-              onClick={() => { setStatusFilter('CLOSED'); setPage(0); }}
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'CLOSED' ? '#fff' : '#ff3366' }}
-            >
-              Đóng cửa ({stats.closed})
-            </Button>
-          </Box>
+          {mainTab === 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+              <Button
+                variant={statusFilter === 'ALL' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('ALL'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
+              >
+                Tất cả ({stats.approved})
+              </Button>
+              <Button
+                variant={statusFilter === 'OPEN' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('OPEN'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'OPEN' ? '#fff' : '#15ca20' }}
+              >
+                Mở cửa ({stats.open})
+              </Button>
+              <Button
+                variant={statusFilter === 'BUSY' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('BUSY'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'BUSY' ? '#fff' : '#ffaa00' }}
+              >
+                Đang bận ({stats.busy})
+              </Button>
+              <Button
+                variant={statusFilter === 'CLOSED' ? 'contained' : 'outlined'}
+                onClick={() => { setStatusFilter('CLOSED'); setPage(0); }}
+                size="small"
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, color: statusFilter === 'CLOSED' ? '#fff' : '#ff3366' }}
+              >
+                Đóng cửa ({stats.closed})
+              </Button>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+              <Button
+                variant={partnerAppFilter === 'PENDING' ? 'contained' : 'outlined'}
+                onClick={() => { setPartnerAppFilter('PENDING'); setPage(0); }}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
+                  bgcolor: partnerAppFilter === 'PENDING' ? '#f59e0b' : 'transparent',
+                  color: partnerAppFilter === 'PENDING' ? '#fff' : '#d97706',
+                  borderColor: '#f59e0b',
+                  '&:hover': {
+                    bgcolor: partnerAppFilter === 'PENDING' ? '#d97706' : 'rgba(245, 158, 11, 0.08)',
+                    borderColor: '#d97706',
+                  },
+                }}
+              >
+                Chờ duyệt ({stats.pending})
+              </Button>
+              <Button
+                variant={partnerAppFilter === 'REJECTED' ? 'contained' : 'outlined'}
+                onClick={() => { setPartnerAppFilter('REJECTED'); setPage(0); }}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
+                  bgcolor: partnerAppFilter === 'REJECTED' ? '#ef4444' : 'transparent',
+                  color: partnerAppFilter === 'REJECTED' ? '#fff' : '#dc2626',
+                  borderColor: '#ef4444',
+                  '&:hover': {
+                    bgcolor: partnerAppFilter === 'REJECTED' ? '#dc2626' : 'rgba(239, 68, 68, 0.08)',
+                    borderColor: '#dc2626',
+                  },
+                }}
+              >
+                Đã từ chối ({stats.rejected})
+              </Button>
+              <Button
+                variant={partnerAppFilter === 'ALL' ? 'contained' : 'outlined'}
+                onClick={() => { setPartnerAppFilter('ALL'); setPage(0); }}
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.78rem', sm: '0.85rem' },
+                  borderRadius: 2,
+                  flex: { xs: 1, sm: 'none' },
+                }}
+              >
+                Tất cả đơn ({stats.applications})
+              </Button>
+            </Box>
+          )}
 
           <TextField
             size="small"
-            placeholder="Tìm theo tên quán, địa chỉ, SĐT..."
+            placeholder={mainTab === 0 ? "Tìm theo tên quán, địa chỉ, SĐT..." : "Tìm đơn theo tên quán, địa chỉ, SĐT..."}
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-            sx={{ width: { xs: '100%', md: 300 } }}
+            sx={{ width: { xs: '100%', md: 320 } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -591,8 +776,17 @@ export const Restaurants = () => {
                 <TableCell sx={{ fontWeight: 700 }}>Địa chỉ</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Số điện thoại</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Giờ phục vụ</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Gian hàng</TableCell>
+                {mainTab === 0 ? (
+                  <>
+                    <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Gian hàng</TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell sx={{ fontWeight: 700 }}>Chủ quán</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Trạng thái hồ sơ</TableCell>
+                  </>
+                )}
                 <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Thao tác</TableCell>
               </TableRow>
             </TableHead>
@@ -611,7 +805,13 @@ export const Restaurants = () => {
                   <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <RestaurantIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
                     <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      Không tìm thấy nhà hàng nào
+                      {mainTab === 0
+                        ? 'Không tìm thấy nhà hàng nào'
+                        : partnerAppFilter === 'PENDING'
+                        ? 'Không có đơn đăng ký quán nào chờ duyệt'
+                        : partnerAppFilter === 'REJECTED'
+                        ? 'Không có hồ sơ quán nào bị từ chối'
+                        : 'Không tìm thấy đơn đăng ký quán nào'}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -658,70 +858,179 @@ export const Restaurants = () => {
                     <TableCell sx={{ fontSize: '0.85rem' }}>
                       🕒 {r.openTime || '07:00'} - {r.closeTime || '22:00'}
                     </TableCell>
-                    <TableCell>
-                      <Box sx={{ cursor: 'pointer' }} onClick={() => handleOpenStatusDialog(r)} title="Bấm để đổi trạng thái">
-                        {getStatusChip(r.status)}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {r.isLocked ? (
-                        <Tooltip title={`Lý do: ${r.lockedReason || 'Gian hàng bị khóa bởi Admin'}`}>
-                          <Chip
-                            icon={<LockIcon sx={{ fontSize: '13px !important' }} />}
-                            label="ĐÃ KHÓA"
-                            color="error"
-                            size="small"
-                            sx={{ fontWeight: 700 }}
-                          />
-                        </Tooltip>
-                      ) : (
-                        <Chip
-                          icon={<UnlockIcon sx={{ fontSize: '13px !important' }} />}
-                          label="HOẠT ĐỘNG"
-                          color="success"
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 700 }}
-                        />
-                      )}
-                    </TableCell>
+                    {mainTab === 0 ? (
+                      <>
+                        <TableCell>
+                          {getStatusChip(r.status)}
+                        </TableCell>
+                        <TableCell>
+                          {r.isLocked ? (
+                            <Tooltip title={`Lý do: ${r.lockedReason || 'Khóa bởi Admin'}`}>
+                              <Chip
+                                label="ĐÃ KHÓA"
+                                size="small"
+                                sx={{
+                                  fontWeight: 800,
+                                  bgcolor: 'rgba(239, 68, 68, 0.12)',
+                                  color: '#dc2626',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                }}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Chip
+                              label="HOẠT ĐỘNG"
+                              color="success"
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontWeight: 700 }}
+                            />
+                          )}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          Chủ quán #{r.ownerId || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {isRejectedRestaurant(r) ? (
+                            <Box>
+                              <Tooltip title={r.lockedReason || 'Hồ sơ bị từ chối'}>
+                                <Chip
+                                  label="ĐÃ TỪ CHỐI"
+                                  size="small"
+                                  sx={{
+                                    fontWeight: 800,
+                                    bgcolor: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#dc2626',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  }}
+                                />
+                              </Tooltip>
+                              {r.lockedReason && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: 'block',
+                                    color: '#dc2626',
+                                    fontSize: '0.72rem',
+                                    maxWidth: 220,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    mt: 0.3,
+                                  }}
+                                  title={r.lockedReason}
+                                >
+                                  {r.lockedReason.replace(/^Từ chối hồ sơ đăng ký:\s*/i, '')}
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : (
+                            <Chip
+                              label="CHỜ DUYỆT"
+                              size="small"
+                              sx={{
+                                fontWeight: 800,
+                                bgcolor: 'rgba(245, 158, 11, 0.15)',
+                                color: '#d97706',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                              }}
+                            />
+                          )}
+                        </TableCell>
+                      </>
+                    )}
                     <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.8, flexWrap: 'wrap' }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<MenuIcon />}
-                          onClick={() => handleOpenMenu(r)}
-                          sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600 }}
-                        >
-                          Thực đơn
-                        </Button>
+                      {mainTab === 0 ? (
+                        <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                          {r.licenseImageUrl && (
+                            <Tooltip title="Xem Giấy phép kinh doanh">
+                              <IconButton
+                                size="small"
+                                onClick={() => setViewLicenseDialog({ open: true, restaurant: r })}
+                                sx={{
+                                  color: '#7c3aed',
+                                  bgcolor: 'rgba(124, 58, 237, 0.08)',
+                                  border: '1px solid rgba(124, 58, 237, 0.25)',
+                                  borderRadius: 1.5,
+                                  p: 0.8,
+                                  '&:hover': {
+                                    bgcolor: 'rgba(124, 58, 237, 0.2)',
+                                    transform: 'scale(1.05)',
+                                  },
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <LicenseIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Xem thực đơn & Đánh giá">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenMenu(r)}
+                              sx={{
+                                color: '#0284c7',
+                                bgcolor: 'rgba(2, 132, 199, 0.08)',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: 'rgba(2, 132, 199, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              <MenuIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={r.isLocked ? 'Mở khóa gian hàng' : 'Khóa gian hàng'}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenLockRestaurant(r)}
+                              sx={{
+                                color: r.isLocked ? '#16a34a' : '#ef4444',
+                                bgcolor: r.isLocked ? 'rgba(22, 163, 74, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                border: '1px solid',
+                                borderColor: r.isLocked ? 'rgba(22, 163, 74, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: r.isLocked ? 'rgba(22, 163, 74, 0.18)' : 'rgba(239, 68, 68, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {r.isLocked ? <UnlockIcon fontSize="small" /> : <LockIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      ) : (
                         <Button
                           size="small"
                           variant="contained"
-                          onClick={() => handleOpenStatusDialog(r)}
+                          startIcon={<ViewIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => setAppraisalModal({ open: true, restaurant: r })}
                           sx={{
+                            bgcolor: isRejectedRestaurant(r) ? '#64748b' : '#f59e0b',
+                            '&:hover': { bgcolor: isRejectedRestaurant(r) ? '#475569' : '#d97706' },
                             textTransform: 'none',
-                            borderRadius: 1.5,
+                            fontWeight: 700,
                             fontSize: '0.8rem',
-                            fontWeight: 600,
-                            bgcolor: '#334155',
-                            '&:hover': { bgcolor: '#1e293b' },
+                            py: 0.5,
+                            px: 1.8,
+                            borderRadius: 2,
+                            whiteSpace: 'nowrap',
+                            boxShadow: isRejectedRestaurant(r) ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.25)',
                           }}
                         >
-                          Đổi Trạng Thái
+                          Xem chi tiết
                         </Button>
-                        <Button
-                          size="small"
-                          variant={r.isLocked ? 'outlined' : 'contained'}
-                          color={r.isLocked ? 'success' : 'error'}
-                          startIcon={r.isLocked ? <UnlockIcon /> : <LockIcon />}
-                          onClick={() => handleOpenLockRestaurant(r)}
-                          sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: '0.78rem', fontWeight: 700 }}
-                        >
-                          {r.isLocked ? 'Mở Khóa' : 'Khóa'}
-                        </Button>
-                      </Box>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -854,49 +1163,6 @@ export const Restaurants = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Modal: Đổi trạng thái Quán */}
-      <Dialog
-        open={Boolean(statusDialogData)}
-        onClose={() => setStatusDialogData(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle component="div" sx={{ fontWeight: 800 }}>
-          🔄 Cập Nhật Trạng Thái Quán
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Quán: <b>{statusDialogData?.name}</b> (ID: #{statusDialogData?.id})
-          </Typography>
-
-          <FormControl fullWidth size="small">
-            <InputLabel>Trạng Thái Hoạt Động</InputLabel>
-            <Select
-              value={newStatus}
-              label="Trạng Thái Hoạt Động"
-              onChange={(e) => setNewStatus(e.target.value)}
-            >
-              <MenuItem value="OPEN">🟢 OPEN - Đang mở cửa (Nhận đặt món)</MenuItem>
-              <MenuItem value="BUSY">🟡 BUSY - Quán đang bận (Tạm dừng nhận đơn)</MenuItem>
-              <MenuItem value="CLOSED">🔴 CLOSED - Tạm đóng cửa (Xem thực đơn, không mua)</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setStatusDialogData(null)} disabled={updatingStatus} sx={{ textTransform: 'none' }}>
-            Hủy
-          </Button>
-          <Button
-            onClick={handleSaveStatus}
-            variant="contained"
-            disabled={updatingStatus}
-            sx={{ bgcolor: '#008cff', textTransform: 'none', fontWeight: 700 }}
-          >
-            {updatingStatus ? 'Đang lưu...' : 'Lưu Trạng Thái'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Modal: Thêm Đối Tác Nhà Hàng Mới */}
       <Dialog
@@ -1104,80 +1370,45 @@ export const Restaurants = () => {
                   />
                 </Box>
 
-                {/* Row 3: Address */}
+                {/* Row 3: Address & Coordinates with Autocomplete */}
                 <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
-                    Địa chỉ nhà hàng <span style={{ color: '#ef4444' }}>*</span>
-                  </Typography>
-                  <TextField
-                    fullWidth
+                  <AddressAutocomplete
+                    label="Địa chỉ nhà hàng"
                     required
-                    name="address"
                     value={partnerFormData.address}
-                    onChange={handlePartnerInputChange}
-                    placeholder="VD: 123 Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocationIcon sx={{ color: 'text.secondary' }} />
-                        </InputAdornment>
-                      ),
+                    latitude={partnerFormData.latitude}
+                    longitude={partnerFormData.longitude}
+                    onChangeAddress={(newAddr) =>
+                      setPartnerFormData((prev) => ({ ...prev, address: newAddr }))
+                    }
+                    onSelectLocation={({ address, latitude, longitude }) => {
+                      setPartnerFormData((prev) => ({
+                        ...prev,
+                        address,
+                        latitude,
+                        longitude,
+                      }));
+                    }}
+                    onChangeCoordinates={({ latitude, longitude }) => {
+                      setPartnerFormData((prev) => ({
+                        ...prev,
+                        latitude,
+                        longitude,
+                      }));
                     }}
                   />
                 </Box>
 
-                {/* Row 4: Coordinates (Lat & Lon) */}
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
-                      Tọa độ Vĩ độ (Latitude) <span style={{ color: '#ef4444' }}>*</span>
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      required
-                      name="latitude"
-                      type="number"
-                      value={partnerFormData.latitude}
-                      onChange={handlePartnerInputChange}
-                      placeholder="VD: 10.7769"
-                    />
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
-                      Tọa độ Kinh độ (Longitude) <span style={{ color: '#ef4444' }}>*</span>
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      required
-                      name="longitude"
-                      type="number"
-                      value={partnerFormData.longitude}
-                      onChange={handlePartnerInputChange}
-                      placeholder="VD: 106.7009"
-                    />
-                  </Box>
-                </Box>
-
-                {/* Row 5: Image URL */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.8 }}>
-                    Link ảnh đại diện nhà hàng (URL)
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    name="imageUrl"
-                    value={partnerFormData.imageUrl}
-                    onChange={handlePartnerInputChange}
-                    placeholder="VD: https://images.unsplash.com/..."
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ImageIcon sx={{ color: 'text.secondary' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
+                {/* Ảnh đại diện nhà hàng */}
+                <ImageUploadField
+                  label="Ảnh đại diện quán ăn"
+                  value={partnerFormData.imageUrl}
+                  onChange={(url) =>
+                    setPartnerFormData((prev) => ({ ...prev, imageUrl: url }))
+                  }
+                  helperText="Tải lên ảnh đại diện quán ăn hoặc dán link ảnh"
+                  placeholder="Dán liên kết ảnh quán ăn (URL)..."
+                />
 
                 {/* Row 6: Open & Close Time */}
                 <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
@@ -1220,6 +1451,17 @@ export const Restaurants = () => {
                     />
                   </Box>
                 </Box>
+
+                {/* Giấy phép kinh doanh */}
+                <ImageUploadField
+                  label="Ảnh giấy phép kinh doanh"
+                  required
+                  value={partnerFormData.licenseImageUrl}
+                  onChange={(url) =>
+                    setPartnerFormData((prev) => ({ ...prev, licenseImageUrl: url }))
+                  }
+                  helperText="Tải lên ảnh chụp rõ nét Giấy phép kinh doanh / Giấy chứng nhận ĐKKD để lưu trữ và kiểm duyệt"
+                />
               </Stack>
             )}
           </Box>
@@ -1308,6 +1550,362 @@ export const Restaurants = () => {
           >
             {lockSubmitting ? <CircularProgress size={20} color="inherit" /> : selectedRestaurantForLock?.isLocked ? 'Mở Khóa Ngay' : 'Xác Nhận Khóa'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Xem Giấy Phép Kinh Doanh */}
+      <Dialog
+        open={viewLicenseDialog.open}
+        onClose={() => setViewLicenseDialog({ open: false, restaurant: null })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          component="div"
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            bgcolor: 'background.paper',
+            pb: 1.5,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <LicenseIcon sx={{ color: '#7c3aed', fontSize: 28 }} />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                Giấy phép kinh doanh
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Nhà hàng: {viewLicenseDialog.restaurant?.name} (ID: #{viewLicenseDialog.restaurant?.id})
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            onClick={() => setViewLicenseDialog({ open: false, restaurant: null })}
+            size="small"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ textAlign: 'center', bgcolor: '#f8fafc', p: 3 }}>
+          {viewLicenseDialog.restaurant?.licenseImageUrl ? (
+            <Box
+              component="img"
+              src={viewLicenseDialog.restaurant.licenseImageUrl}
+              alt={`GPKD - ${viewLicenseDialog.restaurant?.name}`}
+              sx={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: 2,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+              }}
+            />
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.secondary', py: 4 }}>
+              Không có hình ảnh giấy phép kinh doanh
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              📍 {viewLicenseDialog.restaurant?.address}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              📞 {viewLicenseDialog.restaurant?.phone}
+            </Typography>
+          </Box>
+          <Button
+            onClick={() => setViewLicenseDialog({ open: false, restaurant: null })}
+            variant="outlined"
+            sx={{ textTransform: 'none' }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Từ Chối Đơn Đăng Ký Quán */}
+      <Dialog
+        open={rejectDialog.open}
+        onClose={() => !rejectSubmitting && setRejectDialog({ open: false, restaurant: null, reason: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#ef4444' }}>
+            Từ chối duyệt hồ sơ quán
+          </Typography>
+          <IconButton
+            size="small"
+            disabled={rejectSubmitting}
+            onClick={() => setRejectDialog({ open: false, restaurant: null, reason: '' })}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Từ chối duyệt cho quán <b>"{rejectDialog.restaurant?.name}"</b> (Mã: #{rejectDialog.restaurant?.id}). Quán sẽ không được phép hoạt động trên nền tảng.
+          </Typography>
+          <TextField
+            label="Lý do từ chối hồ sơ"
+            fullWidth
+            multiline
+            rows={3}
+            required
+            value={rejectDialog.reason}
+            onChange={(e) => setRejectDialog((prev) => ({ ...prev, reason: e.target.value }))}
+            placeholder="Nhập lý do từ chối (VD: Giấy phép kinh doanh không khớp địa chỉ, ảnh mờ...)"
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setRejectDialog({ open: false, restaurant: null, reason: '' })}
+            disabled={rejectSubmitting}
+            color="inherit"
+            sx={{ textTransform: 'none' }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleSubmitReject}
+            variant="contained"
+            color="error"
+            disabled={rejectSubmitting}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            {rejectSubmitting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                <span>Đang xử lý...</span>
+              </Box>
+            ) : (
+              'Xác nhận từ chối'
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal: Thẩm Định Chi Tiết Hồ Sơ Quán Chờ Duyệt */}
+      <Dialog
+        open={appraisalModal.open}
+        onClose={() => setAppraisalModal({ open: false, restaurant: null })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: isRejectedRestaurant(appraisalModal.restaurant) ? '#fee2e2' : '#fef3c7', color: isRejectedRestaurant(appraisalModal.restaurant) ? '#dc2626' : '#d97706', display: 'flex' }}>
+              <RestaurantIcon sx={{ fontSize: 24 }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                Thẩm Định Hồ Sơ Đăng Ký Quán Ăn
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                Mã nhà hàng: #{appraisalModal.restaurant?.id} — {appraisalModal.restaurant?.name}
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isRejectedRestaurant(appraisalModal.restaurant) ? (
+              <Chip label="ĐÃ TỪ CHỐI" size="small" sx={{ bgcolor: '#fee2e2', color: '#dc2626', fontWeight: 800 }} />
+            ) : (
+              <Chip label="CHỜ PHÊ DUYỆT" size="small" sx={{ bgcolor: '#fef3c7', color: '#d97706', fontWeight: 800 }} />
+            )}
+            <IconButton size="small" onClick={() => setAppraisalModal({ open: false, restaurant: null })}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
+          {appraisalModal.restaurant && (
+            <Stack spacing={2.5}>
+              {isRejectedRestaurant(appraisalModal.restaurant) && (
+                <Alert severity="error" sx={{ borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Hồ sơ đăng ký này đã bị từ chối duyệt
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    <b>Lý do từ chối:</b> {appraisalModal.restaurant.lockedReason || 'Không có lý do cụ thể'}
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Khối 1: Thông tin quán ăn */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <RestaurantIcon sx={{ fontSize: 18, color: '#f59e0b' }} />
+                1. THÔNG TIN NHÀ HÀNG & ĐỊA ĐIỂM
+              </Typography>
+              <Card variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box
+                      component="img"
+                      src={appraisalModal.restaurant.imageUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}
+                      alt={appraisalModal.restaurant.name}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 140,
+                        objectFit: 'cover',
+                        borderRadius: 2,
+                        border: '1px solid #e2e8f0',
+                      }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 8 }}>
+                    <Grid container spacing={1.5}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Tên nhà hàng</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary' }}>{appraisalModal.restaurant.name}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Hotline nhà hàng</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{appraisalModal.restaurant.phone || 'Chưa cập nhật'}</Typography>
+                      </Grid>
+                      <Grid size={12}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Địa chỉ quán</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{appraisalModal.restaurant.address}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Tọa độ GPS</Typography>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, fontFamily: 'monospace', color: '#0284c7' }}>
+                          {appraisalModal.restaurant.latitude}, {appraisalModal.restaurant.longitude}
+                        </Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Thời gian phục vụ</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          🕒 {appraisalModal.restaurant.openTime || '08:00'} - {appraisalModal.restaurant.closeTime || '22:00'}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Card>
+
+              {/* Khối 2: Thông tin chủ quán */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <PersonIcon sx={{ fontSize: 18, color: '#008cff' }} />
+                2. THÔNG TIN CHỦ SỞ HỮU / ĐẠI DIỆN PHÁP LUẬT
+              </Typography>
+              <Card variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Mã tài khoản chủ quán</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#008cff' }}>#{appraisalModal.restaurant.ownerId || 'N/A'}</Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Số điện thoại liên hệ</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{appraisalModal.restaurant.phone || '—'}</Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Trạng thái hồ sơ</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: isRejectedRestaurant(appraisalModal.restaurant) ? '#dc2626' : '#d97706' }}>
+                      {isRejectedRestaurant(appraisalModal.restaurant) ? 'Đã bị từ chối' : 'Chờ Quản trị viên duyệt'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Card>
+
+              {/* Khối 3: Giấy phép kinh doanh */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <LicenseIcon sx={{ fontSize: 18, color: '#7c3aed' }} />
+                3. HỒ SƠ GIẤY PHÉP KINH DOANH (GPKD)
+              </Typography>
+              <Card variant="outlined" sx={{ p: 2, borderRadius: 2, textAlign: 'center', bgcolor: '#fafafa' }}>
+                {appraisalModal.restaurant.licenseImageUrl ? (
+                  <Box>
+                    <Box
+                      component="img"
+                      src={appraisalModal.restaurant.licenseImageUrl}
+                      alt="GPKD"
+                      sx={{
+                        maxWidth: '100%',
+                        maxHeight: 320,
+                        objectFit: 'contain',
+                        borderRadius: 2,
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setViewLicenseDialog({ open: true, restaurant: appraisalModal.restaurant })}
+                    />
+                    <Box sx={{ mt: 1 }}>
+                      <Button
+                        size="small"
+                        startIcon={<ViewIcon />}
+                        onClick={() => setViewLicenseDialog({ open: true, restaurant: appraisalModal.restaurant })}
+                        sx={{ textTransform: 'none', fontWeight: 700, color: '#7c3aed' }}
+                      >
+                        Xem ảnh gốc phóng to
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box sx={{ py: 4, color: 'text.secondary' }}>
+                    <Typography variant="body2">Chưa có ảnh Giấy phép kinh doanh đính kèm</Typography>
+                  </Box>
+                )}
+              </Card>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0', justifyContent: 'space-between' }}>
+          <Button onClick={() => setAppraisalModal({ open: false, restaurant: null })} color="inherit" sx={{ fontWeight: 600 }}>
+            Đóng
+          </Button>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            {isRejectedRestaurant(appraisalModal.restaurant) ? (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircleIcon />}
+                onClick={async () => {
+                  const rest = appraisalModal.restaurant;
+                  setAppraisalModal({ open: false, restaurant: null });
+                  await handleApproveRestaurant(rest);
+                }}
+                sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5 }}
+              >
+                Xem xét lại & Phê duyệt quán
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    const rest = appraisalModal.restaurant;
+                    setAppraisalModal({ open: false, restaurant: null });
+                    handleOpenReject(rest);
+                  }}
+                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none' }}
+                >
+                  Từ chối hồ sơ
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleIcon />}
+                  onClick={async () => {
+                    const rest = appraisalModal.restaurant;
+                    setAppraisalModal({ open: false, restaurant: null });
+                    await handleApproveRestaurant(rest);
+                  }}
+                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5 }}
+                >
+                  Phê duyệt quán
+                </Button>
+              </>
+            )}
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>

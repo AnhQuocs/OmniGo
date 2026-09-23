@@ -91,7 +91,12 @@ public class DriverServiceImpl implements DriverService {
         driverProfile.setCccdBackImage(resolveDocumentImage(request.getCccdBackImage()));
         driverProfile.setGplxFrontImage(resolveDocumentImage(request.getGplxFrontImage()));
         driverProfile.setGplxBackImage(resolveDocumentImage(request.getGplxBackImage()));
-        driverProfile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
+        if (Boolean.TRUE.equals(request.getAutoApprove())) {
+            driverProfile.setApprovalStatus(ApprovalStatus.APPROVED);
+            driverProfile.setApprovedAt(LocalDateTime.now());
+        } else {
+            driverProfile.setApprovalStatus(ApprovalStatus.PENDING_APPROVAL);
+        }
         driverProfileRepository.save(driverProfile);
 
         try {

@@ -18,6 +18,8 @@ import {
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import AddressAutocomplete from '../../components/common/AddressAutocomplete';
+import ImageUploadField from '../../components/common/ImageUploadField';
 
 export const MerchantSettings = () => {
   const { restaurant, refreshRestaurant } = useOutletContext();
@@ -31,6 +33,7 @@ export const MerchantSettings = () => {
     openTime: '08:00',
     closeTime: '22:00',
     imageUrl: '',
+    licenseImageUrl: '',
   });
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export const MerchantSettings = () => {
         openTime: restaurant.openTime || '08:00',
         closeTime: restaurant.closeTime || '22:00',
         imageUrl: restaurant.imageUrl || '',
+        licenseImageUrl: restaurant.licenseImageUrl || '',
       });
     }
   }, [restaurant]);
@@ -64,6 +68,7 @@ export const MerchantSettings = () => {
       openTime: formData.openTime || '08:00',
       closeTime: formData.closeTime || '22:00',
       imageUrl: formData.imageUrl.trim() || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500',
+      licenseImageUrl: formData.licenseImageUrl ? formData.licenseImageUrl.trim() : null,
     };
 
     try {
@@ -143,30 +148,31 @@ export const MerchantSettings = () => {
             />
           </Box>
 
-          <TextField
-            label="Địa chỉ chi tiết"
+          <AddressAutocomplete
+            label="Địa chỉ chi tiết quán"
             required
-            fullWidth
             value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            onChangeAddress={(newAddr) =>
+              setFormData((prev) => ({ ...prev, address: newAddr }))
+            }
+            onSelectLocation={({ address, latitude, longitude }) => {
+              setFormData((prev) => ({
+                ...prev,
+                address,
+                latitude: String(latitude),
+                longitude: String(longitude),
+              }));
+            }}
+            onChangeCoordinates={({ latitude, longitude }) => {
+              setFormData((prev) => ({
+                ...prev,
+                latitude: String(latitude),
+                longitude: String(longitude),
+              }));
+            }}
           />
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <TextField
-              label="Vĩ độ (Latitude)"
-              fullWidth
-              value={formData.latitude}
-              onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-              helperText="Tọa độ GPS vị trí quán (vd: 21.033333)"
-            />
-            <TextField
-              label="Kinh độ (Longitude)"
-              fullWidth
-              value={formData.longitude}
-              onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-              helperText="Tọa độ GPS vị trí quán (vd: 105.789123)"
-            />
-          </Box>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <TextField
@@ -185,12 +191,21 @@ export const MerchantSettings = () => {
             />
           </Box>
 
-          <TextField
-            label="Đường dẫn ảnh đại diện quán (URL)"
-            fullWidth
+          {/* Ảnh đại diện quán */}
+          <ImageUploadField
+            label="Ảnh đại diện quán ăn"
             value={formData.imageUrl}
-            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-            placeholder="https://..."
+            onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+            helperText="Ảnh đại diện hiển thị cho khách hàng trên ứng dụng"
+            placeholder="Dán liên kết ảnh quán (URL)..."
+          />
+
+          {/* Giấy phép kinh doanh */}
+          <ImageUploadField
+            label="Ảnh giấy phép kinh doanh"
+            value={formData.licenseImageUrl}
+            onChange={(url) => setFormData((prev) => ({ ...prev, licenseImageUrl: url }))}
+            helperText="Ảnh chụp Giấy phép kinh doanh hoặc Giấy chứng nhận ĐKKD của quán"
           />
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>

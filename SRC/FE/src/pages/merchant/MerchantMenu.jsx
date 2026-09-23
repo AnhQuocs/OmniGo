@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 export const MerchantMenu = () => {
   const { restaurant } = useOutletContext();
@@ -48,6 +49,10 @@ export const MerchantMenu = () => {
     isAvailable: true,
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirm Delete Dialog State
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchMenu = async () => {
     if (!restaurant?.id) return;
@@ -113,14 +118,22 @@ export const MerchantMenu = () => {
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa món ăn này khỏi thực đơn?')) return;
+  const handleOpenDeleteConfirm = (item) => {
+    setDeleteConfirmItem(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmItem) return;
     try {
-      await foodService.deleteMenuItem(itemId);
+      setDeleting(true);
+      await foodService.deleteMenuItem(deleteConfirmItem.id);
       toast.success('Đã xóa món ăn thành công!');
-      setMenuItems((prev) => prev.filter((m) => m.id !== itemId));
+      setMenuItems((prev) => prev.filter((m) => m.id !== deleteConfirmItem.id));
+      setDeleteConfirmItem(null);
     } catch (err) {
-      toast.error('Lỗi xóa món ăn');
+      toast.error(err.response?.data?.message || 'Lỗi xóa món ăn');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -304,7 +317,7 @@ export const MerchantMenu = () => {
                     <IconButton size="small" onClick={() => handleOpenEdit(item)} title="Chỉnh sửa món">
                       <EditIcon fontSize="small" sx={{ color: '#3B82F6' }} />
                     </IconButton>
-                    <IconButton size="small" onClick={() => handleDeleteItem(item.id)} title="Xóa món">
+                    <IconButton size="small" onClick={() => handleOpenDeleteConfirm(item)} title="Xóa món">
                       <DeleteIcon fontSize="small" sx={{ color: '#EF4444' }} />
                     </IconButton>
                   </Box>
@@ -383,6 +396,25 @@ export const MerchantMenu = () => {
           </DialogActions>
         </form>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={Boolean(deleteConfirmItem)}
+        title="Xác nhận xóa món ăn"
+        content={
+          deleteConfirmItem ? (
+            <span>
+              Bạn có chắc chắn muốn xóa món <b>"{deleteConfirmItem.name}"</b> khỏi thực đơn không? Thao tác này không thể hoàn tác.
+            </span>
+          ) : ''
+        }
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy"
+        confirmColor="error"
+        loading={deleting}
+        onClose={() => !deleting && setDeleteConfirmItem(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </Box>
   );
 };
