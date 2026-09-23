@@ -193,9 +193,9 @@ export const Pricing = () => {
           <CircularProgress size={36} />
         </Box>
       ) : (
-        <Grid container spacing={2.5}>
+        <Grid container spacing={2.5} sx={{ width: '100%' }}>
           {/* Main Config Box */}
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Thông Số Bảng Giá Cơ Sở
@@ -289,7 +289,7 @@ export const Pricing = () => {
           </Grid>
 
           {/* Calculator Preview Box */}
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Mô Phỏng Cước Thực Tế
@@ -378,8 +378,8 @@ export const Pricing = () => {
           <CircularProgress size={36} />
         </Box>
       ) : (
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} md={7}>
+        <Grid container spacing={2.5} sx={{ width: '100%' }}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Thông Số Bán Kính Quét Tài Xế
@@ -454,7 +454,7 @@ export const Pricing = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Card sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
                 Hướng Dẫn Sử Dụng

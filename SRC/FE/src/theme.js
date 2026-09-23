@@ -156,8 +156,8 @@ export const getAppTheme = (mode = 'dark') => {
               color: isDark ? '#cbd5e1' : '#475569',
               fontWeight: 700,
               fontSize: '0.78rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
+              textTransform: 'none',
+              letterSpacing: '0.02em',
               borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'}`,
               padding: '10px 12px',
               '@media (min-width:600px)': {

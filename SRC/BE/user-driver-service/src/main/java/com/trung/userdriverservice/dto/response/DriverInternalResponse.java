@@ -21,6 +21,12 @@ public class DriverInternalResponse {
     private String vehicleType;
     private String licensePlate;
     private String vehicleModel;
+    private String cccdNumber;
+    private String cccdFrontImage;
+    private String cccdBackImage;
+    private String gplxNumber;
+    private String gplxFrontImage;
+    private String gplxBackImage;
     private DriverStatus status;
     private ApprovalStatus approvalStatus;
     private String rejectionReason;

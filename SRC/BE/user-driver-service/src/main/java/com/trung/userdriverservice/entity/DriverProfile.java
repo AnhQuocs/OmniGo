@@ -37,6 +37,24 @@ public class DriverProfile {
     @Column(nullable = false, length = 50)
     private String vehicleModel;
 
+    @Column(name = "cccd_number", length = 20)
+    private String cccdNumber;
+
+    @Column(name = "cccd_front_image", columnDefinition = "TEXT")
+    private String cccdFrontImage;
+
+    @Column(name = "cccd_back_image", columnDefinition = "TEXT")
+    private String cccdBackImage;
+
+    @Column(name = "gplx_number", length = 30)
+    private String gplxNumber;
+
+    @Column(name = "gplx_front_image", columnDefinition = "TEXT")
+    private String gplxFrontImage;
+
+    @Column(name = "gplx_back_image", columnDefinition = "TEXT")
+    private String gplxBackImage;
+
     @Enumerated(EnumType.STRING)
     private DriverStatus status = DriverStatus.OFFLINE;
 

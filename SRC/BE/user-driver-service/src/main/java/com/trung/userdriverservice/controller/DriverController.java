@@ -16,6 +16,7 @@ import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
+import com.trung.userdriverservice.service.CloudinaryService;
 import com.trung.userdriverservice.service.DriverService;
 import com.trung.userdriverservice.service.UserService;
 import jakarta.validation.Valid;
@@ -24,9 +25,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/drivers")
@@ -37,6 +40,18 @@ public class DriverController {
     private final DriverProfileRepository driverProfileRepository;
     private final UserMapper userMapper;
     private final UserService userService;
+    private final CloudinaryService cloudinaryService;
+
+    @PostMapping("/upload-document")
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadDriverDocument(@RequestParam("file") MultipartFile file) throws BadRequestException {
+        String url = cloudinaryService.uploadImage(file);
+        return ResponseEntity.ok(ApiResponse.<Map<String, String>>builder()
+                .success(true)
+                .message("Tải lên giấy tờ thành công")
+                .data(Map.of("url", url != null ? url : ""))
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<LoginResponse>> registerDriver(@Valid @RequestBody DriverRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {

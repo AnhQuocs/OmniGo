@@ -18,5 +18,21 @@ public class DriverRegisterRequest extends UserRegisterRequest {
 
     @NotBlank(message = "Dòng xe không được để trống (VD: Honda Wave, Toyota Vios, ...)")
     private String vehicleModel;
+
+    private String cccdNumber;
+
+    @NotBlank(message = "Vui lòng tải lên ảnh CCCD mặt trước")
+    private String cccdFrontImage;
+
+    @NotBlank(message = "Vui lòng tải lên ảnh CCCD mặt sau")
+    private String cccdBackImage;
+
+    private String gplxNumber;
+
+    @NotBlank(message = "Vui lòng tải lên ảnh Giấy phép lái xe (GPLX) mặt trước")
+    private String gplxFrontImage;
+
+    @NotBlank(message = "Vui lòng tải lên ảnh Giấy phép lái xe (GPLX) mặt sau")
+    private String gplxBackImage;
 }
 
