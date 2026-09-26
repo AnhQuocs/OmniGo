@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  useTheme,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -34,6 +35,8 @@ export const ImageUploadField = ({
   helperText = 'Tải lên ảnh chụp rõ nét (JPG, PNG, WebP tối đa 5MB) hoặc dán link ảnh',
   placeholder = 'Hoặc dán liên kết ảnh (URL)...',
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
@@ -152,8 +155,8 @@ export const ImageUploadField = ({
             gap: 2,
             p: 1.5,
             borderRadius: 2.5,
-            border: '1px solid #BBF7D0',
-            bgcolor: '#F0FDF4',
+            border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #BBF7D0',
+            bgcolor: isDark ? 'rgba(16, 185, 129, 0.08)' : '#F0FDF4',
           }}
         >
           <Box
@@ -166,7 +169,7 @@ export const ImageUploadField = ({
               height: 60,
               objectFit: 'cover',
               borderRadius: 2,
-              border: '1px solid #86EFAC',
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #86EFAC',
               cursor: 'pointer',
               transition: 'transform 0.15s ease',
               '&:hover': { transform: 'scale(1.05)' },
@@ -175,11 +178,11 @@ export const ImageUploadField = ({
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.3 }}>
               <CheckCircleIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#166534' }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#4ade80' : '#166534' }}>
                 Đã tải lên ảnh hợp lệ
               </Typography>
             </Box>
-            <Typography variant="caption" sx={{ color: '#64748B', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Nhấp vào ảnh để phóng to xem chi tiết
             </Typography>
           </Box>
@@ -201,11 +204,14 @@ export const ImageUploadField = ({
           sx={{
             p: 2,
             borderRadius: 2.5,
-            border: '2px dashed #CBD5E1',
-            bgcolor: '#F8FAFC',
+            border: isDark ? '2px dashed rgba(255, 255, 255, 0.15)' : '2px dashed #CBD5E1',
+            bgcolor: isDark ? 'rgba(255, 255, 255, 0.02)' : '#F8FAFC',
             textAlign: 'center',
             transition: 'all 0.2s',
-            '&:hover': { borderColor: '#F97316', bgcolor: '#FFF7ED' },
+            '&:hover': {
+              borderColor: '#F97316',
+              bgcolor: isDark ? 'rgba(249, 115, 22, 0.08)' : '#FFF7ED',
+            },
           }}
         >
           <input
@@ -295,7 +301,7 @@ export const ImageUploadField = ({
               </Box>
             )}
 
-            <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
               {helperText}
             </Typography>
           </Box>
@@ -343,7 +349,7 @@ export const ImageUploadField = ({
                 maxHeight: 220,
                 objectFit: 'contain',
                 borderRadius: 2,
-                border: '1px solid #E2E8F0',
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #E2E8F0',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
               }}
             />

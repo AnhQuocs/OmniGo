@@ -40,32 +40,49 @@ export const getAppTheme = (mode = 'dark') => {
       },
     },
     typography: {
-      fontFamily: ['"Open Sans"', '"Poppins"', '"Segoe UI"', 'Roboto', 'sans-serif'].join(','),
+      fontFamily: ['"Plus Jakarta Sans"', '"Inter"', '"Poppins"', 'sans-serif'].join(','),
+      h1: {
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
+        fontWeight: 800,
+        letterSpacing: '-0.035em',
+      },
+      h2: {
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
+        fontWeight: 800,
+        letterSpacing: '-0.03em',
+      },
+      h3: {
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
+        fontWeight: 800,
+        letterSpacing: '-0.025em',
+      },
       h4: {
-        fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
         fontSize: '1.4rem',
         '@media (min-width:600px)': {
           fontSize: '1.65rem',
         },
         fontWeight: 700,
+        letterSpacing: '-0.02em',
         color: isDark ? '#ffffff' : '#1e293b',
       },
       h5: {
-        fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
         fontSize: '1.15rem',
         '@media (min-width:600px)': {
           fontSize: '1.35rem',
         },
         fontWeight: 700,
+        letterSpacing: '-0.015em',
         color: isDark ? '#ffffff' : '#1e293b',
       },
       h6: {
-        fontFamily: ['"Poppins"', '"Open Sans"', 'sans-serif'].join(','),
+        fontFamily: ['"Plus Jakarta Sans"', 'sans-serif'].join(','),
         fontSize: '0.95rem',
         '@media (min-width:600px)': {
           fontSize: '1.05rem',
         },
-        fontWeight: 600,
+        fontWeight: 700,
         color: isDark ? '#ffffff' : '#1e293b',
       },
       body1: {

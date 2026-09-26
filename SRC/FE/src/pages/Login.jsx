@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -10,7 +10,6 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
-  Divider,
 } from '@mui/material';
 import {
   VisibilityOutlined as Visibility,
@@ -23,6 +22,7 @@ import {
   AccessTime as TimeIcon,
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import {
   Dialog,
@@ -41,7 +41,6 @@ import { loginUser, clearAuthError } from '../redux/authSlice';
 import foodService from '../services/foodService';
 import AddressAutocomplete from '../components/common/AddressAutocomplete';
 import ImageUploadField from '../components/common/ImageUploadField';
-import { API_BASE_URL } from '../services/api';
 
 export const Login = () => {
   const dispatch = useDispatch();
@@ -55,7 +54,9 @@ export const Login = () => {
   const [phoneError, setPhoneError] = useState('');
 
   // Register Partner States
-  const [openRegisterModal, setOpenRegisterModal] = useState(false);
+  const [openRegisterModal, setOpenRegisterModal] = useState(() => {
+    return new URLSearchParams(location.search).get('register') === 'partner';
+  });
   const [registerTab, setRegisterTab] = useState(0);
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registerSuccessModal, setRegisterSuccessModal] = useState(false);
@@ -227,12 +228,42 @@ export const Login = () => {
       sx={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
         p: { xs: 2, sm: 2.5 },
       }}
     >
+      {/* Back to Landing Page Button */}
+      <Box sx={{ maxWidth: 420, width: '100%', mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            color: 'text.secondary',
+            borderRadius: 2.5,
+            px: 2,
+            py: 0.9,
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+            border: `1px solid`,
+            borderColor: 'divider',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: 'text.primary',
+              borderColor: '#f97316',
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.08)' : 'rgba(249, 115, 22, 0.04)',
+              transform: 'translateX(-3px)',
+            },
+          }}
+        >
+          Quay lại trang chủ OmniGo
+        </Button>
+      </Box>
+
       <Card
         sx={{
           maxWidth: 420,
@@ -448,7 +479,15 @@ export const Login = () => {
         </DialogTitle>
 
         <DialogContent sx={{ p: 0 }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3, pt: 1.5, bgcolor: '#F8FAFC' }}>
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              px: 3,
+              pt: 1.5,
+              bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F8FAFC'),
+            }}
+          >
             <Tabs
               value={registerTab}
               onChange={(e, val) => setRegisterTab(val)}

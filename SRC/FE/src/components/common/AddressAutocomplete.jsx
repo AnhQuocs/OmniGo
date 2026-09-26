@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   TextField,
@@ -16,6 +16,7 @@ import {
   Collapse,
   Button,
   ClickAwayListener,
+  useTheme,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -42,6 +43,8 @@ export const AddressAutocomplete = ({
   error = false,
   helperText = '',
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [inputValue, setInputValue] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -54,6 +57,7 @@ export const AddressAutocomplete = ({
 
   // Synchronize internal input value with external value
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInputValue(value || '');
   }, [value]);
 
@@ -197,7 +201,7 @@ export const AddressAutocomplete = ({
           }
 
           toast.success(`Đã lấy vị trí GPS hiện tại thành công (${lat}, ${lng})`);
-        } catch (err) {
+        } catch {
           if (onSelectLocation) {
             onSelectLocation({
               address: inputValue,
@@ -309,8 +313,19 @@ export const AddressAutocomplete = ({
               boxShadow: '0 12px 32px rgba(0,0,0,0.14)',
             }}
           >
-            <Box sx={{ px: 2, py: 1, bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B' }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1,
+                bgcolor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+                borderBottom: 1,
+                borderColor: 'divider',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                 Gợi ý địa điểm ({suggestions.length}) - Chọn để tự động gán tọa độ
               </Typography>
             </Box>
@@ -323,9 +338,10 @@ export const AddressAutocomplete = ({
                   sx={{
                     py: 1.2,
                     px: 2,
-                    borderBottom: idx !== suggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
+                    borderBottom: idx !== suggestions.length - 1 ? 1 : 0,
+                    borderColor: 'divider',
                     '&:hover': {
-                      bgcolor: '#FFF7ED',
+                      bgcolor: isDark ? 'rgba(249, 115, 22, 0.12)' : '#FFF7ED',
                     },
                   }}
                 >
@@ -334,13 +350,13 @@ export const AddressAutocomplete = ({
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                         {item.name}
                       </Typography>
                     }
                     secondary={
                       <Box sx={{ mt: 0.3 }}>
-                        <Typography variant="caption" sx={{ color: '#64748B', display: 'block', lineHeight: 1.4 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}>
                           {item.full}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#10B981', fontWeight: 600, display: 'inline-block', mt: 0.2 }}>

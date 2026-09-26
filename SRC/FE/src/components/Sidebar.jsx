@@ -63,7 +63,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
   };
 
   const isCurrent = (path) => {
-    if (path === '/') return location.pathname === '/' || location.pathname === '/dashboard';
+    if (path === '/dashboard') return location.pathname === '/dashboard';
     const [pathname, search] = path.split('?');
     if (search) {
       return location.pathname === pathname && location.search === `?${search}`;
@@ -72,7 +72,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
   };
 
   const isSectionActive = (basePath) => {
-    if (basePath === '/') return location.pathname === '/' || location.pathname === '/dashboard';
+    if (basePath === '/dashboard') return location.pathname === '/dashboard';
     return location.pathname.startsWith(basePath);
   };
 
@@ -116,7 +116,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
       >
         <Box
           sx={{ display: 'flex', alignItems: 'center', gap: 1.2, cursor: 'pointer', userSelect: 'none' }}
-          onClick={() => handleNav('/')}
+          onClick={() => handleNav('/dashboard')}
         >
           <Box
             sx={{
@@ -166,7 +166,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
               borderRadius: 1.5,
               py: 1,
               px: 1.5,
-              bgcolor: isSectionActive('/')
+              bgcolor: isSectionActive('/dashboard')
                 ? isDark ? 'rgba(0, 140, 255, 0.15)' : 'rgba(0, 140, 255, 0.08)'
                 : 'transparent',
               '&:hover': {
@@ -174,7 +174,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
               },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 32, color: isSectionActive('/') ? '#f97316' : 'text.secondary' }}>
+            <ListItemIcon sx={{ minWidth: 32, color: isSectionActive('/dashboard') ? '#f97316' : 'text.secondary' }}>
               <HomeIcon sx={{ fontSize: 20 }} />
             </ListItemIcon>
             <ListItemText
@@ -183,7 +183,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
                   variant="body2"
                   sx={{
                     fontWeight: 700,
-                    color: isSectionActive('/') ? (isDark ? '#38bdf8' : '#0070cc') : 'text.primary',
+                    color: isSectionActive('/dashboard') ? (isDark ? '#38bdf8' : '#0070cc') : 'text.primary',
                   }}
                 >
                   Dashboard
@@ -201,12 +201,12 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
         <Collapse in={openDashboard} timeout="auto" unmountOnExit>
           <List component="div" disablePadding sx={{ pl: 2, mb: 1 }}>
             <ListItemButton
-              onClick={() => handleNav('/')}
+              onClick={() => handleNav('/dashboard')}
               sx={{
                 py: 0.8,
                 px: 2,
                 borderRadius: 1.5,
-                bgcolor: isCurrent('/')
+                bgcolor: isCurrent('/dashboard')
                   ? isDark ? 'rgba(0, 140, 255, 0.2)' : 'rgba(0, 140, 255, 0.12)'
                   : 'transparent',
                 '&:hover': {
@@ -217,7 +217,7 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
                 },
               }}
             >
-              {isCurrent('/') ? (
+              {isCurrent('/dashboard') ? (
                 <ActiveBulletIcon sx={{ fontSize: 10, mr: 1.5, color: '#f97316' }} />
               ) : (
                 <BulletIcon sx={{ fontSize: 9, mr: 1.5, color: 'text.secondary' }} />
@@ -228,8 +228,8 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
                     variant="body2"
                     sx={{
                       fontSize: '0.85rem',
-                      fontWeight: isCurrent('/') ? 700 : 500,
-                      color: isCurrent('/')
+                      fontWeight: isCurrent('/dashboard') ? 700 : 500,
+                      color: isCurrent('/dashboard')
                         ? (isDark ? '#38bdf8' : '#0070cc')
                         : (isDark ? '#cbd5e1' : '#334155'),
                       userSelect: 'none',
