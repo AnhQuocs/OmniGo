@@ -312,6 +312,35 @@ sequenceDiagram
 
 ---
 
+### 2.7. Sơ Đồ Tuần Tự 7: Khám Phá Quán Ăn Gần Điểm Nhận & Phân Trang Động (Nearby Restaurant Discovery & Pagination Lifecycle - UC4.1)
+> **Quy tắc cốt lõi:**
+> 1. **Dựa trên tọa độ địa chỉ nhận hàng:** Không mặc định dùng vị trí thiết bị; dùng tọa độ do khách hàng chỉ định (nhập tay, gợi ý tự động hoặc GPS).
+> 2. **Tìm hết quán trong bán kính:** Không giới hạn cứng 5 nhà hàng; quét toàn bộ các nhà hàng đủ điều kiện (`status = 'OPEN'`) trong bán kính `radiusKm`.
+> 3. **Phân trang động (`page`, `limit`):** Hỗ trợ duyệt danh sách theo từng trang, tối ưu băng thông mạng và hiệu năng cơ sở dữ liệu.
+> 4. **Khoảng cách Haversine & Sắp xếp ổn định:** Tính khoảng cách chính xác theo đường chim bay, sắp xếp theo khoảng cách tăng dần, nếu bằng nhau thì sắp xếp theo `id` quán.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Khách Hàng (App)
+    participant GEO as Geocoding (Photon)
+    participant GW as API Gateway (8080)
+    participant FS as Food Service (8086)
+    participant DB as PostgreSQL
+
+    C->>GEO: Gợi ý địa chỉ (query tìm kiếm)
+    GEO-->>C: Trả về danh sách địa điểm & Tọa độ
+    C->>GW: GET /api/v1/restaurants/nearby (lat, lng, radius, page, limit)
+    GW->>FS: Forward request kèm định danh
+    FS->>FS: Kiểm tra hợp lệ tọa độ, bán kính, phân trang
+    FS->>DB: Truy vấn Haversine trong bán kính & Phân trang Pageable
+    DB-->>FS: Trả về dữ liệu trang & Tổng số quán (totalElements)
+    FS-->>GW: 200 OK (Page JSON)
+    GW-->>C: 200 OK (Hiển thị quán ăn, huy hiệu Gần Nhất & Phân trang)
+```
+
+---
+
 ## 3. BẢNG MÁY TRẠNG THÁI CHUẨN XÁC THEO CODEBASE (STATE MACHINES)
 
 ### 3.1. Máy Trạng Thái Cuốc Xe (`BookingStatus`)
@@ -487,6 +516,36 @@ Nhằm phục vụ phân hệ Báo cáo kinh doanh chuyên biệt cho Quán ăn 
    * Giao diện Quản trị viên cung cấp công cụ phóng to kiểm tra ảnh gốc (Lightbox Zoom) cho phép nhân viên vận hành soi rõ con dấu, số định danh, hạn dùng và chữ ký trên giấy tờ.
    * Khi phê duyệt (`APPROVED`): Kích hoạt tài khoản tài xế (`approvedAt` ghi nhận thời điểm duyệt), tài xế mới có thể chuyển sang trạng thái `ONLINE` để nhận cuốc hoặc đơn hàng.
    * Khi từ chối (`REJECTED`): Bắt buộc đính kèm `reason` cụ thể để gửi thông báo phản hồi đến ứng dụng tài xế, cho phép tài xế cập nhật lại ảnh giấy tờ hợp lệ qua API `PUT /api/v1/drivers/{id}/resubmit`.
+
+---
+
+### 4.5. Quy Tắc Định Vị, Tìm Kiếm & Phân Trang Nhà Hàng Lân Cận (Nearby Restaurant Discovery & Pagination Rules)
+1. **Khóa chặt tọa độ theo điểm nhận hàng khách chỉ định:**
+   * Hệ thống tính khoảng cách từ **tọa độ điểm nhận hàng (Delivery Address Coordinates)** mà khách hàng đã xác nhận, không dùng vị trí GPS thiết bị nếu khách đã nhập địa chỉ khác.
+   * Cung cấp công cụ gợi ý địa chỉ tự động (Autocomplete Debounce 350ms) tích hợp OpenStreetMap/Photon giúp khách hàng nhanh chóng chọn vị trí chính xác kèm tọa độ vĩ độ/kinh độ chuẩn.
+2. **Loại bỏ giới hạn cứng, quét toàn bộ quán trong bán kính:**
+   * Không giới hạn cứng 5 quán; quét tìm **toàn bộ** các nhà hàng thỏa mãn điều kiện kinh doanh:
+     * Trạng thái hoạt động: `r.status = 'OPEN'`.
+     * Tọa độ hợp lệ: `r.latitude IS NOT NULL AND r.longitude IS NOT NULL`.
+     * Khoảng cách đường chim bay thỏa mãn: $\text{distance\_km} \le \text{radiusKm}$.
+3. **Công thức tính khoảng cách mặt cầu Haversine chuẩn WGS84:**
+   * Sử dụng hằng số bán kính Trái Đất $R = 6371\text{ km}$:
+     $\Delta \varphi = \text{radians}(\text{lat}_2 - \text{lat}_1), \quad \Delta \lambda = \text{radians}(\text{lng}_2 - \text{lng}_1)$
+     $a = \sin^2\left(\frac{\Delta \varphi}{2}\right) + \cos(\text{radians}(\text{lat}_1)) \cdot \cos(\text{radians}(\text{lat}_2)) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)$
+     $d = 2 \cdot R \cdot \arcsin(\min(1, \sqrt{a}))$
+   * Giữ trọn độ chính xác số thực (double precision), xử lý triệt tiêu trường hợp tọa độ trùng nhau ($d = 0.0\text{ km}$, không phát sinh lỗi `NaN`).
+4. **Phân trang động 2 tầng (Server-side Pagination with Spring Data JPA):**
+   * Tham số truy vấn: `page` (chỉ số trang bắt đầu từ 0, mặc định: 0), `limit` (số lượng bản ghi trên mỗi trang, mặc định: 10, hỗ trợ bí danh `size`), `radiusKm` (bán kính tính bằng km, mặc định: 5.0).
+   * Phân trang được thực thi trực tiếp tại tầng CSDL qua `Pageable` và `countQuery`, hạn chế tối đa tải RAM và nghẽn mạng I/O.
+   * Sắp xếp kết quả có tính tất định (Deterministic Ordering): Ưu tiên `distance_km ASC`, trường hợp bằng khoảng cách sẽ sắp xếp thứ cấp theo `id ASC`.
+5. **Kiểm soát ngoại lệ và xác thực dữ liệu đầu vào (Strict Service Boundary):**
+   * Toàn bộ logic validation được đặt tập trung trong `RestaurantServiceImpl` (Controller chỉ làm nhiệm vụ tiếp nhận và điều phối).
+   * Quăng ngoại lệ `BadRequestException` (HTTP 400) đối với các trường hợp:
+     * Thiếu tọa độ `latitude` hoặc `longitude`.
+     * Tọa độ không phải số thực hợp lệ, hoặc mang giá trị `NaN`, `Infinity`.
+     * Vĩ độ nằm ngoài khoảng $[-90, 90]$ hoặc kinh độ nằm ngoài khoảng $[-180, 180]$.
+     * Bán kính `radiusKm \le 0` hoặc không phải số.
+     * `page < 0` hoặc `limit \le 0`.
 
 ---
 

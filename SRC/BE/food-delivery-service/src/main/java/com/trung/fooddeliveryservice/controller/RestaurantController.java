@@ -3,6 +3,7 @@ package com.trung.fooddeliveryservice.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +27,7 @@ import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
 import com.trung.fooddeliveryservice.dto.request.RestaurantStatusRequest;
 import com.trung.fooddeliveryservice.dto.response.ApiResponse;
+import com.trung.fooddeliveryservice.dto.response.RestaurantNearbyResponse;
 import com.trung.fooddeliveryservice.dto.response.RestaurantResponse;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
 import com.trung.fooddeliveryservice.exception.ResourceNotFoundException;
@@ -78,6 +80,20 @@ public class RestaurantController {
             list = restaurantService.getAllOpenRestaurants();
         }
         return ResponseEntity.ok(ApiResponse.success(list, "Lấy danh sách nhà hàng thành công"));
+    }
+
+    @GetMapping("/nearby")
+    public ResponseEntity<ApiResponse<Page<RestaurantNearbyResponse>>> getNearbyRestaurants(
+            @RequestParam(name = "latitude", required = false) String latStr,
+            @RequestParam(name = "longitude", required = false) String lngStr,
+            @RequestParam(name = "radiusKm", required = false) String radiusStr,
+            @RequestParam(name = "page", required = false) String pageStr,
+            @RequestParam(name = "limit", required = false) String limitStr,
+            @RequestParam(name = "size", required = false) String sizeStr) throws BadRequestException {
+        String effectiveLimit = StringUtils.hasText(limitStr) ? limitStr : sizeStr;
+        Page<RestaurantNearbyResponse> page = restaurantService.getNearbyRestaurants(
+                latStr, lngStr, radiusStr, pageStr, effectiveLimit);
+        return ResponseEntity.ok(ApiResponse.success(page, "Lấy danh sách nhà hàng gần nhất thành công"));
     }
 
     @GetMapping("/{id}")

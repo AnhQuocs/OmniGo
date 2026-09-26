@@ -620,8 +620,118 @@
 
     <!-- Sub-view 1: Restaurant List -->
     <div id="food-view-restaurants">
-        <h3>🏪 Quán Ăn Gần Bạn</h3>
-        <div class="restaurant-grid" id="restaurant-list-container" style="margin-top: 12px;"></div>
+        <!-- 1. ĐỊA CHỈ NHẬN HÀNG (DELIVERY ADDRESS WIDGET) -->
+        <div id="food-delivery-card" style="background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <label style="font-weight: 700; color: #1e293b; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                    📍 Địa Chỉ Nhận Hàng Của Bạn
+                </label>
+                <div id="delivery-coord-status-badge" style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">
+                    ⚠️ Chưa chọn vị trí nhận hàng
+                </div>
+            </div>
+
+            <!-- Input địa chỉ & Nút tìm gần nhất -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                <div style="flex: 1; min-width: 250px; position: relative;">
+                    <input type="text" id="food-delivery-address-input" class="form-control" style="width: 100%;" placeholder="Nhập địa chỉ nhận đồ ăn của bạn (gợi ý tự động)..." oninput="handleFoodDeliveryAddressChange(this.value, false)" autocomplete="off">
+                    <div id="food-address-autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
+                </div>
+                <button type="button" class="btn-action" id="btn-find-nearby" style="background: var(--food-primary); color: white; padding: 10px 18px; font-size: 14px; font-weight: 700; border-radius: 6px; white-space: nowrap;" onclick="triggerFindNearbyRestaurants()">
+                    🔎 Tìm nhà hàng gần nhất
+                </button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <label for="nearby-radius-km" style="font-size:14px; font-weight:600;">Bán kính tìm kiếm (km)</label>
+                <input id="nearby-radius-km" type="number" min="0.1" step="any" value="5" class="form-control"
+                       style="width:110px;" oninput="handleNearbyRadiusChange()">
+                <span style="font-size:12px; color:#64748b;">Tìm tất cả quán trong bán kính (có phân trang)</span>
+            </div>
+
+            <!-- Gợi ý nhanh & GPS -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 12px; color: #64748b; font-weight: 600;">Địa điểm nhanh:</span>
+                <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Số 123 Đường Cầu Giấy, Hà Nội', 21.033333, 105.789123)">Cầu Giấy</button>
+                <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội', 21.028511, 105.854444)">Hoàn Kiếm</button>
+                <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Đại học Bách Khoa, Hai Bà Trưng, Hà Nội', 21.004200, 105.843700)">Bách Khoa</button>
+                <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Khu đô thị Văn Phú, Hà Đông, Hà Nội', 20.975000, 105.760000)">Hà Đông</button>
+                <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Sân vận động Mỹ Đình, Nam Từ Liêm, Hà Nội', 21.020500, 105.772500)">Mỹ Đình</button>
+                <button type="button" style="background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; font-weight:600; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="selectFoodDeliveryLocation('Thôn Nhị Xuân, Xã Ngọc Hồi, Huyện Thanh Trì, Hà Nội', 20.925000, 105.845000)">📍 Ngọc Hồi</button>
+                <button type="button" style="background:#f0fdf4; border:1px solid #86efac; color:#16a34a; font-weight:700; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer;" onclick="getCurrentLocationForFoodDelivery()">🎯 Lấy vị trí GPS hiện tại</button>
+            </div>
+
+            <!-- Tọa độ kiểm thử có thể thu gọn -->
+            <details id="test-coord-details" style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 12px;">
+                <summary style="font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; user-select: none;">
+                    🛠️ Tọa độ kiểm thử (Nhập thủ công Lat / Lng để test độc lập)
+                </summary>
+                <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px;">
+                    <div style="flex: 1; min-width: 140px;">
+                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 3px;">Vĩ độ (Latitude, -90 đến 90):</label>
+                        <input type="number" step="any" id="test-delivery-lat" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="VD: 21.033333">
+                    </div>
+                    <div style="flex: 1; min-width: 140px;">
+                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 3px;">Kinh độ (Longitude, -180 đến 180):</label>
+                        <input type="number" step="any" id="test-delivery-lng" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="VD: 105.789123">
+                    </div>
+                    <button type="button" class="btn-action" style="background: #334155; color: white; padding: 7px 14px; font-size: 13px; border-radius: 6px;" onclick="applyTestCoordinates()">
+                        Áp dụng & Tìm quán
+                    </button>
+                </div>
+            </details>
+        </div>
+
+        <!-- 2. DANH SÁCH 5 NHÀ HÀNG GẦN ĐỊA CHỈ NHẬN HÀNG NHẤT -->
+        <div id="nearby-restaurants-section" style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <h3 style="color: var(--food-primary); font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                    🛵 Danh Sách Nhà Hàng Gần Điểm Nhận Hàng
+                </h3>
+                <span id="nearby-info-subtext" style="font-size: 12px; color: #64748b;">Khoảng cách đường chim bay từ điểm nhận</span>
+            </div>
+            <div class="restaurant-grid" id="nearby-restaurants-container">
+                <div style="grid-column: 1/-1; text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px;">
+                    <div style="font-size: 36px; margin-bottom: 6px;">📍</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Vui lòng chọn địa chỉ nhận hàng để tìm các nhà hàng gần nhất</div>
+                    <div style="color: #64748b; font-size: 13px; margin-top: 4px;">Chọn một địa điểm gợi ý nhanh, lấy vị trí GPS hoặc nhập tọa độ kiểm thử bên trên.</div>
+                </div>
+            </div>
+
+            <!-- Thanh phân trang quán gần nhất -->
+            <div id="nearby-pagination-toolbar" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding: 12px 16px; background: white; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #475569;">
+                    <span>Hiển thị mỗi trang:</span>
+                    <select id="nearby-limit-select" class="form-control" style="width: auto; padding: 4px 8px; font-size: 13px; display: inline-block;" onchange="changeNearbyLimit(this.value)">
+                        <option value="5">5 quán / trang</option>
+                        <option value="10" selected>10 quán / trang</option>
+                        <option value="20">20 quán / trang</option>
+                        <option value="50">50 quán / trang</option>
+                    </select>
+                    <span id="nearby-total-count-badge" style="font-weight: 600; color: var(--food-primary);"></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" id="nearby-prev-page-btn" class="btn-action" style="background: #f1f5f9; color: #1e293b; padding: 6px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 1px solid #cbd5e1;" onclick="goToNearbyPage(nearbyCurrentPage - 1)">
+                        ◀ Trang trước
+                    </button>
+                    <span id="nearby-page-indicator" style="font-size: 13px; font-weight: 700; color: #1e293b; padding: 0 8px;">
+                        Trang 1 / 1
+                    </span>
+                    <button type="button" id="nearby-next-page-btn" class="btn-action" style="background: #f1f5f9; color: #1e293b; padding: 6px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 1px solid #cbd5e1;" onclick="goToNearbyPage(nearbyCurrentPage + 1)">
+                        Trang sau ▶
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. TẤT CẢ QUÁN ĂN HOẶC KẾT QUẢ TÌM KIẾM -->
+        <div id="all-restaurants-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 id="all-restaurants-heading" style="color: #1e293b;">🏪 Tất Cả Quán Ăn Đang Mở</h3>
+                <button class="btn-action" style="background: #e2e8f0; font-size: 12px; padding: 4px 10px;" onclick="fetchRestaurants('')">🔄 Tải lại</button>
+            </div>
+            <div class="restaurant-grid" id="restaurant-list-container" style="margin-top: 12px;"></div>
+        </div>
     </div>
 
     <!-- Sub-view 2: Restaurant Menu Detail -->
@@ -824,7 +934,10 @@
                 <label class="form-label" style="margin-bottom:0;">📍 Địa chỉ nhận hàng *</label>
                 <button type="button" onclick="getCurrentLocationForFood()" style="background:none; border:none; color:var(--food-primary); cursor:pointer; font-size:12px; font-weight:600;">🎯 Lấy vị trí GPS của tôi</button>
             </div>
-            <input type="text" id="order-delivery-address" class="form-control" value="Số 123 Đường Cầu Giấy, Hà Nội" required oninput="onDeliveryAddressInput(this.value)" placeholder="Nhập địa chỉ nhận món...">
+            <div style="position: relative;">
+                <input type="text" id="order-delivery-address" class="form-control" value="" required oninput="onDeliveryAddressInput(this.value)" placeholder="Nhập địa chỉ nhận món (gợi ý tự động)..." autocomplete="off">
+                <div id="cart-address-autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 2100; max-height: 250px; overflow-y: auto;"></div>
+            </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
                 <span style="font-size:11px; color:#64748b;">Gợi ý nhanh:</span>
                 <button type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; font-size:11px; cursor:pointer;" onclick="setPresetDeliveryLocation('Số 123 Đường Cầu Giấy, Hà Nội', 21.033333, 105.789123)">Cầu Giấy</button>
@@ -839,11 +952,11 @@
         <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex:1;">
                 <label class="form-label">Vĩ độ (Lat)</label>
-                <input type="number" step="any" id="order-delivery-lat" class="form-control" value="21.033333" oninput="renderCartModalItems()">
+                <input type="number" step="any" id="order-delivery-lat" class="form-control" value="" oninput="renderCartModalItems()">
             </div>
             <div class="form-group" style="flex:1;">
                 <label class="form-label">Kinh độ (Lng)</label>
-                <input type="number" step="any" id="order-delivery-lng" class="form-control" value="105.789123" oninput="renderCartModalItems()">
+                <input type="number" step="any" id="order-delivery-lng" class="form-control" value="" oninput="renderCartModalItems()">
             </div>
         </div>
 
@@ -978,6 +1091,20 @@
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
     const WS_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
 
+
+    // Tự động đóng dropdown gợi ý địa chỉ khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        const foodDrop = document.getElementById('food-address-autocomplete-dropdown');
+        const foodInput = document.getElementById('food-delivery-address-input');
+        if (foodDrop && foodInput && !foodInput.contains(e.target) && !foodDrop.contains(e.target)) {
+            foodDrop.style.display = 'none';
+        }
+        const cartDrop = document.getElementById('cart-address-autocomplete-dropdown');
+        const cartInput = document.getElementById('order-delivery-address');
+        if (cartDrop && cartInput && !cartInput.contains(e.target) && !cartDrop.contains(e.target)) {
+            cartDrop.style.display = 'none';
+        }
+    });
     let customerId = null;
     let currentCustomerProfile = null;
 
@@ -1011,6 +1138,21 @@
     let cart = [];
     let myFoodOrders = [];
     let foodPollingInterval = null;
+
+    // Delivery Location & Nearby Restaurants State
+    let currentDeliveryLocation = {
+        address: '',
+        lat: null,
+        lng: null,
+        isConfirmed: false
+    };
+    let nearbyRequestId = 0;
+    let isNearbyLoading = false;
+    let nearbyRestaurantsList = [];
+    let nearbyCurrentPage = 0;
+    let nearbyLimit = 10;
+    let nearbyTotalPages = 1;
+    let nearbyTotalElements = 0;
 
     function getStoredToken() {
         const token = localStorage.getItem('accessToken');
@@ -1280,6 +1422,534 @@
         `).join('');
     }
 
+    // Delivery Location & Nearby 5 Restaurants Handlers
+    function updateDeliveryBadge() {
+        const badge = document.getElementById('delivery-coord-status-badge');
+        if (!badge) return;
+        if (currentDeliveryLocation.isConfirmed && currentDeliveryLocation.lat !== null && currentDeliveryLocation.lng !== null) {
+            badge.style.background = '#f0fdf4';
+            badge.style.color = '#16a34a';
+            badge.style.borderColor = '#86efac';
+            badge.innerHTML = `🟢 Đã xác nhận tọa độ (${Number(currentDeliveryLocation.lat).toFixed(4)}, ${Number(currentDeliveryLocation.lng).toFixed(4)})`;
+        } else if (currentDeliveryLocation.address && currentDeliveryLocation.address.trim()) {
+            badge.style.background = '#fffbeb';
+            badge.style.color = '#b45309';
+            badge.style.borderColor = '#fcd34d';
+            badge.innerHTML = `🟡 Vị trí chưa xác nhận tọa độ chính xác`;
+        } else {
+            badge.style.background = '#fef2f2';
+            badge.style.color = '#dc2626';
+            badge.style.borderColor = '#fecaca';
+            badge.innerHTML = `⚠️ Chưa chọn vị trí nhận hàng`;
+        }
+    }
+
+    function syncDeliveryToCart() {
+        const addrInput = document.getElementById('order-delivery-address');
+        const latInput = document.getElementById('order-delivery-lat');
+        const lngInput = document.getElementById('order-delivery-lng');
+        if (addrInput && currentDeliveryLocation.address) {
+            addrInput.value = currentDeliveryLocation.address;
+        }
+        if (latInput && currentDeliveryLocation.lat !== null) {
+            latInput.value = currentDeliveryLocation.lat;
+        }
+        if (lngInput && currentDeliveryLocation.lng !== null) {
+            lngInput.value = currentDeliveryLocation.lng;
+        }
+        if (typeof renderCartModalItems === 'function') {
+            renderCartModalItems();
+        }
+    }
+
+    let addressSearchDebounceTimer = null;
+
+    function selectFoodDeliveryLocation(address, lat, lng, triggerFetch = true) {
+        nearbyCurrentPage = 0;
+        currentDeliveryLocation.address = address;
+        currentDeliveryLocation.lat = parseFloat(lat);
+        currentDeliveryLocation.lng = parseFloat(lng);
+        currentDeliveryLocation.isConfirmed = true;
+
+        const foodDrop = document.getElementById('food-address-autocomplete-dropdown');
+        if (foodDrop) {
+            foodDrop.style.display = 'none';
+            foodDrop.innerHTML = '';
+        }
+        const cartDrop = document.getElementById('cart-address-autocomplete-dropdown');
+        if (cartDrop) {
+            cartDrop.style.display = 'none';
+            cartDrop.innerHTML = '';
+        }
+
+        const addrEl = document.getElementById('food-delivery-address-input');
+        if (addrEl) addrEl.value = address;
+
+        const testLatEl = document.getElementById('test-delivery-lat');
+        const testLngEl = document.getElementById('test-delivery-lng');
+        if (testLatEl) testLatEl.value = lat;
+        if (testLngEl) testLngEl.value = lng;
+
+        updateDeliveryBadge();
+        syncDeliveryToCart();
+
+        if (triggerFetch) {
+            fetchNearbyRestaurants(currentDeliveryLocation.lat, currentDeliveryLocation.lng);
+        }
+    }
+
+    function handleFoodDeliveryAddressChange(val, isCart = false) {
+        currentDeliveryLocation.address = val;
+        const low = (val || '').toLowerCase().trim();
+        let matched = false;
+
+        if (low.includes('cầu giấy') || low.includes('dịch vọng') || low.includes('xuân thủy') || low.includes('nguyễn phong sắc')) {
+            currentDeliveryLocation.lat = 21.033333;
+            currentDeliveryLocation.lng = 105.789123;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('hà đông') || low.includes('văn phú') || low.includes('mộ lao') || low.includes('quang trung') || low.includes('văn quán')) {
+            currentDeliveryLocation.lat = 20.975000;
+            currentDeliveryLocation.lng = 105.760000;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('hoàn kiếm') || low.includes('phố cổ') || low.includes('tràng tiền') || low.includes('hồ gươm') || low.includes('đinh tiên hoàng')) {
+            currentDeliveryLocation.lat = 21.028511;
+            currentDeliveryLocation.lng = 105.854444;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('bách khoa') || low.includes('hai bà trưng') || low.includes('đại cồ việt') || low.includes('bạch mai') || low.includes('minh khai')) {
+            currentDeliveryLocation.lat = 21.004200;
+            currentDeliveryLocation.lng = 105.843700;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('mỹ đình') || low.includes('nam từ liêm') || low.includes('lê đức thọ') || low.includes('mễ trì')) {
+            currentDeliveryLocation.lat = 21.020500;
+            currentDeliveryLocation.lng = 105.772500;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('đống đa') || low.includes('chùa bộc') || low.includes('thái hà') || low.includes('tây sơn') || low.includes('xã đàn')) {
+            currentDeliveryLocation.lat = 21.018000;
+            currentDeliveryLocation.lng = 105.825000;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('ngọc hồi') || low.includes('thanh trì') || low.includes('giải phóng')) {
+            currentDeliveryLocation.lat = 20.925000;
+            currentDeliveryLocation.lng = 105.845000;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else if (low.includes('tây hồ') || low.includes('lạc long quân') || low.includes('xuân la')) {
+            currentDeliveryLocation.lat = 21.065000;
+            currentDeliveryLocation.lng = 105.820000;
+            currentDeliveryLocation.isConfirmed = true;
+            matched = true;
+        } else {
+            currentDeliveryLocation.isConfirmed = false;
+        }
+
+        if (matched) {
+            const testLatEl = document.getElementById('test-delivery-lat');
+            const testLngEl = document.getElementById('test-delivery-lng');
+            if (testLatEl) testLatEl.value = currentDeliveryLocation.lat;
+            if (testLngEl) testLngEl.value = currentDeliveryLocation.lng;
+        }
+
+        updateDeliveryBadge();
+        syncDeliveryToCart();
+
+        if (addressSearchDebounceTimer) {
+            clearTimeout(addressSearchDebounceTimer);
+        }
+        const dropdownId = isCart ? 'cart-address-autocomplete-dropdown' : 'food-address-autocomplete-dropdown';
+        const dropdownEl = document.getElementById(dropdownId);
+        if (!val || val.trim().length < 2) {
+            if (dropdownEl) {
+                dropdownEl.style.display = 'none';
+                dropdownEl.innerHTML = '';
+            }
+            return;
+        }
+
+        addressSearchDebounceTimer = setTimeout(() => {
+            searchAddressAutocomplete(val.trim(), dropdownId, isCart);
+        }, 350);
+    }
+
+    async function searchAddressAutocomplete(query, dropdownId, isCart) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = `
+            <div style="padding: 10px 14px; font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Đang tìm kiếm gợi ý địa chỉ...
+            </div>
+        `;
+
+        try {
+            let items = [];
+            // 1. Photon OpenStreetMap API
+            try {
+                const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=vi&limit=6`;
+                const res = await fetch(photonUrl);
+                if (res.ok) {
+                    const data = await res.json();
+                    items = (data.features || []).map(f => {
+                        const p = f.properties || {};
+                        const coords = f.geometry?.coordinates || [0, 0];
+                        const full = [p.name, p.street, p.district, p.city, p.country]
+                            .filter(Boolean)
+                            .filter((v, i, a) => a.indexOf(v) === i)
+                            .join(', ');
+                        return {
+                            name: p.name || full,
+                            full: full || p.name || query,
+                            lat: Number(Number(coords[1]).toFixed(6)),
+                            lng: Number(Number(coords[0]).toFixed(6))
+                        };
+                    });
+                }
+            } catch (errPhoton) {
+                console.warn("Photon autocomplete warning:", errPhoton);
+            }
+
+            // 2. Fallback to Nominatim API
+            if (!items || items.length === 0) {
+                const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=vn&addressdetails=1&limit=6`;
+                const nomRes = await fetch(nomUrl, { headers: { 'Accept-Language': 'vi' } });
+                if (nomRes.ok) {
+                    const nomData = await nomRes.json();
+                    items = (nomData || []).map(d => ({
+                        name: d.name || (d.display_name ? d.display_name.split(',')[0] : query),
+                        full: d.display_name,
+                        lat: Number(parseFloat(d.lat).toFixed(6)),
+                        lng: Number(parseFloat(d.lon).toFixed(6))
+                    }));
+                }
+            }
+
+            if (!items || items.length === 0) {
+                dropdown.innerHTML = `
+                    <div style="padding: 10px 14px; font-size: 12px; color: #94a3b8; text-align: center;">
+                        Không tìm thấy gợi ý địa chỉ nào phù hợp
+                    </div>
+                `;
+                return;
+            }
+
+            dropdown.innerHTML = items.map((item) => {
+                const safeName = (item.name || '').replace(/"/g, '&quot;');
+                const safeFull = (item.full || '').replace(/"/g, '&quot;');
+                const escapedFull = encodeURIComponent(item.full || item.name);
+                return `
+                    <div style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; transition: background 0.15s;"
+                         onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'"
+                         onclick="selectAutocompleteAddress(decodeURIComponent('${escapedFull}'), ${item.lat}, ${item.lng}, '${dropdownId}')">
+                        <span style="font-size: 15px; margin-top: 1px;">📍</span>
+                        <div style="flex: 1; overflow: hidden;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${safeName}
+                            </div>
+                            <div style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                                ${safeFull}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (e) {
+            console.error("Lỗi tìm gợi ý địa chỉ:", e);
+            dropdown.innerHTML = `
+                <div style="padding: 8px 12px; font-size: 12px; color: #ef4444; text-align: center;">
+                    Không thể tải gợi ý địa chỉ lúc này
+                </div>
+            `;
+        }
+    }
+
+    function selectAutocompleteAddress(address, lat, lng, dropdownId) {
+        const drop = document.getElementById(dropdownId);
+        if (drop) {
+            drop.style.display = 'none';
+            drop.innerHTML = '';
+        }
+        selectFoodDeliveryLocation(address, lat, lng, true);
+    }
+
+    function getCurrentLocationForFoodDelivery() {
+        if (!navigator.geolocation) {
+            alert("Trình duyệt của bạn không hỗ trợ định vị Geolocation.");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat = Number(pos.coords.latitude.toFixed(6));
+                const lng = Number(pos.coords.longitude.toFixed(6));
+                selectFoodDeliveryLocation('Vị trí GPS hiện tại của tôi', lat, lng, true);
+                alert(`📍 Đã lấy được vị trí GPS:\n• Vĩ độ (Lat): ${lat}\n• Kinh độ (Lng): ${lng}\n\nĐang tìm kiếm 5 nhà hàng gần nhất cho bạn.`);
+            },
+            err => {
+                alert("Không thể lấy vị trí GPS tự động: " + err.message + "\nVui lòng chọn địa điểm nhanh hoặc nhập tọa độ kiểm thử.");
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    function applyTestCoordinates() {
+        nearbyCurrentPage = 0;
+        const latVal = document.getElementById('test-delivery-lat')?.value?.trim();
+        const lngVal = document.getElementById('test-delivery-lng')?.value?.trim();
+        if (!latVal || !lngVal) {
+            alert("Vui lòng nhập cả Vĩ độ (Latitude) và Kinh độ (Longitude) kiểm thử!");
+            return;
+        }
+        const lat = parseFloat(latVal);
+        const lng = parseFloat(lngVal);
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+            alert("Vĩ độ không hợp lệ! Vui lòng nhập số trong khoảng [-90, 90].");
+            return;
+        }
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+            alert("Kinh độ không hợp lệ! Vui lòng nhập số trong khoảng [-180, 180].");
+            return;
+        }
+        selectFoodDeliveryLocation(`Tọa độ kiểm thử (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng, true);
+    }
+
+    let nearbyRadiusTimer;
+    function handleNearbyRadiusChange() {
+        clearTimeout(nearbyRadiusTimer);
+        ++nearbyRequestId;
+        nearbyRestaurantsList = [];
+        nearbyCurrentPage = 0;
+        isNearbyLoading = false;
+        document.getElementById("nearby-restaurants-container").innerHTML = "";
+        const toolbar = document.getElementById("nearby-pagination-toolbar");
+        if (toolbar) toolbar.style.display = 'none';
+        document.getElementById("nearby-info-subtext").textContent = "Chọn bán kính và vị trí nhận hàng để tìm quán";
+        nearbyRadiusTimer = setTimeout(() => {
+            if (currentDeliveryLocation.isConfirmed) {
+                fetchNearbyRestaurants(currentDeliveryLocation.lat, currentDeliveryLocation.lng, 0, nearbyLimit);
+            }
+        }, 400);
+    }
+
+    function triggerFindNearbyRestaurants() {
+        clearTimeout(nearbyRadiusTimer);
+        if (!currentDeliveryLocation.isConfirmed || currentDeliveryLocation.lat === null || currentDeliveryLocation.lng === null) {
+            alert("Vui lòng chọn một địa điểm gợi ý nhanh hoặc nhập tọa độ kiểm thử hợp lệ trước khi tìm quán gần nhất!");
+            return;
+        }
+        nearbyCurrentPage = 0;
+        fetchNearbyRestaurants(currentDeliveryLocation.lat, currentDeliveryLocation.lng, 0, nearbyLimit);
+    }
+
+    function changeNearbyLimit(newLimit) {
+        nearbyLimit = parseInt(newLimit, 10) || 10;
+        nearbyCurrentPage = 0;
+        if (currentDeliveryLocation.isConfirmed && currentDeliveryLocation.lat !== null && currentDeliveryLocation.lng !== null) {
+            fetchNearbyRestaurants(currentDeliveryLocation.lat, currentDeliveryLocation.lng, 0, nearbyLimit);
+        }
+    }
+
+    function goToNearbyPage(newPage) {
+        if (newPage < 0 || (nearbyTotalPages > 0 && newPage >= nearbyTotalPages)) return;
+        nearbyCurrentPage = newPage;
+        if (currentDeliveryLocation.isConfirmed && currentDeliveryLocation.lat !== null && currentDeliveryLocation.lng !== null) {
+            fetchNearbyRestaurants(currentDeliveryLocation.lat, currentDeliveryLocation.lng, nearbyCurrentPage, nearbyLimit);
+            const section = document.getElementById('nearby-restaurants-section');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    async function fetchNearbyRestaurants(lat, lng, page = nearbyCurrentPage, limit = nearbyLimit) {
+        const container = document.getElementById('nearby-restaurants-container');
+        if (!container) return;
+
+        const reqId = ++nearbyRequestId;
+        const radiusInput = document.getElementById("nearby-radius-km");
+        const radiusKm = Number(radiusInput.value);
+        radiusInput.setCustomValidity(Number.isFinite(radiusKm) && radiusKm >= 0.1
+            ? "" : "Vui lòng nhập bán kính từ 0,1 km trở lên.");
+        if (!radiusInput.reportValidity()) return;
+        nearbyRestaurantsList = [];
+        document.getElementById("nearby-info-subtext").textContent =
+            "Trong bán kính " + radiusKm + " km · Khoảng cách đường chim bay từ điểm nhận";
+        isNearbyLoading = true;
+
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 28px; color: #64748b;">
+                <div style="font-size: 28px; animation: spin 1s linear infinite; display: inline-block;">⏳</div>
+                <div style="margin-top: 8px; font-weight: 600; font-size: 14px;">Đang tìm các nhà hàng gần bạn trong bán kính ${radiusKm} km...</div>
+            </div>
+        `;
+
+        try {
+            const url = `${API_BASE_URL}/api/v1/restaurants/nearby?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&radiusKm=${encodeURIComponent(radiusKm)}&page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`;
+            const res = await fetchWithAuth(url);
+            if (reqId !== nearbyRequestId) return; // Guard against race conditions
+
+            const data = await res.json().catch(() => ({}));
+            if (reqId !== nearbyRequestId) return;
+
+            if (res.ok) {
+                let list = [];
+                if (data && data.data) {
+                    if (Array.isArray(data.data.content)) {
+                        list = data.data.content;
+                        nearbyTotalElements = typeof data.data.totalElements === 'number' ? data.data.totalElements : list.length;
+                        nearbyTotalPages = typeof data.data.totalPages === 'number' ? data.data.totalPages : 1;
+                        nearbyCurrentPage = typeof data.data.number === 'number' ? data.data.number : page;
+                    } else if (Array.isArray(data.data)) {
+                        list = data.data;
+                        nearbyTotalElements = list.length;
+                        nearbyTotalPages = 1;
+                        nearbyCurrentPage = 0;
+                    } else {
+                        renderNearbyError(data.message || "Không thể tải danh sách nhà hàng gần nhất", lat, lng);
+                        return;
+                    }
+                } else if (Array.isArray(data)) {
+                    list = data;
+                    nearbyTotalElements = list.length;
+                    nearbyTotalPages = 1;
+                    nearbyCurrentPage = 0;
+                } else {
+                    renderNearbyError(data.message || "Không thể tải danh sách nhà hàng gần nhất", lat, lng);
+                    return;
+                }
+
+                nearbyRestaurantsList = list;
+                renderNearbyRestaurants(nearbyRestaurantsList);
+                renderNearbyPagination();
+            } else {
+                const msg = data.message || `Lỗi tải danh sách nhà hàng (${res.status})`;
+                renderNearbyError(msg, lat, lng);
+            }
+        } catch (e) {
+            if (reqId !== nearbyRequestId) return;
+            console.error("Lỗi tải nhà hàng gần nhất:", e);
+            renderNearbyError(e.message || "Lỗi kết nối máy chủ", lat, lng);
+        } finally {
+            if (reqId === nearbyRequestId) {
+                isNearbyLoading = false;
+            }
+        }
+    }
+
+    function renderNearbyRestaurants(list) {
+        const container = document.getElementById('nearby-restaurants-container');
+        if (!container) return;
+
+        if (!list || list.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 36px 20px; background: white; border: 1px dashed #cbd5e1; border-radius: 12px;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🍽️</div>
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;">Không tìm thấy nhà hàng nào phù hợp</div>
+                    <div style="color: #64748b; font-size: 13px; margin-top: 4px;">Không có nhà hàng nhận đơn trong bán kính đã chọn. Bạn có thể tăng bán kính để tìm thêm.</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = list.map((r, idx) => {
+            let distText = '';
+            if (typeof r.distanceKm === 'number') {
+                if (r.distanceKm < 0.01) {
+                    distText = '< 10 m';
+                } else {
+                    distText = `${r.distanceKm.toFixed(2)} km`;
+                }
+            } else {
+                distText = 'Chưa xác định';
+            }
+
+            return `
+                <div class="res-card" onclick="openRestaurantMenu(${r.id})" style="border: 2px solid ${idx === 0 ? '#10b981' : '#e2e8f0'}; position: relative; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    ${idx === 0 && nearbyCurrentPage === 0 ? '<div style="position: absolute; top: -10px; left: 12px; background: #10b981; color: white; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">🏆 GẦN NHẤT</div>' : ''}
+                    <div class="res-img-wrap">
+                        <img src="${r.imageUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'}" alt="${r.name}">
+                        <span class="res-status-tag tag-open">🟢 Mở cửa</span>
+                    </div>
+                    <div class="res-body">
+                        <div class="res-title" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 4px;">
+                            <span>${r.name}</span>
+                        </div>
+                        <div style="margin: 4px 0 6px 0; display: inline-flex; align-items: center; gap: 4px; background: #ecfdf5; color: #059669; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; border: 1px solid #a7f3d0;">
+                            🛵 Cách điểm nhận: ${distText}
+                        </div>
+                        <div class="res-address">📍 ${r.address}</div>
+                        <div class="res-meta" style="margin-top: 6px;">
+                            <span>⭐ ${r.rating ? Number(r.rating).toFixed(1) : '5.0'} (${r.reviewCount || 0})</span>
+                            <span>🕒 ${r.openTime || '07:00'} - ${r.closeTime || '22:00'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderNearbyPagination() {
+        const toolbar = document.getElementById('nearby-pagination-toolbar');
+        if (!toolbar) return;
+
+        if (!nearbyRestaurantsList || nearbyRestaurantsList.length === 0) {
+            toolbar.style.display = 'none';
+            return;
+        }
+
+        toolbar.style.display = 'flex';
+        const totalCountBadge = document.getElementById('nearby-total-count-badge');
+        if (totalCountBadge) {
+            totalCountBadge.textContent = `(Tìm thấy ${nearbyTotalElements} quán)`;
+        }
+
+        const pageIndicator = document.getElementById('nearby-page-indicator');
+        if (pageIndicator) {
+            const displayPage = nearbyTotalPages > 0 ? (nearbyCurrentPage + 1) : 1;
+            const displayTotal = nearbyTotalPages > 0 ? nearbyTotalPages : 1;
+            pageIndicator.textContent = `Trang ${displayPage} / ${displayTotal}`;
+        }
+
+        const prevBtn = document.getElementById('nearby-prev-page-btn');
+        if (prevBtn) {
+            prevBtn.disabled = nearbyCurrentPage <= 0;
+            prevBtn.style.opacity = nearbyCurrentPage <= 0 ? '0.5' : '1';
+            prevBtn.style.cursor = nearbyCurrentPage <= 0 ? 'not-allowed' : 'pointer';
+        }
+
+        const nextBtn = document.getElementById('nearby-next-page-btn');
+        if (nextBtn) {
+            const isLast = (nearbyCurrentPage + 1 >= nearbyTotalPages);
+            nextBtn.disabled = isLast;
+            nextBtn.style.opacity = isLast ? '0.5' : '1';
+            nextBtn.style.cursor = isLast ? 'not-allowed' : 'pointer';
+        }
+
+        const limitSelect = document.getElementById('nearby-limit-select');
+        if (limitSelect && limitSelect.value !== String(nearbyLimit)) {
+            limitSelect.value = String(nearbyLimit);
+        }
+    }
+
+    function renderNearbyError(errMsg, lat, lng) {
+        const container = document.getElementById('nearby-restaurants-container');
+        if (!container) return;
+        const toolbar = document.getElementById('nearby-pagination-toolbar');
+        if (toolbar) toolbar.style.display = 'none';
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 28px 20px; background: #fef2f2; border: 1px dashed #fca5a5; border-radius: 12px;">
+                <div style="font-size: 32px; margin-bottom: 6px;">⚠️</div>
+                <div style="font-weight: 700; color: #991b1b; font-size: 14px;">Lỗi tải danh sách nhà hàng gần nhất</div>
+                <div style="color: #b91c1c; font-size: 12px; margin-top: 4px;">${errMsg}</div>
+                <button type="button" class="btn-action" style="background: #dc2626; color: white; margin-top: 12px; font-size: 12px; padding: 6px 14px; border-radius: 6px;" onclick="fetchNearbyRestaurants(${lat}, ${lng})">
+                    🔄 Thử lại
+                </button>
+            </div>
+        `;
+    }
+
     function handleFoodSearch(e) {
         if (e.key === 'Enter') searchRestaurants();
     }
@@ -1291,7 +1961,19 @@
     }
 
     async function openRestaurantMenu(restaurantId) {
-        currentSelectedRestaurant = allRestaurants.find(r => r.id === restaurantId);
+        currentSelectedRestaurant = allRestaurants.find(r => r.id === restaurantId)
+            || nearbyRestaurantsList.find(r => r.id === restaurantId);
+        if (!currentSelectedRestaurant) {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/restaurants/${restaurantId}`);
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.data) {
+                    currentSelectedRestaurant = data.data;
+                }
+            } catch (e) {
+                console.error("Không tìm thấy thông tin nhà hàng:", e);
+            }
+        }
         if (!currentSelectedRestaurant) return;
 
         document.getElementById('menu-view-res-name').innerText = currentSelectedRestaurant.name;
@@ -1610,11 +2292,14 @@
             phoneInput.value = customerPhone;
         }
 
-        if (!document.getElementById('order-delivery-lat').value) {
-            document.getElementById('order-delivery-lat').value = "21.033333";
+        if (currentDeliveryLocation.address) {
+            document.getElementById('order-delivery-address').value = currentDeliveryLocation.address;
         }
-        if (!document.getElementById('order-delivery-lng').value) {
-            document.getElementById('order-delivery-lng').value = "105.789123";
+        if (currentDeliveryLocation.lat !== null) {
+            document.getElementById('order-delivery-lat').value = currentDeliveryLocation.lat;
+        }
+        if (currentDeliveryLocation.lng !== null) {
+            document.getElementById('order-delivery-lng').value = currentDeliveryLocation.lng;
         }
 
         renderCartModalItems();
@@ -1622,62 +2307,15 @@
     }
 
     function onDeliveryAddressInput(val) {
-        if (!val) return;
-        const low = val.toLowerCase();
-        if (low.includes('cầu giấy') || low.includes('dịch vọng') || low.includes('xuân thủy') || low.includes('nguyễn phong sắc')) {
-            document.getElementById('order-delivery-lat').value = '21.033333';
-            document.getElementById('order-delivery-lng').value = '105.789123';
-        } else if (low.includes('hà đông') || low.includes('văn phú') || low.includes('mộ lao') || low.includes('quang trung') || low.includes('văn quán')) {
-            document.getElementById('order-delivery-lat').value = '20.975000';
-            document.getElementById('order-delivery-lng').value = '105.760000';
-        } else if (low.includes('hoàn kiếm') || low.includes('phố cổ') || low.includes('tràng tiền') || low.includes('hồ gươm') || low.includes('đinh tiên hoàng')) {
-            document.getElementById('order-delivery-lat').value = '21.028511';
-            document.getElementById('order-delivery-lng').value = '105.854444';
-        } else if (low.includes('bách khoa') || low.includes('hai bà trưng') || low.includes('đại cồ việt') || low.includes('bạch mai') || low.includes('minh khai')) {
-            document.getElementById('order-delivery-lat').value = '21.004200';
-            document.getElementById('order-delivery-lng').value = '105.843700';
-        } else if (low.includes('mỹ đình') || low.includes('nam từ liêm') || low.includes('lê đức thọ') || low.includes('mễ trì')) {
-            document.getElementById('order-delivery-lat').value = '21.020500';
-            document.getElementById('order-delivery-lng').value = '105.772500';
-        } else if (low.includes('đống đa') || low.includes('chùa bộc') || low.includes('thái hà') || low.includes('tây sơn') || low.includes('xã đàn')) {
-            document.getElementById('order-delivery-lat').value = '21.018000';
-            document.getElementById('order-delivery-lng').value = '105.825000';
-        } else if (low.includes('ngọc hồi') || low.includes('thanh trì') || low.includes('giải phóng')) {
-            document.getElementById('order-delivery-lat').value = '20.925000';
-            document.getElementById('order-delivery-lng').value = '105.845000';
-        } else if (low.includes('tây hồ') || low.includes('lạc long quân') || low.includes('xuân la')) {
-            document.getElementById('order-delivery-lat').value = '21.065000';
-            document.getElementById('order-delivery-lng').value = '105.820000';
-        }
-        renderCartModalItems();
+        handleFoodDeliveryAddressChange(val, true);
     }
 
     function setPresetDeliveryLocation(address, lat, lng) {
-        document.getElementById('order-delivery-address').value = address;
-        document.getElementById('order-delivery-lat').value = lat;
-        document.getElementById('order-delivery-lng').value = lng;
-        renderCartModalItems();
+        selectFoodDeliveryLocation(address, lat, lng, false);
     }
 
     function getCurrentLocationForFood() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                pos => {
-                    const lat = pos.coords.latitude.toFixed(6);
-                    const lng = pos.coords.longitude.toFixed(6);
-                    document.getElementById('order-delivery-lat').value = lat;
-                    document.getElementById('order-delivery-lng').value = lng;
-                    renderCartModalItems();
-                    alert(`📍 Tọa độ trình duyệt nhận được:\n• Vĩ độ (Lat): ${lat}\n• Kinh độ (Lng): ${lng}\n\n⚠️ Lưu ý: Khi dùng máy tính bàn / laptop qua mạng WiFi/dây, trình duyệt định vị qua IP nhà mạng nên thường mặc định về trạm trung tâm Hà Nội (~Hoàn Kiếm). Nếu bạn đang ở Ngọc Hồi (Thanh Trì), hãy bấm nút gợi ý '📍 Ngọc Hồi (Thanh Trì)' để tính đúng khoảng cách >10km nhé!`);
-                },
-                err => {
-                    alert("Không thể lấy vị trí GPS tự động: " + err.message + "\nVui lòng nhập địa chỉ hoặc chọn nút gợi ý bên dưới.");
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
-            alert("Trình duyệt không hỗ trợ Geolocation");
-        }
+        getCurrentLocationForFoodDelivery();
     }
 
     function renderCartModalItems() {

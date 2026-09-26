@@ -58,6 +58,11 @@ sequenceDiagram
 
 ## 3. ĐẶC TẢ LUỒNG ĐẶT ĐỒ ĂN (OMNIFOOD)
 
+### 3.0. Khám Phá Quán Ăn Lân Cận Theo Điểm Nhận & Phân Trang Động (Nearby Discovery - UC4.1)
+- **Autocomplete gợi ý địa chỉ**: Người dùng gõ địa chỉ nhận hàng, client gọi geocoding (OpenStreetMap / Photon) với debounce 350ms để lấy danh sách gợi ý và tọa độ vĩ độ/kinh độ chuẩn.
+- **Tìm tất cả quán trong bán kính**: Không giới hạn cứng 5 quán, API GET /api/v1/restaurants/nearby?latitude={lat}&longitude={lng}&radiusKm={r}&page={p}&limit={limit} trả về toàn bộ quán đủ điều kiện hoạt động (status = OPEN) trong bán kính.
+- **Phân trang & Khoảng cách Haversine**: Tính khoảng cách đường chim bay Haversine, sắp xếp theo khoảng cách tăng dần và phân trang theo page và limit.
+
 ### 3.1. Sơ Đồ Tuần Tự (Sequence Diagram - Mô Hình 3 Bên)
 
 ```mermaid
