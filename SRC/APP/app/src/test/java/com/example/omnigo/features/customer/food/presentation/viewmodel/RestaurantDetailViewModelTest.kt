@@ -3,10 +3,13 @@ package com.example.omnigo.features.customer.food.presentation.viewmodel
 import com.example.omnigo.core.location.manager.UserLocationManager
 import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.manager.CartManager
+import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -28,7 +31,9 @@ class RestaurantDetailViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var getRestaurantDetailUseCase: GetRestaurantDetailUseCase
+    private lateinit var getRestaurantItemsUseCase: GetRestaurantItemsUseCase
     private lateinit var userLocationManager: UserLocationManager
+    private lateinit var cartManager: CartManager
     private lateinit var viewModel: RestaurantDetailViewModel
 
     private val mockMenuItem1 = MenuItem(
@@ -53,6 +58,17 @@ class RestaurantDetailViewModelTest {
         isAvailable = true
     )
 
+    private val mockMenuItemOtherRestaurant = MenuItem(
+        id = 201L,
+        restaurantId = 2L,
+        name = "Bún Chả",
+        description = "Chả nướng",
+        price = 60000.0,
+        imageUrl = "https://example.com/buncha.jpg",
+        category = "Bún",
+        isAvailable = true
+    )
+
     private val mockRestaurant = Restaurant(
         id = 1L,
         name = "Phở Thìn Lò Đúc",
@@ -73,21 +89,31 @@ class RestaurantDetailViewModelTest {
     @Before
     fun setUp() {
         getRestaurantDetailUseCase = mockk()
+        getRestaurantItemsUseCase = mockk()
         userLocationManager = UserLocationManager()
         userLocationManager.updateLocation(UserLocation(21.0100, 105.8500, "Nhà", "Hà Nội"))
-        viewModel = RestaurantDetailViewModel(getRestaurantDetailUseCase, userLocationManager)
+        cartManager = CartManager()
+        viewModel = RestaurantDetailViewModel(
+            getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+            getRestaurantItemsUseCase = getRestaurantItemsUseCase,
+            userLocationManager = userLocationManager,
+            cartManager = cartManager
+        )
     }
 
     @Test
     fun `loadRestaurant success updates restaurant, categories and distance`() = runTest {
         coEvery { getRestaurantDetailUseCase(1L) } returns GetRestaurantDetailResult.Success(mockRestaurant)
+        coEvery { getRestaurantItemsUseCase(1L, false) } returns GetMenuItemsResult.Success(listOf(mockMenuItem1, mockMenuItem2))
 
         viewModel.loadRestaurant(1L)
 
         val state = viewModel.uiState.value
-        assertFalse(state.isLoading)
+        assertFalse(state.isRestaurantLoading)
+        assertFalse(state.isMenuLoading)
         assertEquals(mockRestaurant, state.restaurant)
         assertEquals(listOf("Phở", "Đồ uống"), state.categories)
+        assertEquals(2, state.menuItems.size)
         assertNotNull(state.distanceKm)
         assertNotNull(state.estimatedDeliveryMinutes)
         assertNull(state.errorMessage)
@@ -100,7 +126,8 @@ class RestaurantDetailViewModelTest {
         viewModel.loadRestaurant(999L)
 
         val state = viewModel.uiState.value
-        assertFalse(state.isLoading)
+        assertFalse(state.isRestaurantLoading)
+        assertFalse(state.isMenuLoading)
         assertNull(state.restaurant)
         assertNotNull(state.errorMessage)
     }
@@ -115,7 +142,11 @@ class RestaurantDetailViewModelTest {
     }
 
     @Test
-    fun `cart operations add, update quantity and clear correctly`() {
+    fun `cart operations add, update quantity and clear correctly via CartManager`() = runTest {
+        coEvery { getRestaurantDetailUseCase(1L) } returns GetRestaurantDetailResult.Success(mockRestaurant)
+        coEvery { getRestaurantItemsUseCase(1L, false) } returns GetMenuItemsResult.Success(listOf(mockMenuItem1, mockMenuItem2))
+        viewModel.loadRestaurant(1L)
+
         // 1. Add item 1
         viewModel.onAddToCart(mockMenuItem1)
         var state = viewModel.uiState.value
@@ -156,5 +187,35 @@ class RestaurantDetailViewModelTest {
         assertEquals(0, state.totalCartQuantity)
         assertEquals(0.0, state.totalCartAmount, 0.01)
         assertTrue(state.cartItems.isEmpty())
+    }
+
+    @Test
+    fun `adding item from different restaurant triggers conflict dialog and confirms replacement`() = runTest {
+        // Initial state: Item from restaurant 1 in cart
+        cartManager.addItem(mockMenuItem1, quantity = 1, restaurantName = "Phở Thìn")
+
+        // Try to add item from restaurant 2
+        viewModel.onAddToCart(mockMenuItemOtherRestaurant)
+
+        val state = viewModel.uiState.value
+        assertNotNull(state.pendingConflict)
+        assertEquals(1L, state.pendingConflict?.currentRestaurantId)
+        assertEquals(2L, state.pendingConflict?.newRestaurantId)
+
+        // Dismiss conflict
+        viewModel.onDismissConflictDialog()
+        assertNull(viewModel.uiState.value.pendingConflict)
+        assertEquals(1, viewModel.uiState.value.totalCartQuantity)
+
+        // Trigger conflict again and confirm replacement
+        viewModel.onAddToCart(mockMenuItemOtherRestaurant)
+        assertNotNull(viewModel.uiState.value.pendingConflict)
+
+        viewModel.onConfirmReplaceCart()
+        val replacedState = viewModel.uiState.value
+        assertNull(replacedState.pendingConflict)
+        assertEquals(1, replacedState.totalCartQuantity)
+        assertEquals(60000.0, replacedState.totalCartAmount, 0.01)
+        assertEquals(2L, cartManager.cartState.value.restaurantId)
     }
 }

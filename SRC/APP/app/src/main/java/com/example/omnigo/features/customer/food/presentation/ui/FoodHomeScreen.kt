@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomBar
 import com.example.omnigo.features.customer.food.presentation.ui.components.FoodCategoriesSection
 import com.example.omnigo.features.customer.food.presentation.ui.components.FoodHeaderSection
 import com.example.omnigo.features.customer.food.presentation.ui.components.FoodSearchSection
@@ -46,36 +47,52 @@ fun FoodHomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundLight)
     ) {
-        FoodHeaderSection(onBackClick = onBackClick)
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            FoodHeaderSection(onBackClick = onBackClick)
 
-        Spacer(modifier = Modifier.height(AppSpacing.S))
+            Spacer(modifier = Modifier.height(AppSpacing.S))
 
-        FoodSearchSection(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChanged
-        )
+            FoodSearchSection(
+                query = uiState.searchQuery,
+                onQueryChange = viewModel::onSearchQueryChanged
+            )
 
-        Spacer(modifier = Modifier.height(AppSpacing.M))
+            Spacer(modifier = Modifier.height(AppSpacing.M))
 
-        FoodCategoriesSection(
-            selectedCategoryId = uiState.selectedCategory,
-            onCategorySelected = viewModel::onCategorySelected
-        )
+            FoodCategoriesSection(
+                selectedCategoryId = uiState.selectedCategory,
+                onCategorySelected = viewModel::onCategorySelected
+            )
 
-        Spacer(modifier = Modifier.height(AppSpacing.M))
+            Spacer(modifier = Modifier.height(AppSpacing.M))
 
-        FoodRestaurantContent(
-            uiState = uiState,
-            onRestaurantClick = onRestaurantClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        )
+            FoodRestaurantContent(
+                uiState = uiState,
+                onRestaurantClick = onRestaurantClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+        }
+
+        // Shared Cart Bottom Bar when items exist
+        if (uiState.totalCartQuantity > 0) {
+            CartBottomBar(
+                totalQuantity = uiState.totalCartQuantity,
+                totalAmount = uiState.totalCartAmount,
+                onCheckoutClick = {
+                    uiState.cartRestaurantId?.let(onRestaurantClick)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }
 
@@ -119,11 +136,19 @@ private fun FoodRestaurantContent(
                 }
             }
 
+            val bottomPadding = if (uiState.totalCartQuantity > 0) {
+                Dimen.SizeMega + Dimen.PaddingML
+            } else {
+                Dimen.PaddingS
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = Dimen.PaddingM,
-                    vertical = Dimen.PaddingS
+                    start = Dimen.PaddingM,
+                    end = Dimen.PaddingM,
+                    top = Dimen.PaddingS,
+                    bottom = bottomPadding
                 ),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
             ) {

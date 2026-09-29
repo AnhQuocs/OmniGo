@@ -278,4 +278,13 @@
     <string name="restaurant_detail_empty_menu">No items available in this category</string>
     <string name="restaurant_detail_error">Unable to load restaurant information</string>
     <string name="restaurant_detail_retry">Retry</string>
+    <string name="menu_item_sold_out">SOLD OUT</string>
+    <string name="cart_bottom_items">%1$d items</string>
+    <string name="cart_bottom_checkout">Checkout</string>
+    <string name="restaurant_conflict_dialog_title">Change Restaurant?</string>
+    <string name="restaurant_conflict_dialog_message">Your cart contains items from %1$s. Would you like to clear the current cart and start a new order with %2$s?</string>
+    <string name="restaurant_conflict_dialog_confirm">Clear &amp; Add</string>
+    <string name="restaurant_conflict_dialog_cancel">Cancel</string>
+    <string name="restaurant_conflict_fallback_current">another restaurant</string>
+    <string name="restaurant_conflict_fallback_new">this restaurant</string>
 </resources>

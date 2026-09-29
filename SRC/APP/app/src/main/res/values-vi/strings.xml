@@ -280,4 +280,13 @@
     <string name="restaurant_detail_empty_menu">Chưa có món ăn nào trong danh mục này</string>
     <string name="restaurant_detail_error">Không thể tải thông tin nhà hàng</string>
     <string name="restaurant_detail_retry">Thử lại</string>
+    <string name="menu_item_sold_out">HẾT MÓN</string>
+    <string name="cart_bottom_items">%1$d món</string>
+    <string name="cart_bottom_checkout">Thanh toán</string>
+    <string name="restaurant_conflict_dialog_title">Đổi nhà hàng?</string>
+    <string name="restaurant_conflict_dialog_message">Giỏ hàng của bạn đang có món từ %1$s. Bạn có muốn xóa giỏ hàng hiện tại để chọn món từ %2$s không?</string>
+    <string name="restaurant_conflict_dialog_confirm">Xóa &amp; Thêm món</string>
+    <string name="restaurant_conflict_dialog_cancel">Hủy</string>
+    <string name="restaurant_conflict_fallback_current">nhà hàng khác</string>
+    <string name="restaurant_conflict_fallback_new">nhà hàng này</string>
 </resources>

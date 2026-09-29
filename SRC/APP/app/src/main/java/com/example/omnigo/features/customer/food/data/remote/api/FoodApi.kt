@@ -18,4 +18,10 @@ interface FoodApi {
     suspend fun getRestaurantDetail(
         @Path("id") id: Long
     ): ApiResponse<RestaurantResponse>
+
+    @GET(ApiEndpoints.RESTAURANT_ITEMS)
+    suspend fun getRestaurantItems(
+        @Path("id") restaurantId: Long,
+        @Query("availableOnly") availableOnly: Boolean? = null
+    ): ApiResponse<List<com.example.omnigo.features.customer.food.data.remote.dto.MenuItemResponse>>
 }

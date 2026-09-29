@@ -69,7 +69,7 @@ fun CartBottomBar(
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
             shape = RoundedCornerShape(AppShape.ShapeXL),
             color = SurfaceLight,
-            shadowElevation = 12.dp
+            shadowElevation = Dimen.PaddingSM
         ) {
             Row(
                 modifier = Modifier
@@ -99,7 +99,7 @@ fun CartBottomBar(
                             color = PrimaryColor,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(18.dp)
+                                .size(Dimen.SizeS2)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(

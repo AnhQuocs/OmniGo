@@ -3,6 +3,7 @@ package com.example.omnigo.features.customer.food.data.repository
 import com.example.omnigo.features.customer.food.data.mapper.toDomain
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
 import com.example.omnigo.features.customer.food.domain.repository.FoodRepository
@@ -40,6 +41,24 @@ class FoodRepositoryImpl @Inject constructor(
             GetRestaurantDetailResult.Error(FoodError.NETWORK_ERROR)
         } catch (e: Exception) {
             GetRestaurantDetailResult.Error(FoodError.UNKNOWN_ERROR)
+        }
+    }
+
+    override suspend fun getRestaurantItems(
+        restaurantId: Long,
+        availableOnly: Boolean
+    ): GetMenuItemsResult {
+        return try {
+            val response = foodApi.getRestaurantItems(restaurantId, availableOnly)
+            if (response.success && response.data != null) {
+                GetMenuItemsResult.Success(response.data.map { it.toDomain() })
+            } else {
+                GetMenuItemsResult.Error(FoodError.SERVER_ERROR)
+            }
+        } catch (e: IOException) {
+            GetMenuItemsResult.Error(FoodError.NETWORK_ERROR)
+        } catch (e: Exception) {
+            GetMenuItemsResult.Error(FoodError.UNKNOWN_ERROR)
         }
     }
 }

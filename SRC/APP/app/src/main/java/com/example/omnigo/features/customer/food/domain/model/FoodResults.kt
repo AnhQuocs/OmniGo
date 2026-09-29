@@ -21,3 +21,13 @@ sealed interface GetRestaurantDetailResult {
         val error: FoodError
     ) : GetRestaurantDetailResult
 }
+
+sealed interface GetMenuItemsResult {
+    data class Success(
+        val items: List<MenuItem>
+    ) : GetMenuItemsResult
+
+    data class Error(
+        val error: FoodError
+    ) : GetMenuItemsResult
+}

@@ -2,6 +2,7 @@ package com.example.omnigo.features.customer.food.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.omnigo.features.customer.food.domain.manager.CartManager
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantsUseCase
@@ -25,13 +26,17 @@ data class FoodUiState(
     val restaurants: List<Restaurant> = emptyList(),
     val searchQuery: String = "",
     val selectedCategory: String? = null,
-    val errorMessage: UiText? = null
+    val errorMessage: UiText? = null,
+    val cartRestaurantId: Long? = null,
+    val totalCartQuantity: Int = 0,
+    val totalCartAmount: Double = 0.0
 )
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class FoodViewModel @Inject constructor(
-    private val getRestaurantsUseCase: GetRestaurantsUseCase
+    private val getRestaurantsUseCase: GetRestaurantsUseCase,
+    private val cartManager: CartManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FoodUiState())
@@ -42,6 +47,21 @@ class FoodViewModel @Inject constructor(
     init {
         loadRestaurants()
         observeSearch()
+        observeCart()
+    }
+
+    private fun observeCart() {
+        viewModelScope.launch {
+            cartManager.cartState.collect { cart ->
+                _uiState.update { current ->
+                    current.copy(
+                        cartRestaurantId = cart.restaurantId,
+                        totalCartQuantity = cart.totalQuantity,
+                        totalCartAmount = cart.totalAmount
+                    )
+                }
+            }
+        }
     }
 
     fun onSearchQueryChanged(query: String) {

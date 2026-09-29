@@ -7,7 +7,7 @@ import javax.inject.Inject
 class GetRestaurantDetailUseCase @Inject constructor(
     private val repository: FoodRepository
 ) {
-    suspend operator fun invoke(id: Long): GetRestaurantDetailResult {
-        return repository.getRestaurantDetail(id)
+    suspend operator fun invoke(restaurantId: Long): GetRestaurantDetailResult {
+        return repository.getRestaurantDetail(restaurantId)
     }
 }

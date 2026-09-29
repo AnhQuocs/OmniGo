@@ -3,10 +3,14 @@ package com.example.omnigo.features.customer.food.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.core.location.manager.UserLocationManager
+import com.example.omnigo.features.customer.food.domain.manager.CartManager
+import com.example.omnigo.features.customer.food.domain.model.CartAddResult
+import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,36 +27,81 @@ import kotlin.math.sqrt
 @HiltViewModel
 class RestaurantDetailViewModel @Inject constructor(
     private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
-    private val userLocationManager: UserLocationManager
+    private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase,
+    private val userLocationManager: UserLocationManager,
+    private val cartManager: CartManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RestaurantDetailUiState())
     val uiState: StateFlow<RestaurantDetailUiState> = _uiState.asStateFlow()
 
+    init {
+        observeCartState()
+    }
+
+    private fun observeCartState() {
+        viewModelScope.launch {
+            cartManager.cartState.collect { cart ->
+                _uiState.update { current ->
+                    current.copy(
+                        cartItems = cart.items,
+                        totalCartAmount = cart.totalAmount,
+                        totalCartQuantity = cart.totalQuantity
+                    )
+                }
+            }
+        }
+    }
+
     fun loadRestaurant(id: Long) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isRestaurantLoading = true, isMenuLoading = true, errorMessage = null) }
+            
+            // 1. Lấy thông tin nhà hàng trước
             when (val result = getRestaurantDetailUseCase(id)) {
                 is GetRestaurantDetailResult.Success -> {
                     val restaurant = result.restaurant
-                    val categories = extractCategories(restaurant)
                     val (distance, minutes) = calculateDistanceAndMinutes(restaurant)
 
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
+                            isRestaurantLoading = false,
                             restaurant = restaurant,
-                            categories = categories,
-                            selectedCategory = null,
                             distanceKm = distance,
                             estimatedDeliveryMinutes = minutes
                         )
+                    }
+                    
+                    // 2. Lấy thông tin Menu Items
+                    when (val menuResult = getRestaurantItemsUseCase(id, availableOnly = false)) {
+                        is GetMenuItemsResult.Success -> {
+                            val items = menuResult.items
+                            val categories = extractCategories(items)
+                            val groupedMenu = items.groupBy { it.category.trim() }.filterKeys { it.isNotBlank() }
+                            
+                            _uiState.update {
+                                it.copy(
+                                    isMenuLoading = false,
+                                    categories = categories,
+                                    menuItems = groupedMenu
+                                )
+                            }
+                        }
+                        is GetMenuItemsResult.Error -> {
+                            _uiState.update {
+                                it.copy(
+                                    isMenuLoading = false,
+                                    errorMessage = menuResult.error.asUiText()
+                                )
+                            }
+                        }
                     }
                 }
                 is GetRestaurantDetailResult.Error -> {
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
+                            isRestaurantLoading = false,
+                            isMenuLoading = false,
                             errorMessage = result.error.asUiText()
                         )
                     }
@@ -66,58 +115,51 @@ class RestaurantDetailViewModel @Inject constructor(
     }
 
     fun onAddToCart(menuItem: MenuItem) {
-        _uiState.update { state ->
-            val currentCart = state.cartItems.toMutableMap()
-            val existing = currentCart[menuItem.id]
-            val newQuantity = (existing?.quantity ?: 0) + 1
-            currentCart[menuItem.id] = CartItem(menuItem, newQuantity)
-
-            val totalAmount = currentCart.values.sumOf { it.menuItem.price * it.quantity }
-            val totalCount = currentCart.values.sumOf { it.quantity }
-
-            state.copy(
-                cartItems = currentCart,
-                totalCartAmount = totalAmount,
-                totalCartQuantity = totalCount
-            )
+        val restaurantName = _uiState.value.restaurant?.name.orEmpty()
+        val result = cartManager.addItem(
+            menuItem = menuItem,
+            quantity = 1,
+            restaurantName = restaurantName
+        )
+        if (result is CartAddResult.RestaurantConflict) {
+            _uiState.update { it.copy(pendingConflict = result) }
         }
     }
 
     fun onRemoveFromCart(menuItem: MenuItem) {
-        _uiState.update { state ->
-            val currentCart = state.cartItems.toMutableMap()
-            val existing = currentCart[menuItem.id]
-            if (existing != null) {
-                if (existing.quantity > 1) {
-                    currentCart[menuItem.id] = CartItem(menuItem, existing.quantity - 1)
-                } else {
-                    currentCart.remove(menuItem.id)
-                }
-            }
-
-            val totalAmount = currentCart.values.sumOf { it.menuItem.price * it.quantity }
-            val totalCount = currentCart.values.sumOf { it.quantity }
-
-            state.copy(
-                cartItems = currentCart,
-                totalCartAmount = totalAmount,
-                totalCartQuantity = totalCount
-            )
+        val currentQty = cartManager.getItemQuantity(menuItem.id)
+        if (currentQty > 1) {
+            cartManager.updateQuantity(menuItem.id, currentQty - 1)
+        } else {
+            cartManager.removeItem(menuItem.id)
         }
+    }
+
+    fun onConfirmReplaceCart() {
+        val conflict = _uiState.value.pendingConflict ?: return
+        cartManager.replaceCartWithItem(
+            menuItem = conflict.pendingItem,
+            quantity = conflict.pendingQuantity,
+            note = conflict.pendingNote,
+            restaurantName = conflict.newRestaurantName
+        )
+        _uiState.update { it.copy(pendingConflict = null) }
+    }
+
+    fun onDismissConflictDialog() {
+        _uiState.update { it.copy(pendingConflict = null) }
+    }
+
+    fun onUpdateItemNote(menuItemId: Long, note: String) {
+        cartManager.updateNote(menuItemId, note)
     }
 
     fun onClearCart() {
-        _uiState.update {
-            it.copy(
-                cartItems = emptyMap(),
-                totalCartAmount = 0.0,
-                totalCartQuantity = 0
-            )
-        }
+        cartManager.clearCart()
     }
 
-    private fun extractCategories(restaurant: Restaurant): List<String> {
-        return restaurant.menuItems
+    private fun extractCategories(items: List<MenuItem>): List<String> {
+        return items
             .map { it.category.trim() }
             .filter { it.isNotBlank() }
             .distinct()

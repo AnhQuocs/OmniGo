@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -30,12 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomBar
 import com.example.omnigo.features.customer.food.presentation.ui.components.MenuItemCard
+import com.example.omnigo.features.customer.food.presentation.ui.components.RestaurantConflictDialog
 import com.example.omnigo.features.customer.food.presentation.ui.components.RestaurantDetailHeaderSection
 import com.example.omnigo.features.customer.food.presentation.viewmodel.RestaurantDetailViewModel
 import com.example.omnigo.ui.dimens.AppShape
@@ -74,7 +72,7 @@ fun RestaurantDetailScreen(
             .background(BackgroundLight)
     ) {
         when {
-            uiState.isLoading && uiState.restaurant == null -> {
+            uiState.isRestaurantLoading && uiState.restaurant == null -> {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
                     color = PrimaryColor
@@ -109,17 +107,16 @@ fun RestaurantDetailScreen(
             }
             uiState.restaurant != null -> {
                 val restaurant = uiState.restaurant!!
-                val displayedItems = if (uiState.selectedCategory.isNullOrBlank()) {
-                    restaurant.menuItems
+                
+                val flatDisplayedItems = if (uiState.selectedCategory.isNullOrBlank()) {
+                    uiState.menuItems.values.flatten()
                 } else {
-                    restaurant.menuItems.filter {
-                        it.category.equals(uiState.selectedCategory, ignoreCase = true)
-                    }
+                    uiState.menuItems[uiState.selectedCategory] ?: emptyList()
                 }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = Dimen.SizeMega + Dimen.PaddingML)
                 ) {
                     // Header Section
                     item {
@@ -188,7 +185,18 @@ fun RestaurantDetailScreen(
                     }
 
                     // Menu Items List
-                    if (displayedItems.isEmpty()) {
+                    if (uiState.isMenuLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = Dimen.PaddingXXL),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = PrimaryColor)
+                            }
+                        }
+                    } else if (flatDisplayedItems.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -204,7 +212,7 @@ fun RestaurantDetailScreen(
                             }
                         }
                     } else {
-                        items(displayedItems, key = { it.id }) { item ->
+                        items(flatDisplayedItems, key = { it.id }) { item ->
                             val cartItem = uiState.cartItems[item.id]
                             val quantity = cartItem?.quantity ?: 0
 
@@ -230,6 +238,17 @@ fun RestaurantDetailScreen(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
+        }
+
+        // Restaurant Conflict Dialog
+        val conflict = uiState.pendingConflict
+        if (conflict != null) {
+            RestaurantConflictDialog(
+                currentRestaurantName = conflict.currentRestaurantName,
+                newRestaurantName = conflict.newRestaurantName,
+                onConfirm = viewModel::onConfirmReplaceCart,
+                onDismiss = viewModel::onDismissConflictDialog
+            )
         }
     }
 }
