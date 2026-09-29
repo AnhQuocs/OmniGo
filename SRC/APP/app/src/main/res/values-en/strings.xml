@@ -289,4 +289,27 @@
     <string name="restaurant_conflict_dialog_cancel">Cancel</string>
     <string name="restaurant_conflict_fallback_current">another restaurant</string>
     <string name="restaurant_conflict_fallback_new">this restaurant</string>
+
+    <!-- FOOD CHECKOUT SCREEN -->
+    <string name="checkout_title">Order Checkout</string>
+    <string name="checkout_delivery_address_title">Delivery Address</string>
+    <string name="checkout_order_summary_title">Order Summary</string>
+    <string name="checkout_driver_note_title">Driver Note</string>
+    <string name="checkout_driver_note_hint">e.g. Call 5 mins before arrival, leave at gate...</string>
+    <string name="checkout_payment_method_title">Payment Method</string>
+    <string name="checkout_payment_cash">Cash on Delivery (CASH)</string>
+    <string name="checkout_payment_cash_desc">Pay directly to the driver upon delivery</string>
+    <string name="checkout_payment_wallet">OmniPay Wallet</string>
+    <string name="checkout_payment_wallet_desc">Instant payment via in-app wallet balance</string>
+    <string name="checkout_payment_momo">MoMo Wallet</string>
+    <string name="checkout_payment_momo_desc">Pay via MoMo e-wallet application</string>
+    <string name="checkout_payment_vnpay">VNPay QR</string>
+    <string name="checkout_payment_vnpay_desc">Pay via VNPay QR code or banking app</string>
+    <string name="checkout_price_subtotal">Items Subtotal</string>
+    <string name="checkout_price_delivery_fee">Delivery Fee</string>
+    <string name="checkout_price_total">Total Payment</string>
+    <string name="checkout_btn_place_order">Place Order</string>
+    <string name="checkout_error_empty_cart">Your cart is currently empty</string>
+    <string name="checkout_error_empty_address">Please specify a valid delivery address</string>
+    <string name="checkout_order_success">Food order created successfully!</string>
 </resources>

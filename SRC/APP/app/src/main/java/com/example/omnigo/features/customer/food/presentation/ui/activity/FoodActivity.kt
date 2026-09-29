@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.omnigo.BaseComponentActivity
+import com.example.omnigo.features.customer.food.presentation.ui.FoodCheckoutScreen
 import com.example.omnigo.features.customer.food.presentation.ui.FoodHomeScreen
 import com.example.omnigo.features.customer.food.presentation.ui.RestaurantDetailScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,7 +52,16 @@ class FoodActivity : BaseComponentActivity() {
                         restaurantId = restaurantId,
                         onBackClick = { navController.popBackStack() },
                         onCheckoutClick = {
-                            // Will navigate to checkout screen
+                            navController.navigate("food_checkout")
+                        }
+                    )
+                }
+
+                composable("food_checkout") {
+                    FoodCheckoutScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOrderCreated = { _ ->
+                            navController.popBackStack("food_home", inclusive = false)
                         }
                     )
                 }

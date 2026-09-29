@@ -289,4 +289,27 @@
     <string name="restaurant_conflict_dialog_cancel">Hủy</string>
     <string name="restaurant_conflict_fallback_current">nhà hàng khác</string>
     <string name="restaurant_conflict_fallback_new">nhà hàng này</string>
+
+    <!-- FOOD CHECKOUT SCREEN -->
+    <string name="checkout_title">Xác nhận đơn hàng</string>
+    <string name="checkout_delivery_address_title">Địa chỉ nhận hàng</string>
+    <string name="checkout_order_summary_title">Chi tiết đơn hàng</string>
+    <string name="checkout_driver_note_title">Lời dặn tài xế</string>
+    <string name="checkout_driver_note_hint">vd: Gọi trước 5 phút, để ở cổng...</string>
+    <string name="checkout_payment_method_title">Phương thức thanh toán</string>
+    <string name="checkout_payment_cash">Tiền mặt khi nhận hàng (CASH)</string>
+    <string name="checkout_payment_cash_desc">Thanh toán trực tiếp cho tài xế shipper khi giao</string>
+    <string name="checkout_payment_wallet">Ví OmniPay</string>
+    <string name="checkout_payment_wallet_desc">Thanh toán trừ tiền số dư ví nhanh chóng</string>
+    <string name="checkout_payment_momo">Ví điện tử MoMo</string>
+    <string name="checkout_payment_momo_desc">Thanh toán qua ứng dụng ví điện tử MoMo</string>
+    <string name="checkout_payment_vnpay">Cổng VNPay QR</string>
+    <string name="checkout_payment_vnpay_desc">Thanh toán qua mã QR ứng dụng ngân hàng</string>
+    <string name="checkout_price_subtotal">Tạm tính món</string>
+    <string name="checkout_price_delivery_fee">Phí giao hàng</string>
+    <string name="checkout_price_total">Tổng thanh toán</string>
+    <string name="checkout_btn_place_order">Đặt món</string>
+    <string name="checkout_error_empty_cart">Giỏ hàng của bạn đang trống</string>
+    <string name="checkout_error_empty_address">Vui lòng chọn địa chỉ giao hàng hợp lệ</string>
+    <string name="checkout_order_success">Đặt món thành công!</string>
 </resources>

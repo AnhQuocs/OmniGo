@@ -31,3 +31,14 @@ sealed interface GetMenuItemsResult {
         val error: FoodError
     ) : GetMenuItemsResult
 }
+
+sealed interface CreateFoodOrderResult {
+    data class Success(
+        val order: FoodOrder
+    ) : CreateFoodOrderResult
+
+    data class Error(
+        val error: FoodError,
+        val message: String? = null
+    ) : CreateFoodOrderResult
+}

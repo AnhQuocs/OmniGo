@@ -2,8 +2,13 @@ package com.example.omnigo.features.customer.food.data.remote.api
 
 import com.example.omnigo.core.network.ApiEndpoints
 import com.example.omnigo.core.network.dto.ApiResponse
+import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderRequest
+import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse
+import com.example.omnigo.features.customer.food.data.remote.dto.MenuItemResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.RestaurantResponse
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -23,5 +28,10 @@ interface FoodApi {
     suspend fun getRestaurantItems(
         @Path("id") restaurantId: Long,
         @Query("availableOnly") availableOnly: Boolean? = null
-    ): ApiResponse<List<com.example.omnigo.features.customer.food.data.remote.dto.MenuItemResponse>>
+    ): ApiResponse<List<MenuItemResponse>>
+
+    @POST(ApiEndpoints.FOOD_ORDERS)
+    suspend fun createFoodOrder(
+        @Body request: FoodOrderRequest
+    ): ApiResponse<FoodOrderResponse>
 }
