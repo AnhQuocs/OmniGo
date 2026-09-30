@@ -11,6 +11,10 @@ public interface MenuItemService {
 
     MenuItemResponse addMenuItem(Long restaurantId, MenuItemRequest request, Long ownerId) throws ResourceNotFoundException, UnauthorizedException;
 
+    MenuItemResponse getMenuItemById(Long itemId) throws ResourceNotFoundException;
+
+    MenuItemResponse getMenuItemByRestaurantAndId(Long restaurantId, Long itemId) throws ResourceNotFoundException;
+
     List<MenuItemResponse> getMenuItemsByRestaurantId(Long restaurantId);
 
     List<MenuItemResponse> getAvailableMenuItems(Long restaurantId);

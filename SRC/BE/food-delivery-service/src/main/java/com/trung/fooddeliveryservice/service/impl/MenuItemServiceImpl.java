@@ -50,6 +50,28 @@ public class MenuItemServiceImpl implements MenuItemService {
 
     @Override
     @Transactional(readOnly = true)
+    public MenuItemResponse getMenuItemById(Long itemId) throws ResourceNotFoundException {
+        MenuItem menuItem = menuItemRepository.findById(itemId)
+                .orElseThrow(() -> {
+                    log.warn("Không tìm thấy món ăn với ID: {}", itemId);
+                    return new ResourceNotFoundException("Không tìm thấy món ăn với ID: " + itemId);
+                });
+        return menuItemMapper.toResponse(menuItem);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MenuItemResponse getMenuItemByRestaurantAndId(Long restaurantId, Long itemId) throws ResourceNotFoundException {
+        MenuItem menuItem = menuItemRepository.findByIdAndRestaurantId(itemId, restaurantId)
+                .orElseThrow(() -> {
+                    log.warn("Không tìm thấy món ăn ID {} thuộc nhà hàng ID {}", itemId, restaurantId);
+                    return new ResourceNotFoundException("Không tìm thấy món ăn với ID: " + itemId + " thuộc nhà hàng ID: " + restaurantId);
+                });
+        return menuItemMapper.toResponse(menuItem);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MenuItemResponse> getMenuItemsByRestaurantId(Long restaurantId) {
         List<MenuItem> items = menuItemRepository.findByRestaurantId(restaurantId);
         return menuItemMapper.toResponseList(items);

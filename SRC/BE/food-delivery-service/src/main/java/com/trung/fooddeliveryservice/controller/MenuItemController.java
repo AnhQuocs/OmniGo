@@ -64,6 +64,21 @@ public class MenuItemController {
         return ResponseEntity.ok(ApiResponse.success(list, "Lấy danh sách món ăn thành công"));
     }
 
+    @GetMapping("/items/{itemId}")
+    public ResponseEntity<ApiResponse<MenuItemResponse>> getMenuItemById(
+            @PathVariable Long itemId) throws ResourceNotFoundException {
+        MenuItemResponse response = menuItemService.getMenuItemById(itemId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin món ăn thành công"));
+    }
+
+    @GetMapping("/restaurants/{restaurantId}/items/{itemId}")
+    public ResponseEntity<ApiResponse<MenuItemResponse>> getMenuItemByRestaurantAndId(
+            @PathVariable Long restaurantId,
+            @PathVariable Long itemId) throws ResourceNotFoundException {
+        MenuItemResponse response = menuItemService.getMenuItemByRestaurantAndId(restaurantId, itemId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin món ăn thành công"));
+    }
+
     @PutMapping("/items/{itemId}")
     public ResponseEntity<ApiResponse<MenuItemResponse>> updateMenuItem(
             @PathVariable Long itemId,
