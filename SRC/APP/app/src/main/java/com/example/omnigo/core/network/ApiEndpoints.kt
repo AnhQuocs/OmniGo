@@ -23,4 +23,11 @@ object ApiEndpoints {
     const val FOOD_ORDER_SWITCH_TO_CASH = "$API_V1/food-orders/{orderId}/switch-to-cash"
     const val FOOD_ORDER_RETRY_DRIVER = "$API_V1/food-orders/{orderId}/retry-driver"
     const val DRIVER_PROFILE = "drivers/{id}"
+
+    // --- DRIVER & LOCATION ---
+    const val DRIVER_STATUS = "$API_V1/drivers/{driverId}/status"
+    const val DRIVER_STATUS_ME = "$API_V1/drivers/me/status"
+    const val DRIVER_PROFILE_BY_ID = "$API_V1/drivers/{driverId}/profile"
+    const val DRIVER_PROFILE_ME = "$API_V1/drivers/me/profile"
+    const val DRIVER_LOCATION_ME = "$API_V1/locations/drivers/me"
 }

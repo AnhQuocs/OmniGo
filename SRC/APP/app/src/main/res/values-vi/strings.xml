@@ -262,6 +262,17 @@
     <string name="driver_vehicle_info">Thông tin phương tiện</string>
     <string name="driver_vehicle_type">Loại xe</string>
     <string name="driver_license_plate">Biển số xe</string>
+    <string name="driver_approval_pending_title">Trạng thái hồ sơ tài xế</string>
+    <string name="driver_approval_pending_message">Hồ sơ đối tác tài xế của bạn đang được Ban Quản Trị xét duyệt. Bạn chưa thể bật trực tuyến để nhận cuốc xe.</string>
+    <string name="driver_approval_inactive_message">Tài khoản tài xế của bạn hiện đang bị khóa hoặc tạm ngừng hoạt động. Vui lòng liên hệ CSKH.</string>
+    <string name="driver_permission_location_required">Vui lòng cấp quyền vị trí chính xác để bật trực tuyến và nhận cuốc xe/đơn hàng.</string>
+    <string name="driver_gps_enable_required">Vui lòng bật định vị GPS trên thiết bị để hoạt động.</string>
+    <string name="driver_notification_channel_name">Dịch vụ định vị Tài xế</string>
+    <string name="driver_notification_channel_desc">Theo dõi và cập nhật vị trí GPS khi tài xế trực tuyến</string>
+    <string name="driver_service_notification_title">OmniGo Driver - Đang trực tuyến</string>
+    <string name="driver_service_notification_text">Đang theo dõi vị trí và sẵn sàng nhận đơn</string>
+    <string name="driver_status_update_failed">Cập nhật trạng thái tài xế thất bại. Vui lòng thử lại.</string>
+    <string name="driver_profile_load_failed">Không thể tải thông tin hồ sơ tài xế</string>
 
     <!-- RESTAURANT DETAIL SCREEN -->
     <string name="restaurant_detail_title">Chi tiết nhà hàng</string>
