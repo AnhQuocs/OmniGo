@@ -4,18 +4,24 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
 import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetailResult
+import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
+import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
+import com.example.omnigo.features.customer.food.domain.usecase.CancelFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.RetryDriverUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.SwitchToCashUseCase
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,6 +29,9 @@ import javax.inject.Inject
 class FoodOrderDetailViewModel @Inject constructor(
     private val getFoodOrderDetailUseCase: GetFoodOrderDetailUseCase,
     private val getDriverProfileUseCase: GetDriverProfileUseCase,
+    private val cancelFoodOrderUseCase: CancelFoodOrderUseCase,
+    private val switchToCashUseCase: SwitchToCashUseCase,
+    private val retryDriverUseCase: RetryDriverUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -145,6 +154,112 @@ class FoodOrderDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun onOpenCancelDialog() {
+        _uiState.update { it.copy(isCancelDialogOpen = true) }
+    }
+
+    fun onDismissCancelDialog() {
+        _uiState.update { it.copy(isCancelDialogOpen = false) }
+    }
+
+    fun onCancelOrder(reasonCode: String?, reason: String?) {
+        if (orderId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true, isCancelDialogOpen = false) }
+            when (val result = cancelFoodOrderUseCase(orderId, reasonCode, reason)) {
+                is CancelFoodOrderResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            order = result.order,
+                            actionMessage = UiText.StringResource(R.string.order_cancel_success)
+                        )
+                    }
+                }
+                is CancelFoodOrderResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            actionMessage = result.message
+                                ?.takeIf(String::isNotBlank)
+                                ?.let(UiText::DynamicString)
+                                ?: result.error.asUiText()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onSwitchToCash() {
+        if (orderId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true) }
+            when (val result = switchToCashUseCase(orderId)) {
+                is SwitchToCashResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            order = result.order,
+                            actionMessage = UiText.StringResource(R.string.order_switch_cash_success)
+                        )
+                    }
+                }
+                is SwitchToCashResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            actionMessage = result.message
+                                ?.takeIf(String::isNotBlank)
+                                ?.let(UiText::DynamicString)
+                                ?: result.error.asUiText()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onRetryDriver() {
+        if (orderId <= 0) return
+        if (_uiState.value.retryDriverCount >= 3) {
+            _uiState.update {
+                it.copy(actionMessage = UiText.StringResource(R.string.order_detail_retry_driver_max_reached))
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true) }
+            when (val result = retryDriverUseCase(orderId)) {
+                is RetryDriverResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            order = result.order,
+                            retryDriverCount = it.retryDriverCount + 1,
+                            actionMessage = UiText.StringResource(R.string.order_retry_driver_success)
+                        )
+                    }
+                }
+                is RetryDriverResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            actionMessage = result.message
+                                ?.takeIf(String::isNotBlank)
+                                ?.let(UiText::DynamicString)
+                                ?: result.error.asUiText()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onClearActionMessage() {
+        _uiState.update { it.copy(actionMessage = null) }
     }
 
     fun onRetry() {

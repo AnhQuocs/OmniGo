@@ -72,6 +72,14 @@ fun FoodOrderDetailScreen(
         }
     }
 
+    LaunchedEffect(uiState.actionMessage) {
+        val msg = uiState.actionMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg.asString(context))
+            viewModel.onClearActionMessage()
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -154,7 +162,19 @@ fun FoodOrderDetailScreen(
                             )
                         }
 
-                        // 2. Driver Info Card
+                        // 2. Actions (Cancel, Switch to Cash, Retry Driver)
+                        item {
+                            FoodOrderDetailActionSection(
+                                order = order,
+                                retryDriverCount = uiState.retryDriverCount,
+                                isActionLoading = uiState.isActionLoading,
+                                onCancelClick = { viewModel.onOpenCancelDialog() },
+                                onSwitchToCashClick = { viewModel.onSwitchToCash() },
+                                onRetryDriverClick = { viewModel.onRetryDriver() }
+                            )
+                        }
+
+                        // 3. Driver Info Card
                         item {
                             val profile = uiState.driverProfile
                             DriverInfoCard(
@@ -173,7 +193,7 @@ fun FoodOrderDetailScreen(
                             )
                         }
 
-                        // 3. Restaurant and Items
+                        // 4. Restaurant and Items
                         item {
                             OrderDetailRestaurantAndItemsSection(
                                 restaurantName = order.restaurantName,
@@ -182,7 +202,7 @@ fun FoodOrderDetailScreen(
                             )
                         }
 
-                        // 4. Payment & Pricing Details
+                        // 5. Payment & Pricing Details
                         item {
                             OrderDetailPaymentAndPricingSection(
                                 dropOffAddress = order.dropOffAddress,
@@ -233,6 +253,15 @@ fun FoodOrderDetailScreen(
                         }
                     }
                 }
+            }
+
+            if (uiState.isCancelDialogOpen) {
+                CancelOrderDialog(
+                    onDismiss = { viewModel.onDismissCancelDialog() },
+                    onConfirm = { reasonCode, reason ->
+                        viewModel.onCancelOrder(reasonCode, reason)
+                    }
+                )
             }
         }
     }

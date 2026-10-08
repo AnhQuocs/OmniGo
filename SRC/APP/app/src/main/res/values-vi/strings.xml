@@ -371,4 +371,33 @@
     <string name="order_detail_action_back">Quay lại</string>
     <string name="order_detail_action_refresh">Làm mới chi tiết đơn hàng</string>
     <string name="order_detail_action_call_driver">Gọi tài xế</string>
+
+    <!-- PART 4: History & Order Edge Cases -->
+    <string name="food_history_title">Lịch sử đơn món</string>
+    <string name="food_history_empty_title">Chưa có đơn hàng nào</string>
+    <string name="food_history_empty_desc">Bạn chưa đặt đơn hàng nào. Hãy khám phá các quán ăn ngon ngay nhé!</string>
+    <string name="food_history_order_items_count">%1$d món</string>
+    <string name="food_history_btn_order_now">Khám phá món ngon</string>
+    <string name="food_history_filter_all">Tất cả</string>
+    <string name="food_history_filter_active">Đang giao</string>
+    <string name="food_history_filter_completed">Đã xong</string>
+    <string name="order_detail_btn_cancel">Hủy đơn hàng</string>
+    <string name="order_detail_btn_switch_cash">Đổi sang Tiền mặt</string>
+    <string name="order_detail_btn_retry_driver">Tìm lại tài xế</string>
+    <string name="order_detail_retry_driver_count">Tìm lại tài xế (Còn %1$d lượt)</string>
+    <string name="order_detail_retry_driver_max_reached">Đã hết số lượt tìm lại tài xế (3/3)</string>
+    <string name="order_cancel_dialog_title">Hủy đơn hàng</string>
+    <string name="order_cancel_dialog_subtitle">Vui lòng chọn lý do hủy đơn của bạn</string>
+    <string name="order_cancel_reason_changed_mind">Đổi ý không muốn đặt nữa</string>
+    <string name="order_cancel_reason_long_wait">Thời gian giao hàng quá lâu</string>
+    <string name="order_cancel_reason_wrong_info">Đặt nhầm địa chỉ hoặc món ăn</string>
+    <string name="order_cancel_reason_other">Lý do khác</string>
+    <string name="order_cancel_reason_other_hint">Nhập lý do cụ thể...</string>
+    <string name="order_cancel_confirm">Xác nhận hủy</string>
+    <string name="order_cancel_dismiss">Không, giữ lại đơn</string>
+    <string name="order_cancel_cannot_cancel_preparing">Quán đã bắt đầu làm món, không thể tự hủy đơn.</string>
+    <string name="order_cancel_success">Đã hủy đơn hàng thành công</string>
+    <string name="order_switch_cash_success">Đã chuyển sang thanh toán tiền mặt thành công</string>
+    <string name="order_retry_driver_success">Đang tìm kiếm tài xế mới quanh khu vực quán</string>
+    <string name="food_home_history_tooltip">Lịch sử đơn hàng</string>
 </resources>

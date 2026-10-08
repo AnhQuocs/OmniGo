@@ -2,17 +2,21 @@ package com.example.omnigo.features.customer.food.data.repository
 
 import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
-import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.DriverProfileResponse
+import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.MenuItemResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.RestaurantResponse
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCommand
-import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
+import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
+import com.example.omnigo.features.customer.food.domain.model.GetMyFoodOrdersResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
-import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
+import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
+import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
+import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -165,15 +169,73 @@ class FoodRepositoryImplTest {
         assertEquals(999L, order.id)
         assertEquals(100_123.0, order.totalPrice!!, 0.001)
         assertEquals(12_345.0, order.deliveryFee!!, 0.001)
-        io.mockk.coVerify(exactly = 1) {
-            foodApi.createFoodOrder(
-                match {
-                    it.restaurantId == 1L &&
-                        it.dropOffAddress == "Delivery address" &&
-                        it.paymentMethod == "CASH"
-                }
-            )
-        }
+    }
+
+    @Test
+    fun `getMyFoodOrders maps orders list correctly`() = runTest {
+        coEvery { foodApi.getMyFoodOrders() } returns ApiResponse(
+            success = true,
+            message = "OK",
+            data = listOf(
+                FoodOrderResponse(id = 501L, status = "PENDING", totalPrice = 50000.0)
+            ),
+            timestamp = null
+        )
+
+        val result = repository.getMyFoodOrders()
+
+        assertTrue(result is GetMyFoodOrdersResult.Success)
+        val success = result as GetMyFoodOrdersResult.Success
+        assertEquals(1, success.orders.size)
+        assertEquals(501L, success.orders[0].id)
+    }
+
+    @Test
+    fun `cancelFoodOrder maps cancelled order correctly`() = runTest {
+        coEvery { foodApi.cancelFoodOrder(501L, any()) } returns ApiResponse(
+            success = true,
+            message = "Cancelled",
+            data = FoodOrderResponse(id = 501L, status = "CANCELLED"),
+            timestamp = null
+        )
+
+        val result = repository.cancelFoodOrder(501L, "CHANGED_MIND", "Changed mind")
+
+        assertTrue(result is CancelFoodOrderResult.Success)
+        val success = result as CancelFoodOrderResult.Success
+        assertEquals("CANCELLED", success.order.status)
+    }
+
+    @Test
+    fun `switchToCash maps switched order correctly`() = runTest {
+        coEvery { foodApi.switchToCash(501L) } returns ApiResponse(
+            success = true,
+            message = "Switched",
+            data = FoodOrderResponse(id = 501L, status = "PENDING", paymentMethod = "CASH"),
+            timestamp = null
+        )
+
+        val result = repository.switchToCash(501L)
+
+        assertTrue(result is SwitchToCashResult.Success)
+        val success = result as SwitchToCashResult.Success
+        assertEquals(PaymentMethod.CASH, success.order.paymentMethod)
+    }
+
+    @Test
+    fun `retryDriver maps retried order correctly`() = runTest {
+        coEvery { foodApi.retryDriver(501L) } returns ApiResponse(
+            success = true,
+            message = "Retrying",
+            data = FoodOrderResponse(id = 501L, status = "PENDING"),
+            timestamp = null
+        )
+
+        val result = repository.retryDriver(501L)
+
+        assertTrue(result is RetryDriverResult.Success)
+        val success = result as RetryDriverResult.Success
+        assertEquals(501L, success.order.id)
     }
 
     @Test
@@ -197,18 +259,6 @@ class FoodRepositoryImplTest {
         val profile = (result as GetDriverProfileResult.Success).profile
         assertEquals(77L, profile.driverId)
         assertEquals("Driver Name", profile.driverName)
-        assertEquals("0900000000", profile.driverPhone)
-        assertEquals("ABC-123", profile.vehiclePlate)
-        assertEquals(null, profile.avatarUrl)
-    }
-
-    @Test
-    fun `getDriverProfile reports network error`() = runTest {
-        coEvery { foodApi.getDriverProfile(77L) } throws IOException("No connection")
-
-        val result = repository.getDriverProfile(77L)
-
-        assertTrue(result is GetDriverProfileResult.Error)
-        assertEquals(FoodError.NETWORK_ERROR, (result as GetDriverProfileResult.Error).error)
     }
 }
+

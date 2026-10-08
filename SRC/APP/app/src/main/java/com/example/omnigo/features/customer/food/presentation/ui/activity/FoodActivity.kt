@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.example.omnigo.BaseComponentActivity
 import com.example.omnigo.features.customer.food.presentation.ui.checkout.FoodCheckoutScreen
 import com.example.omnigo.features.customer.food.presentation.ui.detail.RestaurantDetailScreen
+import com.example.omnigo.features.customer.food.presentation.ui.history.FoodOrderHistoryScreen
 import com.example.omnigo.features.customer.food.presentation.ui.home.FoodHomeScreen
 import com.example.omnigo.features.customer.food.presentation.ui.order.FoodOrderDetailScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -38,6 +39,9 @@ class FoodActivity : BaseComponentActivity() {
                         onBackClick = { finish() },
                         onRestaurantClick = { restaurantId ->
                             navController.navigate("restaurant_detail/$restaurantId")
+                        },
+                        onHistoryClick = {
+                            navController.navigate("food_order_history")
                         }
                     )
                 }
@@ -65,6 +69,15 @@ class FoodActivity : BaseComponentActivity() {
                             navController.navigate("food_order_detail/$orderId") {
                                 popUpTo("food_home") { inclusive = false }
                             }
+                        }
+                    )
+                }
+
+                composable("food_order_history") {
+                    FoodOrderHistoryScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOrderClick = { orderId ->
+                            navController.navigate("food_order_detail/$orderId")
                         }
                     )
                 }

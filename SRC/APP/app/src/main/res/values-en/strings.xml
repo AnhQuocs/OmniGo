@@ -371,4 +371,33 @@
     <string name="order_detail_action_back">Back</string>
     <string name="order_detail_action_refresh">Refresh order details</string>
     <string name="order_detail_action_call_driver">Call driver</string>
+
+    <!-- PART 4: History & Order Edge Cases -->
+    <string name="food_history_title">Order History</string>
+    <string name="food_history_empty_title">No Orders Yet</string>
+    <string name="food_history_empty_desc">You have not placed any food orders yet. Explore our delicious restaurants now!</string>
+    <string name="food_history_order_items_count">%1$d items</string>
+    <string name="food_history_btn_order_now">Explore Food</string>
+    <string name="food_history_filter_all">All</string>
+    <string name="food_history_filter_active">Active</string>
+    <string name="food_history_filter_completed">Completed</string>
+    <string name="order_detail_btn_cancel">Cancel Order</string>
+    <string name="order_detail_btn_switch_cash">Switch to Cash</string>
+    <string name="order_detail_btn_retry_driver">Retry Driver Search</string>
+    <string name="order_detail_retry_driver_count">Retry Driver (%1$d left)</string>
+    <string name="order_detail_retry_driver_max_reached">Maximum retry attempts reached (3/3)</string>
+    <string name="order_cancel_dialog_title">Cancel Order</string>
+    <string name="order_cancel_dialog_subtitle">Please choose a reason for cancelling this order</string>
+    <string name="order_cancel_reason_changed_mind">Changed my mind</string>
+    <string name="order_cancel_reason_long_wait">Delivery time is too long</string>
+    <string name="order_cancel_reason_wrong_info">Incorrect delivery address or items</string>
+    <string name="order_cancel_reason_other">Other reason</string>
+    <string name="order_cancel_reason_other_hint">Enter specific reason...</string>
+    <string name="order_cancel_confirm">Confirm Cancel</string>
+    <string name="order_cancel_dismiss">Keep Order</string>
+    <string name="order_cancel_cannot_cancel_preparing">Restaurant has already started preparing food. Cancellation is no longer allowed.</string>
+    <string name="order_cancel_success">Order cancelled successfully</string>
+    <string name="order_switch_cash_success">Switched to cash payment successfully</string>
+    <string name="order_retry_driver_success">Searching for a new driver near the restaurant</string>
+    <string name="food_home_history_tooltip">Order history</string>
 </resources>

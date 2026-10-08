@@ -18,10 +18,13 @@ import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetai
 
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
 
+import com.example.omnigo.features.customer.food.data.remote.dto.CancelFoodOrderRequest
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
+import com.example.omnigo.features.customer.food.domain.model.GetMyFoodOrdersResult
+import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
+import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
 import com.example.omnigo.features.customer.food.domain.repository.FoodRepository
-
 import java.io.IOException
-
 import javax.inject.Inject
 
 
@@ -192,6 +195,75 @@ class FoodRepositoryImpl @Inject constructor(
 
         } catch (e: Exception) {
             GetFoodOrderDetailResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun getMyFoodOrders(): GetMyFoodOrdersResult {
+        return try {
+            val response = foodApi.getMyFoodOrders()
+            if (response.success && response.data != null) {
+                GetMyFoodOrdersResult.Success(response.data.map { it.toDomain() })
+            } else {
+                GetMyFoodOrdersResult.Error(FoodError.SERVER_ERROR, response.message)
+            }
+        } catch (e: IOException) {
+            GetMyFoodOrdersResult.Error(FoodError.NETWORK_ERROR, e.message)
+        } catch (e: Exception) {
+            GetMyFoodOrdersResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun cancelFoodOrder(
+        orderId: Long,
+        reasonCode: String?,
+        reason: String?
+    ): CancelFoodOrderResult {
+        return try {
+            val request = if (reason != null || reasonCode != null) {
+                CancelFoodOrderRequest(reason = reason, reasonCode = reasonCode)
+            } else {
+                null
+            }
+            val response = foodApi.cancelFoodOrder(orderId, request)
+            if (response.success && response.data != null) {
+                CancelFoodOrderResult.Success(response.data.toDomain())
+            } else {
+                CancelFoodOrderResult.Error(FoodError.SERVER_ERROR, response.message)
+            }
+        } catch (e: IOException) {
+            CancelFoodOrderResult.Error(FoodError.NETWORK_ERROR, e.message)
+        } catch (e: Exception) {
+            CancelFoodOrderResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun switchToCash(orderId: Long): SwitchToCashResult {
+        return try {
+            val response = foodApi.switchToCash(orderId)
+            if (response.success && response.data != null) {
+                SwitchToCashResult.Success(response.data.toDomain())
+            } else {
+                SwitchToCashResult.Error(FoodError.SERVER_ERROR, response.message)
+            }
+        } catch (e: IOException) {
+            SwitchToCashResult.Error(FoodError.NETWORK_ERROR, e.message)
+        } catch (e: Exception) {
+            SwitchToCashResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun retryDriver(orderId: Long): RetryDriverResult {
+        return try {
+            val response = foodApi.retryDriver(orderId)
+            if (response.success && response.data != null) {
+                RetryDriverResult.Success(response.data.toDomain())
+            } else {
+                RetryDriverResult.Error(FoodError.SERVER_ERROR, response.message)
+            }
+        } catch (e: IOException) {
+            RetryDriverResult.Error(FoodError.NETWORK_ERROR, e.message)
+        } catch (e: Exception) {
+            RetryDriverResult.Error(FoodError.UNKNOWN_ERROR, e.message)
         }
     }
 
