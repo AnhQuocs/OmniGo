@@ -29,7 +29,9 @@ sequenceDiagram
     BE->>RG: 5. Quét tìm tài xế khả dụng trong bán kính 3km
     RG->>D: 6. Broadcast nổ cuốc xe tới các Driver gần nhất (WebSocket / FCM)
     D->>BE: 7. Driver bấm "Nhận Chuyến" (Status: ACCEPTED)
-    BE-->>C: 8. Bắn thông tin Driver (Tên, Xe, Biển số, Rating) qua WebSocket
+    BE-->>C: 8. STOMP BookingResponse (driverId, customerAvatarUrl, driverAvatarUrl)
+    C->>BE: GET /api/v1/bookings/{bookingId}/driver (Bearer token)
+    BE-->>C: Tên, điện thoại, loại/mẫu xe, biển số và avatarUrl
     loop Cập nhật Live Tracking (Mỗi 3 giây)
         D->>BE: 9. Driver gửi tọa độ GPS hiện tại
         BE-->>C: 10. Forward tọa độ xe hiển thị mượt mà trên bản đồ khách
@@ -41,6 +43,25 @@ sequenceDiagram
     BE->>BE: 15. Quyết toán: Trừ ví / Thu tiền mặt, cộng tiền ví tài xế (trừ % chiết khấu)
     BE-->>C: 16. Mở màn hình Đánh giá sao ⭐ & Tip cho tài xế
 ```
+
+### 2.1.1. Avatar và profile tài xế — cập nhật 08/10/2026
+
+- Cả khách và tài xế upload ảnh qua `PUT /api/v1/users/me/avatar`, multipart part
+  `file`, JPEG/PNG/WEBP tối đa 1 MiB. Backend lưu Cloudinary, trả `data.avatarUrl`.
+  Hồ sơ `/api/v1/users/me` và user trong response đăng nhập cũng có `avatarUrl`.
+- Khách sở hữu chuyến gọi `GET /api/v1/bookings/{bookingId}/driver` để lấy
+  `data.driverId`, `driverName`, `driverPhone`, `vehiclePlate`, `vehicleType`,
+  `vehicleModel`, `avatarUrl`. Cần JWT hợp lệ và role `CUSTOMER`.
+- Chưa có tài xế trả 404. Gọi lại sau khi gán tài xế hoặc gán lại người thay thế.
+- `customerAvatarUrl` / `driverAvatarUrl` trong chuyến và STOMP là ảnh lưu lúc
+  đặt/nhận chuyến; profile trả ảnh hiện tại. Null hoặc tải ảnh lỗi: dùng ảnh mặc định.
+- Tài xế đọc `customerAvatarUrl` trong `/user/queue/driver/match`; khách theo dõi
+  `/user/queue/booking/status`. STOMP không có profile đầy đủ hoặc rating trong
+  đợt cập nhật này. Phạm vi hiện tại là chuyến xe, không phải Food Order.
+
+Xem [hướng dẫn mobile](../README.md),
+[Avatar API](../../BE/user-driver-service/AVATAR_API.md),
+[Booking Driver API](../../BE/booking-service/BOOKING_DRIVER_API.md).
 
 ### 2.2. Bảng Trạng Thái Chuyến Xe (Ride State Machine)
 

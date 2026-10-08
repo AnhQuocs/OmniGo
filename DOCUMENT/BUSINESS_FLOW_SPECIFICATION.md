@@ -56,7 +56,9 @@ sequenceDiagram
     OmniGo->>Driver: Phát thông báo mời nhận cuốc (Giữ chỗ tài xế 20s)
     alt Tài xế nhận cuốc
         Driver->>OmniGo: PUT /api/v1/bookings/{id}/accept
-        OmniGo-->>Customer: Thông báo: "Đã tìm thấy tài xế" (Tên, Xe, Biển số)
+        OmniGo-->>Customer: STOMP BookingResponse (driverId, customerAvatarUrl, driverAvatarUrl)
+        Customer->>OmniGo: GET /api/v1/bookings/{bookingId}/driver (Bearer token)
+        OmniGo-->>Customer: Tên, điện thoại, thông tin xe, biển số, avatarUrl hiện tại
         OmniGo-->>Driver: Chuyển Status -> ACCEPTED
     else Tài xế từ chối hoặc hết 20s
         Driver-->>OmniGo: Từ chối / Timeout -> Hệ thống tự động chuyển cuốc cho tài xế kế tiếp
@@ -79,6 +81,30 @@ sequenceDiagram
 ```
 
 ---
+
+### 2.1.1. Avatar và profile tài xế theo chuyến — cập nhật 08/10/2026
+
+Khách và tài xế cập nhật ảnh của mình qua `PUT /api/v1/users/me/avatar`, multipart
+part `file` (JPEG/PNG/WEBP, tối đa 1 MiB). Gateway xác thực JWT; backend upload
+Cloudinary, lấy `secure_url`, lưu `users.avatar_url`, trả `data.avatarUrl` trong
+`ApiResponse<UserResponse>`. Hồ sơ và dữ liệu user trong response đăng nhập cũng
+có `avatarUrl`; chưa upload thì giá trị null.
+
+Booking lưu `customerAvatarUrl` lúc đặt xe, `driverAvatarUrl` lúc tài xế nhận.
+Response và STOMP dùng các ảnh đã lưu. Tài xế hủy để tìm người thay thế thì xóa
+`driverAvatarUrl` cùng `driverId`, giữ ảnh khách. Ảnh hồ sơ đổi sau đó không tự
+cập nhật ảnh trong chuyến.
+
+Khách gọi `GET /api/v1/bookings/{bookingId}/driver` để lấy profile hiện tại.
+Backend kiểm tra role `CUSTOMER`, quyền sở hữu chuyến rồi gọi nội bộ
+`GET /api/v1/internal/drivers/{id}`. Response `data` gồm `driverId`, `driverName`,
+`driverPhone`, `vehiclePlate`, `vehicleType`, `vehicleModel`, `avatarUrl`;
+không trả giấy tờ hoặc thông tin quản trị. Chưa có tài xế trả 404, sai quyền trả
+403, lỗi lấy profile trả 502. Mobile dùng ảnh mặc định nếu URL null/tải ảnh lỗi.
+
+Contract: [Avatar API](../SRC/BE/user-driver-service/AVATAR_API.md),
+[Booking Driver API](../SRC/BE/booking-service/BOOKING_DRIVER_API.md).
+Các thay đổi này không bổ sung profile cho Food Order hoặc triển khai realtime GPS.
 
 ### 2.2. Sơ Đồ Tuần Tự 2: Vòng Đời Đặt Món 3 Bên (OmniFood Marketplace Lifecycle)
 > **Trạng thái đơn món (`OrderStatus`):** `AWAITING_PAYMENT` $\rightarrow$ `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` (hoặc `NO_DRIVER_FOUND` $\rightarrow$ Retry) $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`).

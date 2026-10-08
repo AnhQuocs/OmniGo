@@ -1,0 +1,2 @@
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_avatar_url VARCHAR(2048);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_avatar_url VARCHAR(2048);

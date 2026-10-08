@@ -32,6 +32,9 @@ public class User {
     @Column( nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "avatar_url", length = 2048)
+    private String avatarUrl;
+
     private Boolean isDeleted = false;
 
     @Column(name = "is_locked")

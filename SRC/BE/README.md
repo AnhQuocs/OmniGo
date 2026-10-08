@@ -6,6 +6,26 @@ Hệ thống Siêu ứng dụng Đa dịch vụ **OmniGo** (Đặt xe công ngh�
 
 ## 1. Tổng quan Dự án
 
+### API mới: avatar và thông tin tài xế theo chuyến (08/10/2026)
+
+| API qua Gateway | Quyền | Chức năng |
+|---|---|---|
+| `PUT /api/v1/users/me/avatar` | `CUSTOMER` hoặc `DRIVER` | Upload multipart `file` lên Cloudinary, lưu `users.avatar_url`, trả `data.avatarUrl` |
+| `GET /api/v1/bookings/{bookingId}/driver` | `CUSTOMER` sở hữu chuyến | Trả tên, điện thoại, thông tin xe và avatar hiện tại của tài xế được gán |
+
+`UserResponse` (hồ sơ/đăng nhập) và `DriverInternalResponse` thêm `avatarUrl`.
+`BookingResponse` và lịch sử chuyến thêm `customerAvatarUrl`, `driverAvatarUrl`,
+lưu tại lúc đặt/nhận chuyến. STOMP đặt xe cũng mang các trường ảnh này; mobile
+gọi API driver để lấy profile dành cho khách.
+
+- [Contract avatar và cấu hình Cloudinary](user-driver-service/AVATAR_API.md).
+- [Contract tài xế theo chuyến và hướng dẫn mobile](booking-service/BOOKING_DRIVER_API.md).
+- Triển khai user-driver-service trước, rồi booking-service. Flyway chạy
+  `V4__add_user_avatar.sql` và `V2__add_booking_avatars.sql` tương ứng. Các cột mới
+  nullable; dữ liệu cũ không được tự điền ảnh.
+- Unit test đã chạy với Cloudinary/Feign được mock. Upload thật, migration trên
+  database triển khai và luồng qua Gateway chưa được xác minh bằng các unit test này.
+
 OmniGo cung cấp giải pháp toàn diện cho hệ sinh thái đa tác nhân: **Khách Hàng (Customer)**, **Đối Tác Tài Xế (Driver)**, **Đối Tác Nhà Hàng (Merchant)** và **Quản Trị Viên (Admin)**.
 
 Hệ thống giải quyết trọn vẹn 2 mảng nghiệp vụ cốt lõi:
@@ -108,7 +128,7 @@ graph TD
 * **Message Broker:** Apache Kafka (Event-driven streaming)
 * **Real-time Communication:** WebSocket, STOMP Protocol, SockJS
 * **Không gian địa lý (Geo):** Uber H3 Grid Indexing, Haversine Geofencing ($\le 50\text{m}$)
-* **Lưu trữ đám mây:** Cloudinary SDK (Upload hình ảnh nhà hàng, món ăn & đánh giá)
+* **Lưu trữ đám mây:** Cloudinary SDK (Upload ảnh nhà hàng, món ăn, đánh giá và avatar khách hàng/tài xế)
 * **Cổng thanh toán:** MoMo Payment Gateway, VNPay (HMAC-SHA256 Signature, IPN Webhook)
 * **Frontend Đa Nền Tảng:**
   * React Vite (Merchant Portal & Admin Dashboard tại thư mục `SRC/FE`)

@@ -60,6 +60,7 @@ public class BookingTimeoutService {
 
                 BookingResponse response = BookingResponse.builder()
                         .bookingId(booking.getId())
+                        .customerAvatarUrl(booking.getCustomerAvatarUrl())
                         .status(BookingStatus.CANCELLED)
                         .build();
 

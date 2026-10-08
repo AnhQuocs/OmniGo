@@ -3,6 +3,9 @@ package com.trung.bookingservice.controller;
 import com.trung.bookingservice.dto.request.BookingRequest;
 import com.trung.bookingservice.dto.response.ApiResponse;
 import com.trung.bookingservice.dto.response.BookingResponse;
+import com.trung.bookingservice.dto.response.BookingDriverResponse;
+import com.trung.bookingservice.service.BookingDriverService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.trung.bookingservice.entity.Booking;
 import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
@@ -25,6 +28,20 @@ public class BookingController {
 
     private final BookingServiceImpl bookingService;
     private final FoodDeliveryDispatchService foodDeliveryDispatchService;
+    private final BookingDriverService bookingDriverService;
+
+    @GetMapping("/{bookingId}/driver")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<BookingDriverResponse>> getBookingDriver(
+            @RequestHeader("X-User-Id") Long customerId,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(ApiResponse.<BookingDriverResponse>builder()
+                .success(true)
+                .message("Lấy thông tin tài xế thành công")
+                .data(bookingDriverService.getDriver(bookingId, customerId))
+                .timestamp(java.time.LocalDateTime.now())
+                .build());
+    }
 
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class DriverInternalResponse {
     private Long driverId;
     private String fullName;
+    private String avatarUrl;
     private String phoneNumber;
     private String email;
     private Boolean isLocked;
@@ -32,4 +33,4 @@ public class DriverInternalResponse {
     private String rejectionReason;
     private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
-}
+}
