@@ -68,6 +68,9 @@ import com.example.omnigo.utils.s16
 
 @Composable
 fun HomeHeaderSection(
+    currentAddress: String?,
+    isLocating: Boolean,
+    onLocationClick: () -> Unit,
     onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -79,6 +82,7 @@ fun HomeHeaderSection(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
+            onClick = onLocationClick,
             modifier = Modifier.weight(1f, fill = false),
             shape = RoundedCornerShape(AppShape.ShapeXL2),
             color = SurfaceLight,
@@ -98,14 +102,22 @@ fun HomeHeaderSection(
 
                 Spacer(modifier = Modifier.width(AppSpacing.XSPlus))
 
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Text(
                         text = stringResource(id = R.string.home_location_label),
                         style = MaterialTheme.typography.s10.normal(),
-                        color = TextSecondary
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = stringResource(id = R.string.home_location_default),
+                        text = when {
+                            isLocating -> stringResource(id = R.string.home_location_locating)
+                            !currentAddress.isNullOrBlank() -> currentAddress
+                            else -> stringResource(id = R.string.home_location_default)
+                        },
                         style = MaterialTheme.typography.s13.bold(),
                         color = TextPrimary,
                         maxLines = 1,
