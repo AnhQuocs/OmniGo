@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.food.presentation.ui
+package com.example.omnigo.features.customer.food.presentation.ui.checkout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,9 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
-import com.example.omnigo.features.customer.food.presentation.ui.components.CheckoutDeliveryAddressSection
-import com.example.omnigo.features.customer.food.presentation.ui.components.CheckoutOrderSummarySection
-import com.example.omnigo.features.customer.food.presentation.ui.components.CheckoutPaymentMethodSection
 import com.example.omnigo.features.customer.food.presentation.viewmodel.FoodCheckoutViewModel
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing

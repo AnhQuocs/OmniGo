@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.food.presentation.ui.components
+package com.example.omnigo.features.customer.food.presentation.ui.detail
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog

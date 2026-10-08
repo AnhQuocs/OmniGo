@@ -2,11 +2,17 @@ package com.example.omnigo.features.customer.food.data.repository
 
 import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
+import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse
+import com.example.omnigo.features.customer.food.data.remote.dto.DriverProfileResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.MenuItemResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.RestaurantResponse
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCommand
+import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
+import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -127,5 +133,82 @@ class FoodRepositoryImplTest {
         assertTrue(result is GetRestaurantDetailResult.Error)
         val error = result as GetRestaurantDetailResult.Error
         assertEquals(FoodError.SERVER_ERROR, error.error)
+    }
+
+    @Test
+    fun `createFoodOrder preserves order id and backend prices in mapped result`() = runTest {
+        val command = FoodOrderCreateCommand(
+            restaurantId = 1L,
+            dropOffAddress = "Delivery address",
+            dropOffLatitude = 21.0,
+            dropOffLongitude = 105.0,
+            items = emptyList(),
+            note = null,
+            paymentMethod = PaymentMethod.CASH
+        )
+        coEvery { foodApi.createFoodOrder(any()) } returns ApiResponse(
+            success = true,
+            message = "Created",
+            data = FoodOrderResponse(
+                id = 999L,
+                status = "PENDING",
+                totalPrice = 100_123.0,
+                deliveryFee = 12_345.0
+            ),
+            timestamp = null
+        )
+
+        val result = repository.createFoodOrder(command)
+
+        assertTrue(result is CreateFoodOrderResult.Success)
+        val order = (result as CreateFoodOrderResult.Success).order
+        assertEquals(999L, order.id)
+        assertEquals(100_123.0, order.totalPrice!!, 0.001)
+        assertEquals(12_345.0, order.deliveryFee!!, 0.001)
+        io.mockk.coVerify(exactly = 1) {
+            foodApi.createFoodOrder(
+                match {
+                    it.restaurantId == 1L &&
+                        it.dropOffAddress == "Delivery address" &&
+                        it.paymentMethod == "CASH"
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `getDriverProfile maps optional profile fields from internal endpoint`() = runTest {
+        coEvery { foodApi.getDriverProfile(77L) } returns ApiResponse(
+            success = true,
+            message = "OK",
+            data = DriverProfileResponse(
+                id = 77L,
+                driverName = "Driver Name",
+                driverPhone = "0900000000",
+                vehiclePlate = "ABC-123",
+                avatarUrl = null
+            ),
+            timestamp = null
+        )
+
+        val result = repository.getDriverProfile(77L)
+
+        assertTrue(result is GetDriverProfileResult.Success)
+        val profile = (result as GetDriverProfileResult.Success).profile
+        assertEquals(77L, profile.driverId)
+        assertEquals("Driver Name", profile.driverName)
+        assertEquals("0900000000", profile.driverPhone)
+        assertEquals("ABC-123", profile.vehiclePlate)
+        assertEquals(null, profile.avatarUrl)
+    }
+
+    @Test
+    fun `getDriverProfile reports network error`() = runTest {
+        coEvery { foodApi.getDriverProfile(77L) } throws IOException("No connection")
+
+        val result = repository.getDriverProfile(77L)
+
+        assertTrue(result is GetDriverProfileResult.Error)
+        assertEquals(FoodError.NETWORK_ERROR, (result as GetDriverProfileResult.Error).error)
     }
 }

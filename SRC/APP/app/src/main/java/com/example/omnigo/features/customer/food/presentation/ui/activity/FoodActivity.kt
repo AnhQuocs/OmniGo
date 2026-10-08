@@ -9,9 +9,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.omnigo.BaseComponentActivity
-import com.example.omnigo.features.customer.food.presentation.ui.FoodCheckoutScreen
-import com.example.omnigo.features.customer.food.presentation.ui.FoodHomeScreen
-import com.example.omnigo.features.customer.food.presentation.ui.RestaurantDetailScreen
+import com.example.omnigo.features.customer.food.presentation.ui.checkout.FoodCheckoutScreen
+import com.example.omnigo.features.customer.food.presentation.ui.detail.RestaurantDetailScreen
+import com.example.omnigo.features.customer.food.presentation.ui.home.FoodHomeScreen
+import com.example.omnigo.features.customer.food.presentation.ui.order.FoodOrderDetailScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -60,7 +61,22 @@ class FoodActivity : BaseComponentActivity() {
                 composable("food_checkout") {
                     FoodCheckoutScreen(
                         onBackClick = { navController.popBackStack() },
-                        onOrderCreated = { _ ->
+                        onOrderCreated = { orderId ->
+                            navController.navigate("food_order_detail/$orderId") {
+                                popUpTo("food_home") { inclusive = false }
+                            }
+                        }
+                    )
+                }
+
+                composable(
+                    route = "food_order_detail/{orderId}",
+                    arguments = listOf(
+                        navArgument("orderId") { type = NavType.LongType }
+                    )
+                ) {
+                    FoodOrderDetailScreen(
+                        onBackClick = {
                             navController.popBackStack("food_home", inclusive = false)
                         }
                     )

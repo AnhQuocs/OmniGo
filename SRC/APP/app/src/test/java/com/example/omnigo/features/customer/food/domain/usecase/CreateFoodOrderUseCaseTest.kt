@@ -4,6 +4,7 @@ import com.example.omnigo.features.customer.food.domain.error.FoodError
 import com.example.omnigo.features.customer.food.domain.model.CartItem
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.FoodOrder
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCommand
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.repository.FoodRepository
@@ -112,7 +113,7 @@ class CreateFoodOrderUseCaseTest {
         val success = result as CreateFoodOrderResult.Success
         assertEquals(1001L, success.order.id)
         assertEquals("PENDING", success.order.status)
-        assertEquals(115000.0, success.order.totalPrice, 0.001)
+        assertEquals(115000.0, success.order.totalPrice!!, 0.001)
     }
 
     @Test
@@ -134,8 +135,8 @@ class CreateFoodOrderUseCaseTest {
     }
 
     @Test
-    fun `invoke properly maps all fields into FoodOrderRequest`() = runTest {
-        val slot = io.mockk.slot<com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderRequest>()
+    fun `invoke maps validated input into a domain create command`() = runTest {
+        val slot = io.mockk.slot<FoodOrderCreateCommand>()
         coEvery { repository.createFoodOrder(capture(slot)) } returns CreateFoodOrderResult.Success(mockOrder)
 
         useCase(
@@ -154,7 +155,7 @@ class CreateFoodOrderUseCaseTest {
         assertEquals(21.0310, req.dropOffLatitude, 0.0001)
         assertEquals(105.8190, req.dropOffLongitude, 0.0001)
         assertEquals("Không cho ớt", req.note)
-        assertEquals("MOMO", req.paymentMethod)
+        assertEquals(PaymentMethod.MOMO, req.paymentMethod)
         assertEquals(1, req.items.size)
         assertEquals(101L, req.items[0].menuItemId)
         assertEquals(2, req.items[0].quantity)

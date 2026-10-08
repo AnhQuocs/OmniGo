@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.food.presentation.ui.components
+package com.example.omnigo.features.customer.food.presentation.ui.checkout
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

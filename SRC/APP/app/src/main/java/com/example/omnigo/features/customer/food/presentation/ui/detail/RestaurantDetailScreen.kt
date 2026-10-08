@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.food.presentation.ui
+package com.example.omnigo.features.customer.food.presentation.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,9 +32,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomBar
-import com.example.omnigo.features.customer.food.presentation.ui.components.MenuItemCard
-import com.example.omnigo.features.customer.food.presentation.ui.components.RestaurantConflictDialog
-import com.example.omnigo.features.customer.food.presentation.ui.components.RestaurantDetailHeaderSection
 import com.example.omnigo.features.customer.food.presentation.viewmodel.RestaurantDetailViewModel
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing

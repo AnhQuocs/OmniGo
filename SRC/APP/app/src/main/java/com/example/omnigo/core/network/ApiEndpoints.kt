@@ -17,4 +17,6 @@ object ApiEndpoints {
     const val RESTAURANT_DETAIL = "$API_V1/restaurants/{id}"
     const val RESTAURANT_ITEMS = "$API_V1/restaurants/{id}/items"
     const val FOOD_ORDERS = "$API_V1/food-orders"
+    const val FOOD_ORDER_DETAIL = "$API_V1/food-orders/{orderId}"
+    const val DRIVER_PROFILE = "drivers/{id}"
 }

@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.food.presentation.ui.components
+package com.example.omnigo.features.customer.food.presentation.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

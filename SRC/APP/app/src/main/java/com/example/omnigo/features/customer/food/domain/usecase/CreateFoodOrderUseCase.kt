@@ -1,10 +1,10 @@
 package com.example.omnigo.features.customer.food.domain.usecase
 
-import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderItemRequest
-import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderRequest
 import com.example.omnigo.features.customer.food.domain.error.FoodError
 import com.example.omnigo.features.customer.food.domain.model.CartItem
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCommand
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateItemCommand
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.repository.FoodRepository
 import javax.inject.Inject
@@ -34,22 +34,22 @@ class CreateFoodOrderUseCase @Inject constructor(
             )
         }
 
-        val request = FoodOrderRequest(
+        val command = FoodOrderCreateCommand(
             restaurantId = restaurantId,
             dropOffAddress = dropOffAddress.trim(),
             dropOffLatitude = dropOffLatitude,
             dropOffLongitude = dropOffLongitude,
             items = items.map {
-                FoodOrderItemRequest(
+                FoodOrderCreateItemCommand(
                     menuItemId = it.menuItem.id,
                     quantity = it.quantity,
                     note = it.note.ifBlank { null }
                 )
             },
             note = note?.trim()?.ifBlank { null },
-            paymentMethod = paymentMethod.code
+            paymentMethod = paymentMethod
         )
 
-        return repository.createFoodOrder(request)
+        return repository.createFoodOrder(command)
     }
 }
