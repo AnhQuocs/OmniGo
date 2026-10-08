@@ -3,8 +3,17 @@ package com.example.omnigo.features.customer.food.presentation.ui.activity
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.omnigo.BaseComponentActivity
-import com.example.omnigo.features.customer.food.presentation.ui.FoodHomeScreen
+import com.example.omnigo.features.customer.food.presentation.ui.checkout.FoodCheckoutScreen
+import com.example.omnigo.features.customer.food.presentation.ui.detail.RestaurantDetailScreen
+import com.example.omnigo.features.customer.food.presentation.ui.history.FoodOrderHistoryScreen
+import com.example.omnigo.features.customer.food.presentation.ui.home.FoodHomeScreen
+import com.example.omnigo.features.customer.food.presentation.ui.order.FoodOrderDetailScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -19,12 +28,73 @@ class FoodActivity : BaseComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setOmniGoContent {
-            FoodHomeScreen(
-                onBackClick = { finish() },
-                onRestaurantClick = { restaurantId ->
-                    // Navigate to Restaurant Detail
+            val navController = rememberNavController()
+
+            NavHost(
+                navController = navController,
+                startDestination = "food_home"
+            ) {
+                composable("food_home") {
+                    FoodHomeScreen(
+                        onBackClick = { finish() },
+                        onRestaurantClick = { restaurantId ->
+                            navController.navigate("restaurant_detail/$restaurantId")
+                        },
+                        onHistoryClick = {
+                            navController.navigate("food_order_history")
+                        }
+                    )
                 }
-            )
+
+                composable(
+                    route = "restaurant_detail/{restaurantId}",
+                    arguments = listOf(
+                        navArgument("restaurantId") { type = NavType.LongType }
+                    )
+                ) { backStackEntry ->
+                    val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
+                    RestaurantDetailScreen(
+                        restaurantId = restaurantId,
+                        onBackClick = { navController.popBackStack() },
+                        onCheckoutClick = {
+                            navController.navigate("food_checkout")
+                        }
+                    )
+                }
+
+                composable("food_checkout") {
+                    FoodCheckoutScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOrderCreated = { orderId ->
+                            navController.navigate("food_order_detail/$orderId") {
+                                popUpTo("food_home") { inclusive = false }
+                            }
+                        }
+                    )
+                }
+
+                composable("food_order_history") {
+                    FoodOrderHistoryScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOrderClick = { orderId ->
+                            navController.navigate("food_order_detail/$orderId")
+                        }
+                    )
+                }
+
+                composable(
+                    route = "food_order_detail/{orderId}",
+                    arguments = listOf(
+                        navArgument("orderId") { type = NavType.LongType }
+                    )
+                ) {
+                    FoodOrderDetailScreen(
+                        onBackClick = {
+                            navController.popBackStack("food_home", inclusive = false)
+                        }
+                    )
+                }
+            }
         }
     }
 }

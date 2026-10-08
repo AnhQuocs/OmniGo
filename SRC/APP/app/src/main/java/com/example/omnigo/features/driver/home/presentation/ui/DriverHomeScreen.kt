@@ -1,6 +1,10 @@
 package com.example.omnigo.features.driver.home.presentation.ui
 
-import androidx.compose.animation.AnimatedVisibility
+import android.Manifest
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -16,31 +20,35 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.driver.home.presentation.ui.components.DriverApprovalWarningDialog
+import com.example.omnigo.features.driver.home.presentation.viewmodel.DriverHomeViewModel
+import com.example.omnigo.features.driver.service.DriverLocationForegroundService
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -51,7 +59,6 @@ import com.example.omnigo.ui.theme.OnSurfaceVariantLight
 import com.example.omnigo.ui.theme.OutlineVariantLight
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.PrimaryContainer
-import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.SuccessColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
@@ -69,10 +76,70 @@ import com.example.omnigo.utils.semiBold
 
 @Composable
 fun DriverHomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: DriverHomeViewModel = hiltViewModel()
 ) {
-    var isOnline by rememberSaveable { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        viewModel.checkLocationPrerequisites()
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            viewModel.toggleOnlineStatus(true)
+        } else {
+            Toast.makeText(
+                context,
+                context.getString(R.string.driver_permission_location_required),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    LaunchedEffect(uiState.isOnline) {
+        if (uiState.isOnline) {
+            DriverLocationForegroundService.startTracking(context)
+        } else {
+            DriverLocationForegroundService.stopTracking(context)
+        }
+    }
+
+    val locReqMsg = stringResource(id = R.string.driver_permission_location_required)
+    val gpsReqMsg = stringResource(id = R.string.driver_gps_enable_required)
+
+    LaunchedEffect(uiState.errorMessage) {
+        val error = uiState.errorMessage ?: return@LaunchedEffect
+        when (error) {
+            DriverHomeViewModel.ERROR_LOCATION_PERMISSION_REQUIRED -> {
+                val perms = mutableListOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    perms.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                permissionLauncher.launch(perms.toTypedArray())
+            }
+            DriverHomeViewModel.ERROR_GPS_REQUIRED -> {
+                Toast.makeText(context, gpsReqMsg, Toast.LENGTH_LONG).show()
+            }
+            else -> {
+                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            }
+        }
+        viewModel.clearErrorMessage()
+    }
+
+    if (uiState.showApprovalWarningDialog) {
+        DriverApprovalWarningDialog(
+            approvalStatus = uiState.approvalStatus,
+            onDismiss = { viewModel.dismissApprovalWarningDialog() }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -82,21 +149,32 @@ fun DriverHomeScreen(
             .verticalScroll(scrollState)
             .padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingM)
     ) {
-        // Status & Online Switch Card
         DriverStatusCard(
-            isOnline = isOnline,
-            onToggleStatus = { isOnline = it }
+            isOnline = uiState.isOnline,
+            isUpdating = uiState.isStatusUpdating,
+            onToggleStatus = { targetOnline ->
+                if (targetOnline && !uiState.isLocationPermissionGranted) {
+                    val perms = mutableListOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        perms.add(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    permissionLauncher.launch(perms.toTypedArray())
+                } else {
+                    viewModel.toggleOnlineStatus(targetOnline)
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
 
-        // Today Summary Dashboard
         DriverTodaySummaryCard()
 
         Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
 
-        // Live Radar / Action Status
-        DriverRadarCard(isOnline = isOnline)
+        DriverRadarCard(isOnline = uiState.isOnline)
 
         Spacer(modifier = Modifier.height(AppSpacing.XXL))
     }
@@ -105,6 +183,7 @@ fun DriverHomeScreen(
 @Composable
 private fun DriverStatusCard(
     isOnline: Boolean,
+    isUpdating: Boolean,
     onToggleStatus: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -161,16 +240,24 @@ private fun DriverStatusCard(
                 }
             }
 
-            Switch(
-                checked = isOnline,
-                onCheckedChange = onToggleStatus,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = OnPrimaryColor,
-                    checkedTrackColor = SuccessColor,
-                    uncheckedThumbColor = SurfaceLight,
-                    uncheckedTrackColor = OutlineVariantLight
+            if (isUpdating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimen.SizeL),
+                    color = PrimaryColor,
+                    strokeWidth = Dimen.PaddingXXS
                 )
-            )
+            } else {
+                Switch(
+                    checked = isOnline,
+                    onCheckedChange = onToggleStatus,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = OnPrimaryColor,
+                        checkedTrackColor = SuccessColor,
+                        uncheckedThumbColor = SurfaceLight,
+                        uncheckedTrackColor = OutlineVariantLight
+                    )
+                )
+            }
         }
     }
 }

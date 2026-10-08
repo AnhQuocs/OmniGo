@@ -16,6 +16,7 @@ import com.example.omnigo.BaseComponentActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.omnigo.features.auth.presentation.ui.login.LoginScreen
 import com.example.omnigo.features.auth.presentation.ui.register.RegisterScreen
+import com.example.omnigo.features.customer.home.presentation.ui.LocationSetupScreen
 import com.example.omnigo.features.main.presentation.ui.MainCustomerScreen
 import com.example.omnigo.features.main.presentation.ui.MainDriverScreen
 import com.example.omnigo.features.main.presentation.ui.SplashScreen
@@ -152,6 +153,16 @@ fun NavGraphBuilder.customerGraph(navController: NavController) {
         startDestination = "main_customer",
         route = "customer_root"
     ) {
+        composable("customer_location_setup") {
+            LocationSetupScreen(
+                onNavigateToHome = {
+                    navController.navigate("main_customer") {
+                        popUpTo("customer_location_setup") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("main_customer") {
             MainCustomerScreen(
                 onNavigateToLogin = {
