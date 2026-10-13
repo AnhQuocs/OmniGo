@@ -84,7 +84,7 @@ export const AddressAutocomplete = ({
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         // 1. Try Photon API (Fast OSM autocomplete)
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&lang=vi&limit=6`;
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`;
         const res = await fetch(photonUrl);
         if (res.ok) {
           const data = await res.json();

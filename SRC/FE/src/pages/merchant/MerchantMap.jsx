@@ -221,7 +221,7 @@ export const MerchantMap = () => {
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         // 1. First try Photon API (Fast OpenStreetMap Autocomplete)
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&lang=vi&limit=6`;
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`;
         const res = await fetch(photonUrl);
         if (res.ok) {
           const data = await res.json();
@@ -294,7 +294,7 @@ export const MerchantMap = () => {
     try {
       setLocating(true);
       // 1. Try Photon first
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=vi&limit=1`;
+      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1`;
       const res = await fetch(photonUrl);
       if (res.ok) {
         const data = await res.json();
