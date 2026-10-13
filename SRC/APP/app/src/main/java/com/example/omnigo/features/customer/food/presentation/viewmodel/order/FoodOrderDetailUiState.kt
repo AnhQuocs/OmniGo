@@ -12,5 +12,9 @@ data class FoodOrderDetailUiState(
     val isDriverProfileLoading: Boolean = false,
     val driverProfileError: UiText? = null,
     val errorMessage: UiText? = null,
-    val canRetry: Boolean = true
+    val canRetry: Boolean = true,
+    val isActionLoading: Boolean = false,
+    val actionMessage: UiText? = null,
+    val isCancelDialogOpen: Boolean = false,
+    val retryDriverCount: Int = 0
 )

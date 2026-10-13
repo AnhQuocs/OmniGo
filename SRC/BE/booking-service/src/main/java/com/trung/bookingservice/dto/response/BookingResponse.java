@@ -12,6 +12,8 @@ public class BookingResponse {
     private Long bookingId;
     private Long customerId;
     private Long driverId;
+    private String customerAvatarUrl;
+    private String driverAvatarUrl;
     private Double startLongitude;
     private Double startLatitude;
     private Double endLongitude;

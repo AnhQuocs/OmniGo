@@ -17,6 +17,7 @@ public class UserResponse {
     private String phoneNumber;
     private String email;
     private String fullName;
+    private String avatarUrl;
     private Role role;
     private Boolean isLocked;
     private String lockedReason;

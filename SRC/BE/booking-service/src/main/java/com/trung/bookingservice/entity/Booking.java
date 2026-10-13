@@ -23,6 +23,12 @@ public class Booking {
 
     private Long driverId;
 
+    @Column(name = "customer_avatar_url", length = 2048)
+    private String customerAvatarUrl;
+
+    @Column(name = "driver_avatar_url", length = 2048)
+    private String driverAvatarUrl;
+
     @Column(nullable = false)
     private Double startLongitude;
 

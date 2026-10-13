@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -10,7 +10,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
-  Divider,
+  Chip,
 } from '@mui/material';
 import {
   VisibilityOutlined as Visibility,
@@ -23,6 +23,9 @@ import {
   AccessTime as TimeIcon,
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
+  ArrowBack as ArrowBackIcon,
+  AdminPanelSettings as AdminIcon,
+  Restaurant as RestaurantIcon,
 } from '@mui/icons-material';
 import {
   Dialog,
@@ -41,7 +44,6 @@ import { loginUser, clearAuthError } from '../redux/authSlice';
 import foodService from '../services/foodService';
 import AddressAutocomplete from '../components/common/AddressAutocomplete';
 import ImageUploadField from '../components/common/ImageUploadField';
-import { API_BASE_URL } from '../services/api';
 
 export const Login = () => {
   const dispatch = useDispatch();
@@ -55,7 +57,9 @@ export const Login = () => {
   const [phoneError, setPhoneError] = useState('');
 
   // Register Partner States
-  const [openRegisterModal, setOpenRegisterModal] = useState(false);
+  const [openRegisterModal, setOpenRegisterModal] = useState(() => {
+    return new URLSearchParams(location.search).get('register') === 'partner';
+  });
   const [registerTab, setRegisterTab] = useState(0);
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [registerSuccessModal, setRegisterSuccessModal] = useState(false);
@@ -227,12 +231,42 @@ export const Login = () => {
       sx={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
         p: { xs: 2, sm: 2.5 },
       }}
     >
+      {/* Back to Landing Page Button */}
+      <Box sx={{ maxWidth: 420, width: '100%', mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            color: 'text.secondary',
+            borderRadius: 2.5,
+            px: 2,
+            py: 0.9,
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+            border: `1px solid`,
+            borderColor: 'divider',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: 'text.primary',
+              borderColor: '#f97316',
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.08)' : 'rgba(249, 115, 22, 0.04)',
+              transform: 'translateX(-3px)',
+            },
+          }}
+        >
+          Quay lại trang chủ OmniGo
+        </Button>
+      </Box>
+
       <Card
         sx={{
           maxWidth: 420,
@@ -366,8 +400,198 @@ export const Login = () => {
             </Button>
           </Box>
 
+          {/* TÀI KHOẢN MẪU / QUICK-FILL DEMO ACCOUNTS */}
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              borderRadius: 2.5,
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.03)'
+                  : 'rgba(0, 0, 0, 0.02)',
+              border: '1px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                fontSize: '0.74rem',
+                display: 'block',
+                mb: 1.5,
+              }}
+            >
+              ⚡ Tài khoản mẫu (Bấm để điền nhanh):
+            </Typography>
+
+            <Stack spacing={1.2}>
+              {/* Account 1: ADMIN */}
+              <Box
+                onClick={() => {
+                  setPhoneNumber('0923456789');
+                  setPassword('123456');
+                  setPhoneError('');
+                  toast.success('Đã chọn tài khoản ADMIN (0923456789)');
+                }}
+                sx={{
+                  p: 1.2,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  bgcolor: (theme) =>
+                    phoneNumber === '0923456789'
+                      ? theme.palette.mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.16)'
+                        : 'rgba(59, 130, 246, 0.08)'
+                      : theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.02)'
+                        : '#ffffff',
+                  border: '1px solid',
+                  borderColor: (theme) =>
+                    phoneNumber === '0923456789'
+                      ? '#3b82f6'
+                      : theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.08)'
+                        : '#e2e8f0',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: '#3b82f6',
+                    bgcolor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(59, 130, 246, 0.12)'
+                        : 'rgba(59, 130, 246, 0.06)',
+                    transform: 'translateY(-1px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                  <Avatar
+                    sx={{
+                      width: 34,
+                      height: 34,
+                      bgcolor: 'rgba(59, 130, 246, 0.12)',
+                      color: '#3b82f6',
+                    }}
+                  >
+                    <AdminIcon sx={{ fontSize: 18 }} />
+                  </Avatar>
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem' }}>
+                        0923456789
+                      </Typography>
+                      <Chip
+                        label="ADMIN"
+                        size="small"
+                        sx={{
+                          height: 19,
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          bgcolor: 'rgba(59, 130, 246, 0.12)',
+                          color: '#3b82f6',
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+                      Mật khẩu: <b>123456</b> (Quản trị hệ thống)
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="caption" sx={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.75rem' }}>
+                  Chọn ➡
+                </Typography>
+              </Box>
+
+              {/* Account 2: RESTAURANT */}
+              <Box
+                onClick={() => {
+                  setPhoneNumber('0923456111');
+                  setPassword('123456');
+                  setPhoneError('');
+                  toast.success('Đã chọn tài khoản RESTAURANT (0923456111)');
+                }}
+                sx={{
+                  p: 1.2,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  bgcolor: (theme) =>
+                    phoneNumber === '0923456111'
+                      ? theme.palette.mode === 'dark'
+                        ? 'rgba(249, 115, 22, 0.16)'
+                        : 'rgba(249, 115, 22, 0.08)'
+                      : theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.02)'
+                        : '#ffffff',
+                  border: '1px solid',
+                  borderColor: (theme) =>
+                    phoneNumber === '0923456111'
+                      ? '#f97316'
+                      : theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.08)'
+                        : '#e2e8f0',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: '#f97316',
+                    bgcolor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(249, 115, 22, 0.12)'
+                        : 'rgba(249, 115, 22, 0.06)',
+                    transform: 'translateY(-1px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                  <Avatar
+                    sx={{
+                      width: 34,
+                      height: 34,
+                      bgcolor: 'rgba(249, 115, 22, 0.12)',
+                      color: '#f97316',
+                    }}
+                  >
+                    <RestaurantIcon sx={{ fontSize: 18 }} />
+                  </Avatar>
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem' }}>
+                        0923456111
+                      </Typography>
+                      <Chip
+                        label="RESTAURANT"
+                        size="small"
+                        sx={{
+                          height: 19,
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          bgcolor: 'rgba(249, 115, 22, 0.12)',
+                          color: '#f97316',
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+                      Mật khẩu: <b>123456</b> (Chủ quán ăn / Nhà hàng)
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="caption" sx={{ color: '#f97316', fontWeight: 700, fontSize: '0.75rem' }}>
+                  Chọn ➡
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
           {/* REGISTER AS PARTNER RESTAURANT LINK / BUTTON */}
-          <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #E2E8F0', textAlign: 'center' }}>
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed', borderColor: 'divider', textAlign: 'center' }}>
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, fontSize: '0.88rem' }}>
               Bạn muốn mở quán bán đồ ăn trên OmniFood?
             </Typography>
@@ -386,18 +610,18 @@ export const Login = () => {
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 textTransform: 'none',
-                borderColor: '#FED7AA',
-                bgcolor: '#FFF7ED',
+                borderColor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.3)' : '#FED7AA'),
+                bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.08)' : '#FFF7ED'),
                 color: '#EA580C',
                 '&:hover': {
-                  bgcolor: '#FFEDD5',
+                  bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.16)' : '#FFEDD5'),
                   borderColor: '#FDBA74',
                 },
               }}
             >
               Đăng ký đối tác nhà hàng ngay
             </Button>
-            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 1, fontSize: '0.75rem' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1, fontSize: '0.75rem' }}>
               * Quán đăng ký xong sẽ được Quản trị viên xét duyệt trước khi hoạt động
             </Typography>
           </Box>
@@ -448,7 +672,15 @@ export const Login = () => {
         </DialogTitle>
 
         <DialogContent sx={{ p: 0 }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3, pt: 1.5, bgcolor: '#F8FAFC' }}>
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              px: 3,
+              pt: 1.5,
+              bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F8FAFC'),
+            }}
+          >
             <Tabs
               value={registerTab}
               onChange={(e, val) => setRegisterTab(val)}

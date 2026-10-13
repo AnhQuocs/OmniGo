@@ -260,6 +260,17 @@
     <string name="driver_vehicle_info">Vehicle Information</string>
     <string name="driver_vehicle_type">Vehicle Type</string>
     <string name="driver_license_plate">License Plate</string>
+    <string name="driver_approval_pending_title">Driver Account Status</string>
+    <string name="driver_approval_pending_message">Your driver profile is currently pending approval by Admin. You cannot switch to online mode yet.</string>
+    <string name="driver_approval_inactive_message">Your driver account is currently inactive or suspended. Please contact support.</string>
+    <string name="driver_permission_location_required">Location permission is required to go online and receive ride/delivery requests.</string>
+    <string name="driver_gps_enable_required">Please enable device GPS to go online.</string>
+    <string name="driver_notification_channel_name">Driver Location Service</string>
+    <string name="driver_notification_channel_desc">Background location tracking for driver online status</string>
+    <string name="driver_service_notification_title">OmniGo Driver - Online</string>
+    <string name="driver_service_notification_text">Tracking location &amp; ready for incoming requests</string>
+    <string name="driver_status_update_failed">Failed to update driver status. Please try again.</string>
+    <string name="driver_profile_load_failed">Failed to load driver profile</string>
 
     <!-- RESTAURANT DETAIL SCREEN -->
     <string name="restaurant_detail_title">Restaurant Details</string>
@@ -369,4 +380,33 @@
     <string name="order_detail_action_back">Back</string>
     <string name="order_detail_action_refresh">Refresh order details</string>
     <string name="order_detail_action_call_driver">Call driver</string>
+
+    <!-- PART 4: History & Order Edge Cases -->
+    <string name="food_history_title">Order History</string>
+    <string name="food_history_empty_title">No Orders Yet</string>
+    <string name="food_history_empty_desc">You have not placed any food orders yet. Explore our delicious restaurants now!</string>
+    <string name="food_history_order_items_count">%1$d items</string>
+    <string name="food_history_btn_order_now">Explore Food</string>
+    <string name="food_history_filter_all">All</string>
+    <string name="food_history_filter_active">Active</string>
+    <string name="food_history_filter_completed">Completed</string>
+    <string name="order_detail_btn_cancel">Cancel Order</string>
+    <string name="order_detail_btn_switch_cash">Switch to Cash</string>
+    <string name="order_detail_btn_retry_driver">Retry Driver Search</string>
+    <string name="order_detail_retry_driver_count">Retry Driver (%1$d left)</string>
+    <string name="order_detail_retry_driver_max_reached">Maximum retry attempts reached (3/3)</string>
+    <string name="order_cancel_dialog_title">Cancel Order</string>
+    <string name="order_cancel_dialog_subtitle">Please choose a reason for cancelling this order</string>
+    <string name="order_cancel_reason_changed_mind">Changed my mind</string>
+    <string name="order_cancel_reason_long_wait">Delivery time is too long</string>
+    <string name="order_cancel_reason_wrong_info">Incorrect delivery address or items</string>
+    <string name="order_cancel_reason_other">Other reason</string>
+    <string name="order_cancel_reason_other_hint">Enter specific reason...</string>
+    <string name="order_cancel_confirm">Confirm Cancel</string>
+    <string name="order_cancel_dismiss">Keep Order</string>
+    <string name="order_cancel_cannot_cancel_preparing">Restaurant has already started preparing food. Cancellation is no longer allowed.</string>
+    <string name="order_cancel_success">Order cancelled successfully</string>
+    <string name="order_switch_cash_success">Switched to cash payment successfully</string>
+    <string name="order_retry_driver_success">Searching for a new driver near the restaurant</string>
+    <string name="food_home_history_tooltip">Order history</string>
 </resources>

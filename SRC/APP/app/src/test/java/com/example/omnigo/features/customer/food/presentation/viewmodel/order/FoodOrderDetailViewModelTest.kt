@@ -2,19 +2,25 @@ package com.example.omnigo.features.customer.food.presentation.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
+import com.example.omnigo.features.customer.food.domain.model.DriverProfile
 import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.food.domain.model.FoodOrderItem
-import com.example.omnigo.features.customer.food.domain.model.DriverProfile
 import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
 import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetailResult
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
+import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
+import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
+import com.example.omnigo.features.customer.food.domain.usecase.CancelFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.RetryDriverUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.SwitchToCashUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -34,6 +40,9 @@ class FoodOrderDetailViewModelTest {
 
     private lateinit var getFoodOrderDetailUseCase: GetFoodOrderDetailUseCase
     private lateinit var getDriverProfileUseCase: GetDriverProfileUseCase
+    private lateinit var cancelFoodOrderUseCase: CancelFoodOrderUseCase
+    private lateinit var switchToCashUseCase: SwitchToCashUseCase
+    private lateinit var retryDriverUseCase: RetryDriverUseCase
     private lateinit var viewModel: FoodOrderDetailViewModel
 
     private val mockOrder = FoodOrder(
@@ -75,8 +84,23 @@ class FoodOrderDetailViewModelTest {
     fun setUp() {
         getFoodOrderDetailUseCase = mockk()
         getDriverProfileUseCase = mockk()
+        cancelFoodOrderUseCase = mockk()
+        switchToCashUseCase = mockk()
+        retryDriverUseCase = mockk()
         coEvery { getDriverProfileUseCase(any()) } returns GetDriverProfileResult.Error(
             FoodError.UNKNOWN_ERROR
+        )
+    }
+
+    private fun createViewModel(orderId: Long = 123L): FoodOrderDetailViewModel {
+        val savedStateHandle = SavedStateHandle(mapOf("orderId" to orderId))
+        return FoodOrderDetailViewModel(
+            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
+            getDriverProfileUseCase = getDriverProfileUseCase,
+            cancelFoodOrderUseCase = cancelFoodOrderUseCase,
+            switchToCashUseCase = switchToCashUseCase,
+            retryDriverUseCase = retryDriverUseCase,
+            savedStateHandle = savedStateHandle
         )
     }
 
@@ -84,13 +108,7 @@ class FoodOrderDetailViewModelTest {
     fun `init loads order detail successfully`() = runTest {
         coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
 
-        val savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = savedStateHandle
-        )
-
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -112,13 +130,7 @@ class FoodOrderDetailViewModelTest {
             "Server connection error"
         )
 
-        val savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = savedStateHandle
-        )
-
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -131,16 +143,83 @@ class FoodOrderDetailViewModelTest {
     }
 
     @Test
+    fun `cancel order success updates order and actionMessage`() = runTest {
+        val cancelledOrder = mockOrder.copy(status = "CANCELLED")
+        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { cancelFoodOrderUseCase(123L, "CHANGED_MIND", "Changed mind") } returns CancelFoodOrderResult.Success(cancelledOrder)
+
+        viewModel = createViewModel(123L)
+        advanceUntilIdle()
+
+        viewModel.onOpenCancelDialog()
+        assertTrue(viewModel.uiState.value.isCancelDialogOpen)
+
+        viewModel.onCancelOrder("CHANGED_MIND", "Changed mind")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isCancelDialogOpen)
+        assertFalse(state.isActionLoading)
+        assertEquals("CANCELLED", state.order?.status)
+        assertNotNull(state.actionMessage)
+
+        viewModel.onClearActionMessage()
+        assertNull(viewModel.uiState.value.actionMessage)
+    }
+
+    @Test
+    fun `switch to cash success updates order paymentMethod`() = runTest {
+        val cashOrder = mockOrder.copy(paymentMethod = PaymentMethod.CASH)
+        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { switchToCashUseCase(123L) } returns SwitchToCashResult.Success(cashOrder)
+
+        viewModel = createViewModel(123L)
+        advanceUntilIdle()
+
+        viewModel.onSwitchToCash()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isActionLoading)
+        assertEquals(PaymentMethod.CASH, state.order?.paymentMethod)
+        assertNotNull(state.actionMessage)
+    }
+
+    @Test
+    fun `retry driver increments retryDriverCount up to limit 3`() = runTest {
+        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { retryDriverUseCase(123L) } returns RetryDriverResult.Success(mockOrder)
+
+        viewModel = createViewModel(123L)
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.retryDriverCount)
+
+        viewModel.onRetryDriver()
+        advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.retryDriverCount)
+
+        viewModel.onRetryDriver()
+        advanceUntilIdle()
+        assertEquals(2, viewModel.uiState.value.retryDriverCount)
+
+        viewModel.onRetryDriver()
+        advanceUntilIdle()
+        assertEquals(3, viewModel.uiState.value.retryDriverCount)
+
+        // 4th time -> should not call useCase, shows limit message
+        viewModel.onRetryDriver()
+        advanceUntilIdle()
+        assertEquals(3, viewModel.uiState.value.retryDriverCount)
+    }
+
+    @Test
     fun `onRetry reloads order detail`() = runTest {
-        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Error(FoodError.NETWORK_ERROR) andThen GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { getFoodOrderDetailUseCase(123L) } returns
+            GetFoodOrderDetailResult.Error(FoodError.NETWORK_ERROR) andThen
+            GetFoodOrderDetailResult.Success(mockOrder)
 
-        val savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = savedStateHandle
-        )
-
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.errorMessage != null)
 
@@ -157,13 +236,7 @@ class FoodOrderDetailViewModelTest {
     fun `loadOrderDetail with isRefresh updates isRefreshing state`() = runTest {
         coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
 
-        val savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = savedStateHandle
-        )
-
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         viewModel.loadOrderDetail(123L, isRefresh = true)
@@ -178,11 +251,7 @@ class FoodOrderDetailViewModelTest {
         val pendingResult = CompletableDeferred<GetFoodOrderDetailResult>()
         coEvery { getFoodOrderDetailUseCase(123L) } coAnswers { pendingResult.await() }
 
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        )
+        viewModel = createViewModel(123L)
 
         assertTrue(viewModel.uiState.value.isLoading)
         assertNull(viewModel.uiState.value.order)
@@ -196,11 +265,7 @@ class FoodOrderDetailViewModelTest {
 
     @Test
     fun `invalid route order id stops loading and does not call use case`() = runTest {
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to 0L))
-        )
+        viewModel = createViewModel(0L)
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -215,11 +280,7 @@ class FoodOrderDetailViewModelTest {
             GetFoodOrderDetailResult.Success(mockOrder) andThen
             GetFoodOrderDetailResult.Error(FoodError.NETWORK_ERROR)
 
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        )
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         viewModel.loadOrderDetail(isRefresh = true)
@@ -243,11 +304,7 @@ class FoodOrderDetailViewModelTest {
             }
         }
 
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        )
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.errorMessage)
 
@@ -276,11 +333,7 @@ class FoodOrderDetailViewModelTest {
         coEvery { getDriverProfileUseCase(77L) } returns
             GetDriverProfileResult.Success(profile)
 
-        viewModel = FoodOrderDetailViewModel(
-            getFoodOrderDetailUseCase = getFoodOrderDetailUseCase,
-            getDriverProfileUseCase = getDriverProfileUseCase,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to 123L))
-        )
+        viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         assertEquals(profile, viewModel.uiState.value.driverProfile)

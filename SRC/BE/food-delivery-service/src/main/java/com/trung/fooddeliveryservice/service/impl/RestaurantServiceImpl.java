@@ -1,27 +1,20 @@
 package com.trung.fooddeliveryservice.service.impl;
 
-import com.trung.fooddeliveryservice.dto.request.RestaurantLockRequest;
-import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
-import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
-import com.trung.fooddeliveryservice.dto.response.RestaurantResponse;
-import com.trung.fooddeliveryservice.entity.Restaurant;
-import com.trung.fooddeliveryservice.exception.BadRequestException;
-import com.trung.fooddeliveryservice.exception.ResourceNotFoundException;
-import com.trung.fooddeliveryservice.exception.UnauthorizedException;
-import com.trung.fooddeliveryservice.mapper.RestaurantMapper;
-import com.trung.fooddeliveryservice.repository.FoodOrderReviewRepository;
-import com.trung.fooddeliveryservice.repository.RestaurantRepository;
-import com.trung.fooddeliveryservice.service.CloudinaryService;
-import com.trung.fooddeliveryservice.service.RestaurantService;
-import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,10 +26,27 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trung.fooddeliveryservice.dto.request.RestaurantLockRequest;
+import com.trung.fooddeliveryservice.dto.request.RestaurantPartnerCreateRequest;
+import com.trung.fooddeliveryservice.dto.request.RestaurantRequest;
+import com.trung.fooddeliveryservice.dto.response.RestaurantNearbyResponse;
+import com.trung.fooddeliveryservice.dto.response.RestaurantResponse;
+import com.trung.fooddeliveryservice.entity.Restaurant;
+import com.trung.fooddeliveryservice.exception.BadRequestException;
+import com.trung.fooddeliveryservice.exception.ResourceNotFoundException;
+import com.trung.fooddeliveryservice.exception.UnauthorizedException;
+import com.trung.fooddeliveryservice.mapper.RestaurantMapper;
+import com.trung.fooddeliveryservice.repository.FoodOrderReviewRepository;
+import com.trung.fooddeliveryservice.repository.RestaurantRepository;
+import com.trung.fooddeliveryservice.repository.projection.RestaurantNearbyProjection;
+import com.trung.fooddeliveryservice.service.CloudinaryService;
+import com.trung.fooddeliveryservice.service.RestaurantService;
+import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -211,6 +221,166 @@ public class RestaurantServiceImpl implements RestaurantService {
             syncRatingIfOutdated(r);
         }
         return restaurantMapper.toResponseList(restaurants);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RestaurantNearbyResponse> getNearbyRestaurants(double latitude, double longitude, double radiusKm) {
+        List<RestaurantNearbyProjection> projections =
+                restaurantRepository.findNearbyRestaurants(latitude, longitude, radiusKm);
+
+        if (projections == null || projections.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<RestaurantNearbyResponse> result = new ArrayList<>();
+        for (RestaurantNearbyProjection p : projections) {
+            Double distance = p.getDistanceKm();
+            if (distance == null || Double.isNaN(distance) || distance < 0) {
+                distance = 0.0;
+            }
+            RestaurantStatus status = RestaurantStatus.OPEN;
+            if (p.getStatus() != null) {
+                try {
+                    status = RestaurantStatus.valueOf(p.getStatus());
+                } catch (Exception ignored) {
+                }
+            }
+
+            result.add(RestaurantNearbyResponse.builder()
+                    .id(p.getId())
+                    .ownerId(p.getOwnerId())
+                    .name(p.getName())
+                    .phone(p.getPhone())
+                    .address(p.getAddress())
+                    .latitude(p.getLatitude())
+                    .longitude(p.getLongitude())
+                    .imageUrl(p.getImageUrl())
+                    .status(status)
+                    .openTime(p.getOpenTime())
+                    .closeTime(p.getCloseTime())
+                    .rating(p.getRating() != null ? p.getRating() : 5.0)
+                    .reviewCount(p.getReviewCount() != null ? p.getReviewCount() : 0)
+                    .distanceKm(distance)
+                    .build());
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RestaurantNearbyResponse> getNearbyRestaurants(double latitude, double longitude, double radiusKm, Pageable pageable) {
+        Page<RestaurantNearbyProjection> projectionsPage =
+                restaurantRepository.findNearbyRestaurants(latitude, longitude, radiusKm, pageable);
+
+        List<RestaurantNearbyResponse> list = new ArrayList<>();
+        for (RestaurantNearbyProjection p : projectionsPage.getContent()) {
+            Double distance = p.getDistanceKm();
+            if (distance == null || Double.isNaN(distance) || distance < 0) {
+                distance = 0.0;
+            }
+            RestaurantStatus status = RestaurantStatus.OPEN;
+            if (p.getStatus() != null) {
+                try {
+                    status = RestaurantStatus.valueOf(p.getStatus());
+                } catch (Exception ignored) {
+                }
+            }
+
+            list.add(RestaurantNearbyResponse.builder()
+                    .id(p.getId())
+                    .ownerId(p.getOwnerId())
+                    .name(p.getName())
+                    .phone(p.getPhone())
+                    .address(p.getAddress())
+                    .latitude(p.getLatitude())
+                    .longitude(p.getLongitude())
+                    .imageUrl(p.getImageUrl())
+                    .status(status)
+                    .openTime(p.getOpenTime())
+                    .closeTime(p.getCloseTime())
+                    .rating(p.getRating() != null ? p.getRating() : 5.0)
+                    .reviewCount(p.getReviewCount() != null ? p.getReviewCount() : 0)
+                    .distanceKm(distance)
+                    .build());
+        }
+
+        return new PageImpl<>(list, pageable, projectionsPage.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RestaurantNearbyResponse> getNearbyRestaurants(
+            String latStr, String lngStr, String radiusStr, String pageStr, String limitStr) throws BadRequestException {
+        if (!StringUtils.hasText(latStr) || !StringUtils.hasText(lngStr)) {
+            throw new BadRequestException("Hai tham số latitude và longitude là bắt buộc");
+        }
+
+        double latitude;
+        double longitude;
+        try {
+            latitude = Double.parseDouble(latStr.trim());
+            longitude = Double.parseDouble(lngStr.trim());
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Tọa độ latitude và longitude phải là số thực hợp lệ");
+        }
+
+        if (Double.isNaN(latitude) || Double.isInfinite(latitude) ||
+                Double.isNaN(longitude) || Double.isInfinite(longitude)) {
+            throw new BadRequestException("Tọa độ latitude và longitude phải là số thực hữu hạn");
+        }
+
+        if (latitude < -90.0 || latitude > 90.0) {
+            throw new BadRequestException("Vĩ độ (latitude) phải nằm trong khoảng [-90, 90]");
+        }
+        if (longitude < -180.0 || longitude > 180.0) {
+            throw new BadRequestException("Kinh độ (longitude) phải nằm trong khoảng [-180, 180]");
+        }
+
+        double radiusKm = 5.0;
+        if (StringUtils.hasText(radiusStr)) {
+            try {
+                radiusKm = Double.parseDouble(radiusStr.trim());
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("Bán kính radiusKm phải là số hợp lệ");
+            }
+        }
+        if (!Double.isFinite(radiusKm) || radiusKm <= 0) {
+            throw new BadRequestException("Bán kính radiusKm phải là số hữu hạn lớn hơn 0 km");
+        }
+
+        int page = 0;
+        if (StringUtils.hasText(pageStr)) {
+            try {
+                page = Integer.parseInt(pageStr.trim());
+                if (page < 0) {
+                    throw new BadRequestException("Trang page không được âm");
+                }
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("Tham số page phải là số nguyên");
+            }
+        }
+
+        int limit = 10;
+        if (StringUtils.hasText(limitStr)) {
+            try {
+                limit = Integer.parseInt(limitStr.trim());
+                if (limit <= 0) {
+                    throw new BadRequestException("Tham số limit phải lớn hơn 0");
+                }
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("Tham số limit phải là số nguyên");
+            }
+        }
+
+        Pageable pageable = PageRequest.of(page, limit);
+        return getNearbyRestaurants(latitude, longitude, radiusKm, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RestaurantNearbyResponse> getNearbyRestaurants(String latStr, String lngStr, String radiusStr) throws BadRequestException {
+        return getNearbyRestaurants(latStr, lngStr, radiusStr, "0", "100").getContent();
     }
 
     private void syncRatingIfOutdated(Restaurant r) {

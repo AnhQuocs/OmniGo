@@ -16,6 +16,11 @@ import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResu
 
 
 
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
+import com.example.omnigo.features.customer.food.domain.model.GetMyFoodOrdersResult
+import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
+import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
+
 interface FoodRepository {
 
     suspend fun getRestaurants(search: String? = null): GetRestaurantsResult
@@ -27,6 +32,14 @@ interface FoodRepository {
     suspend fun createFoodOrder(command: FoodOrderCreateCommand): CreateFoodOrderResult
 
     suspend fun getFoodOrderDetail(orderId: Long): GetFoodOrderDetailResult
+
+    suspend fun getMyFoodOrders(): GetMyFoodOrdersResult
+
+    suspend fun cancelFoodOrder(orderId: Long, reasonCode: String? = null, reason: String? = null): CancelFoodOrderResult
+
+    suspend fun switchToCash(orderId: Long): SwitchToCashResult
+
+    suspend fun retryDriver(orderId: Long): RetryDriverResult
 
     suspend fun getDriverProfile(driverId: Long): GetDriverProfileResult
 

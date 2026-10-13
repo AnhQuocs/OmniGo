@@ -118,3 +118,47 @@ sealed interface GetDriverProfileResult {
         val message: String? = null
     ) : GetDriverProfileResult
 }
+
+sealed interface GetMyFoodOrdersResult {
+    data class Success(
+        val orders: List<FoodOrder>
+    ) : GetMyFoodOrdersResult
+
+    data class Error(
+        val error: FoodError,
+        val message: String? = null
+    ) : GetMyFoodOrdersResult
+}
+
+sealed interface CancelFoodOrderResult {
+    data class Success(
+        val order: FoodOrder
+    ) : CancelFoodOrderResult
+
+    data class Error(
+        val error: FoodError,
+        val message: String? = null
+    ) : CancelFoodOrderResult
+}
+
+sealed interface SwitchToCashResult {
+    data class Success(
+        val order: FoodOrder
+    ) : SwitchToCashResult
+
+    data class Error(
+        val error: FoodError,
+        val message: String? = null
+    ) : SwitchToCashResult
+}
+
+sealed interface RetryDriverResult {
+    data class Success(
+        val order: FoodOrder
+    ) : RetryDriverResult
+
+    data class Error(
+        val error: FoodError,
+        val message: String? = null
+    ) : RetryDriverResult
+}

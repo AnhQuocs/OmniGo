@@ -53,6 +53,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingReassignService bookingReassignService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DispatchConfigService dispatchConfigService;
+    private final com.trung.bookingservice.service.BookingAvatarService bookingAvatarService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -121,6 +122,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = Booking.builder()
                 .customerId(customerId)
+                .customerAvatarUrl(bookingAvatarService.getAvatar(customerId))
                 .startLongitude(request.getStartLongitude())
                 .startLatitude(request.getStartLatitude())
                 .endLongitude(request.getEndLongitude())
@@ -293,6 +295,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.ACCEPTED);
         booking.setDriverId(driverId);
+        booking.setDriverAvatarUrl(bookingAvatarService.getAvatar(driverId));
         booking.setAcceptedAt(LocalDateTime.now());
         bookingRepository.save(booking);
 
@@ -369,6 +372,7 @@ public class BookingServiceImpl implements BookingService {
         );
         booking.setStatus(BookingStatus.PENDING);
         booking.setDriverId(null);
+        booking.setDriverAvatarUrl(null);
         bookingRepository.save(booking);
         bookingRepository.flush();
 
@@ -386,6 +390,7 @@ public class BookingServiceImpl implements BookingService {
         BookingResponse driverCancelResponse = BookingResponse.builder()
                 .bookingId(booking.getId())
                 .customerId(booking.getCustomerId())
+                .customerAvatarUrl(booking.getCustomerAvatarUrl())
                 .driverId(driverId)
                 .startLongitude(booking.getStartLongitude())
                 .startLatitude(booking.getStartLatitude())
@@ -583,6 +588,8 @@ public class BookingServiceImpl implements BookingService {
         return BookingResponse.builder()
                 .bookingId(booking.getId())
                 .customerId(booking.getCustomerId())
+                .customerAvatarUrl(booking.getCustomerAvatarUrl())
+                .driverAvatarUrl(booking.getDriverAvatarUrl())
                 .driverId(booking.getDriverId())
                 .startLongitude(booking.getStartLongitude())
                 .startLatitude(booking.getStartLatitude())

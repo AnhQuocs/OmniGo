@@ -10,6 +10,7 @@ import PrivateRoute from './components/PrivateRoute';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
 import Users from './pages/Users';
 import Drivers from './pages/Drivers';
 import Bookings from './pages/Bookings';
@@ -47,14 +48,14 @@ export function App() {
         />
         <BrowserRouter>
           <Routes>
-            {/* Public Route */}
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
 
             {/* Protected Admin Routes (ADMIN only) */}
             <Route element={<PrivateRoute allowedRoles={['ADMIN']} />}>
               <Route element={<Layout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="dashboard" element={<Navigate to="/" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="users" element={<Users />} />
                 <Route path="drivers" element={<Drivers />} />
                 <Route path="bookings" element={<Bookings />} />

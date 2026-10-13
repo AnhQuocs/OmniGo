@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -117,15 +116,25 @@ export const ConfirmDialog = ({
         },
       }}
     >
-      <DialogTitle component="div" sx={{ pt: 2, pb: 0.5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <DialogTitle
+        component="div"
+        sx={{
+          pt: 2,
+          pb: 0.5,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}
+      >
         {getIcon()}
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', textAlign: 'center', width: '100%' }}>
           {title}
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ py: 1.5 }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+      <DialogContent sx={{ py: 1.5, textAlign: 'center' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, textAlign: 'center', width: '100%' }}>
           {content}
         </Typography>
       </DialogContent>

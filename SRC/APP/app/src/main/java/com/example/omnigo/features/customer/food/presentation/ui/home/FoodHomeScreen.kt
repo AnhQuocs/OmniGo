@@ -38,6 +38,7 @@ import com.example.omnigo.utils.s14
 fun FoodHomeScreen(
     onBackClick: () -> Unit,
     onRestaurantClick: (Long) -> Unit,
+    onHistoryClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: FoodViewModel = hiltViewModel()
 ) {
@@ -51,7 +52,10 @@ fun FoodHomeScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            FoodHeaderSection(onBackClick = onBackClick)
+            FoodHeaderSection(
+                onBackClick = onBackClick,
+                onHistoryClick = onHistoryClick
+            )
 
             Spacer(modifier = Modifier.height(AppSpacing.S))
 

@@ -11,6 +11,9 @@ import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.service.UserService;
+import com.trung.userdriverservice.service.UserAvatarService;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +29,27 @@ import java.time.LocalDateTime;
 public class UserController {
 
     private final UserService userService;
+    private final UserAvatarService userAvatarService;
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAvatarUploadFailure(
+            org.springframework.web.server.ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(ApiResponse.builder()
+                .success(false).message(ex.getReason()).timestamp(LocalDateTime.now()).build());
+    }
+
+    @PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'DRIVER')")
+    public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @RequestParam("file") MultipartFile file) throws BadRequestException, ResourceNotFoundException {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Cập nhật ảnh đại diện thành công")
+                .data(userAvatarService.updateAvatar(currentUserId, file))
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
 
     @PostMapping("/register/customer")
     public ResponseEntity<ApiResponse<LoginResponse>> registerCustomer(@Valid @RequestBody UserRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {

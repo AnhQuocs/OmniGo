@@ -31,6 +31,7 @@ public class MenuItemMapper {
         return MenuItemResponse.builder()
                 .id(entity.getId())
                 .restaurantId(entity.getRestaurant() != null ? entity.getRestaurant().getId() : null)
+                .restaurantName(entity.getRestaurant() != null ? entity.getRestaurant().getName() : null)
                 .name(entity.getName())
                 .description(entity.getDescription())
                 .price(entity.getPrice())
