@@ -76,13 +76,13 @@ sequenceDiagram
     Note over Driver, Payment: 4. Hoàn thành chuyến xe & Quyết toán cước phí
     Driver->>OmniGo: PUT /api/v1/bookings/{id}/complete (Khoảng cách <= 50m điểm trả)
     OmniGo->>Payment: Quyết toán cước phí & Trừ 20% phí hoa hồng sàn
-    OmniGo-->>Customer: Hiển thị hóa đơn & Mở màn hình đánh giá sao ⭐
+    OmniGo-->>Customer: Hiển thị hóa đơn & Mở màn hình đánh giá sao 
     OmniGo-->>Driver: Chuyển Status -> COMPLETED & Cộng thu nhập ròng vào ví
 ```
 
 ---
 
-### 2.1.1. Avatar và profile tài xế theo chuyến — cập nhật 08/10/2026
+### 2.1.1. Avatar và profile tài xế theo chuyến
 
 Khách và tài xế cập nhật ảnh của mình qua `PUT /api/v1/users/me/avatar`, multipart
 part `file` (JPEG/PNG/WEBP, tối đa 1 MiB). Gateway xác thực JWT; backend upload
@@ -102,9 +102,6 @@ Backend kiểm tra role `CUSTOMER`, quyền sở hữu chuyến rồi gọi nộ
 không trả giấy tờ hoặc thông tin quản trị. Chưa có tài xế trả 404, sai quyền trả
 403, lỗi lấy profile trả 502. Mobile dùng ảnh mặc định nếu URL null/tải ảnh lỗi.
 
-Contract: [Avatar API](../SRC/BE/user-driver-service/AVATAR_API.md),
-[Booking Driver API](../SRC/BE/booking-service/BOOKING_DRIVER_API.md).
-Các thay đổi này không bổ sung profile cho Food Order hoặc triển khai realtime GPS.
 
 ### 2.2. Sơ Đồ Tuần Tự 2: Vòng Đời Đặt Món 3 Bên (OmniFood Marketplace Lifecycle)
 > **Trạng thái đơn món (`OrderStatus`):** `AWAITING_PAYMENT` $\rightarrow$ `PENDING` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY_FOR_PICKUP` (hoặc `NO_DRIVER_FOUND` $\rightarrow$ Retry) $\rightarrow$ `DELIVERING` $\rightarrow$ `COMPLETED` (hoặc `CANCELLED`, `REJECTED`).
@@ -154,7 +151,7 @@ sequenceDiagram
     %% 4. HOÀN THÀNH ĐƠN
     Note over Driver, Customer: 4. Giao tận tay khách & Hoàn tất (COMPLETED)
     Driver->>OmniGo: PATCH driver-status -> COMPLETED (Khoảng cách <= 50m)
-    OmniGo-->>Customer: Đơn hoàn tất! Mở màn hình Đánh giá: ⭐ Cho Quán & ⭐ Cho Tài xế
+    OmniGo-->>Customer: Đơn hoàn tất! Mở màn hình Đánh giá:  Cho Quán & Cho Tài xế
 ```
 
 ---
