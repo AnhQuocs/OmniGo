@@ -434,7 +434,7 @@ export const Login = () => {
               <Box
                 onClick={() => {
                   setPhoneNumber('0923456789');
-                  setPassword('123456');
+                  setPassword('admin123');
                   setPhoneError('');
                   toast.success('Đã chọn tài khoản ADMIN (0923456789)');
                 }}
@@ -500,7 +500,7 @@ export const Login = () => {
                       />
                     </Box>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-                      Mật khẩu: <b>123456</b> (Quản trị hệ thống)
+                      Mật khẩu: <b>admin123</b> (Quản trị hệ thống)
                     </Typography>
                   </Box>
                 </Box>
