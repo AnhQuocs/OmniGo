@@ -169,6 +169,15 @@ class FoodRepositoryImplTest {
         assertEquals(999L, order.id)
         assertEquals(100_123.0, order.totalPrice!!, 0.001)
         assertEquals(12_345.0, order.deliveryFee!!, 0.001)
+        io.mockk.coVerify(exactly = 1) {
+            foodApi.createFoodOrder(
+                match {
+                    it.restaurantId == 1L &&
+                        it.dropOffAddress == "Delivery address" &&
+                        it.paymentMethod == "CASH"
+                }
+            )
+        }
     }
 
     @Test
@@ -259,6 +268,18 @@ class FoodRepositoryImplTest {
         val profile = (result as GetDriverProfileResult.Success).profile
         assertEquals(77L, profile.driverId)
         assertEquals("Driver Name", profile.driverName)
+        assertEquals("0900000000", profile.driverPhone)
+        assertEquals("ABC-123", profile.vehiclePlate)
+        assertEquals(null, profile.avatarUrl)
+    }
+
+    @Test
+    fun `getDriverProfile reports network error`() = runTest {
+        coEvery { foodApi.getDriverProfile(77L) } throws IOException("No connection")
+
+        val result = repository.getDriverProfile(77L)
+
+        assertTrue(result is GetDriverProfileResult.Error)
+        assertEquals(FoodError.NETWORK_ERROR, (result as GetDriverProfileResult.Error).error)
     }
 }
-

@@ -118,6 +118,8 @@ class FoodOrderDetailViewModelTest {
         assertEquals(123L, state.order?.id)
         assertEquals("Bún Chả Hàng Quạt", state.order?.restaurantName)
         assertEquals("PREPARING", state.order?.status)
+        assertEquals(PaymentMethod.WALLET, state.order?.paymentMethod)
+        assertTrue(state.order?.isPaid == true)
         assertNull(state.errorMessage)
     }
 
@@ -245,6 +247,34 @@ class FoodOrderDetailViewModelTest {
     }
 
     @Test
+    fun `init exposes loading state until order request completes`() = runTest {
+        val pendingResult = CompletableDeferred<GetFoodOrderDetailResult>()
+        coEvery { getFoodOrderDetailUseCase(123L) } coAnswers { pendingResult.await() }
+
+        viewModel = createViewModel(123L)
+
+        assertTrue(viewModel.uiState.value.isLoading)
+        assertNull(viewModel.uiState.value.order)
+
+        pendingResult.complete(GetFoodOrderDetailResult.Success(mockOrder))
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(123L, viewModel.uiState.value.order?.id)
+    }
+
+    @Test
+    fun `invalid route order id stops loading and does not call use case`() = runTest {
+        viewModel = createViewModel(0L)
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertFalse(state.canRetry)
+        assertNotNull(state.errorMessage)
+        io.mockk.coVerify(exactly = 0) { getFoodOrderDetailUseCase(any()) }
+    }
+
+    @Test
     fun `refresh failure keeps previously loaded order visible`() = runTest {
         coEvery { getFoodOrderDetailUseCase(123L) } returns
             GetFoodOrderDetailResult.Success(mockOrder) andThen
@@ -263,6 +293,33 @@ class FoodOrderDetailViewModelTest {
     }
 
     @Test
+    fun `refresh after initial error shows loading until retry completes`() = runTest {
+        val pendingResult = CompletableDeferred<GetFoodOrderDetailResult>()
+        var callCount = 0
+        coEvery { getFoodOrderDetailUseCase(123L) } coAnswers {
+            if (callCount++ == 0) {
+                GetFoodOrderDetailResult.Error(FoodError.NETWORK_ERROR)
+            } else {
+                pendingResult.await()
+            }
+        }
+
+        viewModel = createViewModel(123L)
+        advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.errorMessage)
+
+        viewModel.loadOrderDetail(isRefresh = true)
+        assertTrue(viewModel.uiState.value.isLoading)
+
+        pendingResult.complete(GetFoodOrderDetailResult.Success(mockOrder))
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+        assertEquals(mockOrder, viewModel.uiState.value.order)
+    }
+
+    @Test
     fun `loads driver profile using the driver id from order detail`() = runTest {
         val profile = DriverProfile(
             driverId = 77L,
@@ -271,13 +328,16 @@ class FoodOrderDetailViewModelTest {
             vehiclePlate = "ABC-123",
             avatarUrl = null
         )
-        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
-        coEvery { getDriverProfileUseCase(77L) } returns GetDriverProfileResult.Success(profile)
+        coEvery { getFoodOrderDetailUseCase(123L) } returns
+            GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { getDriverProfileUseCase(77L) } returns
+            GetDriverProfileResult.Success(profile)
 
         viewModel = createViewModel(123L)
         advanceUntilIdle()
 
         assertEquals(profile, viewModel.uiState.value.driverProfile)
         assertFalse(viewModel.uiState.value.isDriverProfileLoading)
+        io.mockk.coVerify(exactly = 1) { getDriverProfileUseCase(77L) }
     }
 }
