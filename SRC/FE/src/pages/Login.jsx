@@ -508,7 +508,6 @@ export const Login = () => {
                   Chọn ➡
                 </Typography>
               </Box>
-
               {/* Account 2: RESTAURANT */}
               <Box
                 onClick={() => {
