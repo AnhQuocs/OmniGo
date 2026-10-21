@@ -1,0 +1,39 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide methods
+package "booking-service" {
+class Booking {
+- id: Long
+- customerId: Long
+- driverId: Long
+- startLongitude: Double
+- startLatitude: Double
+- endLongitude: Double
+- endLatitude: Double
+- distanceInKm: Double
+- status: BookingStatus
+- price: Double
+- paymentMethod: String
+- createdAt: LocalDateTime
+- acceptedAt: LocalDateTime
+- completedAt: LocalDateTime
+}
+enum BookingStatus {
+PENDING
+ACCEPTED
+ARRIVED
+IN_PROGRESS
+COMPLETED
+CANCELLED
+}
+}
+package "pricing-service" {
+class PricingConfig {
+- baseFare: double
+- pricePerKm: double
+- pricePerMinute: double
+}
+}
+Booking ..> BookingStatus : status
+@enduml

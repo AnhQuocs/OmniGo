@@ -1,0 +1,53 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide methods
+class Wallet {
+- id: Long
+- userId: Long
+- userType: UserType
+- balance: BigDecimal
+}
+class Transaction {
+- id: Long
+- walletId: Long
+- bookingId: Long
+- orderId: String
+- amount: BigDecimal
+- transactionType: TransactionType
+- paymentMethod: PaymentMethod
+- status: TransactionStatus
+- gatewayTransId: String
+}
+enum UserType {
+DRIVER
+CUSTOMER
+}
+enum TransactionType {
+DEPOSIT
+TRIP_PAYMENT
+TRIP_INCOME
+COMMISSION_FEE
+WITHDRAWAL
+FOOD_PAYMENT
+FOOD_DELIVERY_INCOME
+REFUND
+}
+enum PaymentMethod {
+WALLET
+MOMO
+VNPAY
+CASH
+}
+enum TransactionStatus {
+PENDING
+SUCCESS
+FAILED
+CANCELED
+}
+Wallet "0..1" .. "0..*" Transaction : walletId
+Wallet ..> UserType : userType
+Transaction ..> TransactionType : transactionType
+Transaction ..> PaymentMethod : paymentMethod
+Transaction ..> TransactionStatus : status
+@enduml

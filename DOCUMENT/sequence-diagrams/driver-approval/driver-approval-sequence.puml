@@ -1,0 +1,30 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "Web Admin" as P0
+participant "DriverController" as P1
+participant "DriverService" as P2
+participant "DriverProfileRepository" as P3
+P0 -> P1 : GET /api/v1/drivers/admin/all
+P1 -> P3 : findAll()
+P3 --> P1 : Driver profiles
+P1 --> P0 : 200 OK: driver profiles + document URLs
+P0 -> P0 : Filter PENDING_APPROVAL; review documents
+P0 -> P1 : PATCH /api/v1/drivers/{driverId}/approval
+P1 -> P1 : Require ADMIN; validate request
+P1 -> P2 : approveOrRejectDriver(driverId, request)
+P2 -> P3 : findById(driverId)
+P3 --> P2 : DriverProfile
+alt status = APPROVED
+P2 -> P2 : Set APPROVED; approvedAt = now
+P2 -> P2 : Clear rejectionReason
+else status = REJECTED
+P2 -> P2 : Set REJECTED; save rejectionReason
+P2 -> P2 : Set driver status = OFFLINE
+end
+P2 -> P3 : save(profile)
+P2 --> P1 : ApiResponse<UserResponse>
+P1 --> P0 : 200 OK: updated profile
+P0 -> P0 : Show result and refresh driver list
+@enduml

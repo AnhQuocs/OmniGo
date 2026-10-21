@@ -1,0 +1,38 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "Customer App" as P0
+participant "FoodOrder API / Service" as P1
+participant "Repositories / Database" as P2
+participant "Merchant Portal" as P3
+participant "Kafka Broker" as P4
+== Create order [CASH; valid request] ==
+P0 -> P1 : POST /api/v1/food-orders
+P1 -> P2 : Load restaurant and menu items
+P2 --> P1 : Restaurant and menu data
+P1 -> P1 : Check OPEN, unlocked, items available
+P1 -> P1 : Calculate item totals and delivery fee
+P1 -> P2 : Save FoodOrder (PENDING) + FoodOrderItem
+P1 --> P0 : 201 Created: ApiResponse<FoodOrderResponse>
+loop Auto-refresh enabled: every 5 s
+P3 -> P1 : GET /api/v1/food-orders/restaurant/{restaurantId}
+P1 -> P2 : Check owner; load restaurant orders
+P1 --> P3 : 200 OK: orders excluding AWAITING_PAYMENT
+end
+== Restaurant accepts and prepares the order ==
+P3 -> P1 : PATCH /api/v1/food-orders/{orderId}/status: ACCEPTED
+P1 -> P1 : Redis lock; check owner and current status
+P1 -> P2 : Save PENDING → ACCEPTED
+P1 --> P3 : 200 OK: updated order; release lock
+P3 -> P1 : PATCH /api/v1/food-orders/{orderId}/status: PREPARING
+P1 -> P1 : Redis lock; check owner and current status
+P1 -> P2 : Save ACCEPTED → PREPARING
+P1 --> P3 : 200 OK: updated order; release lock
+opt Restaurant marks order ready for pickup
+P3 -> P1 : PATCH /api/v1/food-orders/{orderId}/status: READY_FOR_PICKUP
+P1 -> P2 : Validate and save READY_FOR_PICKUP
+P1 -> P4 : Publish FIND_DRIVER_FOR_FOOD_ORDER
+P1 --> P3 : 200 OK: updated order
+end
+@enduml

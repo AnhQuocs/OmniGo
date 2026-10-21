@@ -1,0 +1,32 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "App / Browser" as P0
+participant "Payment API / VNPay" as P1
+participant "VNPay Gateway" as P2
+participant "WalletService" as P3
+participant "Repositories / DB" as P4
+P0 -> P1 : POST /api/v1/payments/payment/create\nmethod, type, amount
+P1 -> P3 : getOrCreateWallet(userId, userType)
+P3 --> P1 : Wallet
+P1 -> P4 : Save Transaction: DEPOSIT / PENDING
+P1 -> P1 : Build payment URL (HMAC-SHA512)
+P1 --> P0 : 200 OK: orderId + paymentUrl
+P0 -> P2 : Open payment URL; user pays
+P2 --> P0 : Redirect browser to Return URL
+P0 -> P1 : GET /api/v1/payments/vnpay/return
+P1 -> P4 : Find transaction by orderId
+break Transaction missing or already SUCCESS
+P1 -> P1 : Return without crediting wallet
+P1 --> P0 : Return result HTML
+end
+alt responseCode = 00
+P1 -> P4 : Save Transaction: SUCCESS
+P1 -> P3 : creditWallet(userId, userType, amount)
+P3 -> P4 : Lock wallet; add amount; save balance
+else Other response code
+P1 -> P4 : Save Transaction: FAILED
+end
+P1 --> P0 : Return result HTML
+@enduml

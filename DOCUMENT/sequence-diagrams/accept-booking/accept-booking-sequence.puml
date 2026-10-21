@@ -1,0 +1,44 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "Customer App" as P0
+participant "Booking API / Service" as P1
+participant "Location Service" as P2
+participant "Pricing Service" as P3
+participant "BookingRepository" as P4
+participant "Redis" as P5
+participant "User-Driver Service" as P6
+participant "Driver App" as P7
+== 1. Create booking and invite a driver ==
+P0 -> P1 : POST /api/v1/bookings
+P1 -> P1 : Check request rate and active booking
+P1 -> P2 : Find nearby drivers (configured radius)
+P2 --> P1 : Nearby drivers
+P1 -> P3 : Calculate fare (route + nearby supply)
+P3 --> P1 : Price and distance
+P1 -> P4 : Save Booking: PENDING
+P1 -> P6 : Check candidate is ONLINE
+P6 --> P1 : Online status
+P1 -> P5 : Reserve driver: SET NX, TTL = 30 s
+P5 --> P1 : Reservation acquired
+P1 -> P7 : WebSocket: /queue/driver/match
+P1 -> P1 : Start asynchronous 20 s timeout
+P1 --> P0 : 200 OK: BookingResponse (PENDING)
+== 2. Driver accepts the invitation ==
+P7 -> P1 : PUT /api/v1/bookings/{bookingId}/accept
+P1 -> P5 : Read driver reservation
+P5 --> P1 : Reserved bookingId
+P1 -> P4 : Load booking and check PENDING
+alt Reservation matches and booking is PENDING
+P1 -> P4 : Save ACCEPTED, driverId, acceptedAt
+P1 -> P5 : Delete driver reservation
+P1 -> P6 : Update driver status: BUSY
+P1 -> P0 : WebSocket: /queue/booking/status (ACCEPTED)
+P1 --> P7 : 200 OK: BookingResponse
+else Reservation invalid or booking is not PENDING
+P1 --> P7 : 400 Bad Request
+end
+== Timeout: still PENDING after 20 s → release driver and try another ==
+P1 -> P1 : BookingTimeoutService → BookingReassignService
+@enduml

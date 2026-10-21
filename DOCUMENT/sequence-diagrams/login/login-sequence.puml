@@ -1,0 +1,41 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow false
+participant "Client\n(App / Web)" as C
+participant "API Gateway" as G
+participant "AuthController" as A
+participant "AuthService" as S
+participant "Spring Security" as SEC
+participant "UserRepository" as U
+database "Redis" as R
+C -> G : POST /api/v1/auth/login\nphoneNumber, password
+G -> A : Forward request
+A -> S : login(request)
+S -> U : findByPhoneNumber(phoneNumber)
+U --> S : User / empty
+break Account is locked
+S --> A : InvalidCredentialsException
+A --> G : 401 Unauthorized
+G --> C : Show login error
+end
+S -> SEC : authenticate(phoneNumber, password)
+SEC -> U : loadUserByUsername()\nvia CustomUserDetailsService
+U --> SEC : User / not found
+note over SEC : Check account status and password\nUserPrincipal + BCryptPasswordEncoder
+SEC --> S : Authentication / exception
+alt Authentication succeeds
+S -> S : Generate access token\nvia JwtTokenProvider
+S -> R : Generate and save refresh token with TTL\nvia RefreshTokenService
+R --> S : Saved
+S --> A : LoginResponse: accessToken, refreshToken, user
+A -> A : Set-Cookie: refresh_token; HttpOnly
+A --> G : 200 OK + response body + Set-Cookie
+G --> C : Forward response\nOpen main screen
+else Invalid credentials / disabled account
+S --> A : InvalidCredentialsException
+A --> G : 401 Unauthorized
+G --> C : Show login error
+end
+@enduml

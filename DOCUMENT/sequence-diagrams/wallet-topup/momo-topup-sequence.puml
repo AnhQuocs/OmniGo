@@ -1,0 +1,36 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "App / Browser" as P0
+participant "Payment API / MoMo" as P1
+participant "MoMo Gateway" as P2
+participant "WalletService" as P3
+participant "Repositories / DB" as P4
+P0 -> P1 : POST /api/v1/payments/payment/create\nmethod, type, amount
+P1 -> P3 : getOrCreateWallet(userId, userType)
+P3 --> P1 : Wallet
+P1 -> P4 : Save Transaction: DEPOSIT / PENDING
+P1 -> P1 : Sign create request (HMAC-SHA256)
+P1 -> P2 : Call MoMo create-payment API
+P2 --> P1 : payUrl
+P1 --> P0 : 200 OK: orderId + paymentUrl
+P0 -> P2 : Open payment URL; user pays
+P2 -> P1 : POST /api/v1/payments/momo/ipn
+P1 -> P1 : verifyIpnSignature(request)
+break Invalid signature
+P1 -> P1 : Reject callback; no wallet credit
+end
+P1 -> P4 : Find transaction by orderId
+break Transaction already SUCCESS
+P1 --> P2 : 204 No Content; no additional credit
+end
+alt resultCode = 0
+P1 -> P4 : Save SUCCESS + gatewayTransId
+P1 -> P3 : creditWallet(userId, userType, amount)
+P3 -> P4 : Lock wallet; add amount; save balance
+else Other resultCode
+P1 -> P4 : Save Transaction: FAILED
+end
+P1 --> P2 : 204 No Content
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "Driver App" as D
+participant "LocationController" as C
+participant "LocationService" as S
+database "Redis Geo" as R
+loop New location callback while tracking is active
+D -> D : Read device location
+note over D : Requested interval: 5 s\nMinimum interval: 3 s; minimum distance: 5 m
+D -> C : POST /api/v1/locations/drivers/me\nlatitude, longitude
+C -> S : updateDriverLocation(driverId, request)
+S -> R : GEOADD drivers:online:locations\nlongitude, latitude, driverId
+R --> S : Updated
+S --> C : Return
+C --> D : 200 OK + text response
+end
+@enduml
