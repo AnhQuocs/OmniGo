@@ -1,0 +1,57 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide methods
+class MenuItem {
+- id: Long
+- name: String
+- price: BigDecimal
+- category: String
+- imageUrl: String
+- isAvailable: Boolean
+}
+class Restaurant {
+- id: Long
+- ownerId: Long
+- name: String
+- address: String
+- status: RestaurantStatus
+- openTime: String
+- closeTime: String
+- rating: Double
+}
+class FoodOrder {
+- id: Long
+- customerId: Long
+- driverId: Long
+- status: OrderStatus
+- totalPrice: BigDecimal
+- deliveryFee: BigDecimal
+- deliveryAddress: String
+- paymentMethod: String
+- isPaid: Boolean
+- version: Long
+}
+class FoodOrderReview {
+- id: Long
+- orderId: Long
+- customerId: Long
+- restaurantRating: Integer
+- driverRating: Integer
+- restaurantComment: String
+- driverComment: String
+- merchantReply: String
+}
+class FoodOrderItem {
+- id: Long
+- menuItemId: Long
+- itemName: String
+- price: BigDecimal
+- quantity: Integer
+- subtotal: BigDecimal
+}
+Restaurant "1" -- "0..*" MenuItem : contains
+Restaurant "1" -- "0..*" FoodOrder : receives
+FoodOrder "1" -- "1..*" FoodOrderItem : contains
+FoodOrder "1" .. "0..1" FoodOrderReview : orderId
+@enduml

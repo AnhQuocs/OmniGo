@@ -1,0 +1,28 @@
+@startuml
+hide footbox
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "Customer App" as P0
+participant "RestaurantController" as P1
+participant "RestaurantService" as P2
+participant "RestaurantRepository" as P3
+database "PostgreSQL" as P4
+loop Search or request another page
+P0 -> P1 : GET /api/v1/restaurants/nearby\nlatitude, longitude, radiusKm, page, limit
+P1 -> P2 : getNearbyRestaurants(...)
+P2 -> P2 : Validate coordinates, radius and pagination
+alt Valid parameters
+P2 -> P3 : findNearbyRestaurants(..., Pageable)
+P3 -> P4 : Haversine filter + page query\nOPEN, unlocked, within radiusKm
+P4 --> P3 : Page rows + totalElements
+P3 --> P2 : Page<RestaurantNearbyProjection>
+P2 -> P2 : Map to RestaurantNearbyResponse
+P2 --> P1 : Page<RestaurantNearbyResponse>
+P1 --> P0 : 200 OK: ApiResponse<Page<...>>
+P0 -> P0 : Display restaurants and pagination
+else Invalid parameters
+P2 --> P1 : BadRequestException
+P1 --> P0 : 400 Bad Request
+end
+end
+@enduml

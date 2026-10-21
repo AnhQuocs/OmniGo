@@ -1,0 +1,5 @@
+Mô hình lớp tổng quát thể hiện 8 thực thể chính của hệ thống OmniGo và mối liên hệ giữa chúng. User lưu thông tin người dùng; người tham gia làm tài xế có thêm DriverProfile để quản lý thông tin xe và trạng thái hoạt động. Booking quản lý các chuyến xe, còn FoodOrder quản lý các đơn đặt món. Tài xế có thể nhận chuyến xe hoặc giao đơn hàng. Restaurant lưu thông tin nhà hàng và quản lý danh sách món ăn MenuItem. Wallet quản lý số dư ví của người dùng, còn Transaction lưu lịch sử các giao dịch phát sinh trên ví. Nhờ các mối liên hệ này, hệ thống có thể quản lý thống nhất người dùng, đặt xe, đặt món và giao dịch.
+
+Quy ước: 1 = một; 0..1 = không có hoặc tối đa một; 0..* = không có hoặc nhiều. Một chuyến xe hoặc đơn hàng có thể chưa được phân công tài xế. Sơ đồ giả định mỗi người dùng có tối đa một ví.
+
+Tên quan hệ: has (có), books (đặt chuyến), places (đặt đơn), accepts (nhận chuyến), delivers (giao hàng), receives (nhận đơn), contains (bao gồm), records (ghi nhận). Đây là nhãn quan hệ association trong mô hình lớp; include và extend dùng cho mô hình use case.

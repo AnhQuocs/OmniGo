@@ -1,0 +1,47 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide methods
+class User {
+- id: Long
+- phoneNumber: String
+- email: String
+- password: String
+- fullName: String
+- avatarUrl: String
+- isDeleted: Boolean
+- isLocked: Boolean
+- role: Role
+}
+class DriverProfile {
+- driverId: Long
+- vehicleType: String
+- licensePlate: String
+- vehicleModel: String
+- cccdNumber: String
+- gplxNumber: String
+- status: DriverStatus
+- approvalStatus: ApprovalStatus
+- rejectionReason: String
+}
+enum Role {
+CUSTOMER
+DRIVER
+ADMIN
+RESTAURANT
+}
+enum DriverStatus {
+OFFLINE
+ONLINE
+BUSY
+}
+enum ApprovalStatus {
+PENDING_APPROVAL
+APPROVED
+REJECTED
+}
+User "1" -- "0..1" DriverProfile : has
+User ..> Role : role
+DriverProfile ..> DriverStatus : status
+DriverProfile ..> ApprovalStatus : approvalStatus
+@enduml
