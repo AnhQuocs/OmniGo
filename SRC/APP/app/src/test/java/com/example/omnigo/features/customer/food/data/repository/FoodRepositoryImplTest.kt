@@ -173,7 +173,7 @@ class FoodRepositoryImplTest {
             foodApi.createFoodOrder(
                 match {
                     it.restaurantId == 1L &&
-                        it.dropOffAddress == "Delivery address" &&
+                        it.deliveryAddress == "Delivery address" &&
                         it.paymentMethod == "CASH"
                 }
             )

@@ -20,6 +20,12 @@ abstract class FoodRepositoryModule {
     abstract fun bindFoodRepository(
         foodRepositoryImpl: FoodRepositoryImpl
     ): FoodRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActiveFoodOrderTrackingRepository(
+        impl: com.example.omnigo.features.customer.food.data.repository.ActiveFoodOrderTrackingRepositoryImpl
+    ): com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
 }
 
 @Module

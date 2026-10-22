@@ -38,3 +38,18 @@ data class DriverLocationEventDto(
     @SerializedName("timestamp")
     val timestamp: String? = null
 )
+
+data class FoodOfferEventDto(
+    @SerializedName("orderId")
+    val orderId: Long? = null,
+    @SerializedName("restaurantName")
+    val restaurantName: String? = null,
+    @SerializedName("restaurantAddress")
+    val restaurantAddress: String? = null,
+    @SerializedName(value = "dropOffAddress", alternate = ["deliveryAddress"])
+    val dropOffAddress: String? = null,
+    @SerializedName("deliveryFee")
+    val deliveryFee: Double? = null,
+    @SerializedName("totalPrice")
+    val totalPrice: Double? = null
+)
