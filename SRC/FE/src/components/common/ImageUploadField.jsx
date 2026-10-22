@@ -32,6 +32,7 @@ export const ImageUploadField = ({
   value = '',
   onChange,
   uploadFn = null,
+  deferUpload = false,
   helperText = 'Tải lên ảnh chụp rõ nét (JPG, PNG, WebP tối đa 5MB) hoặc dán link ảnh',
   placeholder = 'Hoặc dán liên kết ảnh (URL)...',
 }) => {
@@ -87,6 +88,16 @@ export const ImageUploadField = ({
   const handleConfirmUpload = async () => {
     if (!pendingUploadData) return;
 
+    if (pendingFile && deferUpload) {
+      onChange?.(pendingUploadData);
+      toast.success('Đã chọn ảnh. Ảnh sẽ được tải lên khi gửi hồ sơ.');
+      setConfirmUploadOpen(false);
+      setPendingFile(null);
+      setPendingUploadData('');
+      setInputUrl('');
+      return;
+    }
+
     if (pendingFile) {
       try {
         setIsUploading(true);
@@ -103,13 +114,13 @@ export const ImageUploadField = ({
           toast.success('Đã tải ảnh lên Cloudinary thành công!');
         } else {
           onChange?.(pendingUploadData);
-          toast.success('Đã tải ảnh thành công!');
+          toast('Ảnh chưa được tải lên. Ảnh sẽ được gửi khi lưu hồ sơ.');
         }
       } catch (err) {
         console.error('Lỗi upload Cloudinary:', err);
         // Fallback to data url if cloud keys offline
         onChange?.(pendingUploadData);
-        toast.success('Đã lưu ảnh thành công!');
+        toast('Ảnh chưa được tải lên. Ảnh sẽ được gửi khi lưu hồ sơ.');
       } finally {
         setIsUploading(false);
         setConfirmUploadOpen(false);
@@ -179,7 +190,7 @@ export const ImageUploadField = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.3 }}>
               <CheckCircleIcon sx={{ fontSize: 16, color: '#16A34A' }} />
               <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#4ade80' : '#166534' }}>
-                Đã tải lên ảnh hợp lệ
+                {value.startsWith('data:image') ? 'Đã chọn ảnh, chờ gửi hồ sơ' : 'Đã chọn ảnh hợp lệ'}
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
