@@ -1,6 +1,7 @@
 package com.example.omnigo.features.customer.food.presentation.ui.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -31,14 +35,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
-import com.example.omnigo.features.customer.food.presentation.viewmodel.history.FoodOrderHistoryUiState
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.food.presentation.viewmodel.history.FoodOrderHistoryViewModel
 import com.example.omnigo.features.customer.food.presentation.viewmodel.history.HistoryFilter
 import com.example.omnigo.ui.dimens.AppShape
@@ -54,19 +60,28 @@ import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
-import androidx.compose.foundation.shape.RoundedCornerShape
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FoodOrderHistoryScreen(
     onBackClick: () -> Unit,
     onOrderClick: (Long) -> Unit,
+    onReorderClick: (FoodOrder) -> Unit = {},
+    onReviewClick: (FoodOrder) -> Unit = {},
     onExploreClick: () -> Unit = onBackClick,
     modifier: Modifier = Modifier,
     viewModel: FoodOrderHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // Silently sync orders whenever screen resumes (e.g. after returning from detail/cancel screen)
+    // without showing annoying spinner
+    LifecycleResumeEffect(Unit) {
+        viewModel.syncOrdersSilently()
+        onPauseOrDispose { }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -91,13 +106,21 @@ fun FoodOrderHistoryScreen(
                 actions = {
                     IconButton(
                         onClick = { viewModel.loadOrders(isRefresh = true) },
-                        enabled = !state.isRefreshing
+                        enabled = !state.isRefreshing && !state.isLoading
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.order_detail_action_refresh),
-                            tint = PrimaryColor
-                        )
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(Dimen.SizeS),
+                                color = PrimaryColor,
+                                strokeWidth = Dimen.PaddingXXS
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.order_detail_action_refresh),
+                                tint = PrimaryColor
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
@@ -112,20 +135,23 @@ fun FoodOrderHistoryScreen(
         ) {
             FilterSection(
                 selectedFilter = state.selectedFilter,
+                allOrders = state.orders,
                 onFilterSelected = viewModel::onFilterSelected
             )
 
-            val filteredOrders = state.orders.filter { order ->
-                when (state.selectedFilter) {
-                    HistoryFilter.ALL -> true
-                    HistoryFilter.ACTIVE -> order.status.uppercase() in listOf(
-                        "PENDING", "ACCEPTED", "PREPARING", "DRIVER_SEARCHING",
-                        "DRIVER_ASSIGNED", "PICKED_UP", "DELIVERING", "ARRIVED_CUSTOMER",
-                        "AWAITING_PAYMENT", "NO_DRIVER_FOUND"
-                    )
-                    HistoryFilter.COMPLETED -> order.status.uppercase() in listOf(
-                        "COMPLETED", "DELIVERED", "CANCELLED", "REJECTED"
-                    )
+            val filteredOrders = remember(state.orders, state.selectedFilter) {
+                state.orders.filter { order ->
+                    val upper = order.status.uppercase(Locale.ROOT)
+                    when (state.selectedFilter) {
+                        HistoryFilter.ALL -> true
+                        HistoryFilter.ONGOING -> upper in listOf(
+                            "PENDING", "ACCEPTED", "PREPARING", "DRIVER_SEARCHING",
+                            "DRIVER_ASSIGNED", "PICKED_UP", "DELIVERING", "ARRIVED_CUSTOMER",
+                            "AWAITING_PAYMENT", "NO_DRIVER_FOUND", "PENDING_MERCHANT"
+                        )
+                        HistoryFilter.DELIVERED -> upper in listOf("COMPLETED", "DELIVERED")
+                        HistoryFilter.CANCELLED -> upper in listOf("CANCELLED", "REJECTED")
+                    }
                 }
             }
 
@@ -134,7 +160,7 @@ fun FoodOrderHistoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 when {
-                    state.isLoading -> {
+                    state.isLoading && state.orders.isEmpty() -> {
                         CircularProgressIndicator(color = PrimaryColor)
                     }
                     state.errorMessage != null && state.orders.isEmpty() -> {
@@ -193,6 +219,7 @@ fun FoodOrderHistoryScreen(
 @Composable
 private fun FilterSection(
     selectedFilter: HistoryFilter,
+    allOrders: List<FoodOrder>,
     onFilterSelected: (HistoryFilter) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -200,14 +227,16 @@ private fun FilterSection(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceLight)
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = Dimen.PaddingML, vertical = Dimen.PaddingS),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
     ) {
         HistoryFilter.entries.forEach { filter ->
-            val labelRes = when (filter) {
-                HistoryFilter.ALL -> R.string.food_history_filter_all
-                HistoryFilter.ACTIVE -> R.string.food_history_filter_active
-                HistoryFilter.COMPLETED -> R.string.food_history_filter_completed
+            val label = when (filter) {
+                HistoryFilter.ALL -> stringResource(R.string.food_history_filter_all)
+                HistoryFilter.ONGOING -> stringResource(R.string.food_history_filter_ongoing)
+                HistoryFilter.DELIVERED -> stringResource(R.string.food_history_filter_delivered)
+                HistoryFilter.CANCELLED -> stringResource(R.string.food_history_filter_cancelled)
             }
             val isSelected = selectedFilter == filter
 
@@ -216,17 +245,18 @@ private fun FilterSection(
                 onClick = { onFilterSelected(filter) },
                 label = {
                     Text(
-                        text = stringResource(labelRes),
-                        style = MaterialTheme.typography.s14.bold()
+                        text = label,
+                        style = if (isSelected) MaterialTheme.typography.s14.bold() else MaterialTheme.typography.s14.normal()
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryColor,
-                    selectedLabelColor = TextWhite,
+                    selectedContainerColor = PrimaryColor.copy(alpha = 0.12f),
+                    selectedLabelColor = PrimaryColor,
                     containerColor = BackgroundLight,
-                    labelColor = TextPrimary
+                    labelColor = TextSecondary
                 ),
-                shape = RoundedCornerShape(AppShape.ShapeM)
+                border = null,
+                shape = RoundedCornerShape(AppShape.ShapeXL2)
             )
         }
     }

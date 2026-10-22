@@ -14,6 +14,7 @@ data class FoodOrderHistoryUiState(
 
 enum class HistoryFilter {
     ALL,
-    ACTIVE,
-    COMPLETED
+    ONGOING,
+    DELIVERED,
+    CANCELLED
 }

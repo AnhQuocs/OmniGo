@@ -199,7 +199,7 @@ class FoodRepositoryImplTest {
             timestamp = null
         )
 
-        val result = repository.cancelFoodOrder(501L, "CHANGED_MIND", "Changed mind")
+        val result = repository.cancelFoodOrder(501L, "CUSTOMER_CHANGE_MIND", "Changed mind")
 
         assertTrue(result is CancelFoodOrderResult.Success)
         val success = result as CancelFoodOrderResult.Success

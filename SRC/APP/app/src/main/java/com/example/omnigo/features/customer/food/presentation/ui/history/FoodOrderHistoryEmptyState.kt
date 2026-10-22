@@ -1,14 +1,18 @@
 package com.example.omnigo.features.customer.food.presentation.ui.history
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -31,7 +35,6 @@ import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
-import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun FoodOrderHistoryEmptyState(
@@ -45,14 +48,24 @@ fun FoodOrderHistoryEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-            contentDescription = null,
-            tint = PrimaryColor.copy(alpha = 0.7f),
-            modifier = Modifier.size(Dimen.SizeMega)
-        )
+        Box(
+            modifier = Modifier
+                .size(Dimen.SizeUltra)
+                .background(
+                    color = PrimaryColor.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Fastfood,
+                contentDescription = null,
+                tint = PrimaryColor,
+                modifier = Modifier.size(Dimen.SizeXLPlus)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
+        Spacer(modifier = Modifier.height(AppSpacing.L))
 
         Text(
             text = stringResource(R.string.food_history_empty_title),
@@ -85,3 +98,4 @@ fun FoodOrderHistoryEmptyState(
         }
     }
 }
+

@@ -21,9 +21,9 @@ class FoodOrderRequestMapperTest {
         ).toRequest()
 
         assertEquals(20L, request.restaurantId)
-        assertEquals("Delivery Street", request.dropOffAddress)
-        assertEquals(21.5, request.dropOffLatitude, 0.001)
-        assertEquals(105.5, request.dropOffLongitude, 0.001)
+        assertEquals("Delivery Street", request.deliveryAddress)
+        assertEquals(21.5, request.deliveryLatitude, 0.001)
+        assertEquals(105.5, request.deliveryLongitude, 0.001)
         assertEquals("Call first", request.note)
         assertEquals("MOMO", request.paymentMethod)
         assertEquals(44L, request.items.single().menuItemId)

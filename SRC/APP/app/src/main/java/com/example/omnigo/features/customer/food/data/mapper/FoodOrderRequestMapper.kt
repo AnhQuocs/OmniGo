@@ -7,9 +7,9 @@ import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCom
 fun FoodOrderCreateCommand.toRequest(): FoodOrderRequest =
     FoodOrderRequest(
         restaurantId = restaurantId,
-        dropOffAddress = dropOffAddress,
-        dropOffLatitude = dropOffLatitude,
-        dropOffLongitude = dropOffLongitude,
+        deliveryAddress = dropOffAddress,
+        deliveryLatitude = dropOffLatitude,
+        deliveryLongitude = dropOffLongitude,
         items = items.map { item ->
             FoodOrderItemRequest(
                 menuItemId = item.menuItemId,
