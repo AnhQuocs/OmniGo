@@ -7,6 +7,8 @@ import com.trung.fooddeliveryservice.entity.FoodOrder;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -27,25 +29,33 @@ public class FoodEventPublisher {
 
     public void publishOrderStatusAfterCommit(FoodOrder order) {
         // Capture scalar values now; never access a detached entity from the callback.
-        FoodOrderStatusEvent event = new FoodOrderStatusEvent(order.getId(), order.getCustomerId(),
-                order.getDriverId(), order.getStatus().name(), Instant.now().toString());
+        FoodOrderStatusEvent event = new FoodOrderStatusEvent(order.getId(),
+                order.getStatus().name(), Instant.now().toString());
+        String recipients = order.getCustomerId().toString();
+        if (order.getDriverId() != null && !order.getDriverId().equals(order.getCustomerId())) {
+            recipients += "," + order.getDriverId();
+        }
+        final byte[] routingHeader = recipients.getBytes(StandardCharsets.UTF_8);
         if (TransactionSynchronizationManager.isActualTransactionActive()
                 && TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    sendOrderStatus(event);
+                    sendOrderStatus(event, routingHeader);
                 }
             });
         } else {
             // Async timeout paths call this after repository.save has committed.
-            sendOrderStatus(event);
+            sendOrderStatus(event, routingHeader);
         }
     }
 
-    private void sendOrderStatus(FoodOrderStatusEvent event) {
+    private void sendOrderStatus(FoodOrderStatusEvent event, byte[] routingHeader) {
         try {
-            kafkaTemplate.send(FOOD_ORDER_STATUS_TOPIC, event.getOrderId().toString(), event)
+            ProducerRecord<String, Object> record = new ProducerRecord<>(
+                    FOOD_ORDER_STATUS_TOPIC, event.getOrderId().toString(), event);
+            record.headers().add("food-status-recipients", routingHeader);
+            kafkaTemplate.send(record)
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             log.error("Could not publish food order status: orderId={}", event.getOrderId(), error);

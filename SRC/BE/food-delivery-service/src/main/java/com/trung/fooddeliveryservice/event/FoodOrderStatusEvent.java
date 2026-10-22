@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FoodOrderStatusEvent {
     private Long orderId;
-    private Long customerId;
-    private Long driverId;
     private String status;
     private String timestamp;
 }

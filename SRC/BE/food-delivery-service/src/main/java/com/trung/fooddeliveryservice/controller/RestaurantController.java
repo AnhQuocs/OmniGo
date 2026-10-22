@@ -50,7 +50,7 @@ public class RestaurantController {
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
             @RequestParam("file") MultipartFile file) throws BadRequestException {
         String url = cloudinaryService.uploadImage(file);
-        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url != null ? url : ""), "Tải ảnh lên thành công"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url), "Tải ảnh lên thành công"));
     }
 
     @PostMapping

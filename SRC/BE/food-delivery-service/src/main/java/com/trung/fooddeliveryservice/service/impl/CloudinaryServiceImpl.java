@@ -3,100 +3,91 @@ package com.trung.fooddeliveryservice.service.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
+import com.trung.fooddeliveryservice.exception.ImageUploadException;
 import com.trung.fooddeliveryservice.service.CloudinaryService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.net.URI;
+import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CloudinaryServiceImpl implements CloudinaryService {
-
     private final Cloudinary cloudinary;
 
     @Override
     public String uploadImage(MultipartFile file) throws BadRequestException {
         if (file == null || file.isEmpty()) {
-            return null;
+            throw new BadRequestException("Vui lòng chọn ảnh để tải lên.");
         }
-
-        String filename = file.getOriginalFilename();
-        String contentType = file.getContentType();
-        if (!isAllowedImageType(contentType, filename)) {
-            throw new BadRequestException("Chỉ cho phép tải lên ảnh định dạng PNG, JPG/JPEG hoặc WEBP.");
+        if (!isAllowedImageType(file.getContentType(), file.getOriginalFilename())) {
+            throw new BadRequestException("Chỉ cho phép ảnh PNG, JPG/JPEG hoặc WEBP.");
         }
-
         try {
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                    "folder", "omnigofood/reviews",
-                    "resource_type", "auto"
-            ));
-            String url = (String) uploadResult.get("secure_url");
-            log.info("Uploaded file to Cloudinary successfully: {}", url);
-            return url;
-        } catch (IOException e) {
-            log.error("Failed to upload image file to Cloudinary: {}", e.getMessage(), e);
-            throw new RuntimeException("Không thể tải ảnh lên Cloudinary: " + e.getMessage());
+            return upload(file.getBytes());
+        } catch (java.io.IOException error) {
+            log.error("Cannot read image for upload", error);
+            throw new ImageUploadException("Không thể đọc ảnh tải lên. Vui lòng chọn lại ảnh.", HttpStatus.BAD_REQUEST);
         }
     }
 
     @Override
-    public String uploadBase64(String base64Data) {
-        if (base64Data == null || base64Data.trim().isEmpty()) {
-            return null;
+    public String validateImageUrl(String input) {
+        // Business requests only store URLs returned by the multipart upload endpoint.
+        if (input == null) return null;
+        String url = input.trim();
+        if (!isCloudinaryImageUrl(url)) {
+            throw new ImageUploadException(
+                    "Vui lòng upload ảnh bằng multipart/form-data trước, sau đó gửi URL Cloudinary được trả về.",
+                    HttpStatus.BAD_REQUEST);
         }
-        // If already a remote URL, return as is
-        if (base64Data.startsWith("http://") || base64Data.startsWith("https://")) {
-            return base64Data;
-        }
-
-        // Validate base64 data url mime type
-        if (base64Data.startsWith("data:")) {
-            int semiIdx = base64Data.indexOf(';');
-            if (semiIdx > 5) {
-                String mime = base64Data.substring(5, semiIdx).toLowerCase();
-                if (!isAllowedMime(mime)) {
-                    log.warn("Bỏ qua ảnh base64 không đúng định dạng cho phép: {}", mime);
-                    return null;
-                }
-            }
-        }
-
+        return url;
+    }
+    private String upload(byte[] image) {
         try {
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(base64Data, ObjectUtils.asMap(
-                    "folder", "omnigofood/reviews",
-                    "resource_type", "auto"
-            ));
-            String url = (String) uploadResult.get("secure_url");
-            log.info("Uploaded base64 image to Cloudinary successfully: {}", url);
-            return url;
-        } catch (Exception e) {
-            log.error("Failed to upload base64 image to Cloudinary: {}", e.getMessage(), e);
-            // If upload fails, fallback to raw string rather than throwing error
-            return base64Data;
+            Map<?, ?> result = cloudinary.uploader().upload(image, ObjectUtils.asMap(
+                    "folder", "omnigofood/reviews", "resource_type", "image"));
+            Object url = result == null ? null : result.get("secure_url");
+            if (!(url instanceof String) || !isCloudinaryImageUrl((String) url)) {
+                throw new IllegalStateException("Cloudinary returned no valid image URL");
+            }
+            return (String) url;
+        } catch (Exception error) {
+            log.error("Cloudinary image upload failed", error);
+            throw new ImageUploadException("Không thể tải ảnh lên Cloudinary. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY);
+        }
+    }
+
+    private boolean isCloudinaryImageUrl(String value) {
+        try {
+            URI uri = URI.create(value);
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && "res.cloudinary.com".equalsIgnoreCase(uri.getHost())
+                    && uri.getUserInfo() == null && uri.getPort() == -1
+                    && uri.getPath() != null && uri.getPath().matches("/[^/]+/image/upload/.+");
+        } catch (IllegalArgumentException error) {
+            return false;
         }
     }
 
     private boolean isAllowedImageType(String contentType, String filename) {
-        if (contentType != null && isAllowedMime(contentType.toLowerCase())) {
-            return true;
-        }
-        if (filename != null) {
-            String fn = filename.toLowerCase();
-            return fn.endsWith(".png") || fn.endsWith(".jpg") || fn.endsWith(".jpeg") || fn.endsWith(".webp");
-        }
-        return false;
+        if (contentType != null && isAllowedMime(contentType.toLowerCase(Locale.ROOT))) return true;
+        if (filename == null) return false;
+        String name = filename.toLowerCase(Locale.ROOT);
+        return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".webp");
     }
 
     private boolean isAllowedMime(String mime) {
-        return "image/png".equals(mime)
-                || "image/jpeg".equals(mime)
-                || "image/jpg".equals(mime)
-                || "image/webp".equals(mime);
+        return "image/png".equals(mime) || "image/jpeg".equals(mime)
+                || "image/jpg".equals(mime) || "image/webp".equals(mime);
     }
 }

@@ -22,6 +22,8 @@ public class FoodOrderResponse implements Serializable {
     private Long restaurantId;
     private String restaurantName;
     private String restaurantAddress;
+    private Double restaurantLatitude;
+    private Double restaurantLongitude;
     private Long driverId;
     private OrderStatus status;
     private BigDecimal totalPrice;

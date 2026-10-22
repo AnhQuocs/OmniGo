@@ -100,6 +100,6 @@ public class FoodOrderReviewController {
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadReviewImage(
             @RequestParam("file") MultipartFile file) throws BadRequestException {
         String url = cloudinaryService.uploadImage(file);
-        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url != null ? url : ""), "Tải ảnh lên thành công"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url), "Tải ảnh lên thành công"));
     }
 }

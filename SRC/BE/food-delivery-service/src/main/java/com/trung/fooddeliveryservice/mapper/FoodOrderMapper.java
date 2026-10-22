@@ -40,6 +40,8 @@ public class FoodOrderMapper {
                 .restaurantId(order.getRestaurant() != null ? order.getRestaurant().getId() : null)
                 .restaurantName(order.getRestaurant() != null ? order.getRestaurant().getName() : null)
                 .restaurantAddress(order.getRestaurant() != null ? order.getRestaurant().getAddress() : null)
+                .restaurantLatitude(order.getRestaurant() != null ? order.getRestaurant().getLatitude() : null)
+                .restaurantLongitude(order.getRestaurant() != null ? order.getRestaurant().getLongitude() : null)
                 .driverId(order.getDriverId())
                 .status(order.getStatus())
                 .totalPrice(order.getTotalPrice())
