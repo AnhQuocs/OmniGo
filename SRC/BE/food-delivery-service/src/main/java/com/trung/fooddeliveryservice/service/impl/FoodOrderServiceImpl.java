@@ -151,7 +151,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setTotalPrice(itemsTotal.add(deliveryFee));
         order.setOrderItems(orderItems);
 
-        FoodOrder savedOrder = foodOrderRepository.save(order);
+        FoodOrder savedOrder = saveAndNotifyStatus(order);
         log.info("Tạo thành công đơn hàng ID {} cho khách hàng ID {}, tổng tiền: {} đ (chờ nhà hàng duyệt)", savedOrder.getId(), customerId, savedOrder.getTotalPrice());
 
         return foodOrderMapper.toResponse(savedOrder);
@@ -269,7 +269,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             }
 
             order.setStatus(newStatus);
-            FoodOrder saved = foodOrderRepository.save(order);
+            FoodOrder saved = saveAndNotifyStatus(order);
             log.info("Chủ nhà hàng ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", ownerId, orderId, newStatus);
 
             if (newStatus == OrderStatus.READY_FOR_PICKUP) {
@@ -303,14 +303,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                                 if (retryCount < 1) {
                                     log.warn("Đơn hàng ID {} không có tài xế nhận sau lần quét đầu, chuyển sang NO_DRIVER_FOUND", targetOrderId);
                                     o.setStatus(OrderStatus.NO_DRIVER_FOUND);
-                                    foodOrderRepository.save(o);
+                                    saveAndNotifyStatus(o);
                                 } else {
                                     log.warn("Đơn hàng ID {} không có tài xế nhận sau khi quét lại lần 2, tự động hủy CANCELLED", targetOrderId);
                                     o.setStatus(OrderStatus.CANCELLED);
                                     o.setCancelledBy(OrderCancelledBy.SYSTEM);
                                     o.setCancelReason("Không tìm thấy tài xế sau nhiều lần tìm kiếm");
                                     o.setCancelReasonCode(OrderCancelReason.SYSTEM_NO_DRIVER_FOUND);
-                                    FoodOrder savedCancelled = foodOrderRepository.save(o);
+                                    FoodOrder savedCancelled = saveAndNotifyStatus(o);
                                     if (Boolean.TRUE.equals(savedCancelled.getIsPaid())) {
                                         triggerRefund(savedCancelled.getCustomerId(), savedCancelled.getId(), savedCancelled.getTotalPrice(), "Hệ thống hủy đơn do không tìm thấy tài xế");
                                     }
@@ -377,7 +377,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             order.setCancelledBy(OrderCancelledBy.CUSTOMER);
             order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Khách hàng tự hủy đơn"));
             order.setCancelReasonCode(reasonCode);
-            FoodOrder saved = foodOrderRepository.save(order);
+            FoodOrder saved = saveAndNotifyStatus(order);
             log.info("Khách hàng ID {} đã hủy thành công đơn hàng ID {}", customerId, orderId);
 
             if (Boolean.TRUE.equals(saved.getIsPaid())) {
@@ -404,7 +404,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             order.setStatus(OrderStatus.DELIVERING);
         }
 
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã gán thành công tài xế ID {} cho đơn hàng ID {}", driverId, orderId);
         return foodOrderMapper.toResponse(saved);
     }
@@ -443,7 +443,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía tài xế: " + newStatus);
         }
 
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Tài xế ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", driverId, orderId, newStatus);
 
         if (newStatus == OrderStatus.COMPLETED) {
@@ -469,7 +469,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             order.setStatus(OrderStatus.PENDING);
             log.info("Đơn hàng #{} đã thanh toán thành công, tự động chuyển từ AWAITING_PAYMENT sang PENDING để quán nhận đơn", orderId);
         }
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã đánh dấu đơn hàng #{} là ĐÃ THANH TOÁN (isPaid = true)", orderId);
         return foodOrderMapper.toResponse(saved);
     }
@@ -493,9 +493,15 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setPaymentMethod("CASH");
         order.setIsPaid(false);
         order.setStatus(OrderStatus.PENDING);
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Khách hàng ID {} đã chuyển đơn hàng #{} sang thanh toán TIỀN MẶT (CASH), chuyển trạng thái sang PENDING để quán nhận đơn", customerId, orderId);
         return foodOrderMapper.toResponse(saved);
+    }
+
+    private FoodOrder saveAndNotifyStatus(FoodOrder order) {
+        FoodOrder saved = foodOrderRepository.save(order);
+        foodEventPublisher.publishOrderStatusAfterCommit(saved);
+        return saved;
     }
 
     private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal deliveryFee, String paymentMethod) {
