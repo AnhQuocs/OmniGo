@@ -382,13 +382,16 @@
     <string name="order_detail_action_call_driver">Call driver</string>
 
     <!-- PART 4: History & Order Edge Cases -->
-    <string name="food_history_title">Order History</string>
+    <string name="food_history_title">Food Order History</string>
     <string name="food_history_empty_title">No Orders Yet</string>
     <string name="food_history_empty_desc">You have not placed any food orders yet. Explore our delicious restaurants now!</string>
     <string name="food_history_order_items_count">%1$d items</string>
     <string name="food_history_btn_order_now">Explore Food</string>
     <string name="food_history_filter_all">All</string>
-    <string name="food_history_filter_active">Active</string>
+    <string name="food_history_filter_active">In Progress</string>
+    <string name="food_history_filter_ongoing">In Progress</string>
+    <string name="food_history_filter_delivered">Delivered</string>
+    <string name="food_history_filter_cancelled">Cancelled</string>
     <string name="food_history_filter_completed">Completed</string>
     <string name="order_detail_btn_cancel">Cancel Order</string>
     <string name="order_detail_btn_switch_cash">Switch to Cash</string>
@@ -409,4 +412,28 @@
     <string name="order_switch_cash_success">Switched to cash payment successfully</string>
     <string name="order_retry_driver_success">Searching for a new driver near the restaurant</string>
     <string name="food_home_history_tooltip">Order history</string>
+    <string name="food_history_btn_track_order">Track Order</string>
+    <string name="food_history_btn_reorder">Reorder</string>
+    <string name="food_history_btn_review">Rate &amp; Review</string>
+    <string name="food_history_btn_view_detail">View Details</string>
+    <string name="food_history_order_date">Ordered at: %1$s</string>
+    <string name="food_history_total_label">Total Amount</string>
+    <string name="food_history_more_items">+%1$d other items</string>
+    <string name="order_detail_payment_section_title">Payment Information</string>
+    <string name="order_detail_payment_method_label">Payment Method</string>
+    <string name="order_detail_payment_status_label">Payment Status</string>
+    <string name="order_detail_payment_cash_desc">Cash on delivery</string>
+    <string name="order_detail_payment_paid_desc">Paid</string>
+    <string name="order_detail_payment_unpaid_desc">Unpaid</string>
+    <string name="order_detail_btn_reorder_this">Reorder this</string>
+    <string name="order_detail_status_delivered_banner">Order delivered successfully</string>
+    <string name="order_detail_status_delivered_subtitle">Thank you for your order!</string>
+    <string name="order_detail_items_section_title">Order items (%1$d)</string>
+    <string name="order_detail_item_portion">%1$d portion</string>
+    <string name="order_detail_total_summary_label">Total</string>
+    <string name="order_detail_step_placed">Placed</string>
+    <string name="order_detail_step_preparing">Preparing</string>
+    <string name="order_detail_step_delivering">Delivering</string>
+    <string name="order_detail_step_delivered">Delivered</string>
+    <string name="order_detail_paid_at_format">Paid successfully at %1$s</string>
 </resources>

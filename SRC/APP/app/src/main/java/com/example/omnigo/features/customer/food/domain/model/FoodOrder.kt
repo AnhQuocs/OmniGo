@@ -23,31 +23,19 @@ enum class PaymentMethod(val code: String) {
 
 
 data class FoodOrderItem(
-
     val id: Long,
-
     val menuItemId: Long,
-
     val itemName: String,
-
     val itemPrice: Double,
-
     val quantity: Int,
-
     val subtotal: Double,
-
-    val note: String
-
+    val note: String,
+    val imageUrl: String? = null
 )
 
-
-
 data class FoodOrder(
-
     val id: Long,
-
     val customerId: Long?,
-
     val driverId: Long?,
     val driverName: String? = null,
     val driverPhone: String? = null,
@@ -56,6 +44,7 @@ data class FoodOrder(
     val restaurantId: Long,
     val restaurantName: String,
     val restaurantAddress: String? = null,
+    val restaurantImageUrl: String? = null,
     val status: String,
     val paymentMethod: PaymentMethod?,
     val isPaid: Boolean?,
@@ -68,6 +57,5 @@ data class FoodOrder(
     val note: String,
     val items: List<FoodOrderItem>,
     val estimatedDeliveryMinutes: Int?,
-
     val createdAt: String
 )

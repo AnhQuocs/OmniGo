@@ -74,14 +74,14 @@ fun FoodOrderDetailActionSection(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
+        shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         elevation = CardDefaults.cardElevation(defaultElevation = Dimen.PaddingXXS)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingM),
+                .padding(Dimen.PaddingML),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.S)
         ) {
             Text(

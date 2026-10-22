@@ -198,6 +198,8 @@ services:
     image: vmt1609/food-delivery-service:latest
     build:
       context: ./food-delivery-service
+    ports:
+      - "8086:8086"
     deploy:
       resources:
         limits:

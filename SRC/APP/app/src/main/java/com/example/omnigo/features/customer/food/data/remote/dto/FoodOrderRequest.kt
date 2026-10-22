@@ -14,12 +14,12 @@ data class FoodOrderItemRequest(
 data class FoodOrderRequest(
     @SerializedName("restaurantId")
     val restaurantId: Long,
-    @SerializedName("dropOffAddress")
-    val dropOffAddress: String,
-    @SerializedName("dropOffLatitude")
-    val dropOffLatitude: Double,
-    @SerializedName("dropOffLongitude")
-    val dropOffLongitude: Double,
+    @SerializedName("deliveryAddress")
+    val deliveryAddress: String,
+    @SerializedName("deliveryLatitude")
+    val deliveryLatitude: Double,
+    @SerializedName("deliveryLongitude")
+    val deliveryLongitude: Double,
     @SerializedName("items")
     val items: List<FoodOrderItemRequest>,
     @SerializedName("note")

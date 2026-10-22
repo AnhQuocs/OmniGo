@@ -75,6 +75,24 @@ class FoodOrderHistoryViewModel @Inject constructor(
         }
     }
 
+    fun syncOrdersSilently() {
+        viewModelScope.launch {
+            when (val result = getMyFoodOrdersUseCase()) {
+                is GetMyFoodOrdersResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            orders = result.orders,
+                            errorMessage = null
+                        )
+                    }
+                }
+                is GetMyFoodOrdersResult.Error -> {
+                    // Silently ignore background sync errors to preserve current UI
+                }
+            }
+        }
+    }
+
     fun onFilterSelected(filter: HistoryFilter) {
         _uiState.update { it.copy(selectedFilter = filter) }
     }

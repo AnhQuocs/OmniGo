@@ -78,6 +78,12 @@ class FoodActivity : BaseComponentActivity() {
                         onBackClick = { navController.popBackStack() },
                         onOrderClick = { orderId ->
                             navController.navigate("food_order_detail/$orderId")
+                        },
+                        onReorderClick = { order ->
+                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                        },
+                        onReviewClick = { order ->
+                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
                         }
                     )
                 }
@@ -90,7 +96,13 @@ class FoodActivity : BaseComponentActivity() {
                 ) {
                     FoodOrderDetailScreen(
                         onBackClick = {
-                            navController.popBackStack("food_home", inclusive = false)
+                            navController.popBackStack()
+                        },
+                        onReorderClick = { order ->
+                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                        },
+                        onReviewClick = { order ->
+                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
                         }
                     )
                 }

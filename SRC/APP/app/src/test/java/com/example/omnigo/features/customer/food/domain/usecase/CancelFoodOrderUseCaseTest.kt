@@ -49,7 +49,7 @@ class CancelFoodOrderUseCaseTest {
 
     @Test
     fun `invoke with invalid orderId returns error without repository call`() = runTest {
-        val result = useCase(0L, "CHANGED_MIND", "Changed mind")
+        val result = useCase(0L, "CUSTOMER_CHANGE_MIND", "Changed mind")
 
         assertTrue(result is CancelFoodOrderResult.Error)
         val error = result as CancelFoodOrderResult.Error
@@ -60,10 +60,10 @@ class CancelFoodOrderUseCaseTest {
     @Test
     fun `invoke with valid parameters returns success`() = runTest {
         coEvery {
-            repository.cancelFoodOrder(100L, "CHANGED_MIND", "I changed my mind")
+            repository.cancelFoodOrder(100L, "CUSTOMER_CHANGE_MIND", "I changed my mind")
         } returns CancelFoodOrderResult.Success(mockCancelledOrder)
 
-        val result = useCase(100L, "CHANGED_MIND", "I changed my mind")
+        val result = useCase(100L, "CUSTOMER_CHANGE_MIND", "I changed my mind")
 
         assertTrue(result is CancelFoodOrderResult.Success)
         val success = result as CancelFoodOrderResult.Success
@@ -74,10 +74,10 @@ class CancelFoodOrderUseCaseTest {
     @Test
     fun `invoke when repository fails returns error`() = runTest {
         coEvery {
-            repository.cancelFoodOrder(100L, "CHANGED_MIND", null)
+            repository.cancelFoodOrder(100L, "CUSTOMER_CHANGE_MIND", null)
         } returns CancelFoodOrderResult.Error(FoodError.SERVER_ERROR, "Cannot cancel prepared order")
 
-        val result = useCase(100L, "CHANGED_MIND", null)
+        val result = useCase(100L, "CUSTOMER_CHANGE_MIND", null)
 
         assertTrue(result is CancelFoodOrderResult.Error)
         val error = result as CancelFoodOrderResult.Error

@@ -47,10 +47,10 @@ private data class CancelReasonOption(
 )
 
 private val CANCEL_REASONS = listOf(
-    CancelReasonOption("CHANGED_MIND", R.string.order_cancel_reason_changed_mind),
-    CancelReasonOption("LONG_WAIT", R.string.order_cancel_reason_long_wait),
-    CancelReasonOption("WRONG_INFO", R.string.order_cancel_reason_wrong_info),
-    CancelReasonOption("OTHER", R.string.order_cancel_reason_other)
+    CancelReasonOption("CUSTOMER_CHANGE_MIND", R.string.order_cancel_reason_changed_mind),
+    CancelReasonOption("CUSTOMER_WAIT_TOO_LONG", R.string.order_cancel_reason_long_wait),
+    CancelReasonOption("CUSTOMER_WRONG_ORDER", R.string.order_cancel_reason_wrong_info),
+    CancelReasonOption("CUSTOMER_OTHER", R.string.order_cancel_reason_other)
 )
 
 @Composable
@@ -104,7 +104,7 @@ fun CancelOrderDialog(
                     }
                 }
 
-                if (selectedCode == "OTHER") {
+                if (selectedCode == "CUSTOMER_OTHER") {
                     Spacer(modifier = Modifier.height(AppSpacing.S))
                     OutlinedTextField(
                         value = customReason,
@@ -124,7 +124,7 @@ fun CancelOrderDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val finalReason = if (selectedCode == "OTHER" && customReason.isNotBlank()) {
+                    val finalReason = if (selectedCode == "CUSTOMER_OTHER" && customReason.isNotBlank()) {
                         customReason.trim()
                     } else {
                         selectedCode

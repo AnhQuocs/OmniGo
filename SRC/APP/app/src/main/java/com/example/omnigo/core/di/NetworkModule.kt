@@ -69,7 +69,7 @@ abstract class NetworkModule {
                 .build()
         }
 
-        private const val BASE_LOCALHOST = "http://192.168.1.175:8086/"
+        // private const val BASE_LOCALHOST = "http://192.168.1.24:8080/"
 
         @Provides
         @Singleton
@@ -78,8 +78,8 @@ abstract class NetworkModule {
             gsonConverterFactory: GsonConverterFactory
         ): Retrofit {
             return Retrofit.Builder()
-//                .baseUrl(BuildConfig.BASE_URL)
-                .baseUrl(BASE_LOCALHOST)
+                .baseUrl(BuildConfig.BASE_URL)
+                // .baseUrl(BASE_LOCALHOST)
                 .client(okHttpClient)
                 .addConverterFactory(gsonConverterFactory)
                 .build()

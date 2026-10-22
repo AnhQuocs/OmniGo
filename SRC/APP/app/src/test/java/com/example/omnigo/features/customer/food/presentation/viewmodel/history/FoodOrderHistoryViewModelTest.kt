@@ -104,17 +104,45 @@ class FoodOrderHistoryViewModelTest {
         viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
         advanceUntilIdle()
 
-        // Filter: ACTIVE
-        viewModel.onFilterSelected(HistoryFilter.ACTIVE)
-        assertEquals(HistoryFilter.ACTIVE, viewModel.uiState.value.selectedFilter)
+        // Filter: ONGOING
+        viewModel.onFilterSelected(HistoryFilter.ONGOING)
+        assertEquals(HistoryFilter.ONGOING, viewModel.uiState.value.selectedFilter)
 
-        // Filter: COMPLETED
-        viewModel.onFilterSelected(HistoryFilter.COMPLETED)
-        assertEquals(HistoryFilter.COMPLETED, viewModel.uiState.value.selectedFilter)
+        // Filter: DELIVERED
+        viewModel.onFilterSelected(HistoryFilter.DELIVERED)
+        assertEquals(HistoryFilter.DELIVERED, viewModel.uiState.value.selectedFilter)
+
+        // Filter: CANCELLED
+        viewModel.onFilterSelected(HistoryFilter.CANCELLED)
+        assertEquals(HistoryFilter.CANCELLED, viewModel.uiState.value.selectedFilter)
 
         // Filter: ALL
         viewModel.onFilterSelected(HistoryFilter.ALL)
         assertEquals(HistoryFilter.ALL, viewModel.uiState.value.selectedFilter)
+    }
+
+    @Test
+    fun `syncOrdersSilently updates orders list without flashing loading indicator`() = runTest {
+        coEvery { getMyFoodOrdersUseCase() } returns GetMyFoodOrdersResult.Success(
+            listOf(pendingOrder)
+        )
+
+        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.orders.size)
+
+        coEvery { getMyFoodOrdersUseCase() } returns GetMyFoodOrdersResult.Success(
+            listOf(pendingOrder, completedOrder)
+        )
+
+        viewModel.syncOrdersSilently()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+        assertEquals(2, viewModel.uiState.value.orders.size)
+        coVerify(exactly = 2) { getMyFoodOrdersUseCase() }
     }
 
     @Test

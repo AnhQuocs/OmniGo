@@ -6,14 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,8 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.food.presentation.viewmodel.FoodOrderDetailViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -46,10 +47,8 @@ import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
-import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.normal
-import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s15
 import com.example.omnigo.utils.s18
 
@@ -58,6 +57,8 @@ import com.example.omnigo.utils.s18
 fun FoodOrderDetailScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onReorderClick: ((FoodOrder) -> Unit)? = null,
+    onReviewClick: ((FoodOrder) -> Unit)? = null,
     viewModel: FoodOrderDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,6 +81,11 @@ fun FoodOrderDetailScreen(
         }
     }
 
+    LifecycleResumeEffect(Unit) {
+        viewModel.loadOrderDetail(isRefresh = true)
+        onPauseOrDispose { }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -87,11 +93,7 @@ fun FoodOrderDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (uiState.order != null) {
-                            stringResource(id = R.string.order_detail_order_id, uiState.order?.id ?: 0L)
-                        } else {
-                            stringResource(id = R.string.order_detail_title)
-                        },
+                        text = stringResource(id = R.string.order_detail_title),
                         style = MaterialTheme.typography.s18.bold(),
                         color = TextPrimary
                     )
@@ -106,27 +108,31 @@ fun FoodOrderDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { viewModel.loadOrderDetail(isRefresh = true) },
-                        enabled = !uiState.isLoading && !uiState.isRefreshing
-                    ) {
-                        if (uiState.isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimen.SizeS),
-                                color = PrimaryColor,
-                                strokeWidth = Dimen.PaddingXXS
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(id = R.string.order_detail_action_refresh),
-                                tint = PrimaryColor
-                            )
-                        }
+                    IconButton(onClick = { viewModel.loadOrderDetail(isRefresh = true) }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = TextPrimary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
             )
+        },
+        bottomBar = {
+            val order = uiState.order
+            if (order != null) {
+                FoodOrderDetailBottomBar(
+                    order = order,
+                    retryDriverCount = uiState.retryDriverCount,
+                    isActionLoading = uiState.isActionLoading,
+                    onCancelClick = { viewModel.onOpenCancelDialog() },
+                    onSwitchToCashClick = { viewModel.onSwitchToCash() },
+                    onRetryDriverClick = { viewModel.onRetryDriver() },
+                    onReorderClick = { onReorderClick?.invoke(it) },
+                    onReviewClick = { onReviewClick?.invoke(it) }
+                )
+            }
         },
         containerColor = BackgroundLight
     ) { paddingValues ->
@@ -151,30 +157,42 @@ fun FoodOrderDetailScreen(
                     val order = uiState.order!!
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(Dimen.PaddingM),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
+                        contentPadding = PaddingValues(
+                            start = Dimen.PaddingM,
+                            end = Dimen.PaddingM,
+                            top = Dimen.PaddingM,
+                            bottom = Dimen.PaddingM
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge)
                     ) {
-                        // 1. Status Stepper / Timeline
+                        // 1. Restaurant Hero Banner
+                        item {
+                            OrderDetailRestaurantHeroHeader(
+                                restaurantName = order.restaurantName,
+                                restaurantAddress = order.restaurantAddress,
+                                restaurantImageUrl = order.restaurantImageUrl
+                            )
+                        }
+
+                        // 2. Status Stepper Timeline
                         item {
                             FoodOrderStatusTimeline(
                                 status = order.status,
-                                estimatedDeliveryMinutes = order.estimatedDeliveryMinutes
+                                createdAt = order.createdAt
                             )
                         }
 
-                        // 2. Actions (Cancel, Switch to Cash, Retry Driver)
+                        // 3. Delivered/Status Banner
                         item {
-                            FoodOrderDetailActionSection(
-                                order = order,
-                                retryDriverCount = uiState.retryDriverCount,
-                                isActionLoading = uiState.isActionLoading,
-                                onCancelClick = { viewModel.onOpenCancelDialog() },
-                                onSwitchToCashClick = { viewModel.onSwitchToCash() },
-                                onRetryDriverClick = { viewModel.onRetryDriver() }
-                            )
+                            OrderDetailStatusBanner(status = order.status)
                         }
 
-                        // 3. Driver Info Card
+                        // 4. Delivery Destination Address Card
+                        item {
+                            OrderDetailDeliveryAddressCard(dropOffAddress = order.dropOffAddress)
+                        }
+
+                        // 5. Driver Info Card
                         item {
                             val profile = uiState.driverProfile
                             DriverInfoCard(
@@ -193,26 +211,18 @@ fun FoodOrderDetailScreen(
                             )
                         }
 
-                        // 4. Restaurant and Items
+                        // 6. Payment Information Card
                         item {
-                            OrderDetailRestaurantAndItemsSection(
-                                restaurantName = order.restaurantName,
-                                restaurantAddress = order.restaurantAddress,
-                                items = order.items
+                            OrderDetailPaymentAndPricingSection(
+                                paymentMethod = order.paymentMethod,
+                                isPaid = order.isPaid,
+                                createdAt = order.createdAt
                             )
                         }
 
-                        // 5. Payment & Pricing Details
+                        // 7. Order Items List Card
                         item {
-                            OrderDetailPaymentAndPricingSection(
-                                dropOffAddress = order.dropOffAddress,
-                                note = order.note,
-                                itemsPrice = order.itemsPrice,
-                                deliveryFee = order.deliveryFee,
-                                totalPrice = order.totalPrice,
-                                paymentMethod = order.paymentMethod,
-                                isPaid = order.isPaid
-                            )
+                            OrderDetailRestaurantAndItemsSection(items = order.items)
                         }
                     }
                 }
@@ -247,22 +257,19 @@ fun FoodOrderDetailScreen(
                                         R.string.order_detail_action_back
                                     }
                                 ),
-                                style = MaterialTheme.typography.s14.bold(),
-                                color = TextWhite
+                                style = MaterialTheme.typography.s15.bold()
                             )
                         }
                     }
                 }
             }
-
-            if (uiState.isCancelDialogOpen) {
-                CancelOrderDialog(
-                    onDismiss = { viewModel.onDismissCancelDialog() },
-                    onConfirm = { reasonCode, reason ->
-                        viewModel.onCancelOrder(reasonCode, reason)
-                    }
-                )
-            }
         }
+    }
+
+    if (uiState.isCancelDialogOpen) {
+        CancelOrderDialog(
+            onDismiss = { viewModel.onDismissCancelDialog() },
+            onConfirm = { reasonCode, reason -> viewModel.onCancelOrder(reasonCode, reason) }
+        )
     }
 }

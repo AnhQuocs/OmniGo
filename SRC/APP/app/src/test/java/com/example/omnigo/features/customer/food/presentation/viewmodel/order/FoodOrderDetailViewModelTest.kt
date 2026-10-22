@@ -146,7 +146,7 @@ class FoodOrderDetailViewModelTest {
     fun `cancel order success updates order and actionMessage`() = runTest {
         val cancelledOrder = mockOrder.copy(status = "CANCELLED")
         coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
-        coEvery { cancelFoodOrderUseCase(123L, "CHANGED_MIND", "Changed mind") } returns CancelFoodOrderResult.Success(cancelledOrder)
+        coEvery { cancelFoodOrderUseCase(123L, "CUSTOMER_CHANGE_MIND", "Changed mind") } returns CancelFoodOrderResult.Success(cancelledOrder)
 
         viewModel = createViewModel(123L)
         advanceUntilIdle()
@@ -154,7 +154,7 @@ class FoodOrderDetailViewModelTest {
         viewModel.onOpenCancelDialog()
         assertTrue(viewModel.uiState.value.isCancelDialogOpen)
 
-        viewModel.onCancelOrder("CHANGED_MIND", "Changed mind")
+        viewModel.onCancelOrder("CUSTOMER_CHANGE_MIND", "Changed mind")
         advanceUntilIdle()
 
         val state = viewModel.uiState.value

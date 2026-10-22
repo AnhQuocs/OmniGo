@@ -31,16 +31,11 @@ fun FoodOrderItemResponse.toDomain(): FoodOrderItem {
         itemPrice = unitPrice,
 
         quantity = quantity,
-
         subtotal = itemSubtotal,
-
-        note = note.orEmpty()
-
+        note = note.orEmpty(),
+        imageUrl = imageUrl
     )
-
 }
-
-
 
 fun FoodOrderResponse.toDomain(): FoodOrder {
     val itemsMapped = items?.map { it.toDomain() }.orEmpty()
@@ -57,6 +52,7 @@ fun FoodOrderResponse.toDomain(): FoodOrder {
         restaurantId = restaurantId ?: 0L,
         restaurantName = restaurantName.orEmpty(),
         restaurantAddress = restaurantAddress,
+        restaurantImageUrl = restaurantImageUrl,
         status = status.orEmpty(),
         paymentMethod = PaymentMethod.fromCode(paymentMethod),
         isPaid = isPaid,

@@ -384,13 +384,16 @@
     <string name="order_detail_action_call_driver">Gọi tài xế</string>
 
     <!-- PART 4: History & Order Edge Cases -->
-    <string name="food_history_title">Lịch sử đơn món</string>
+    <string name="food_history_title">Lịch sử đơn món ăn</string>
     <string name="food_history_empty_title">Chưa có đơn hàng nào</string>
     <string name="food_history_empty_desc">Bạn chưa đặt đơn hàng nào. Hãy khám phá các quán ăn ngon ngay nhé!</string>
     <string name="food_history_order_items_count">%1$d món</string>
     <string name="food_history_btn_order_now">Khám phá món ngon</string>
     <string name="food_history_filter_all">Tất cả</string>
-    <string name="food_history_filter_active">Đang giao</string>
+    <string name="food_history_filter_active">Đang xử lý</string>
+    <string name="food_history_filter_ongoing">Đang xử lý</string>
+    <string name="food_history_filter_delivered">Đã giao</string>
+    <string name="food_history_filter_cancelled">Đã hủy</string>
     <string name="food_history_filter_completed">Đã xong</string>
     <string name="order_detail_btn_cancel">Hủy đơn hàng</string>
     <string name="order_detail_btn_switch_cash">Đổi sang Tiền mặt</string>
@@ -411,4 +414,28 @@
     <string name="order_switch_cash_success">Đã chuyển sang thanh toán tiền mặt thành công</string>
     <string name="order_retry_driver_success">Đang tìm kiếm tài xế mới quanh khu vực quán</string>
     <string name="food_home_history_tooltip">Lịch sử đơn hàng</string>
+    <string name="food_history_btn_track_order">Theo dõi đơn</string>
+    <string name="food_history_btn_reorder">Đặt lại</string>
+    <string name="food_history_btn_review">Đánh giá</string>
+    <string name="food_history_btn_view_detail">Xem chi tiết</string>
+    <string name="food_history_order_date">Đặt lúc: %1$s</string>
+    <string name="food_history_total_label">Tổng thanh toán</string>
+    <string name="food_history_more_items">+%1$d món khác</string>
+    <string name="order_detail_payment_section_title">Thông tin thanh toán</string>
+    <string name="order_detail_payment_method_label">Phương thức thanh toán</string>
+    <string name="order_detail_payment_status_label">Trạng thái thanh toán</string>
+    <string name="order_detail_payment_cash_desc">Thu tiền mặt khi nhận hàng</string>
+    <string name="order_detail_payment_paid_desc">Đã thanh toán</string>
+    <string name="order_detail_payment_unpaid_desc">Chưa thanh toán</string>
+    <string name="order_detail_btn_reorder_this">Đặt lại đơn này</string>
+    <string name="order_detail_status_delivered_banner">Đơn hàng đã giao thành công</string>
+    <string name="order_detail_status_delivered_subtitle">Cảm ơn bạn đã đặt món!</string>
+    <string name="order_detail_items_section_title">Danh sách món (%1$d)</string>
+    <string name="order_detail_item_portion">%1$d phần</string>
+    <string name="order_detail_total_summary_label">Tổng cộng</string>
+    <string name="order_detail_step_placed">Đã đặt</string>
+    <string name="order_detail_step_preparing">Đang chuẩn bị</string>
+    <string name="order_detail_step_delivering">Đang giao</string>
+    <string name="order_detail_step_delivered">Đã giao</string>
+    <string name="order_detail_paid_at_format">Thanh toán thành công lúc %1$s</string>
 </resources>

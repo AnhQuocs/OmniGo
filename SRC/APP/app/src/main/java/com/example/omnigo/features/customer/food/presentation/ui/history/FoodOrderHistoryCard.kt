@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,34 +15,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.FoodOrder
+import com.example.omnigo.features.customer.food.presentation.ui.order.formatFoodOrderDateTime
 import com.example.omnigo.features.customer.food.presentation.ui.order.formatFoodOrderPrice
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.ErrorColor
-import com.example.omnigo.ui.theme.ErrorContainer
-import com.example.omnigo.ui.theme.OutlineVariantLight
 import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.SecondaryContainer
-import com.example.omnigo.ui.theme.SecondaryVariant
-import com.example.omnigo.ui.theme.SuccessColor
 import com.example.omnigo.ui.theme.SurfaceLight
-import com.example.omnigo.ui.theme.SurfaceVariantLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.utils.bold
@@ -49,7 +49,7 @@ import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
-import com.example.omnigo.utils.s16
+import com.example.omnigo.utils.s15
 
 @Composable
 fun FoodOrderHistoryCard(
@@ -57,131 +57,172 @@ fun FoodOrderHistoryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val displayImageUrl = order.items.firstOrNull { !it.imageUrl.isNullOrBlank() }?.imageUrl
+        ?: order.restaurantImageUrl.orEmpty()
+
+    val totalItemCount = order.items.sumOf { it.quantity }.coerceAtLeast(1)
+    val finalTotal = order.totalPrice ?: (order.itemsPrice + (order.deliveryFee ?: 0.0))
+    val formattedDate = formatFoodOrderDateTime(order.createdAt)
+
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(AppShape.ShapeM),
+        shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.elevatedCardColors(containerColor = SurfaceLight),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = Dimen.PaddingXXS)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingML)
+                .padding(Dimen.PaddingM),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Big Rounded Food / Restaurant Thumbnail on Left
+            Box(
+                modifier = Modifier
+                    .size(Dimen.SizeMega)
+                    .clip(RoundedCornerShape(AppShape.ShapeM))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
+                if (displayImageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(displayImageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = order.restaurantName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = PrimaryColor.copy(alpha = 0.5f),
+                        modifier = Modifier.size(Dimen.SizeXL)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(AppSpacing.M))
+
+            // Right Content
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Row 1: Restaurant Name + Status Pill Chip
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Store,
-                        contentDescription = null,
-                        tint = PrimaryColor,
-                        modifier = Modifier.size(Dimen.SizeSM)
-                    )
-                    Spacer(modifier = Modifier.width(AppSpacing.S))
                     Text(
                         text = order.restaurantName.ifBlank { stringResource(R.string.order_detail_restaurant_title) },
-                        style = MaterialTheme.typography.s16.bold(),
+                        style = MaterialTheme.typography.s15.bold(),
                         color = TextPrimary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
+
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
+
+                    FoodOrderHistoryStatusChip(status = order.status)
                 }
 
-                Spacer(modifier = Modifier.width(AppSpacing.S))
+                Spacer(modifier = Modifier.height(AppSpacing.XXS))
 
-                StatusChip(status = order.status)
-            }
-
-            Spacer(modifier = Modifier.height(AppSpacing.XS))
-
-            Text(
-                text = stringResource(R.string.order_detail_order_id, order.id),
-                style = MaterialTheme.typography.s12.normal(),
-                color = TextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-            HorizontalDivider(color = OutlineVariantLight)
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            val itemsSummary = if (order.items.isNotEmpty()) {
-                order.items.joinToString(", ") { "${it.quantity}x ${it.itemName}" }
-            } else {
-                stringResource(R.string.order_detail_value_unavailable)
-            }
-
-            Text(
-                text = itemsSummary,
-                style = MaterialTheme.typography.s14.normal(),
-                color = TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    val finalTotal = order.totalPrice ?: (order.itemsPrice + (order.deliveryFee ?: 0.0))
+                // Row 2: Formatted Date & Time (dd/MM/yyyy · HH:mm)
+                if (formattedDate.isNotBlank()) {
                     Text(
-                        text = formatFoodOrderPrice(finalTotal),
-                        style = MaterialTheme.typography.s16.bold(),
-                        color = PrimaryColor
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.food_history_order_items_count, order.items.sumOf { it.quantity }),
-                        style = MaterialTheme.typography.s12.medium(),
+                        text = formattedDate,
+                        style = MaterialTheme.typography.s12.normal(),
                         color = TextSecondary
                     )
-                    Spacer(modifier = Modifier.width(AppSpacing.XS))
+                }
+
+                Spacer(modifier = Modifier.height(AppSpacing.S))
+
+                // Row 3: Mini Dish Thumbnails Preview (up to 3 items + overflow badge)
+                if (order.items.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.XSPlus)
+                    ) {
+                        val previewItems = order.items.take(3)
+                        val extraCount = (order.items.size - 3).coerceAtLeast(0)
+
+                        previewItems.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .size(Dimen.SizeXL)
+                                    .clip(RoundedCornerShape(AppShape.ShapeS))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!item.imageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data(item.imageUrl)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = item.itemName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Fastfood,
+                                        contentDescription = null,
+                                        tint = PrimaryColor.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(Dimen.SizeS)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (extraCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(Dimen.SizeXL)
+                                    .clip(RoundedCornerShape(AppShape.ShapeS))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+$extraCount",
+                                    style = MaterialTheme.typography.s12.medium(),
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(AppSpacing.S))
+                }
+
+                // Row 4: Total items + Total Price + Chevron Arrow
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${stringResource(R.string.food_history_order_items_count, totalItemCount)} • ${formatFoodOrderPrice(finalTotal)}",
+                        style = MaterialTheme.typography.s14.bold(),
+                        color = TextPrimary
+                    )
+
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(Dimen.PaddingM)
+                        tint = TextSecondary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(Dimen.SizeM)
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatusChip(status: String) {
-    val (labelRes, bg, fg) = when (status.uppercase()) {
-        "COMPLETED", "DELIVERED" -> Triple(R.string.order_detail_status_completed, SurfaceVariantLight, SuccessColor)
-        "DELIVERING", "PICKED_UP", "PREPARING", "ACCEPTED", "PENDING" -> Triple(R.string.order_detail_status_delivering, SecondaryContainer, SecondaryVariant)
-        "AWAITING_PAYMENT" -> Triple(R.string.order_detail_status_awaiting_payment, SecondaryContainer, PrimaryColor)
-        "CANCELLED" -> Triple(R.string.order_detail_status_cancelled, ErrorContainer, ErrorColor)
-        "REJECTED" -> Triple(R.string.order_detail_status_rejected, ErrorContainer, ErrorColor)
-        "NO_DRIVER_FOUND" -> Triple(R.string.order_detail_status_no_driver, ErrorContainer, ErrorColor)
-        else -> Triple(R.string.order_detail_status_unknown, SurfaceVariantLight, TextSecondary)
-    }
-
-    Box(
-        modifier = Modifier
-            .background(color = bg, shape = RoundedCornerShape(AppShape.ShapeXS))
-            .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS)
-    ) {
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.s12.bold(),
-            color = fg
-        )
     }
 }
