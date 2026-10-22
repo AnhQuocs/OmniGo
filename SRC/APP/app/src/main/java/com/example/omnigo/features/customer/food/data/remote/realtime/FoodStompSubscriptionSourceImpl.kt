@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,7 +39,7 @@ class FoodStompSubscriptionSourceImpl @Inject constructor(
 
     override fun subscribeToFoodOrderStatus(orderId: Long): Flow<FoodOrderStatusEventDto> {
         scope.launch { stompClientManager.ensureBookingConnected() }
-        val destination = FoodStompDestinations.foodOrderStatus(orderId)
+        val destination = FoodStompDestinations.FOOD_ORDER_STATUS
         return stompClientManager.bookingClient
             .subscribe(destination)
             .mapNotNull { frame ->
@@ -47,6 +48,9 @@ class FoodStompSubscriptionSourceImpl @Inject constructor(
                 } else {
                     parsePayloadSafely<FoodOrderStatusEventDto>(frame.body)
                 }
+            }
+            .filter { event ->
+                orderId <= 0L || event.orderId == orderId
             }
     }
 

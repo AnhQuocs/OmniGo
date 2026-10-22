@@ -61,9 +61,11 @@ class FoodStompSubscriptionSourceImplTest {
     }
 
     @Test
-    fun `subscribeToFoodOrderStatus parses status event dto`() = runTest {
+    fun `subscribeToFoodOrderStatus subscribes to official queue and parses status event dto`() = runTest {
         val payload = """{"orderId": 42, "status": "CONFIRMED", "timestamp": "2026-10-22T09:00:00Z"}"""
-        val destination = FoodStompDestinations.foodOrderStatus(42L)
+        val destination = FoodStompDestinations.FOOD_ORDER_STATUS
+        assertEquals("/user/queue/food-order/status", destination)
+
         val frame = StompFrame(
             command = StompCommand.MESSAGE,
             headers = mapOf("destination" to destination),
@@ -77,6 +79,33 @@ class FoodStompSubscriptionSourceImplTest {
             assertEquals(42L, event.orderId)
             assertEquals("CONFIRMED", event.status)
             assertEquals("2026-10-22T09:00:00Z", event.timestamp)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `subscribeToFoodOrderStatus filters out events belonging to other orders`() = runTest {
+        val matchingPayload = """{"orderId": 42, "status": "CONFIRMED", "timestamp": "2026-10-22T09:00:00Z"}"""
+        val otherPayload = """{"orderId": 99, "status": "DELIVERED", "timestamp": "2026-10-22T09:05:00Z"}"""
+        val destination = FoodStompDestinations.FOOD_ORDER_STATUS
+
+        val frameOther = StompFrame(
+            command = StompCommand.MESSAGE,
+            headers = mapOf("destination" to destination),
+            body = otherPayload
+        )
+        val frameMatch = StompFrame(
+            command = StompCommand.MESSAGE,
+            headers = mapOf("destination" to destination),
+            body = matchingPayload
+        )
+
+        every { mockBookingClient.subscribe(destination) } returns flowOf(frameOther, frameMatch)
+
+        source.subscribeToFoodOrderStatus(42L).test {
+            val event = awaitItem()
+            assertEquals(42L, event.orderId)
+            assertEquals("CONFIRMED", event.status)
             awaitComplete()
         }
     }

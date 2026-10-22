@@ -11,11 +11,10 @@ object FoodStompDestinations {
         return DRIVER_LOCATION_TEMPLATE.replace("{driverId}", driverId.toString())
     }
 
-    // Candidate destination for full-lifecycle order status events (pending BE confirmation)
-    const val FOOD_ORDER_STATUS_TEMPLATE = "/topic/food-orders/{orderId}/status"
+    // Official destination for full-lifecycle order status events (Customer and Driver)
+    const val FOOD_ORDER_STATUS = "/user/queue/food-order/status"
 
-    fun foodOrderStatus(orderId: Long): String {
-        require(orderId > 0) { "orderId must be positive" }
-        return FOOD_ORDER_STATUS_TEMPLATE.replace("{orderId}", orderId.toString())
+    fun foodOrderStatus(orderId: Long? = null): String {
+        return FOOD_ORDER_STATUS
     }
 }

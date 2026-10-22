@@ -111,7 +111,7 @@ class DefaultStompClientTest {
         listener.onMessage(mockWebSocket, "CONNECTED\nversion:1.2\n\n\u0000")
         advanceUntilIdle()
 
-        val destination = "/topic/food-orders/1/status"
+        val destination = "/user/queue/food-order/status"
         val subscriptionFlow = client.subscribe(destination)
 
         subscriptionFlow.test {

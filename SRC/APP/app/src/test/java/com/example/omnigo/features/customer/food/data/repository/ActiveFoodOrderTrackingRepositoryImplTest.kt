@@ -193,4 +193,21 @@ class ActiveFoodOrderTrackingRepositoryImplTest {
 
         assertNull(repository.activeTrackingState.value?.driverLocation)
     }
+
+    @Test
+    fun `receiving status event with malformed timestamp does not crash and updates status`() = testScope.runTest {
+        repository.activate(101L)
+        advanceUntilIdle()
+
+        statusFlow.emit(
+            FoodOrderStatusEventDto(
+                orderId = 101L,
+                status = "READY_FOR_PICKUP",
+                timestamp = "invalid-date-format"
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals("READY_FOR_PICKUP", repository.activeTrackingState.value?.status)
+    }
 }
