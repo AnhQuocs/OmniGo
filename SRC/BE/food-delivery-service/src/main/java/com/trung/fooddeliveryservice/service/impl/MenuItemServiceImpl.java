@@ -10,6 +10,7 @@ import com.trung.fooddeliveryservice.mapper.MenuItemMapper;
 import com.trung.fooddeliveryservice.repository.MenuItemRepository;
 import com.trung.fooddeliveryservice.repository.RestaurantRepository;
 import com.trung.fooddeliveryservice.service.MenuItemService;
+import com.trung.fooddeliveryservice.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,6 +27,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final RestaurantRepository restaurantRepository;
     private final MenuItemMapper menuItemMapper;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     @Transactional
@@ -43,6 +45,7 @@ public class MenuItemServiceImpl implements MenuItemService {
         }
 
         MenuItem menuItem = menuItemMapper.toEntity(request, restaurant);
+        menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
         MenuItem saved = menuItemRepository.save(menuItem);
         log.info("Thêm thành công món ăn '{}' (ID: {}) vào nhà hàng ID {}", saved.getName(), saved.getId(), restaurantId);
         return menuItemMapper.toResponse(saved);
@@ -102,7 +105,7 @@ public class MenuItemServiceImpl implements MenuItemService {
         menuItem.setName(request.getName());
         menuItem.setDescription(request.getDescription());
         menuItem.setPrice(request.getPrice());
-        menuItem.setImageUrl(request.getImageUrl());
+        menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
         menuItem.setCategory(request.getCategory());
         if (request.getIsAvailable() != null) {
             menuItem.setIsAvailable(request.getIsAvailable());

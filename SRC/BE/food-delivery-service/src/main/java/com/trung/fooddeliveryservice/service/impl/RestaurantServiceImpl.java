@@ -73,11 +73,11 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
 
         Restaurant restaurant = restaurantMapper.toEntity(request, ownerId);
-        if (restaurant.getImageUrl() != null && restaurant.getImageUrl().startsWith("data:image")) {
-            restaurant.setImageUrl(cloudinaryService.uploadBase64(restaurant.getImageUrl()));
+        if (restaurant.getImageUrl() != null) {
+            restaurant.setImageUrl(cloudinaryService.validateImageUrl(restaurant.getImageUrl()));
         }
-        if (restaurant.getLicenseImageUrl() != null && restaurant.getLicenseImageUrl().startsWith("data:image")) {
-            restaurant.setLicenseImageUrl(cloudinaryService.uploadBase64(restaurant.getLicenseImageUrl()));
+        if (restaurant.getLicenseImageUrl() != null) {
+            restaurant.setLicenseImageUrl(cloudinaryService.validateImageUrl(restaurant.getLicenseImageUrl()));
         }
         Restaurant saved = restaurantRepository.save(restaurant);
         log.info("Tạo thành công nhà hàng ID {} cho chủ quán ID {}", saved.getId(), ownerId);
@@ -88,6 +88,10 @@ public class RestaurantServiceImpl implements RestaurantService {
     @Transactional
     public RestaurantResponse registerPartner(RestaurantPartnerCreateRequest request) throws BadRequestException {
         log.info("Bắt đầu quy trình đăng ký đối tác nhà hàng '{}' - SĐT chủ: {}", request.getName(), request.getOwnerPhone());
+
+        // Validate uploaded URLs before creating the remote account.
+        String imageUrl = cloudinaryService.validateImageUrl(request.getImageUrl());
+        String licenseImageUrl = cloudinaryService.validateImageUrl(request.getLicenseImageUrl());
 
         // 1. Tạo tài khoản User với Role RESTAURANT qua user-driver-service
         Long ownerId;
@@ -141,16 +145,6 @@ public class RestaurantServiceImpl implements RestaurantService {
         // 2. Kiểm tra xem chủ quán đã có nhà hàng chưa
         if (restaurantRepository.findByOwnerId(ownerId).isPresent()) {
             throw new BadRequestException("Chủ quán ID " + ownerId + " đã sở hữu một nhà hàng trên hệ thống.");
-        }
-
-        // 3. Xử lý ảnh nếu là Base64 -> chuyển qua Cloudinary
-        String imageUrl = request.getImageUrl();
-        if (imageUrl != null && imageUrl.startsWith("data:image")) {
-            imageUrl = cloudinaryService.uploadBase64(imageUrl);
-        }
-        String licenseImageUrl = request.getLicenseImageUrl();
-        if (licenseImageUrl != null && licenseImageUrl.startsWith("data:image")) {
-            licenseImageUrl = cloudinaryService.uploadBase64(licenseImageUrl);
         }
 
         boolean isAutoApprove = Boolean.TRUE.equals(request.getAutoApprove());
@@ -419,20 +413,9 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurant.setAddress(request.getAddress());
         restaurant.setLatitude(request.getLatitude());
         restaurant.setLongitude(request.getLongitude());
-        String imageUrl = request.getImageUrl();
-        if (imageUrl != null && imageUrl.startsWith("data:image")) {
-            restaurant.setImageUrl(cloudinaryService.uploadBase64(imageUrl));
-        } else {
-            restaurant.setImageUrl(imageUrl);
-        }
-
+        restaurant.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
         if (request.getLicenseImageUrl() != null) {
-            String licUrl = request.getLicenseImageUrl();
-            if (licUrl.startsWith("data:image")) {
-                restaurant.setLicenseImageUrl(cloudinaryService.uploadBase64(licUrl));
-            } else {
-                restaurant.setLicenseImageUrl(licUrl);
-            }
+            restaurant.setLicenseImageUrl(cloudinaryService.validateImageUrl(request.getLicenseImageUrl()));
         }
         restaurant.setOpenTime(request.getOpenTime());
         restaurant.setCloseTime(request.getCloseTime());

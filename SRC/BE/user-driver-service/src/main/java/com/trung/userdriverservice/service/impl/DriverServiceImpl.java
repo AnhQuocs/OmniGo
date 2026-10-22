@@ -52,16 +52,7 @@ public class DriverServiceImpl implements DriverService {
     private final CloudinaryService cloudinaryService;
 
     private String resolveDocumentImage(String image) {
-        if (image == null || image.trim().isEmpty()) {
-            return null;
-        }
-        if (image.startsWith("http://") || image.startsWith("https://")) {
-            return image;
-        }
-        if (cloudinaryService != null) {
-            return cloudinaryService.uploadBase64(image);
-        }
-        return image;
+        return cloudinaryService.validateImageUrl(image);
     }
 
     @Override

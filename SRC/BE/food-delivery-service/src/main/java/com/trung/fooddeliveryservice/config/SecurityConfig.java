@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/items/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/restaurants/partner").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/restaurants/upload-image").permitAll()
                         .requestMatchers("/api/v1/food-orders/*/paid", "/api/v1/internal/**").permitAll()
                         .requestMatchers("/actuator/**", "/error").permitAll()
                         .anyRequest().authenticated()

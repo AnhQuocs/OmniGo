@@ -46,6 +46,13 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
         }
         String path = request.getURI().getPath();
 
+        // Registration needs uploaded document URLs before an account/token exists.
+        if (HttpMethod.POST.equals(request.getMethod())
+                && (path.equals("/api/v1/drivers/upload-document")
+                || path.equals("/api/v1/restaurants/upload-image"))) {
+            return chain.filter(exchange);
+        }
+
         if (EXCLUDE_URLS.stream().anyMatch(path::equals) || path.startsWith("/ws-location")
                 || path.startsWith("/ws-booking") || path.contains("/api/v1/payments/momo/ipn")
                 || path.contains("/api/v1/payments/momo/return")

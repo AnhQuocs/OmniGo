@@ -9,6 +9,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.util.concurrent.CompletableFuture;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,18 +34,29 @@ class FoodOrderStatusPublisherTest {
 
     @Test
     void sendsSnapshotOnlyAfterCommit() {
-        when(kafka.send(anyString(), anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(kafka.send(any(ProducerRecord.class))).thenReturn(CompletableFuture.completedFuture(null));
         begin();
         FoodOrder order = order();
         publisher.publishOrderStatusAfterCommit(order);
         order.setStatus(OrderStatus.CANCELLED);
         verifyNoInteractions(kafka);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
-        verify(kafka).send(eq("FOOD_ORDER_STATUS"), eq("1"), argThat(value -> {
-            FoodOrderStatusEvent event = (FoodOrderStatusEvent) value;
-            return event.getStatus().equals("DELIVERING") && event.getCustomerId().equals(2L)
-                    && event.getDriverId().equals(3L) && event.getTimestamp().endsWith("Z");
+        verify(kafka).send(argThat((ProducerRecord<String, Object> record) -> {
+            FoodOrderStatusEvent event = (FoodOrderStatusEvent) record.value();
+            return record.topic().equals("FOOD_ORDER_STATUS") && record.key().equals("1")
+                    && event.getStatus().equals("DELIVERING")
+                    && new String(record.headers().lastHeader("food-status-recipients").value(), StandardCharsets.UTF_8).equals("2,3") && event.getTimestamp().endsWith("Z");
         }));
+    }
+
+    @Test
+    void kafkaJsonContainsOnlyThreePublicFields() throws Exception {
+        var json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(
+                new FoodOrderStatusEvent(1L, "PENDING", "2026-10-22T00:00:00Z")));
+        assertEquals(3, json.size());
+        assertEquals(1L, json.get("orderId").asLong());
+        assertEquals("PENDING", json.get("status").asText());
+        assertEquals("2026-10-22T00:00:00Z", json.get("timestamp").asText());
     }
 
     @Test
@@ -55,8 +69,8 @@ class FoodOrderStatusPublisherTest {
 
     @Test
     void alreadyCommittedTimeoutPathPublishesImmediatelyAndDoesNotFailOnBrokerError() {
-        when(kafka.send(anyString(), anyString(), any())).thenThrow(new IllegalStateException("broker unavailable"));
+        when(kafka.send(any(ProducerRecord.class))).thenThrow(new IllegalStateException("broker unavailable"));
         assertDoesNotThrow(() -> publisher.publishOrderStatusAfterCommit(order()));
-        verify(kafka).send(eq("FOOD_ORDER_STATUS"), eq("1"), any(FoodOrderStatusEvent.class));
+        verify(kafka).send(any(ProducerRecord.class));
     }
 }
