@@ -100,4 +100,34 @@ class DriverRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun acceptFoodOrder(orderId: Long): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = driverApi.acceptFoodOrder(orderId)
+                if (response.success) {
+                    Result.success(true)
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to accept food order"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun rejectFoodOrder(orderId: Long): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = driverApi.rejectFoodOrder(orderId)
+                if (response.success) {
+                    Result.success(true)
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to reject food order"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }

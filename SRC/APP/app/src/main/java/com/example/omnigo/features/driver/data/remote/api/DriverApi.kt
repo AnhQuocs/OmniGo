@@ -41,4 +41,14 @@ interface DriverApi {
     suspend fun sendDriverLocation(
         @Body request: DriverLocationRequest
     ): ApiResponse<Any>
+
+    @POST(ApiEndpoints.BOOKING_FOOD_ORDER_ACCEPT)
+    suspend fun acceptFoodOrder(
+        @Path("orderId") orderId: Long
+    ): ApiResponse<String>
+
+    @POST(ApiEndpoints.BOOKING_FOOD_ORDER_REJECT)
+    suspend fun rejectFoodOrder(
+        @Path("orderId") orderId: Long
+    ): ApiResponse<String>
 }

@@ -32,6 +32,9 @@ class DriverHomeViewModelTest {
     private lateinit var updateDriverStatusUseCase: UpdateDriverStatusUseCase
     private lateinit var locationTracker: LocationTracker
     private lateinit var sessionManager: SessionManager
+    private lateinit var observeDriverFoodOffersUseCase: com.example.omnigo.features.driver.domain.usecase.ObserveDriverFoodOffersUseCase
+    private lateinit var acceptFoodOrderUseCase: com.example.omnigo.features.driver.domain.usecase.AcceptFoodOrderUseCase
+    private lateinit var rejectFoodOrderUseCase: com.example.omnigo.features.driver.domain.usecase.RejectFoodOrderUseCase
     private lateinit var viewModel: DriverHomeViewModel
 
     private val approvedProfile = DriverAccountProfile(
@@ -50,11 +53,15 @@ class DriverHomeViewModelTest {
         updateDriverStatusUseCase = mockk()
         locationTracker = mockk()
         sessionManager = mockk()
+        observeDriverFoodOffersUseCase = mockk()
+        acceptFoodOrderUseCase = mockk()
+        rejectFoodOrderUseCase = mockk()
 
         coEvery { sessionManager.getUserId() } returns 101L
         coEvery { getDriverProfileUseCase(101L) } returns Result.success(approvedProfile)
         every { locationTracker.isLocationPermissionGranted() } returns true
         every { locationTracker.isGpsEnabled() } returns true
+        every { observeDriverFoodOffersUseCase() } returns kotlinx.coroutines.flow.emptyFlow()
     }
 
     private fun createViewModel(): DriverHomeViewModel {
@@ -62,7 +69,10 @@ class DriverHomeViewModelTest {
             getDriverProfileUseCase = getDriverProfileUseCase,
             updateDriverStatusUseCase = updateDriverStatusUseCase,
             locationTracker = locationTracker,
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            observeDriverFoodOffersUseCase = observeDriverFoodOffersUseCase,
+            acceptFoodOrderUseCase = acceptFoodOrderUseCase,
+            rejectFoodOrderUseCase = rejectFoodOrderUseCase
         )
     }
 

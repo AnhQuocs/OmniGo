@@ -125,4 +125,96 @@ class DriverRepositoryImplTest {
         assertEquals(true, result.getOrNull())
         coVerify(exactly = 1) { driverApi.sendDriverLocation(request) }
     }
+
+    @Test
+    fun `acceptFoodOrder returns success when api responds with success true`() = runTest {
+        val orderId = 202L
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "OK",
+            data = "OK",
+            timestamp = null
+        )
+        coEvery { driverApi.acceptFoodOrder(orderId) } returns apiResponse
+
+        val result = repository.acceptFoodOrder(orderId)
+
+        assertTrue(result.isSuccess)
+        assertEquals(true, result.getOrNull())
+        coVerify(exactly = 1) { driverApi.acceptFoodOrder(orderId) }
+    }
+
+    @Test
+    fun `acceptFoodOrder returns failure when api responds with success false`() = runTest {
+        val orderId = 202L
+        val apiResponse: ApiResponse<String> = ApiResponse(
+            success = false,
+            message = "Order already accepted by another driver",
+            data = null,
+            timestamp = null
+        )
+        coEvery { driverApi.acceptFoodOrder(orderId) } returns apiResponse
+
+        val result = repository.acceptFoodOrder(orderId)
+
+        assertTrue(result.isFailure)
+        assertEquals("Order already accepted by another driver", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `acceptFoodOrder returns failure when api throws exception`() = runTest {
+        val orderId = 202L
+        coEvery { driverApi.acceptFoodOrder(orderId) } throws RuntimeException("Network error")
+
+        val result = repository.acceptFoodOrder(orderId)
+
+        assertTrue(result.isFailure)
+        assertEquals("Network error", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `rejectFoodOrder returns success when api responds with success true`() = runTest {
+        val orderId = 202L
+        val apiResponse: ApiResponse<String> = ApiResponse(
+            success = true,
+            message = "OK",
+            data = "OK",
+            timestamp = null
+        )
+        coEvery { driverApi.rejectFoodOrder(orderId) } returns apiResponse
+
+        val result = repository.rejectFoodOrder(orderId)
+
+        assertTrue(result.isSuccess)
+        assertEquals(true, result.getOrNull())
+        coVerify(exactly = 1) { driverApi.rejectFoodOrder(orderId) }
+    }
+
+    @Test
+    fun `rejectFoodOrder returns failure when api responds with success false`() = runTest {
+        val orderId = 202L
+        val apiResponse: ApiResponse<String> = ApiResponse(
+            success = false,
+            message = "Offer expired",
+            data = null,
+            timestamp = null
+        )
+        coEvery { driverApi.rejectFoodOrder(orderId) } returns apiResponse
+
+        val result = repository.rejectFoodOrder(orderId)
+
+        assertTrue(result.isFailure)
+        assertEquals("Offer expired", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `rejectFoodOrder returns failure when api throws exception`() = runTest {
+        val orderId = 202L
+        coEvery { driverApi.rejectFoodOrder(orderId) } throws RuntimeException("Network timeout")
+
+        val result = repository.rejectFoodOrder(orderId)
+
+        assertTrue(result.isFailure)
+        assertEquals("Network timeout", result.exceptionOrNull()?.message)
+    }
 }

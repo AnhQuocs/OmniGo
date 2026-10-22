@@ -7,4 +7,6 @@ interface DriverRepository {
     suspend fun updateDriverStatus(driverId: Long?, isOnline: Boolean): Result<Boolean>
     suspend fun getDriverProfile(driverId: Long?): Result<DriverAccountProfile>
     suspend fun sendDriverLocation(locationUpdate: DriverLocationUpdate): Result<Boolean>
+    suspend fun acceptFoodOrder(orderId: Long): Result<Boolean>
+    suspend fun rejectFoodOrder(orderId: Long): Result<Boolean>
 }

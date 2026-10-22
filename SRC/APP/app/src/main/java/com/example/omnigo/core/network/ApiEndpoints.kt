@@ -30,4 +30,8 @@ object ApiEndpoints {
     const val DRIVER_PROFILE_BY_ID = "$API_V1/drivers/{driverId}/profile"
     const val DRIVER_PROFILE_ME = "$API_V1/drivers/me/profile"
     const val DRIVER_LOCATION_ME = "$API_V1/locations/drivers/me"
+
+    // --- BOOKING FOOD ORDERS (DRIVER) ---
+    const val BOOKING_FOOD_ORDER_ACCEPT = "$API_V1/bookings/food-orders/{orderId}/accept"
+    const val BOOKING_FOOD_ORDER_REJECT = "$API_V1/bookings/food-orders/{orderId}/reject"
 }

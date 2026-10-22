@@ -42,14 +42,30 @@ data class DriverLocationEventDto(
 data class FoodOfferEventDto(
     @SerializedName("orderId")
     val orderId: Long? = null,
+    @SerializedName("customerId")
+    val customerId: Long? = null,
+    @SerializedName("restaurantId")
+    val restaurantId: Long? = null,
     @SerializedName("restaurantName")
     val restaurantName: String? = null,
     @SerializedName("restaurantAddress")
     val restaurantAddress: String? = null,
+    @SerializedName("restaurantLatitude")
+    val restaurantLatitude: Double? = null,
+    @SerializedName("restaurantLongitude")
+    val restaurantLongitude: Double? = null,
     @SerializedName(value = "dropOffAddress", alternate = ["deliveryAddress"])
     val dropOffAddress: String? = null,
+    @SerializedName(value = "dropOffLatitude", alternate = ["deliveryLatitude"])
+    val dropOffLatitude: Double? = null,
+    @SerializedName(value = "dropOffLongitude", alternate = ["deliveryLongitude"])
+    val dropOffLongitude: Double? = null,
     @SerializedName("deliveryFee")
     val deliveryFee: Double? = null,
     @SerializedName("totalPrice")
-    val totalPrice: Double? = null
+    val totalPrice: Double? = null,
+    @SerializedName("paymentMethod")
+    val paymentMethod: String? = null,
+    @SerializedName("isPaid")
+    val isPaid: Boolean? = null
 )

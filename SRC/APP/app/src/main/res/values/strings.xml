@@ -436,4 +436,15 @@
     <string name="order_detail_step_delivering">Delivering</string>
     <string name="order_detail_step_delivered">Delivered</string>
     <string name="order_detail_paid_at_format">Paid successfully at %1$s</string>
+    <string name="driver_food_offer_title">New Food Order</string>
+    <string name="driver_food_offer_pickup">Pickup from</string>
+    <string name="driver_food_offer_delivery">Deliver to</string>
+    <string name="driver_food_offer_fee">Driver Earnings</string>
+    <string name="driver_food_offer_total">Order Total</string>
+    <string name="driver_food_offer_accept">Accept Order</string>
+    <string name="driver_food_offer_reject">Decline</string>
+    <string name="driver_food_offer_paid_online">Paid Online</string>
+    <string name="driver_food_offer_collect_cash">Collect Cash</string>
+    <string name="driver_food_offer_timeout_msg">Offer expired and has been declined</string>
+    <string name="driver_food_offer_conflict">Order was already accepted by another driver</string>
 </resources>

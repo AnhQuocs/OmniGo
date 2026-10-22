@@ -40,5 +40,11 @@ abstract class WebSocketModule {
                 .retryOnConnectionFailure(true)
                 .build()
         }
+
+        @Provides
+        @Singleton
+        fun provideApplicationCoroutineScope(): kotlinx.coroutines.CoroutineScope {
+            return kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+        }
     }
 }

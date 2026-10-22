@@ -143,33 +143,52 @@ class FoodStompSubscriptionSourceImplTest {
     }
 
     @Test
-    fun `subscribeToFoodOffers parses food offer event dto`() = runTest {
+    fun `subscribeToFoodOffers subscribes to driver food match queue and parses food offer event dto`() = runTest {
+        val destination = FoodStompDestinations.FOOD_OFFERS
+        assertEquals("/user/queue/driver/food-match", destination)
+
         val payload = """
             {
                 "orderId": 42,
+                "customerId": 10,
+                "restaurantId": 99,
                 "restaurantName": "Pho Bo",
                 "restaurantAddress": "123 Le Loi",
+                "restaurantLatitude": 10.7769,
+                "restaurantLongitude": 106.7009,
                 "dropOffAddress": "456 Nguyen Hue",
+                "dropOffLatitude": 10.7750,
+                "dropOffLongitude": 106.7020,
                 "deliveryFee": 15000.0,
-                "totalPrice": 75000.0
+                "totalPrice": 75000.0,
+                "paymentMethod": "CASH",
+                "isPaid": false
             }
         """.trimIndent()
         val frame = StompFrame(
             command = StompCommand.MESSAGE,
-            headers = mapOf("destination" to FoodStompDestinations.FOOD_OFFERS),
+            headers = mapOf("destination" to destination),
             body = payload
         )
 
-        every { mockBookingClient.subscribe(FoodStompDestinations.FOOD_OFFERS) } returns flowOf(frame)
+        every { mockBookingClient.subscribe(destination) } returns flowOf(frame)
 
         source.subscribeToFoodOffers().test {
             val event = awaitItem()
             assertEquals(42L, event.orderId)
+            assertEquals(10L, event.customerId)
+            assertEquals(99L, event.restaurantId)
             assertEquals("Pho Bo", event.restaurantName)
             assertEquals("123 Le Loi", event.restaurantAddress)
+            assertEquals(10.7769, event.restaurantLatitude!!, 0.0001)
+            assertEquals(106.7009, event.restaurantLongitude!!, 0.0001)
             assertEquals("456 Nguyen Hue", event.dropOffAddress)
+            assertEquals(10.7750, event.dropOffLatitude!!, 0.0001)
+            assertEquals(106.7020, event.dropOffLongitude!!, 0.0001)
             assertEquals(15000.0, event.deliveryFee!!, 0.001)
             assertEquals(75000.0, event.totalPrice!!, 0.001)
+            assertEquals("CASH", event.paymentMethod)
+            assertEquals(false, event.isPaid)
             awaitComplete()
         }
     }

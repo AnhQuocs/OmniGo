@@ -438,4 +438,15 @@
     <string name="order_detail_step_delivering">Đang giao</string>
     <string name="order_detail_step_delivered">Đã giao</string>
     <string name="order_detail_paid_at_format">Thanh toán thành công lúc %1$s</string>
+    <string name="driver_food_offer_title">Đơn giao đồ ăn mới</string>
+    <string name="driver_food_offer_pickup">Lấy món tại</string>
+    <string name="driver_food_offer_delivery">Giao đến</string>
+    <string name="driver_food_offer_fee">Cước phí tài xế nhận</string>
+    <string name="driver_food_offer_total">Tổng giá trị đơn</string>
+    <string name="driver_food_offer_accept">Nhận đơn</string>
+    <string name="driver_food_offer_reject">Bỏ qua</string>
+    <string name="driver_food_offer_paid_online">Đã thanh toán Online</string>
+    <string name="driver_food_offer_collect_cash">Thu tiền mặt</string>
+    <string name="driver_food_offer_timeout_msg">Đơn hàng đã hết hạn phản hồi và tự động bỏ qua</string>
+    <string name="driver_food_offer_conflict">Đơn hàng đã được tài xế khác nhận</string>
 </resources>

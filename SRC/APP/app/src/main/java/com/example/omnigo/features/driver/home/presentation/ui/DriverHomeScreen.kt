@@ -47,6 +47,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.driver.home.presentation.ui.components.DriverApprovalWarningDialog
+import com.example.omnigo.features.driver.home.presentation.ui.components.DriverTodaySummaryCard
+import com.example.omnigo.features.driver.home.presentation.ui.components.FoodOrderOfferDialog
 import com.example.omnigo.features.driver.home.presentation.viewmodel.DriverHomeViewModel
 import com.example.omnigo.features.driver.service.DriverLocationForegroundService
 import com.example.omnigo.ui.dimens.AppShape
@@ -77,6 +79,7 @@ import com.example.omnigo.utils.semiBold
 @Composable
 fun DriverHomeScreen(
     modifier: Modifier = Modifier,
+    onNavigateToActiveDelivery: (Long) -> Unit = {},
     viewModel: DriverHomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,10 +137,36 @@ fun DriverHomeScreen(
         viewModel.clearErrorMessage()
     }
 
+    LaunchedEffect(uiState.acceptedOrderId) {
+        val orderId = uiState.acceptedOrderId ?: return@LaunchedEffect
+        onNavigateToActiveDelivery(orderId)
+        viewModel.clearAcceptedOrderId()
+    }
+
+    LaunchedEffect(uiState.offerActionMessage) {
+        val msg = uiState.offerActionMessage ?: return@LaunchedEffect
+        if (msg == DriverHomeViewModel.TIMEOUT_MESSAGE) {
+            Toast.makeText(context, context.getString(R.string.driver_food_offer_timeout_msg), Toast.LENGTH_SHORT).show()
+        }
+        viewModel.clearOfferActionMessage()
+    }
+
     if (uiState.showApprovalWarningDialog) {
         DriverApprovalWarningDialog(
             approvalStatus = uiState.approvalStatus,
             onDismiss = { viewModel.dismissApprovalWarningDialog() }
+        )
+    }
+
+    uiState.currentFoodOffer?.let { offer ->
+        FoodOrderOfferDialog(
+            offer = offer,
+            countdownSeconds = uiState.offerCountdownSeconds,
+            countdownProgress = uiState.offerCountdownProgress,
+            isAccepting = uiState.isOfferAccepting,
+            isRejecting = uiState.isOfferRejecting,
+            onAccept = { viewModel.onAcceptOffer() },
+            onReject = { viewModel.onRejectOffer() }
         )
     }
 
@@ -262,83 +291,7 @@ private fun DriverStatusCard(
     }
 }
 
-@Composable
-private fun DriverTodaySummaryCard(
-    modifier: Modifier = Modifier
-) {
-    Card(
-        shape = RoundedCornerShape(AppShape.ShapeL),
-        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = Dimen.PaddingXXS,
-                color = CardBorderColor,
-                shape = RoundedCornerShape(AppShape.ShapeL)
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimen.PaddingM)
-        ) {
-            Text(
-                text = stringResource(id = R.string.driver_today_earnings),
-                style = MaterialTheme.typography.s13.normal(),
-                color = TextSecondary
-            )
 
-            Spacer(modifier = Modifier.height(AppSpacing.XS))
-
-            Text(
-                text = "450.000 đ",
-                style = MaterialTheme.typography.s20.bold(),
-                color = PrimaryColor
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                DriverStatColumn(
-                    title = stringResource(id = R.string.driver_completed_trips),
-                    value = "8"
-                )
-                DriverStatColumn(
-                    title = stringResource(id = R.string.driver_acceptance_rate),
-                    value = "98%"
-                )
-                DriverStatColumn(
-                    title = stringResource(id = R.string.driver_rating),
-                    value = "⭐ 4.9"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DriverStatColumn(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.s12.normal(),
-            color = TextSecondary
-        )
-        Spacer(modifier = Modifier.height(AppSpacing.XXS))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.s16.semiBold(),
-            color = TextPrimary
-        )
-    }
-}
 
 @Composable
 private fun DriverRadarCard(

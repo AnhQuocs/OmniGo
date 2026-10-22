@@ -1,7 +1,8 @@
 package com.example.omnigo.features.customer.food.data.remote.realtime
 
 object FoodStompDestinations {
-    const val FOOD_OFFERS = "/user/queue/food-offers"
+    const val DRIVER_FOOD_MATCH = "/user/queue/driver/food-match"
+    const val FOOD_OFFERS = DRIVER_FOOD_MATCH
     const val FOOD_ORDER_ASSIGNMENT = "/user/queue/food-order"
     const val FOOD_ORDER_ASSIGNMENTS = FOOD_ORDER_ASSIGNMENT
     const val DRIVER_LOCATION_TEMPLATE = "/topic/driver-location/{driverId}"
