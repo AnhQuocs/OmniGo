@@ -30,6 +30,7 @@ import {
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import MenuItemImageField from '../../components/food/MenuItemImageField';
 
 export const MerchantMenu = () => {
   const { restaurant } = useOutletContext();
@@ -49,6 +50,7 @@ export const MerchantMenu = () => {
     isAvailable: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
 
   // Confirm Delete Dialog State
   const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
@@ -72,19 +74,21 @@ export const MerchantMenu = () => {
   }, [restaurant?.id]);
 
   const handleOpenAdd = () => {
+    setImageFile(null);
     setEditingItem(null);
     setFormData({
       name: '',
       category: 'Món chính',
       price: '',
       description: '',
-      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+      imageUrl: '',
       isAvailable: true,
     });
     setOpenModal(true);
   };
 
   const handleOpenEdit = (item) => {
+    setImageFile(null);
     setEditingItem(item);
     setFormData({
       name: item.name || '',
@@ -139,6 +143,7 @@ export const MerchantMenu = () => {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     if (!formData.name || !formData.price) {
       toast.error('Vui lòng nhập tên món và giá tiền');
       return;
@@ -146,13 +151,20 @@ export const MerchantMenu = () => {
 
     try {
       setSubmitting(true);
+      let imageUrl = formData.imageUrl.trim();
+      if (imageFile) {
+        imageUrl = await foodService.uploadImage(imageFile);
+        if (!imageUrl) throw new Error('Không thể tải ảnh lên. Vui lòng thử lại.');
+        setFormData((prev) => ({ ...prev, imageUrl }));
+        setImageFile(null);
+      }
       const payload = {
         restaurantId: restaurant.id,
         name: formData.name.trim(),
         category: formData.category.trim() || 'Món chính',
         price: parseFloat(formData.price),
         description: formData.description.trim(),
-        imageUrl: formData.imageUrl.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
         isAvailable: formData.isAvailable,
       };
 
@@ -329,7 +341,7 @@ export const MerchantMenu = () => {
       )}
 
       {/* Add / Edit Dialog */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3.5, p: 1 } }}>
+      <Dialog open={openModal} onClose={() => !submitting && setOpenModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3.5, p: 1 } }}>
         <form onSubmit={handleSubmitForm}>
           <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', pb: 1 }}>
             {editingItem ? '✏️ Chỉnh sửa món ăn' : '🍽️ Thêm món ăn mới'}
@@ -356,11 +368,12 @@ export const MerchantMenu = () => {
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             />
-            <TextField
-              label="Đường dẫn ảnh món ăn (URL)"
-              fullWidth
+            <MenuItemImageField
               value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              file={imageFile}
+              disabled={submitting}
+              onFileChange={setImageFile}
+              onChange={(imageUrl) => setFormData((prev) => ({ ...prev, imageUrl }))}
             />
             <TextField
               label="Mô tả chi tiết"
@@ -382,7 +395,7 @@ export const MerchantMenu = () => {
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setOpenModal(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            <Button disabled={submitting} onClick={() => setOpenModal(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
               Hủy
             </Button>
             <Button
