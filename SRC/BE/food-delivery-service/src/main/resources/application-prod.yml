@@ -90,4 +90,4 @@ logging:
 
 app:
   payment-service-url: ${PAYMENT_SERVICE_URL:https://api.ridehailingsystem.online}
-  driver-service-url: ${DRIVER_SERVICE_URL:https://api.ridehailingsystem.online}
+  driver-service-url: ${DRIVER_SERVICE_URL:http://user-driver-service:8081}

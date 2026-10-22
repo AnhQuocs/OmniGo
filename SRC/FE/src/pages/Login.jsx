@@ -923,6 +923,7 @@ export const Login = () => {
                 {/* Upload Ảnh đại diện quán */}
                 <ImageUploadField
                   label="Ảnh đại diện quán ăn"
+                  deferUpload
                   value={registerData.imageUrl}
                   onChange={(url) =>
                     setRegisterData((prev) => ({ ...prev, imageUrl: url }))
@@ -934,6 +935,7 @@ export const Login = () => {
                 {/* Upload Giấy phép kinh doanh */}
                 <ImageUploadField
                   label="Ảnh giấy phép kinh doanh"
+                  deferUpload
                   required
                   value={registerData.licenseImageUrl}
                   onChange={(url) =>
