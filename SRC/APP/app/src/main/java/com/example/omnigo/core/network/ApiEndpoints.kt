@@ -25,6 +25,12 @@ object ApiEndpoints {
     const val FOOD_ORDER_RETRY_DRIVER = "$API_V1/food-orders/{orderId}/retry-driver"
     const val DRIVER_PROFILE = "drivers/{id}"
 
+    // --- FOOD REVIEWS ---
+    const val FOOD_REVIEW_UPLOAD_IMAGE = "$API_V1/food-reviews/upload-image"
+    const val FOOD_REVIEWS = "$API_V1/food-reviews"
+    const val FOOD_REVIEW_BY_ORDER = "$API_V1/food-reviews/order/{orderId}"
+    const val RESTAURANT_REVIEWS = "$API_V1/restaurants/{restaurantId}/reviews"
+
     // --- DRIVER & LOCATION ---
     const val DRIVER_STATUS = "$API_V1/drivers/{driverId}/status"
     const val DRIVER_STATUS_ME = "$API_V1/drivers/me/status"

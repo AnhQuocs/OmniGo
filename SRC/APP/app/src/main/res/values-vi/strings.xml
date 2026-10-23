@@ -518,4 +518,37 @@
     <string name="password_strength_medium">Trung bình</string>
     <string name="password_strength_strong">Mạnh</string>
     <string name="password_strength_label">Độ bảo mật mật khẩu: %1$s</string>
+
+    <!-- FLOW 1 PART 9 — Customer Tracking & Food Reviews -->
+    <string name="food_tracking_title">Theo dõi đơn hàng trực tiếp</string>
+    <string name="food_tracking_live_active">GPS TRỰC TIẾP</string>
+    <string name="food_tracking_restaurant_default">Quán ăn</string>
+    <string name="food_tracking_no_coords">Chưa có tọa độ vị trí</string>
+    <string name="food_tracking_driver_moving">Tài xế đang di chuyển</string>
+    <string name="food_tracking_destination_default">Điểm nhận hàng</string>
+    <string name="food_tracking_destination_hint">Địa chỉ giao hàng của bạn</string>
+
+    <string name="food_review_title">Đánh giá đơn hàng</string>
+    <string name="food_review_banner_expired">Đơn hàng đã hoàn thành quá 7 ngày và đã bị khóa đánh giá.</string>
+    <string name="food_review_banner_readonly">Đánh giá ở chế độ chỉ xem sau 48 giờ.</string>
+    <string name="food_review_restaurant_title">Quán ăn &amp; Món ăn</string>
+    <string name="food_review_restaurant_subtitle">Hương vị món ăn và chất lượng dịch vụ của quán thế nào?</string>
+    <string name="food_review_comment_placeholder">Chia sẻ chi tiết về hương vị món, cách đóng gói, khẩu phần...</string>
+    <string name="food_review_photos_title">Ảnh món ăn (%1$d/%2$d)</string>
+    <string name="food_review_add_photo">Thêm ảnh</string>
+    <string name="food_review_driver_title">Tài xế giao hàng</string>
+    <string name="food_review_driver_named_title">Tài xế: %1$s</string>
+    <string name="food_review_driver_subtitle">Bạn đánh giá tài xế giao món thế nào?</string>
+    <string name="food_review_driver_tags_title">Lời khen cho tài xế</string>
+    <string name="food_review_merchant_reply_title">Phản hồi từ quán</string>
+    <string name="food_review_submit_button">Gửi đánh giá</string>
+    <string name="food_review_submit_success">Cảm ơn bạn! Đánh giá đã được gửi thành công.</string>
+    <string name="food_review_submit_failed">Gửi đánh giá thất bại. Vui lòng thử lại.</string>
+    <string name="food_review_load_failed">Không thể tải thông tin đánh giá đơn hàng.</string>
+    <string name="food_review_image_invalid">Không thể xử lý tệp ảnh đã chọn.</string>
+    <string name="food_review_image_upload_failed">Tải ảnh lên thất bại. Vui lòng thử lại.</string>
+
+    <string name="restaurant_reviews_title">Nhận xét từ khách hàng</string>
+    <string name="restaurant_reviews_filter_all">Tất cả</string>
+    <string name="restaurant_reviews_empty">Chưa có đánh giá nào cho quán này.</string>
 </resources>

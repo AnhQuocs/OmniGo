@@ -80,6 +80,9 @@ class FoodOrderDetailViewModelTest {
         createdAt = "2026-09-29T12:00:00Z"
     )
 
+    private lateinit var activeTrackingRepository: com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
+    private val trackingStateFlow = kotlinx.coroutines.flow.MutableStateFlow<com.example.omnigo.features.customer.food.domain.model.FoodOrderTrackingState?>(null)
+
     @Before
     fun setUp() {
         getFoodOrderDetailUseCase = mockk()
@@ -87,6 +90,8 @@ class FoodOrderDetailViewModelTest {
         cancelFoodOrderUseCase = mockk()
         switchToCashUseCase = mockk()
         retryDriverUseCase = mockk()
+        activeTrackingRepository = mockk(relaxed = true)
+        io.mockk.every { activeTrackingRepository.activeTrackingState } returns trackingStateFlow
         coEvery { getDriverProfileUseCase(any()) } returns GetDriverProfileResult.Error(
             FoodError.UNKNOWN_ERROR
         )
@@ -100,6 +105,7 @@ class FoodOrderDetailViewModelTest {
             cancelFoodOrderUseCase = cancelFoodOrderUseCase,
             switchToCashUseCase = switchToCashUseCase,
             retryDriverUseCase = retryDriverUseCase,
+            activeTrackingRepository = activeTrackingRepository,
             savedStateHandle = savedStateHandle
         )
     }

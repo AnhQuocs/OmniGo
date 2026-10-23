@@ -224,6 +224,24 @@ fun RestaurantDetailScreen(
                                 )
                             )
                         }
+
+                        // Reviews Section
+                        item {
+                            RestaurantReviewsSection(
+                                reviews = uiState.reviews,
+                                isLoading = uiState.isReviewsLoading,
+                                selectedRating = uiState.selectedRatingFilter,
+                                onRatingFilterSelected = { rating ->
+                                    restaurant?.id?.let { resId ->
+                                        viewModel.loadReviews(resId, rating)
+                                    }
+                                },
+                                modifier = Modifier.padding(
+                                    horizontal = Dimen.PaddingM,
+                                    vertical = AppSpacing.L
+                                )
+                            )
+                        }
                     }
                 }
 

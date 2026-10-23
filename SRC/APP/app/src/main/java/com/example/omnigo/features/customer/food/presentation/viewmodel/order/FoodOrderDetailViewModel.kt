@@ -9,6 +9,7 @@ import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileRe
 import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetailResult
 import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
 import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
+import com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
 import com.example.omnigo.features.customer.food.domain.usecase.CancelFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
@@ -32,6 +33,7 @@ class FoodOrderDetailViewModel @Inject constructor(
     private val cancelFoodOrderUseCase: CancelFoodOrderUseCase,
     private val switchToCashUseCase: SwitchToCashUseCase,
     private val retryDriverUseCase: RetryDriverUseCase,
+    private val activeTrackingRepository: ActiveFoodOrderTrackingRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -40,9 +42,54 @@ class FoodOrderDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FoodOrderDetailUiState())
     val uiState: StateFlow<FoodOrderDetailUiState> = _uiState.asStateFlow()
     private var driverProfileJob: Job? = null
+    private var trackingStateJob: Job? = null
 
     init {
         loadOrderDetail(orderId)
+        if (orderId > 0) {
+            observeRealtimeTracking(orderId)
+        }
+    }
+
+    private fun observeRealtimeTracking(id: Long) {
+        if (id <= 0) return
+        trackingStateJob?.cancel()
+        viewModelScope.launch {
+            activeTrackingRepository.activate(id)
+        }
+        trackingStateJob = viewModelScope.launch {
+            activeTrackingRepository.activeTrackingState.collect { trackingState ->
+                if (trackingState != null && trackingState.orderId == id) {
+                    _uiState.update { current ->
+                        val updatedOrder = current.order?.let { order ->
+                            var modified = order
+                            if (!trackingState.status.isNullOrBlank() && trackingState.status != modified.status) {
+                                modified = modified.copy(status = trackingState.status)
+                            }
+                            val profile = trackingState.driverProfile
+                            if (profile != null && modified.driverId != profile.driverId) {
+                                modified = modified.copy(
+                                    driverId = profile.driverId,
+                                    driverName = profile.driverName ?: modified.driverName,
+                                    driverPhone = profile.driverPhone ?: modified.driverPhone,
+                                    driverVehiclePlate = profile.vehiclePlate ?: modified.driverVehiclePlate
+                                )
+                            }
+                            modified
+                        }
+
+                        val updatedProfile = trackingState.driverProfile ?: current.driverProfile
+                        val updatedLocation = trackingState.driverLocation ?: current.driverLocation
+
+                        current.copy(
+                            order = updatedOrder,
+                            driverProfile = updatedProfile,
+                            driverLocation = updatedLocation
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun loadOrderDetail(id: Long = orderId, isRefresh: Boolean = false) {
@@ -268,5 +315,14 @@ class FoodOrderDetailViewModel @Inject constructor(
 
     fun onClearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        trackingStateJob?.cancel()
+        driverProfileJob?.cancel()
+        viewModelScope.launch {
+            activeTrackingRepository.clear()
+        }
     }
 }

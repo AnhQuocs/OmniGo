@@ -187,6 +187,20 @@ fun FoodOrderDetailScreen(
                             OrderDetailStatusBanner(status = order.status)
                         }
 
+                        // 3.5. Live Delivery Tracking & Coordinates Card
+                        item {
+                            OrderLiveTrackingCard(
+                                restaurantName = order.restaurantName,
+                                restaurantLatitude = order.restaurantLatitude,
+                                restaurantLongitude = order.restaurantLongitude,
+                                dropOffAddress = order.dropOffAddress,
+                                dropOffLatitude = order.dropOffLatitude,
+                                dropOffLongitude = order.dropOffLongitude,
+                                driverLocation = uiState.driverLocation,
+                                status = order.status
+                            )
+                        }
+
                         // 4. Delivery Destination Address Card
                         item {
                             OrderDetailDeliveryAddressCard(dropOffAddress = order.dropOffAddress)

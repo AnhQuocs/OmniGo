@@ -518,4 +518,37 @@
     <string name="password_strength_medium">Medium</string>
     <string name="password_strength_strong">Strong</string>
     <string name="password_strength_label">Password security: %1$s</string>
+
+    <!-- FLOW 1 PART 9 — Customer Tracking & Food Reviews -->
+    <string name="food_tracking_title">Live Delivery Tracking</string>
+    <string name="food_tracking_live_active">LIVE GPS</string>
+    <string name="food_tracking_restaurant_default">Restaurant</string>
+    <string name="food_tracking_no_coords">Coordinates not available</string>
+    <string name="food_tracking_driver_moving">Driver is on the way</string>
+    <string name="food_tracking_destination_default">Delivery Destination</string>
+    <string name="food_tracking_destination_hint">Your drop-off address</string>
+
+    <string name="food_review_title">Order Review</string>
+    <string name="food_review_banner_expired">This order was completed more than 7 days ago and can no longer be reviewed.</string>
+    <string name="food_review_banner_readonly">Review is read-only after 48 hours.</string>
+    <string name="food_review_restaurant_title">Restaurant &amp; Food</string>
+    <string name="food_review_restaurant_subtitle">How was the food and restaurant service?</string>
+    <string name="food_review_comment_placeholder">Share more about dish flavor, packaging, portion size...</string>
+    <string name="food_review_photos_title">Photos (%1$d/%2$d)</string>
+    <string name="food_review_add_photo">Add Photo</string>
+    <string name="food_review_driver_title">Delivery Shipper</string>
+    <string name="food_review_driver_named_title">Shipper: %1$s</string>
+    <string name="food_review_driver_subtitle">How was the delivery driver?</string>
+    <string name="food_review_driver_tags_title">Driver Praise Tags</string>
+    <string name="food_review_merchant_reply_title">Restaurant Response</string>
+    <string name="food_review_submit_button">Submit Review</string>
+    <string name="food_review_submit_success">Thank you! Review submitted successfully.</string>
+    <string name="food_review_submit_failed">Failed to submit review. Please try again.</string>
+    <string name="food_review_load_failed">Failed to load order review.</string>
+    <string name="food_review_image_invalid">Unable to process selected image.</string>
+    <string name="food_review_image_upload_failed">Failed to upload image. Please try again.</string>
+
+    <string name="restaurant_reviews_title">Customer Reviews</string>
+    <string name="restaurant_reviews_filter_all">All</string>
+    <string name="restaurant_reviews_empty">No reviews yet for this restaurant.</string>
 </resources>

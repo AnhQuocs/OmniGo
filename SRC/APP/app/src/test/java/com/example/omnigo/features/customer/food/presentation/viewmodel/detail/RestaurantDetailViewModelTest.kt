@@ -86,16 +86,21 @@ class RestaurantDetailViewModelTest {
         menuItems = listOf(mockMenuItem1, mockMenuItem2)
     )
 
+    private lateinit var getRestaurantReviewsUseCase: com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantReviewsUseCase
+
     @Before
     fun setUp() {
         getRestaurantDetailUseCase = mockk()
         getRestaurantItemsUseCase = mockk()
+        getRestaurantReviewsUseCase = mockk()
+        coEvery { getRestaurantReviewsUseCase(any(), any(), any(), any()) } returns Result.success(emptyList())
         userLocationManager = UserLocationManager()
         userLocationManager.updateLocation(UserLocation(21.0100, 105.8500, "Nhà", "Hà Nội"))
         cartManager = CartManager()
         viewModel = RestaurantDetailViewModel(
             getRestaurantDetailUseCase = getRestaurantDetailUseCase,
             getRestaurantItemsUseCase = getRestaurantItemsUseCase,
+            getRestaurantReviewsUseCase = getRestaurantReviewsUseCase,
             userLocationManager = userLocationManager,
             cartManager = cartManager
         )

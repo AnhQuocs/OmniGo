@@ -83,7 +83,7 @@ class FoodActivity : BaseComponentActivity() {
                             navController.navigate("food_restaurant_detail/${order.restaurantId}")
                         },
                         onReviewClick = { order ->
-                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                            navController.navigate("food_order_review/${order.id}")
                         }
                     )
                 }
@@ -102,7 +102,20 @@ class FoodActivity : BaseComponentActivity() {
                             navController.navigate("food_restaurant_detail/${order.restaurantId}")
                         },
                         onReviewClick = { order ->
-                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                            navController.navigate("food_order_review/${order.id}")
+                        }
+                    )
+                }
+
+                composable(
+                    route = "food_order_review/{orderId}",
+                    arguments = listOf(
+                        navArgument("orderId") { type = NavType.LongType }
+                    )
+                ) {
+                    com.example.omnigo.features.customer.food.presentation.ui.review.FoodReviewScreen(
+                        onBackClick = {
+                            navController.popBackStack()
                         }
                     )
                 }

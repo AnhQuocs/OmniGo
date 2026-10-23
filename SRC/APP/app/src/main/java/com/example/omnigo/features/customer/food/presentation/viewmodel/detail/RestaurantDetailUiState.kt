@@ -19,5 +19,8 @@ data class RestaurantDetailUiState(
     val totalCartQuantity: Int = 0,
     val distanceKm: Double? = null,
     val estimatedDeliveryMinutes: Int? = null,
-    val pendingConflict: CartAddResult.RestaurantConflict? = null
+    val pendingConflict: CartAddResult.RestaurantConflict? = null,
+    val reviews: List<com.example.omnigo.features.customer.food.domain.model.FoodReview> = emptyList(),
+    val isReviewsLoading: Boolean = false,
+    val selectedRatingFilter: Int? = null
 )

@@ -22,12 +22,14 @@ import javax.inject.Inject
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantReviewsUseCase
 import kotlin.math.sqrt
 
 @HiltViewModel
 class RestaurantDetailViewModel @Inject constructor(
     private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
     private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase,
+    private val getRestaurantReviewsUseCase: GetRestaurantReviewsUseCase,
     private val userLocationManager: UserLocationManager,
     private val cartManager: CartManager
 ) : ViewModel() {
@@ -107,6 +109,27 @@ class RestaurantDetailViewModel @Inject constructor(
                     }
                 }
             }
+            loadReviews(id)
+        }
+    }
+
+    fun loadReviews(restaurantId: Long, rating: Int? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isReviewsLoading = true, selectedRatingFilter = rating) }
+            val reviewsResult = getRestaurantReviewsUseCase(
+                restaurantId = restaurantId,
+                page = 0,
+                size = 20,
+                rating = rating
+            )
+            reviewsResult.fold(
+                onSuccess = { reviews ->
+                    _uiState.update { it.copy(isReviewsLoading = false, reviews = reviews) }
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isReviewsLoading = false) }
+                }
+            )
         }
     }
 
