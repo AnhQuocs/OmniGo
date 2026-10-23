@@ -52,6 +52,8 @@ fun FoodOrderResponse.toDomain(): FoodOrder {
         restaurantId = restaurantId ?: 0L,
         restaurantName = restaurantName.orEmpty(),
         restaurantAddress = restaurantAddress,
+        restaurantLatitude = restaurantLatitude,
+        restaurantLongitude = restaurantLongitude,
         restaurantImageUrl = restaurantImageUrl,
         status = status.orEmpty(),
         paymentMethod = PaymentMethod.fromCode(paymentMethod),

@@ -44,6 +44,8 @@ data class FoodOrder(
     val restaurantId: Long,
     val restaurantName: String,
     val restaurantAddress: String? = null,
+    val restaurantLatitude: Double? = null,
+    val restaurantLongitude: Double? = null,
     val restaurantImageUrl: String? = null,
     val status: String,
     val paymentMethod: PaymentMethod?,

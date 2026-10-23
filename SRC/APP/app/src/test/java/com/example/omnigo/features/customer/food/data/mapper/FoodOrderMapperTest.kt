@@ -20,6 +20,8 @@ class FoodOrderMapperTest {
                   "restaurantId": 12,
                   "restaurantName": "Sample Kitchen",
                   "restaurantAddress": "Main Street",
+                  "restaurantLatitude": 10.7769,
+                  "restaurantLongitude": 106.7009,
                   "driverId": 8,
                   "driverName": "Rider",
                   "driverPhone": "0900123456",
@@ -65,6 +67,8 @@ class FoodOrderMapperTest {
         assertEquals(true, order.isPaid)
         assertEquals(456.0, order.deliveryFee!!, 0.001)
         assertEquals(8123.0, order.totalPrice!!, 0.001)
+        assertEquals(10.7769, order.restaurantLatitude!!, 0.001)
+        assertEquals(106.7009, order.restaurantLongitude!!, 0.001)
     }
 
     @Test
@@ -97,5 +101,36 @@ class FoodOrderMapperTest {
         assertNull(order.deliveryFee)
         assertNull(order.totalPrice)
         assertNull(order.estimatedDeliveryMinutes)
+        assertNull(order.restaurantLatitude)
+        assertNull(order.restaurantLongitude)
+    }
+
+    @Test
+    fun `maps restaurant latitude and longitude with aliases and handles nulls`() {
+        val withAliases = gson.fromJson(
+            """
+                {
+                  "id": 101,
+                  "latitude": 10.8231,
+                  "longitude": 106.6297
+                }
+            """.trimIndent(),
+            FoodOrderResponse::class.java
+        )
+        val orderWithAliases = withAliases.toDomain()
+        assertEquals(10.8231, orderWithAliases.restaurantLatitude!!, 0.001)
+        assertEquals(106.6297, orderWithAliases.restaurantLongitude!!, 0.001)
+
+        val withNulls = gson.fromJson(
+            """
+                {
+                  "id": 102
+                }
+            """.trimIndent(),
+            FoodOrderResponse::class.java
+        )
+        val orderWithNulls = withNulls.toDomain()
+        assertNull(orderWithNulls.restaurantLatitude)
+        assertNull(orderWithNulls.restaurantLongitude)
     }
 }
