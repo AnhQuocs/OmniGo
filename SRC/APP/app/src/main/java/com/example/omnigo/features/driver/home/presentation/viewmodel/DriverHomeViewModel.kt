@@ -33,7 +33,8 @@ class DriverHomeViewModel @Inject constructor(
     private val observeDriverFoodOffersUseCase: ObserveDriverFoodOffersUseCase,
     private val acceptFoodOrderUseCase: AcceptFoodOrderUseCase,
     private val rejectFoodOrderUseCase: RejectFoodOrderUseCase,
-    private val getDriverActiveFoodOrdersUseCase: GetDriverActiveFoodOrdersUseCase
+    private val getDriverActiveFoodOrdersUseCase: GetDriverActiveFoodOrdersUseCase,
+    private val rideOfferCoordinator: DriverRideOfferCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriverHomeUiState())
@@ -147,12 +148,18 @@ class DriverHomeViewModel @Inject constructor(
                 handleIncomingOffer(offer)
             }
         }
+        rideOfferCoordinator.startObserving(
+            scope = viewModelScope,
+            updateState = { _uiState.update(it) },
+            getState = { _uiState.value }
+        )
     }
 
     fun stopObservingOffers() {
         offersJob?.cancel()
         offersJob = null
         cancelCountdown()
+        rideOfferCoordinator.stopObserving { _uiState.update(it) }
         _uiState.update {
             it.copy(
                 currentFoodOffer = null,
@@ -346,10 +353,33 @@ class DriverHomeViewModel @Inject constructor(
         }
     }
 
+    fun onAcceptRideOffer(bookingId: Long? = null) {
+        rideOfferCoordinator.onAcceptOffer(
+            scope = viewModelScope,
+            bookingId = bookingId,
+            updateState = { _uiState.update(it) },
+            getState = { _uiState.value }
+        )
+    }
+
+    fun onRejectRideOffer(bookingId: Long? = null) {
+        rideOfferCoordinator.onRejectOffer(
+            scope = viewModelScope,
+            bookingId = bookingId,
+            updateState = { _uiState.update(it) },
+            getState = { _uiState.value }
+        )
+    }
+
+    fun clearAcceptedRideBookingId() {
+        _uiState.update { it.copy(acceptedRideBookingId = null) }
+    }
+
     override fun onCleared() {
         super.onCleared()
         offersJob?.cancel()
         countdownJob?.cancel()
+        rideOfferCoordinator.cancelCountdown()
     }
 
     companion object {

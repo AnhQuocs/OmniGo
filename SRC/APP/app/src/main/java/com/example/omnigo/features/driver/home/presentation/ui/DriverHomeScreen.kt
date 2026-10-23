@@ -49,7 +49,9 @@ import com.example.omnigo.R
 import com.example.omnigo.features.driver.home.presentation.ui.components.DriverApprovalWarningDialog
 import com.example.omnigo.features.driver.home.presentation.ui.components.DriverTodaySummaryCard
 import com.example.omnigo.features.driver.home.presentation.ui.components.FoodOrderOfferDialog
+import com.example.omnigo.features.driver.home.presentation.ui.components.RideOfferDialog
 import com.example.omnigo.features.driver.home.presentation.viewmodel.DriverHomeViewModel
+import com.example.omnigo.features.driver.home.presentation.viewmodel.DriverRideOfferCoordinator
 import com.example.omnigo.features.driver.service.DriverLocationForegroundService
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -80,6 +82,7 @@ import com.example.omnigo.utils.semiBold
 fun DriverHomeScreen(
     modifier: Modifier = Modifier,
     onNavigateToActiveDelivery: (Long, Double?, Double?) -> Unit = { _, _, _ -> },
+    onNavigateToActiveTrip: (Long) -> Unit = {},
     viewModel: DriverHomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -147,10 +150,23 @@ fun DriverHomeScreen(
         viewModel.clearAcceptedOrderId()
     }
 
+    LaunchedEffect(uiState.acceptedRideBookingId) {
+        val bookingId = uiState.acceptedRideBookingId ?: return@LaunchedEffect
+        onNavigateToActiveTrip(bookingId)
+        viewModel.clearAcceptedRideBookingId()
+    }
+
     LaunchedEffect(uiState.offerActionMessage) {
-        val msg = uiState.offerActionMessage ?: return@LaunchedEffect
-        if (msg == DriverHomeViewModel.TIMEOUT_MESSAGE) {
-            Toast.makeText(context, context.getString(R.string.driver_food_offer_timeout_msg), Toast.LENGTH_SHORT).show()
+        when (uiState.offerActionMessage) {
+            DriverHomeViewModel.TIMEOUT_MESSAGE -> {
+                Toast.makeText(context, context.getString(R.string.driver_food_offer_timeout_msg), Toast.LENGTH_SHORT).show()
+            }
+            DriverRideOfferCoordinator.TIMEOUT_OFFER_MESSAGE -> {
+                Toast.makeText(context, context.getString(R.string.driver_ride_offer_timeout_msg), Toast.LENGTH_SHORT).show()
+            }
+            DriverRideOfferCoordinator.CANCELLED_OFFER_MESSAGE -> {
+                Toast.makeText(context, context.getString(R.string.driver_ride_offer_cancelled_msg), Toast.LENGTH_SHORT).show()
+            }
         }
         viewModel.clearOfferActionMessage()
     }
@@ -171,6 +187,18 @@ fun DriverHomeScreen(
             isRejecting = uiState.isOfferRejecting,
             onAccept = { viewModel.onAcceptOffer() },
             onReject = { viewModel.onRejectOffer() }
+        )
+    }
+
+    uiState.currentRideOffer?.let { offer ->
+        RideOfferDialog(
+            offer = offer,
+            countdownSeconds = uiState.rideOfferCountdownSeconds,
+            countdownProgress = uiState.rideOfferCountdownProgress,
+            isAccepting = uiState.isRideOfferAccepting,
+            isRejecting = uiState.isRideOfferRejecting,
+            onAccept = { viewModel.onAcceptRideOffer() },
+            onReject = { viewModel.onRejectRideOffer() }
         )
     }
 

@@ -579,4 +579,18 @@
     <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
+
+    <!-- FLOW 2 — PART 3 Driver Ride Offers -->
+    <string name="driver_ride_offer_title">Chuyến xe chở khách mới</string>
+    <string name="driver_ride_offer_pickup">Điểm đón khách</string>
+    <string name="driver_ride_offer_dropoff">Điểm đến</string>
+    <string name="driver_ride_offer_distance">Quãng đường</string>
+    <string name="driver_ride_offer_fare">Cước phí chuyến xe</string>
+    <string name="driver_ride_offer_accept">Nhận cuốc xe</string>
+    <string name="driver_ride_offer_reject">Bỏ qua</string>
+    <string name="driver_ride_offer_timeout_msg">Cuốc xe đã hết hạn phản hồi và tự động bỏ qua</string>
+    <string name="driver_ride_offer_cancelled_msg">Cuốc xe đã bị hủy hoặc được tài xế khác nhận</string>
+    <string name="driver_ride_offer_payment_cash">Tiền mặt (CASH)</string>
+    <string name="driver_ride_offer_payment_online">Thanh toán trực tuyến</string>
+    <string name="driver_ride_offer_coordinates_format">Tọa độ: %1$.4f, %2$.4f</string>
 </resources>

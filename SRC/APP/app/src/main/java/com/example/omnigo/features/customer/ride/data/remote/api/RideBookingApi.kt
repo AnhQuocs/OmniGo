@@ -27,4 +27,14 @@ interface RideBookingApi {
     suspend fun getBookingDriver(
         @Path("bookingId") bookingId: Long
     ): ApiResponse<BookingDriverResponse>
+
+    @PUT(ApiEndpoints.BOOKING_ACCEPT)
+    suspend fun acceptBooking(
+        @Path("bookingId") bookingId: Long
+    ): BookingResponse
+
+    @PUT(ApiEndpoints.BOOKING_DRIVER_CANCEL)
+    suspend fun driverCancelBooking(
+        @Path("bookingId") bookingId: Long
+    ): BookingResponse
 }

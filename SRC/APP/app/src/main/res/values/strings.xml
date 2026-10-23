@@ -577,4 +577,18 @@
     <string name="ride_booking_cancelled_success">Search cancelled successfully.</string>
     <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
     <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
+
+    <!-- FLOW 2 — PART 3 Driver Ride Offers -->
+    <string name="driver_ride_offer_title">New Ride Request</string>
+    <string name="driver_ride_offer_pickup">Pickup Location</string>
+    <string name="driver_ride_offer_dropoff">Dropoff Location</string>
+    <string name="driver_ride_offer_distance">Distance</string>
+    <string name="driver_ride_offer_fare">Trip Fare</string>
+    <string name="driver_ride_offer_accept">Accept Ride</string>
+    <string name="driver_ride_offer_reject">Decline</string>
+    <string name="driver_ride_offer_timeout_msg">Ride offer expired and was declined</string>
+    <string name="driver_ride_offer_cancelled_msg">Ride was cancelled or accepted by another driver</string>
+    <string name="driver_ride_offer_payment_cash">Cash (CASH)</string>
+    <string name="driver_ride_offer_payment_online">Online Payment</string>
+    <string name="driver_ride_offer_coordinates_format">Coordinates: %1$.4f, %2$.4f</string>
 </resources>

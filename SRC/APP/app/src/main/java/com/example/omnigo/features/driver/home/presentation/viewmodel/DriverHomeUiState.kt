@@ -3,6 +3,7 @@ package com.example.omnigo.features.driver.home.presentation.viewmodel
 import com.example.omnigo.features.driver.domain.model.DriverAccountProfile
 import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
 import com.example.omnigo.features.driver.domain.model.DriverFoodOffer
+import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 
 data class DriverHomeUiState(
     val isOnline: Boolean = false,
@@ -22,5 +23,11 @@ data class DriverHomeUiState(
     val offerActionMessage: String? = null,
     val acceptedOrderId: Long? = null,
     val acceptedOfferRestaurantLat: Double? = null,
-    val acceptedOfferRestaurantLng: Double? = null
+    val acceptedOfferRestaurantLng: Double? = null,
+    val currentRideOffer: RideOfferEvent? = null,
+    val rideOfferCountdownSeconds: Int = RideOfferEvent.DEFAULT_TIMEOUT_SECONDS,
+    val rideOfferCountdownProgress: Float = 1f,
+    val isRideOfferAccepting: Boolean = false,
+    val isRideOfferRejecting: Boolean = false,
+    val acceptedRideBookingId: Long? = null
 )

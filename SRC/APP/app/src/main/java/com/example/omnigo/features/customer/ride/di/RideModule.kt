@@ -2,6 +2,8 @@ package com.example.omnigo.features.customer.ride.di
 
 import com.example.omnigo.features.customer.ride.data.remote.api.PricingApi
 import com.example.omnigo.features.customer.ride.data.remote.api.RideBookingApi
+import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSource
+import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSourceImpl
 import com.example.omnigo.features.customer.ride.data.repository.PricingRepositoryImpl
 import com.example.omnigo.features.customer.ride.data.repository.RideBookingRepositoryImpl
 import com.example.omnigo.features.customer.ride.domain.repository.PricingRepository
@@ -29,6 +31,12 @@ abstract class RideModule {
     abstract fun bindRideBookingRepository(
         impl: RideBookingRepositoryImpl
     ): RideBookingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRideStompSubscriptionSource(
+        impl: RideStompSubscriptionSourceImpl
+    ): RideStompSubscriptionSource
 }
 
 @Module

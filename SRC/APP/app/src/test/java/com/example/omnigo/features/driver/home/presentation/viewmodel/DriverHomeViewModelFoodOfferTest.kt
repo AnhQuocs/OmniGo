@@ -100,7 +100,8 @@ class DriverHomeViewModelFoodOfferTest {
             observeDriverFoodOffersUseCase = observeDriverFoodOffersUseCase,
             acceptFoodOrderUseCase = acceptFoodOrderUseCase,
             rejectFoodOrderUseCase = rejectFoodOrderUseCase,
-            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase
+            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase,
+            rideOfferCoordinator = mockk(relaxed = true)
         )
         vm.timeProvider = { mainDispatcherRule.testDispatcher.scheduler.currentTime }
         return vm

@@ -76,7 +76,8 @@ class DriverHomeViewModelTest {
             observeDriverFoodOffersUseCase = observeDriverFoodOffersUseCase,
             acceptFoodOrderUseCase = acceptFoodOrderUseCase,
             rejectFoodOrderUseCase = rejectFoodOrderUseCase,
-            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase
+            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase,
+            rideOfferCoordinator = mockk(relaxed = true)
         )
     }
 
