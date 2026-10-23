@@ -130,4 +130,75 @@ class DriverRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun getDriverFoodOrderDetail(orderId: Long): Result<com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = driverApi.getFoodOrderDetail(orderId)
+                val body = response.data
+                if (response.success && body != null) {
+                    val domainOrder = com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(body)
+                    if (domainOrder != null) {
+                        Result.success(domainOrder)
+                    } else {
+                        Result.failure(Exception("Failed to parse delivery order data"))
+                    }
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to get delivery order detail"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun getDriverActiveFoodOrders(): Result<List<com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = driverApi.getDriverFoodOrders()
+                val body = response.data
+                if (response.success && body != null) {
+                    val orders = body.mapNotNull {
+                        com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(it)
+                    }.filter { it.status.isActive }
+                    Result.success(orders)
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to fetch driver food orders"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateDriverOrderStatus(
+        orderId: Long,
+        status: String,
+        reason: String?,
+        reasonCode: String?
+    ): Result<com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val request = com.example.omnigo.features.driver.food.data.remote.dto.UpdateDriverOrderStatusRequest(
+                    status = status,
+                    reason = reason,
+                    reasonCode = reasonCode
+                )
+                val response = driverApi.updateDriverOrderStatus(orderId, request)
+                val body = response.data
+                if (response.success && body != null) {
+                    val domainOrder = com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(body)
+                    if (domainOrder != null) {
+                        Result.success(domainOrder)
+                    } else {
+                        Result.failure(Exception("Failed to parse updated delivery order data"))
+                    }
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to update driver order status"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }

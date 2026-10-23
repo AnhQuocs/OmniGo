@@ -79,7 +79,7 @@ import com.example.omnigo.utils.semiBold
 @Composable
 fun DriverHomeScreen(
     modifier: Modifier = Modifier,
-    onNavigateToActiveDelivery: (Long) -> Unit = {},
+    onNavigateToActiveDelivery: (Long, Double?, Double?) -> Unit = { _, _, _ -> },
     viewModel: DriverHomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -139,7 +139,11 @@ fun DriverHomeScreen(
 
     LaunchedEffect(uiState.acceptedOrderId) {
         val orderId = uiState.acceptedOrderId ?: return@LaunchedEffect
-        onNavigateToActiveDelivery(orderId)
+        onNavigateToActiveDelivery(
+            orderId,
+            uiState.acceptedOfferRestaurantLat,
+            uiState.acceptedOfferRestaurantLng
+        )
         viewModel.clearAcceptedOrderId()
     }
 

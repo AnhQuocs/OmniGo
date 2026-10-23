@@ -217,4 +217,120 @@ class DriverRepositoryImplTest {
         assertTrue(result.isFailure)
         assertEquals("Network timeout", result.exceptionOrNull()?.message)
     }
+
+    @Test
+    fun `getDriverFoodOrderDetail returns success when api responds successfully`() = runTest {
+        val orderId = 301L
+        val dto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = orderId,
+            restaurantName = "Bun Cha Ha Noi",
+            restaurantAddress = "12 Hang Buom",
+            restaurantLatitude = 21.03,
+            restaurantLongitude = 105.85,
+            dropOffAddress = "45 Pho Hue",
+            dropOffLatitude = 21.01,
+            dropOffLongitude = 105.84,
+            status = "DELIVERING",
+            totalPrice = 85000.0,
+            deliveryFee = 15000.0,
+            isPaid = true
+        )
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "OK",
+            data = dto,
+            timestamp = null
+        )
+        coEvery { driverApi.getFoodOrderDetail(orderId) } returns apiResponse
+
+        val result = repository.getDriverFoodOrderDetail(orderId)
+
+        assertTrue(result.isSuccess)
+        val order = result.getOrNull()!!
+        assertEquals(orderId, order.orderId)
+        assertEquals("Bun Cha Ha Noi", order.restaurantName)
+        assertEquals(true, order.isPaid)
+        assertEquals(0.0, order.cashAmountToCollect, 0.001)
+        coVerify(exactly = 1) { driverApi.getFoodOrderDetail(orderId) }
+    }
+
+    @Test
+    fun `getDriverFoodOrderDetail returns failure when api returns failure response`() = runTest {
+        val orderId = 301L
+        val apiResponse: ApiResponse<com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse> = ApiResponse(
+            success = false,
+            message = "Order not found",
+            data = null,
+            timestamp = null
+        )
+        coEvery { driverApi.getFoodOrderDetail(orderId) } returns apiResponse
+
+        val result = repository.getDriverFoodOrderDetail(orderId)
+
+        assertTrue(result.isFailure)
+        assertEquals("Order not found", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `getDriverActiveFoodOrders filters out completed and cancelled orders`() = runTest {
+        val activeOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 401L,
+            restaurantName = "Com Tam",
+            status = "DELIVERING",
+            totalPrice = 50000.0
+        )
+        val completedOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 402L,
+            restaurantName = "Com Tam 2",
+            status = "COMPLETED",
+            totalPrice = 60000.0
+        )
+        val cancelledOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 403L,
+            restaurantName = "Com Tam 3",
+            status = "CANCELLED",
+            totalPrice = 70000.0
+        )
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "OK",
+            data = listOf(activeOrderDto, completedOrderDto, cancelledOrderDto),
+            timestamp = null
+        )
+        coEvery { driverApi.getDriverFoodOrders() } returns apiResponse
+
+        val result = repository.getDriverActiveFoodOrders()
+
+        assertTrue(result.isSuccess)
+        val activeList = result.getOrNull()!!
+        assertEquals(1, activeList.size)
+        assertEquals(401L, activeList[0].orderId)
+    }
+
+    @Test
+    fun `updateDriverOrderStatus returns success when api call succeeds`() = runTest {
+        val orderId = 501L
+        val dto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = orderId,
+            restaurantName = "Pho Thin",
+            status = "DELIVERING",
+            totalPrice = 90000.0
+        )
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "OK",
+            data = dto,
+            timestamp = null
+        )
+        val expectedRequest = com.example.omnigo.features.driver.food.data.remote.dto.UpdateDriverOrderStatusRequest(
+            status = "DELIVERING"
+        )
+        coEvery { driverApi.updateDriverOrderStatus(orderId, expectedRequest) } returns apiResponse
+
+        val result = repository.updateDriverOrderStatus(orderId, "DELIVERING")
+
+        assertTrue(result.isSuccess)
+        assertEquals(com.example.omnigo.features.driver.food.domain.model.DriverDeliveryStatus.DELIVERING, result.getOrNull()?.status)
+        coVerify(exactly = 1) { driverApi.updateDriverOrderStatus(orderId, expectedRequest) }
+    }
 }

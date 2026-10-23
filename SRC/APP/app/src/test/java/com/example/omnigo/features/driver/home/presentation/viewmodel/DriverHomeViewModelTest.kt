@@ -35,6 +35,7 @@ class DriverHomeViewModelTest {
     private lateinit var observeDriverFoodOffersUseCase: com.example.omnigo.features.driver.domain.usecase.ObserveDriverFoodOffersUseCase
     private lateinit var acceptFoodOrderUseCase: com.example.omnigo.features.driver.domain.usecase.AcceptFoodOrderUseCase
     private lateinit var rejectFoodOrderUseCase: com.example.omnigo.features.driver.domain.usecase.RejectFoodOrderUseCase
+    private lateinit var getDriverActiveFoodOrdersUseCase: com.example.omnigo.features.driver.food.domain.usecase.GetDriverActiveFoodOrdersUseCase
     private lateinit var viewModel: DriverHomeViewModel
 
     private val approvedProfile = DriverAccountProfile(
@@ -56,12 +57,14 @@ class DriverHomeViewModelTest {
         observeDriverFoodOffersUseCase = mockk()
         acceptFoodOrderUseCase = mockk()
         rejectFoodOrderUseCase = mockk()
+        getDriverActiveFoodOrdersUseCase = mockk()
 
         coEvery { sessionManager.getUserId() } returns 101L
         coEvery { getDriverProfileUseCase(101L) } returns Result.success(approvedProfile)
         every { locationTracker.isLocationPermissionGranted() } returns true
         every { locationTracker.isGpsEnabled() } returns true
         every { observeDriverFoodOffersUseCase() } returns kotlinx.coroutines.flow.emptyFlow()
+        coEvery { getDriverActiveFoodOrdersUseCase() } returns Result.success(emptyList())
     }
 
     private fun createViewModel(): DriverHomeViewModel {
@@ -72,7 +75,8 @@ class DriverHomeViewModelTest {
             sessionManager = sessionManager,
             observeDriverFoodOffersUseCase = observeDriverFoodOffersUseCase,
             acceptFoodOrderUseCase = acceptFoodOrderUseCase,
-            rejectFoodOrderUseCase = rejectFoodOrderUseCase
+            rejectFoodOrderUseCase = rejectFoodOrderUseCase,
+            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase
         )
     }
 
@@ -215,5 +219,52 @@ class DriverHomeViewModelTest {
 
         viewModel.clearErrorMessage()
         assertNull(viewModel.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `checkActiveDeliveries sets acceptedOrderId when active delivery exists`() = runTest {
+        val activeOrder = com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder(
+            orderId = 999L,
+            status = com.example.omnigo.features.driver.food.domain.model.DriverDeliveryStatus.DELIVERING,
+            restaurantName = "Com Ga Nha",
+            restaurantAddress = "12 Ly Tu Trong",
+            restaurantLatitude = 10.775,
+            restaurantLongitude = 106.698,
+            dropOffAddress = "99 Dien Bien Phu",
+            totalPrice = 65000.0,
+            deliveryFee = 15000.0,
+            isPaid = false
+        )
+        coEvery { getDriverActiveFoodOrdersUseCase() } returns Result.success(listOf(activeOrder))
+
+        viewModel = createViewModel()
+        viewModel.checkActiveDeliveries()
+        advanceUntilIdle()
+
+        assertEquals(999L, viewModel.uiState.value.acceptedOrderId)
+        assertEquals(10.775, viewModel.uiState.value.acceptedOfferRestaurantLat ?: 0.0, 0.001)
+        assertEquals(106.698, viewModel.uiState.value.acceptedOfferRestaurantLng ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun `checkActiveDeliveries does not set acceptedOrderId when list is empty`() = runTest {
+        coEvery { getDriverActiveFoodOrdersUseCase() } returns Result.success(emptyList())
+
+        viewModel = createViewModel()
+        viewModel.checkActiveDeliveries()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.acceptedOrderId)
+    }
+
+    @Test
+    fun `checkActiveDeliveries does not crash when use case fails`() = runTest {
+        coEvery { getDriverActiveFoodOrdersUseCase() } returns Result.failure(RuntimeException("Network error"))
+
+        viewModel = createViewModel()
+        viewModel.checkActiveDeliveries()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.acceptedOrderId)
     }
 }

@@ -20,6 +20,10 @@ import com.example.omnigo.features.main.presentation.navigation.DriverBottomNavD
 import com.example.omnigo.features.main.presentation.ui.components.DriverBottomNavBar
 import com.example.omnigo.ui.theme.BackgroundLight
 
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.omnigo.features.driver.food.presentation.ui.DriverActiveDeliveryScreen
+
 @Composable
 fun MainDriverScreen(
     onNavigateToLogin: () -> Unit,
@@ -28,6 +32,7 @@ fun MainDriverScreen(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: DriverBottomNavDestination.Home.route
+    val isDeliveryActive = currentRoute.startsWith("driver_active_delivery")
 
     Box(
         modifier = modifier
@@ -40,7 +45,45 @@ fun MainDriverScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             composable(DriverBottomNavDestination.Home.route) {
-                DriverHomeScreen()
+                DriverHomeScreen(
+                    onNavigateToActiveDelivery = { orderId, restaurantLat, restaurantLng ->
+                        val route = buildString {
+                            append("driver_active_delivery/$orderId")
+                            if (restaurantLat != null && restaurantLng != null) {
+                                append("?restaurantLat=$restaurantLat&restaurantLng=$restaurantLng")
+                            }
+                        }
+                        navController.navigate(route)
+                    }
+                )
+            }
+
+            composable(
+                route = "driver_active_delivery/{orderId}?restaurantLat={restaurantLat}&restaurantLng={restaurantLng}",
+                arguments = listOf(
+                    navArgument("orderId") {
+                        type = NavType.LongType
+                        defaultValue = 0L
+                    },
+                    navArgument("restaurantLat") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("restaurantLng") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+                DriverActiveDeliveryScreen(
+                    orderId = orderId,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(DriverBottomNavDestination.Trips.route) {
@@ -58,18 +101,20 @@ fun MainDriverScreen(
             }
         }
 
-        DriverBottomNavBar(
-            currentRoute = currentRoute,
-            onNavigateToDestination = { destination ->
-                navController.navigate(destination.route) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
+        if (!isDeliveryActive) {
+            DriverBottomNavBar(
+                currentRoute = currentRoute,
+                onNavigateToDestination = { destination ->
+                    navController.navigate(destination.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }

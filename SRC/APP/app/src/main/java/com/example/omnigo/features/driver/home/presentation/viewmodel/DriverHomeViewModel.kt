@@ -11,6 +11,7 @@ import com.example.omnigo.features.driver.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.features.driver.domain.usecase.ObserveDriverFoodOffersUseCase
 import com.example.omnigo.features.driver.domain.usecase.RejectFoodOrderUseCase
 import com.example.omnigo.features.driver.domain.usecase.UpdateDriverStatusUseCase
+import com.example.omnigo.features.driver.food.domain.usecase.GetDriverActiveFoodOrdersUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,7 +32,8 @@ class DriverHomeViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val observeDriverFoodOffersUseCase: ObserveDriverFoodOffersUseCase,
     private val acceptFoodOrderUseCase: AcceptFoodOrderUseCase,
-    private val rejectFoodOrderUseCase: RejectFoodOrderUseCase
+    private val rejectFoodOrderUseCase: RejectFoodOrderUseCase,
+    private val getDriverActiveFoodOrdersUseCase: GetDriverActiveFoodOrdersUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriverHomeUiState())
@@ -64,6 +66,7 @@ class DriverHomeViewModel @Inject constructor(
                 }
                 if (online) {
                     startObservingOffers()
+                    checkActiveDeliveries()
                 } else {
                     stopObservingOffers()
                 }
@@ -239,7 +242,9 @@ class DriverHomeViewModel @Inject constructor(
                     it.copy(
                         currentFoodOffer = null,
                         isOfferAccepting = false,
-                        acceptedOrderId = targetOrderId
+                        acceptedOrderId = targetOrderId,
+                        acceptedOfferRestaurantLat = currentOffer.restaurantLatitude,
+                        acceptedOfferRestaurantLng = currentOffer.restaurantLongitude
                     )
                 }
             }.onFailure { error ->
@@ -252,6 +257,29 @@ class DriverHomeViewModel @Inject constructor(
                 }
             }
             isProcessingOffer = false
+        }
+    }
+
+    fun checkActiveDeliveries() {
+        viewModelScope.launch {
+            if (_uiState.value.acceptedOrderId != null || isProcessingOffer) {
+                return@launch
+            }
+            val result = getDriverActiveFoodOrdersUseCase()
+            result.onSuccess { orders ->
+                val activeOrder = orders.firstOrNull { it.status.isActive }
+                if (activeOrder != null && activeOrder.orderId > 0L) {
+                    if (_uiState.value.acceptedOrderId != activeOrder.orderId) {
+                        _uiState.update {
+                            it.copy(
+                                acceptedOrderId = activeOrder.orderId,
+                                acceptedOfferRestaurantLat = activeOrder.restaurantLatitude,
+                                acceptedOfferRestaurantLng = activeOrder.restaurantLongitude
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -309,7 +337,13 @@ class DriverHomeViewModel @Inject constructor(
     }
 
     fun clearAcceptedOrderId() {
-        _uiState.update { it.copy(acceptedOrderId = null) }
+        _uiState.update {
+            it.copy(
+                acceptedOrderId = null,
+                acceptedOfferRestaurantLat = null,
+                acceptedOfferRestaurantLng = null
+            )
+        }
     }
 
     override fun onCleared() {

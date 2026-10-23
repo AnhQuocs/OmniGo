@@ -48,6 +48,12 @@ data class FoodOrderResponse(
     @SerializedName("customerId")
     val customerId: Long? = null,
 
+    @SerializedName(value = "customerName", alternate = ["customerFullName", "userName"])
+    val customerName: String? = null,
+
+    @SerializedName(value = "customerPhone", alternate = ["customerPhoneNumber", "phoneNumber"])
+    val customerPhone: String? = null,
+
     @SerializedName("driverId")
 
     val driverId: Long? = null,
@@ -76,6 +82,12 @@ data class FoodOrderResponse(
 
     @SerializedName("restaurantAddress")
     val restaurantAddress: String? = null,
+
+    @SerializedName(value = "restaurantLatitude", alternate = ["latitude", "restaurantLat"])
+    val restaurantLatitude: Double? = null,
+
+    @SerializedName(value = "restaurantLongitude", alternate = ["longitude", "restaurantLng"])
+    val restaurantLongitude: Double? = null,
 
     @SerializedName(value = "restaurantImageUrl", alternate = ["restaurantImage", "imageUrl"])
     val restaurantImageUrl: String? = null,

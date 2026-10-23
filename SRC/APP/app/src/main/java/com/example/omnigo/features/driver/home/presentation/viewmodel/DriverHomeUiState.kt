@@ -20,5 +20,7 @@ data class DriverHomeUiState(
     val isOfferAccepting: Boolean = false,
     val isOfferRejecting: Boolean = false,
     val offerActionMessage: String? = null,
-    val acceptedOrderId: Long? = null
+    val acceptedOrderId: Long? = null,
+    val acceptedOfferRestaurantLat: Double? = null,
+    val acceptedOfferRestaurantLng: Double? = null
 )

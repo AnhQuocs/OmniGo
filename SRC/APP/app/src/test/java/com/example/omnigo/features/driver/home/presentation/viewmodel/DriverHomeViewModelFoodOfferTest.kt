@@ -43,6 +43,7 @@ class DriverHomeViewModelFoodOfferTest {
     private lateinit var observeDriverFoodOffersUseCase: ObserveDriverFoodOffersUseCase
     private lateinit var acceptFoodOrderUseCase: AcceptFoodOrderUseCase
     private lateinit var rejectFoodOrderUseCase: RejectFoodOrderUseCase
+    private lateinit var getDriverActiveFoodOrdersUseCase: com.example.omnigo.features.driver.food.domain.usecase.GetDriverActiveFoodOrdersUseCase
 
     private lateinit var offerFlow: MutableSharedFlow<DriverFoodOffer>
 
@@ -77,6 +78,7 @@ class DriverHomeViewModelFoodOfferTest {
         observeDriverFoodOffersUseCase = mockk()
         acceptFoodOrderUseCase = mockk()
         rejectFoodOrderUseCase = mockk()
+        getDriverActiveFoodOrdersUseCase = mockk()
 
         coEvery { sessionManager.getUserId() } returns 101L
         coEvery { getDriverProfileUseCase(101L) } returns Result.success(onlineProfile)
@@ -86,6 +88,7 @@ class DriverHomeViewModelFoodOfferTest {
         coEvery { updateDriverStatusUseCase(any(), any()) } returns Result.success(true)
         coEvery { acceptFoodOrderUseCase(any()) } returns Result.success(true)
         coEvery { rejectFoodOrderUseCase(any()) } returns Result.success(true)
+        coEvery { getDriverActiveFoodOrdersUseCase() } returns Result.success(emptyList())
     }
 
     private fun createViewModel(): DriverHomeViewModel {
@@ -96,7 +99,8 @@ class DriverHomeViewModelFoodOfferTest {
             sessionManager = sessionManager,
             observeDriverFoodOffersUseCase = observeDriverFoodOffersUseCase,
             acceptFoodOrderUseCase = acceptFoodOrderUseCase,
-            rejectFoodOrderUseCase = rejectFoodOrderUseCase
+            rejectFoodOrderUseCase = rejectFoodOrderUseCase,
+            getDriverActiveFoodOrdersUseCase = getDriverActiveFoodOrdersUseCase
         )
         vm.timeProvider = { mainDispatcherRule.testDispatcher.scheduler.currentTime }
         return vm
