@@ -41,7 +41,8 @@ class RideBookingViewModel @Inject constructor(
     private val createRideBookingUseCase: CreateRideBookingUseCase,
     private val cancelRideBookingUseCase: CancelRideBookingUseCase,
     private val detectCurrentLocationUseCase: DetectCurrentLocationUseCase,
-    private val savedAddressRepository: SavedAddressRepository
+    private val savedAddressRepository: SavedAddressRepository,
+    private val rideBookingStatusCoordinator: RideBookingStatusCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideBookingUiState())
@@ -56,6 +57,11 @@ class RideBookingViewModel @Inject constructor(
     init {
         loadSavedAddresses()
         autoDetectPickupLocation()
+        rideBookingStatusCoordinator.restoreSessionIfAvailable(
+            scope = viewModelScope,
+            updateState = { _uiState.update(it) },
+            getState = { _uiState.value }
+        )
     }
 
     private fun loadSavedAddresses() {
@@ -196,6 +202,12 @@ class RideBookingViewModel @Inject constructor(
                         )
                     }
                     _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
+                    rideBookingStatusCoordinator.startObserving(
+                        scope = viewModelScope,
+                        bookingId = booking.bookingId,
+                        updateState = { _uiState.update(it) },
+                        getState = { _uiState.value }
+                    )
                     if (booking.status == BookingStatus.PENDING) {
                         startSearchCountdown()
                     }
@@ -235,6 +247,7 @@ class RideBookingViewModel @Inject constructor(
         if (booking == null) {
             // If just searching UI without active backend bookingId, close directly
             countdownJob?.cancel()
+            rideBookingStatusCoordinator.stopObserving()
             _uiState.update { it.copy(isSearchingDriver = false) }
             return
         }
@@ -247,12 +260,15 @@ class RideBookingViewModel @Inject constructor(
             when (result) {
                 is CancelRideBookingResult.Success -> {
                     countdownJob?.cancel()
+                    rideBookingStatusCoordinator.stopObserving()
+                    rideBookingStatusCoordinator.clearSession()
                     _uiState.update {
                         it.copy(
                             isCancellingBooking = false,
                             isSearchingDriver = false,
                             currentBooking = null,
-                            infoMessage = "Đã hủy tìm chuyến xe thành công."
+                            assignedDriver = null,
+                            infoMessage = "Đã hủy chuyến xe thành công."
                         )
                     }
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
@@ -274,6 +290,19 @@ class RideBookingViewModel @Inject constructor(
         _uiState.update { it.copy(isSearchingDriver = false) }
     }
 
+    fun dismissCompletedTrip() {
+        _uiState.update {
+            it.copy(
+                currentBooking = null,
+                assignedDriver = null,
+                tripStatusMessage = null
+            )
+        }
+        viewModelScope.launch {
+            rideBookingStatusCoordinator.clearSession()
+        }
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
     }
@@ -282,5 +311,6 @@ class RideBookingViewModel @Inject constructor(
         super.onCleared()
         countdownJob?.cancel()
         priceCalculationJob?.cancel()
+        rideBookingStatusCoordinator.stopObserving()
     }
 }

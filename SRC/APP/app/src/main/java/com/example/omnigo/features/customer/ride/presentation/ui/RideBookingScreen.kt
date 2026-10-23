@@ -1,6 +1,12 @@
 package com.example.omnigo.features.customer.ride.presentation.ui
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.ride.presentation.ui.components.CustomerActiveTripContent
 import com.example.omnigo.features.customer.ride.presentation.ui.components.PricingEstimateSection
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideLocationPickerSection
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSearchingRadarDialog
@@ -98,7 +105,9 @@ fun RideBookingScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(id = R.string.ride_booking_title),
+                        text = stringResource(
+                            id = if (uiState.isTripActive) R.string.ride_active_trip_title else R.string.ride_booking_title
+                        ),
                         style = MaterialTheme.typography.s18.bold(),
                         color = TextPrimary
                     )
@@ -118,83 +127,107 @@ fun RideBookingScreen(
             )
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = Dimen.PaddingS
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimen.PaddingM)
+            if (!uiState.isTripActive) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = Dimen.PaddingS
                 ) {
-                    val isButtonEnabled = uiState.pickupLocation != null &&
-                            uiState.dropoffLocation != null &&
-                            uiState.pricingEstimate != null &&
-                            !uiState.isCreatingBooking &&
-                            !uiState.isSearchingDriver &&
-                            !uiState.isCalculatingPrice
-
-                    Button(
-                        onClick = viewModel::createBooking,
-                        enabled = isButtonEnabled,
-                        shape = RoundedCornerShape(AppShape.ShapeM),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            disabledContainerColor = PrimaryColor.copy(alpha = 0.4f)
-                        ),
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(Dimen.HeightDefault)
+                            .padding(Dimen.PaddingM)
                     ) {
-                        if (uiState.isCreatingBooking) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimen.SizeM),
-                                color = TextWhite,
-                                strokeWidth = Dimen.PaddingXXS
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(id = R.string.ride_book_now_button),
-                                color = TextWhite,
-                                style = MaterialTheme.typography.s14.bold()
-                            )
+                        val isButtonEnabled = uiState.pickupLocation != null &&
+                                uiState.dropoffLocation != null &&
+                                uiState.pricingEstimate != null &&
+                                !uiState.isCreatingBooking &&
+                                !uiState.isSearchingDriver &&
+                                !uiState.isCalculatingPrice
+
+                        Button(
+                            onClick = viewModel::createBooking,
+                            enabled = isButtonEnabled,
+                            shape = RoundedCornerShape(AppShape.ShapeM),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryColor,
+                                disabledContainerColor = PrimaryColor.copy(alpha = 0.4f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(Dimen.HeightDefault)
+                        ) {
+                            if (uiState.isCreatingBooking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(Dimen.SizeM),
+                                    color = TextWhite,
+                                    strokeWidth = Dimen.PaddingXXS
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(id = R.string.ride_book_now_button),
+                                    color = TextWhite,
+                                    style = MaterialTheme.typography.s14.bold()
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     ) { innerPadding ->
-        Column(
+        AnimatedContent(
+            targetState = uiState.isTripActive,
+            transitionSpec = {
+                (fadeIn() + slideInVertically()).togetherWith(fadeOut() + slideOutVertically())
+            },
+            label = "screenContentTransition",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState())
-                .padding(Dimen.PaddingM)
-        ) {
-            // 1. Pickup & Dropoff Location Picker
-            RideLocationPickerSection(
-                pickupLocation = uiState.pickupLocation,
-                dropoffLocation = uiState.dropoffLocation,
-                isLocating = uiState.isLocatingCurrentPosition,
-                savedAddresses = uiState.savedAddresses,
-                onDetectCurrentLocation = viewModel::autoDetectPickupLocation,
-                onSelectPickup = viewModel::setPickupLocation,
-                onSelectDropoff = viewModel::setDropoffLocation,
-                onSwapClick = viewModel::swapLocations
-            )
+        ) { isTripActive ->
+            if (isTripActive) {
+                CustomerActiveTripContent(
+                    uiState = uiState,
+                    onCancelTrip = viewModel::cancelBooking,
+                    onDismissCompleted = viewModel::dismissCompletedTrip,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .verticalScroll(rememberScrollState())
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .verticalScroll(rememberScrollState())
+                        .padding(Dimen.PaddingM)
+                ) {
+                    // 1. Pickup & Dropoff Location Picker
+                    RideLocationPickerSection(
+                        pickupLocation = uiState.pickupLocation,
+                        dropoffLocation = uiState.dropoffLocation,
+                        isLocating = uiState.isLocatingCurrentPosition,
+                        savedAddresses = uiState.savedAddresses,
+                        onDetectCurrentLocation = viewModel::autoDetectPickupLocation,
+                        onSelectPickup = viewModel::setPickupLocation,
+                        onSelectDropoff = viewModel::setDropoffLocation,
+                        onSwapClick = viewModel::swapLocations
+                    )
 
-            Spacer(modifier = Modifier.height(AppSpacing.L))
+                    Spacer(modifier = Modifier.height(AppSpacing.L))
 
-            // 2. Pricing Estimate Card
-            PricingEstimateSection(
-                isCalculating = uiState.isCalculatingPrice,
-                pricingEstimate = uiState.pricingEstimate,
-                errorMessage = uiState.pricingError
-            )
+                    // 2. Pricing Estimate Card
+                    PricingEstimateSection(
+                        isCalculating = uiState.isCalculatingPrice,
+                        pricingEstimate = uiState.pricingEstimate,
+                        errorMessage = uiState.pricingError
+                    )
 
-            Spacer(modifier = Modifier.height(AppSpacing.XXL))
+                    Spacer(modifier = Modifier.height(AppSpacing.XXL))
+                }
+            }
         }
     }
 

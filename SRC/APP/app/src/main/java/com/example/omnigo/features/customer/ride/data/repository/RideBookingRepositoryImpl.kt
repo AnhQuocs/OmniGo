@@ -2,6 +2,7 @@ package com.example.omnigo.features.customer.ride.data.repository
 
 import com.example.omnigo.features.customer.ride.data.mapper.toDomain
 import com.example.omnigo.features.customer.ride.data.mapper.toRideOfferEvent
+import com.example.omnigo.features.customer.ride.data.mapper.toRideStatusEvent
 import com.example.omnigo.features.customer.ride.data.remote.api.RideBookingApi
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingRequest
 import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSource
@@ -11,9 +12,11 @@ import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
+import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.customer.ride.domain.repository.RideBookingRepository
 import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.mapNotNull
 import retrofit2.HttpException
 import java.io.IOException
@@ -160,5 +163,11 @@ class RideBookingRepositoryImpl @Inject constructor(
     override fun observeRideOffers(): Flow<RideOfferEvent> {
         return rideStompSubscriptionSource.subscribeToRideOffers()
             .mapNotNull { it.toRideOfferEvent() }
+    }
+
+    override fun observeBookingStatus(bookingId: Long): Flow<RideStatusEvent> {
+        return rideStompSubscriptionSource.subscribeToBookingStatus()
+            .mapNotNull { it.toRideStatusEvent() }
+            .filter { it.bookingId == bookingId }
     }
 }

@@ -3,6 +3,8 @@ package com.example.omnigo.features.customer.ride.presentation.state
 import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.features.customer.home.domain.model.SavedAddress
 import com.example.omnigo.features.customer.ride.domain.model.Booking
+import com.example.omnigo.features.customer.ride.domain.model.BookingDriverProfile
+import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
 
 data class LocationPoint(
@@ -48,5 +50,15 @@ data class RideBookingUiState(
     val searchCountdownSeconds: Int = 60,
     val isCancellingBooking: Boolean = false,
     val errorMessage: String? = null,
-    val infoMessage: String? = null
-)
+    val infoMessage: String? = null,
+    val assignedDriver: BookingDriverProfile? = null,
+    val isDriverProfileLoading: Boolean = false,
+    val tripStatusMessage: String? = null
+) {
+    val isTripActive: Boolean
+        get() = currentBooking != null && (
+            currentBooking.status == BookingStatus.ACCEPTED ||
+            currentBooking.status == BookingStatus.ARRIVED ||
+            currentBooking.status == BookingStatus.IN_PROGRESS
+        )
+}

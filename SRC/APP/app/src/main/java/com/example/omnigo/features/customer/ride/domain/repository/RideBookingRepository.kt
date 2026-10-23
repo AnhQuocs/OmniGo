@@ -5,6 +5,7 @@ import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
+import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 import kotlinx.coroutines.flow.Flow
 
@@ -25,4 +26,6 @@ interface RideBookingRepository {
     suspend fun rejectBooking(bookingId: Long): RejectRideBookingResult
 
     fun observeRideOffers(): Flow<RideOfferEvent>
+
+    fun observeBookingStatus(bookingId: Long): Flow<RideStatusEvent>
 }

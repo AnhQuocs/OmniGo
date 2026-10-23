@@ -593,4 +593,23 @@
     <string name="driver_ride_offer_payment_cash">Tiền mặt (CASH)</string>
     <string name="driver_ride_offer_payment_online">Thanh toán trực tuyến</string>
     <string name="driver_ride_offer_coordinates_format">Tọa độ: %1$.4f, %2$.4f</string>
+
+    <!-- FLOW 2 — PART 4 Customer Realtime Ride Sync & Active Trip -->
+    <string name="ride_active_trip_title">Chuyến xe hiện tại</string>
+    <string name="ride_stepper_accepted_title">Tài xế đã nhận chuyến</string>
+    <string name="ride_stepper_arrived_title">Tài xế đã đến điểm đón</string>
+    <string name="ride_stepper_in_progress_title">Đang di chuyển đến điểm trả</string>
+    <string name="ride_stepper_completed_title">Chuyến đi đã hoàn thành</string>
+    <string name="ride_status_accepted_hint">Tài xế đang trên đường đến đón bạn. Vui lòng chuẩn bị ra xe.</string>
+    <string name="ride_status_arrived_hint">Tài xế đã đến điểm đón hẹn. Vui lòng di chuyển ra xe.</string>
+    <string name="ride_status_in_progress_hint">Chúc bạn có một chuyến đi an toàn và thoải mái.</string>
+    <string name="ride_driver_info_title">Thông tin tài xế &amp; Xe</string>
+    <string name="ride_driver_rating_default">4.9 ★</string>
+    <string name="ride_call_driver_button">Gọi tài xế</string>
+    <string name="ride_cancel_active_trip_button">Hủy chuyến xe</string>
+    <string name="ride_cancel_active_trip_dialog_title">Xác nhận hủy chuyến xe?</string>
+    <string name="ride_cancel_active_trip_dialog_message">Tài xế đang trên đường đến đón bạn. Bạn có chắc chắn muốn hủy chuyến xe này không?</string>
+    <string name="ride_completed_dialog_title">Chuyến đi hoàn tất</string>
+    <string name="ride_completed_dialog_message">Cảm ơn bạn đã lựa chọn dịch vụ của OmniGo. Chúc bạn một ngày tốt lành!</string>
+    <string name="ride_completed_done_button">Đóng</string>
 </resources>

@@ -118,7 +118,8 @@ class RideBookingViewModelTest {
             createRideBookingUseCase = createRideBookingUseCase,
             cancelRideBookingUseCase = cancelRideBookingUseCase,
             detectCurrentLocationUseCase = detectCurrentLocationUseCase,
-            savedAddressRepository = savedAddressRepository
+            savedAddressRepository = savedAddressRepository,
+            rideBookingStatusCoordinator = mockk(relaxed = true)
         )
     }
 

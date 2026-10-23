@@ -591,4 +591,23 @@
     <string name="driver_ride_offer_payment_cash">Cash (CASH)</string>
     <string name="driver_ride_offer_payment_online">Online Payment</string>
     <string name="driver_ride_offer_coordinates_format">Coordinates: %1$.4f, %2$.4f</string>
+
+    <!-- FLOW 2 — PART 4 Customer Realtime Ride Sync & Active Trip -->
+    <string name="ride_active_trip_title">Current Trip</string>
+    <string name="ride_stepper_accepted_title">Driver Accepted</string>
+    <string name="ride_stepper_arrived_title">Driver Arrived</string>
+    <string name="ride_stepper_in_progress_title">On Trip to Destination</string>
+    <string name="ride_stepper_completed_title">Trip Completed</string>
+    <string name="ride_status_accepted_hint">Driver is on the way to pick you up. Please get ready.</string>
+    <string name="ride_status_arrived_hint">Driver has arrived at the pickup location. Please head to the car.</string>
+    <string name="ride_status_in_progress_hint">Wishing you a safe and comfortable trip.</string>
+    <string name="ride_driver_info_title">Driver &amp; Vehicle Information</string>
+    <string name="ride_driver_rating_default">4.9 ★</string>
+    <string name="ride_call_driver_button">Call Driver</string>
+    <string name="ride_cancel_active_trip_button">Cancel Ride</string>
+    <string name="ride_cancel_active_trip_dialog_title">Confirm Cancellation?</string>
+    <string name="ride_cancel_active_trip_dialog_message">The driver is on the way to pick you up. Are you sure you want to cancel this ride?</string>
+    <string name="ride_completed_dialog_title">Trip Completed</string>
+    <string name="ride_completed_dialog_message">Thank you for riding with OmniGo. Have a great day!</string>
+    <string name="ride_completed_done_button">Close</string>
 </resources>
