@@ -41,6 +41,10 @@
             android:name=".features.customer.food.presentation.ui.activity.FoodActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".features.customer.ride.presentation.ui.activity.RideActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name=".features.driver.service.DriverLocationForegroundService"

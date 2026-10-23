@@ -60,8 +60,8 @@ fun MainCustomerScreen(
                             val intent = android.content.Intent(context, com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity::class.java)
                             context.startActivity(intent)
                         } else if (serviceType == "ride") {
-                            // val intent = android.content.Intent(context, com.example.omnigo.features.customer.booking.presentation.ui.BookingActivity::class.java)
-                            // context.startActivity(intent)
+                            val intent = android.content.Intent(context, com.example.omnigo.features.customer.ride.presentation.ui.activity.RideActivity::class.java)
+                            context.startActivity(intent)
                         }
                     }, onNavigateToSearch = {
                         // Future: Navigate to Search Screen

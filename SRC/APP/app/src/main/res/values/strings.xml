@@ -549,4 +549,32 @@
     <string name="restaurant_reviews_title">Customer Reviews</string>
     <string name="restaurant_reviews_filter_all">All</string>
     <string name="restaurant_reviews_empty">No reviews yet for this restaurant.</string>
+
+    <!-- FLOW 2 — OmniRide Booking & Radar -->
+    <string name="ride_booking_title">Book a Ride</string>
+    <string name="ride_pickup_label">Pickup Location</string>
+    <string name="ride_dropoff_label">Drop-off Destination</string>
+    <string name="ride_pickup_hint">Enter pickup location...</string>
+    <string name="ride_dropoff_hint">Where are you going?</string>
+    <string name="ride_swap_locations">Swap locations</string>
+    <string name="ride_my_location">Current Location</string>
+    <string name="ride_saved_places">Saved Places</string>
+    <string name="ride_estimating_price">Calculating fare…</string>
+    <string name="ride_fare_summary">Estimated Fare</string>
+    <string name="ride_distance_format">%1$.1f km</string>
+    <string name="ride_duration_format">%1$d mins</string>
+    <string name="ride_book_now_button">Confirm &amp; Book Ride</string>
+    <string name="ride_booking_in_progress">Creating booking…</string>
+    <string name="ride_radar_title">Finding Your Driver</string>
+    <string name="ride_radar_subtitle">Scanning nearby drivers within 5km radius…</string>
+    <string name="ride_radar_countdown_label">Timeout in %1$ds</string>
+    <string name="ride_cancel_searching_button">Cancel Search</string>
+    <string name="ride_cancel_confirm_title">Cancel this ride?</string>
+    <string name="ride_cancel_confirm_message">Are you sure you want to cancel the search? It is completely free before a driver accepts.</string>
+    <string name="ride_cancel_confirm_yes">Yes, Cancel</string>
+    <string name="ride_cancel_confirm_no">Keep Searching</string>
+    <string name="ride_search_timeout_message">No drivers responded in time. Please try booking again in a few moments.</string>
+    <string name="ride_booking_cancelled_success">Search cancelled successfully.</string>
+    <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
+    <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
 </resources>

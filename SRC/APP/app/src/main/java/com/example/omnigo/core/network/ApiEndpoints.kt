@@ -48,4 +48,5 @@ object ApiEndpoints {
     const val PRICING_CALCULATE = "$API_V1/pricing/calculate"
     const val BOOKINGS = "$API_V1/bookings"
     const val BOOKING_DRIVER = "$API_V1/bookings/{bookingId}/driver"
+    const val BOOKING_CANCEL = "$API_V1/bookings/{bookingId}/cancel"
 }

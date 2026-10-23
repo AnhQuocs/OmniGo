@@ -551,4 +551,32 @@
     <string name="restaurant_reviews_title">Nhận xét từ khách hàng</string>
     <string name="restaurant_reviews_filter_all">Tất cả</string>
     <string name="restaurant_reviews_empty">Chưa có đánh giá nào cho quán này.</string>
+
+    <!-- FLOW 2 — OmniRide Booking & Radar -->
+    <string name="ride_booking_title">Đặt chuyến xe</string>
+    <string name="ride_pickup_label">Điểm đón</string>
+    <string name="ride_dropoff_label">Điểm đến</string>
+    <string name="ride_pickup_hint">Nhập điểm đón khách...</string>
+    <string name="ride_dropoff_hint">Bạn muốn đi đâu?</string>
+    <string name="ride_swap_locations">Đổi chiều đón - đến</string>
+    <string name="ride_my_location">Vị trí hiện tại</string>
+    <string name="ride_saved_places">Địa điểm đã lưu</string>
+    <string name="ride_estimating_price">Đang tính cước phí…</string>
+    <string name="ride_fare_summary">Cước phí ước tính</string>
+    <string name="ride_distance_format">%1$.1f km</string>
+    <string name="ride_duration_format">%1$d phút</string>
+    <string name="ride_book_now_button">Xác nhận đặt xe</string>
+    <string name="ride_booking_in_progress">Đang gửi yêu cầu đặt xe…</string>
+    <string name="ride_radar_title">Đang tìm tài xế</string>
+    <string name="ride_radar_subtitle">Đang quét tài xế gần bạn trong bán kính 5km…</string>
+    <string name="ride_radar_countdown_label">Hết thời gian sau %1$ds</string>
+    <string name="ride_cancel_searching_button">Hủy tìm xe</string>
+    <string name="ride_cancel_confirm_title">Hủy tìm chuyến xe này?</string>
+    <string name="ride_cancel_confirm_message">Bạn có chắc chắn muốn hủy tìm xe không? Việc hủy hoàn toàn miễn phí khi tài xế chưa nhận chuyến.</string>
+    <string name="ride_cancel_confirm_yes">Đồng ý hủy</string>
+    <string name="ride_cancel_confirm_no">Tiếp tục tìm</string>
+    <string name="ride_search_timeout_message">Chưa tìm thấy tài xế phù hợp trong khu vực. Vui lòng thử lại sau ít phút.</string>
+    <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
+    <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
+    <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
 </resources>
