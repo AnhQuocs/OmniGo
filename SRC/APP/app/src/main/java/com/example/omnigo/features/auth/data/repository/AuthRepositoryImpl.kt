@@ -8,10 +8,13 @@ import com.example.omnigo.features.auth.data.mapper.toCustomerRequest
 import com.example.omnigo.features.auth.data.mapper.toDomain
 import com.example.omnigo.features.auth.data.mapper.toDriverRequest
 import com.example.omnigo.features.auth.data.remote.api.AuthApi
+import com.example.omnigo.features.auth.data.remote.dto.response.LoginResponse
 import com.example.omnigo.features.auth.data.remote.dto.response.UserResponse
 import com.example.omnigo.features.auth.data.remote.dto.request.LoginRequest
 import com.example.omnigo.features.auth.domain.error.LoginError
 import com.example.omnigo.features.auth.domain.error.RegisterError
+import com.example.omnigo.utils.await
+import okhttp3.MultipartBody
 import com.example.omnigo.features.auth.domain.model.AuthUser
 import com.example.omnigo.features.auth.domain.model.LoginResult
 import com.example.omnigo.features.auth.domain.model.LogoutResult
@@ -144,74 +147,45 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun registerCustomer(
-        user: RegisterUser
-    ): RegisterResult {
-        Log.d(TAG, "registerCustomer: Checking Firebase phone verification session for phone=${user.phoneNumber}")
+    private suspend fun validatePhoneSession(phone: String): Pair<String?, RegisterError?> {
         val currentUser = firebaseAuth.currentUser
-        if (currentUser == null) {
-            Log.w(TAG, "registerCustomer: No authenticated Firebase user found. Phone verification required.")
-            return RegisterResult.Error(RegisterError.PHONE_VERIFICATION_REQUIRED)
+            ?: return Pair(null, RegisterError.PHONE_VERIFICATION_REQUIRED)
+        if (!PhoneUtils.isSamePhoneNumber(currentUser.phoneNumber, phone)) {
+            return Pair(null, RegisterError.PHONE_NUMBER_MISMATCH)
         }
+        val token = getFirebaseToken()
+            ?: return Pair(null, RegisterError.PHONE_VERIFICATION_REQUIRED)
+        return Pair(token, null)
+    }
 
-        // Đảm bảo số điện thoại đăng ký khớp với số điện thoại đã xác thực OTP trên Firebase
-        if (!PhoneUtils.isSamePhoneNumber(currentUser.phoneNumber, user.phoneNumber)) {
-            Log.w(TAG, "registerCustomer: Phone mismatch. Firebase phone=${currentUser.phoneNumber}, Input phone=${user.phoneNumber}")
-            return RegisterResult.Error(RegisterError.PHONE_NUMBER_MISMATCH)
-        }
+    override suspend fun registerCustomer(user: RegisterUser): RegisterResult {
+        val (token, error) = validatePhoneSession(user.phoneNumber)
+        if (error != null) return RegisterResult.Error(error)
 
-        val firebaseToken = getFirebaseToken()
-        if (firebaseToken == null) {
-            Log.w(TAG, "registerCustomer: Failed to obtain Firebase ID token.")
-            return RegisterResult.Error(RegisterError.PHONE_VERIFICATION_REQUIRED)
-        }
-
-        val request = user.toCustomerRequest(firebaseToken = firebaseToken)
-
+        val request = user.toCustomerRequest(firebaseToken = token)
         return try {
-            val response = authApi.registerCustomer(request)
-            handleApiResponse(response)
+            handleApiResponse(authApi.registerCustomer(request))
         } catch (e: IOException) {
-            Log.e(TAG, "registerCustomer: Network error during customer registration", e)
+            Log.e(TAG, "registerCustomer: Network error", e)
             RegisterResult.Error(RegisterError.NETWORK_ERROR)
         } catch (e: Exception) {
-            Log.e(TAG, "registerCustomer: Unexpected error during customer registration", e)
+            Log.e(TAG, "registerCustomer: Unexpected error", e)
             RegisterResult.Error(RegisterError.UNKNOWN)
         }
     }
 
-    override suspend fun registerDriver(
-        driver: RegisterDriver
-    ): RegisterResult {
-        Log.d(TAG, "registerDriver: Checking Firebase phone verification session for phone=${driver.user.phoneNumber}")
-        val currentUser = firebaseAuth.currentUser
-        if (currentUser == null) {
-            Log.w(TAG, "registerDriver: No authenticated Firebase user found. Phone verification required.")
-            return RegisterResult.Error(RegisterError.PHONE_VERIFICATION_REQUIRED)
-        }
+    override suspend fun registerDriver(driver: RegisterDriver): RegisterResult {
+        val (token, error) = validatePhoneSession(driver.user.phoneNumber)
+        if (error != null) return RegisterResult.Error(error)
 
-        // Đảm bảo số điện thoại đăng ký khớp với số điện thoại đã xác thực OTP trên Firebase
-        if (!PhoneUtils.isSamePhoneNumber(currentUser.phoneNumber, driver.user.phoneNumber)) {
-            Log.w(TAG, "registerDriver: Phone mismatch. Firebase phone=${currentUser.phoneNumber}, Input phone=${driver.user.phoneNumber}")
-            return RegisterResult.Error(RegisterError.PHONE_NUMBER_MISMATCH)
-        }
-
-        val firebaseToken = getFirebaseToken()
-        if (firebaseToken == null) {
-            Log.w(TAG, "registerDriver: Failed to obtain Firebase ID token.")
-            return RegisterResult.Error(RegisterError.PHONE_VERIFICATION_REQUIRED)
-        }
-
-        val request = driver.toDriverRequest(firebaseToken = firebaseToken)
-
+        val request = driver.toDriverRequest(firebaseToken = token)
         return try {
-            val response = authApi.registerDriver(request)
-            handleApiResponse(response)
+            handleApiResponse(authApi.registerDriver(request))
         } catch (e: IOException) {
-            Log.e(TAG, "registerDriver: Network error during driver registration", e)
+            Log.e(TAG, "registerDriver: Network error", e)
             RegisterResult.Error(RegisterError.NETWORK_ERROR)
         } catch (e: Exception) {
-            Log.e(TAG, "registerDriver: Unexpected error during driver registration", e)
+            Log.e(TAG, "registerDriver: Unexpected error", e)
             RegisterResult.Error(RegisterError.UNKNOWN)
         }
     }
@@ -345,13 +319,36 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun handleApiResponse(response: Response<ApiResponse<UserResponse>>): RegisterResult {
+    override suspend fun uploadDriverDocument(
+        file: MultipartBody.Part
+    ): Result<String> {
+        return try {
+            val response = authApi.uploadDriverDocument(file)
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                val url = apiResponse?.data?.get("url")
+                if (!url.isNullOrBlank()) {
+                    Result.success(url)
+                } else {
+                    Result.failure(Exception(apiResponse?.message ?: "Upload document failed: URL is empty"))
+                }
+            } else {
+                Result.failure(Exception("Upload document failed with HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadDriverDocument: Error uploading document", e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun handleApiResponse(response: Response<ApiResponse<LoginResponse>>): RegisterResult {
         return if (response.isSuccessful) {
             val apiResponse = response.body()
-            val userResponse = apiResponse?.data
-            if (apiResponse?.success == true && userResponse != null) {
-                val accessToken = userResponse.accessToken
-                val refreshToken = userResponse.refreshToken
+            val loginResponse = apiResponse?.data
+            if (apiResponse?.success == true && loginResponse != null) {
+                val accessToken = loginResponse.accessToken
+                val refreshToken = loginResponse.refreshToken
+                val userResponse = loginResponse.user
                 if (!accessToken.isNullOrBlank()) {
                     sessionManager.saveSession(
                         accessToken = accessToken,
@@ -377,18 +374,6 @@ class AuthRepositoryImpl @Inject constructor(
                 else -> RegisterError.UNKNOWN
             }
             RegisterResult.Error(error)
-        }
-    }
-
-    private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
-        addOnSuccessListener { result ->
-            continuation.resume(result)
-        }
-        addOnFailureListener { exception ->
-            continuation.resumeWithException(exception)
-        }
-        addOnCanceledListener {
-            continuation.cancel()
         }
     }
 }

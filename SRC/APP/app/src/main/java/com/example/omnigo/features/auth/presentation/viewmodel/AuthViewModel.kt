@@ -18,10 +18,12 @@ import com.example.omnigo.features.auth.domain.usecase.RegisterCustomerUseCase
 import com.example.omnigo.features.auth.domain.usecase.RegisterDriverUseCase
 import com.example.omnigo.features.auth.domain.usecase.RegisterResult
 import com.example.omnigo.features.auth.domain.usecase.SendOtpUseCase
+import com.example.omnigo.features.auth.domain.usecase.UploadDriverDocumentUseCase
 import com.example.omnigo.features.auth.domain.usecase.VerifyOtpUseCase
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import okhttp3.MultipartBody
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,6 +66,7 @@ class AuthViewModel @Inject constructor(
     private val verifyOtpUseCase: VerifyOtpUseCase,
     private val registerCustomerUseCase: RegisterCustomerUseCase,
     private val registerDriverUseCase: RegisterDriverUseCase,
+    private val uploadDriverDocumentUseCase: UploadDriverDocumentUseCase,
     private val loginUseCase: LoginUseCase,
     private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
@@ -202,5 +205,9 @@ class AuthViewModel @Inject constructor(
 
     fun resetLogoutState() {
         _logoutUiState.value = LogoutUiState.Idle
+    }
+
+    suspend fun uploadDriverDocument(file: MultipartBody.Part): Result<String> {
+        return uploadDriverDocumentUseCase(file)
     }
 }

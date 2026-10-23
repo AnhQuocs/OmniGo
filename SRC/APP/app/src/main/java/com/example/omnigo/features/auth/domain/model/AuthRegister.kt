@@ -11,5 +11,11 @@ data class RegisterDriver(
     val user: RegisterUser,
     val vehicleType: VehicleType,
     val licensePlate: String,
-    val vehicleModel: String
+    val vehicleModel: String,
+    val cccdNumber: String = "",
+    val cccdFrontImage: String = "",
+    val cccdBackImage: String = "",
+    val gplxNumber: String = "",
+    val gplxFrontImage: String = "",
+    val gplxBackImage: String = ""
 )

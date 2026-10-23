@@ -1,6 +1,13 @@
 package com.example.omnigo.features.auth.presentation.ui.register
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -19,18 +26,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.example.omnigo.R
 import com.example.omnigo.features.auth.domain.model.AuthUser
 import com.example.omnigo.features.auth.domain.model.RegisterDriver
 import com.example.omnigo.features.auth.domain.model.RegisterUser
 import com.example.omnigo.features.auth.domain.model.UserRole
 import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.auth.presentation.ui.components.LanguageActionMenu
+import com.example.omnigo.features.auth.presentation.ui.register.components.DriverPendingApprovalScreen
+import com.example.omnigo.features.auth.presentation.ui.register.components.RegisterNavigationActions
+import com.example.omnigo.features.auth.presentation.ui.register.components.RegisterStepContent
+import com.example.omnigo.features.auth.presentation.ui.register.components.RegisterStepperHeader
+import com.example.omnigo.features.auth.presentation.ui.register.components.rememberDriverDocsState
 import com.example.omnigo.features.auth.presentation.viewmodel.AuthViewModel
 import com.example.omnigo.features.auth.presentation.viewmodel.OtpUiState
 import com.example.omnigo.features.auth.presentation.viewmodel.RegisterUiState
@@ -52,16 +67,20 @@ fun RegisterScreen(
     val activity = context as? Activity
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     val otpUiState by authViewModel.otpUiState.collectAsState()
     val registerUiState by authViewModel.registerUiState.collectAsState()
 
-    // Form state
+    var currentStep by remember { mutableIntStateOf(0) }
+    var showDriverPendingScreen by remember { mutableStateOf(false) }
+
     var selectedRole by remember { mutableStateOf(UserRole.CUSTOMER) }
     var phoneNumber by remember { mutableStateOf("") }
     var otpCode by remember { mutableStateOf("") }
     var verificationId by remember { mutableStateOf("") }
     var isPhoneVerified by remember { mutableStateOf(false) }
+    var resendCountdown by remember { mutableIntStateOf(0) }
 
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -70,14 +89,37 @@ fun RegisterScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    // Driver specific state
     var selectedVehicleType by remember { mutableStateOf(VehicleType.BIKE) }
     var isVehicleDropdownExpanded by remember { mutableStateOf(false) }
     var licensePlate by remember { mutableStateOf("") }
     var vehicleModel by remember { mutableStateOf("") }
 
-    // Resend OTP countdown timer
-    var resendCountdown by remember { mutableIntStateOf(0) }
+    val docsState = rememberDriverDocsState(context = context, authViewModel = authViewModel, scope = scope)
+
+    val stepTitles = if (selectedRole == UserRole.CUSTOMER) {
+        listOf(
+            stringResource(id = R.string.register_step_role),
+            stringResource(id = R.string.register_step_phone),
+            stringResource(id = R.string.register_step_account)
+        )
+    } else {
+        listOf(
+            stringResource(id = R.string.register_step_role),
+            stringResource(id = R.string.register_step_phone),
+            stringResource(id = R.string.register_step_account),
+            stringResource(id = R.string.register_step_vehicle),
+            stringResource(id = R.string.register_step_docs)
+        )
+    }
+    val totalSteps = stepTitles.size
+
+    BackHandler {
+        when {
+            showDriverPendingScreen -> onNavigateToLogin()
+            currentStep > 0 -> currentStep -= 1
+            else -> onNavigateToLogin()
+        }
+    }
 
     LaunchedEffect(resendCountdown) {
         if (resendCountdown > 0) {
@@ -102,8 +144,17 @@ fun RegisterScreen(
     LaunchedEffect(registerUiState) {
         if (registerUiState is RegisterUiState.Success) {
             val user = (registerUiState as RegisterUiState.Success).user
-            onRegisterSuccess(user)
+            if (selectedRole == UserRole.CUSTOMER) {
+                onRegisterSuccess(user)
+            } else {
+                showDriverPendingScreen = true
+            }
         }
+    }
+
+    if (showDriverPendingScreen) {
+        DriverPendingApprovalScreen(onNavigateToLogin = onNavigateToLogin)
+        return
     }
 
     OmniGoTheme(darkTheme = false) {
@@ -119,150 +170,154 @@ fun RegisterScreen(
                     .verticalScroll(scrollState)
                     .padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingSM)
             ) {
-                // Language Switcher Top Bar
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    LanguageActionMenu(
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    LanguageActionMenu(modifier = Modifier.align(Alignment.CenterEnd))
                 }
-
                 Spacer(modifier = Modifier.height(AppSpacing.S))
 
-                // Header with OmniGo Logo
                 RegisterHeader()
+                Spacer(modifier = Modifier.height(AppSpacing.M))
 
+                RegisterStepperHeader(
+                    currentStep = currentStep,
+                    totalSteps = totalSteps,
+                    stepTitles = stepTitles
+                )
                 Spacer(modifier = Modifier.height(AppSpacing.L))
 
-                // Error Message Box
                 val currentError = when {
                     registerUiState is RegisterUiState.Error -> (registerUiState as RegisterUiState.Error).message.asString()
                     otpUiState is OtpUiState.Error -> (otpUiState as OtpUiState.Error).message.asString()
                     else -> null
                 }
-
                 if (currentError != null) {
                     RegisterErrorBanner(errorMessage = currentError)
                     Spacer(modifier = Modifier.height(AppSpacing.M))
                 }
 
-                // ---------------- STEP 1: ROLE SELECTION ----------------
-                RoleSelectionSection(
-                    selectedRole = selectedRole,
-                    onRoleSelected = { selectedRole = it }
-                )
-
-                Spacer(modifier = Modifier.height(AppSpacing.L))
-
-                // ---------------- STEP 2: PHONE & OTP VERIFICATION ----------------
-                PhoneVerificationSection(
-                    phoneNumber = phoneNumber,
-                    onPhoneChange = { phoneNumber = it },
-                    otpCode = otpCode,
-                    onOtpChange = { otpCode = it },
-                    verificationId = verificationId,
-                    isPhoneVerified = isPhoneVerified,
-                    isSendingOtp = otpUiState is OtpUiState.Loading,
-                    resendCountdown = resendCountdown,
-                    onSendOtp = {
-                        if (activity != null && phoneNumber.isNotBlank()) {
-                            authViewModel.sendOtp(phoneNumber, activity)
+                AnimatedContent(
+                    targetState = currentStep,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> -width } + fadeOut())
+                        } else {
+                            (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> width } + fadeOut())
                         }
                     },
-                    onVerifyOtp = {
-                        if (verificationId.isNotBlank() && otpCode.length == 6) {
-                            authViewModel.verifyOtp(verificationId, otpCode)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(AppSpacing.L))
-
-                // ---------------- STEP 3: ACCOUNT INFORMATION ----------------
-                AccountInfoSection(
-                    fullName = fullName,
-                    onFullNameChange = { fullName = it },
-                    email = email,
-                    onEmailChange = { email = it },
-                    password = password,
-                    onPasswordChange = { password = it },
-                    confirmPassword = confirmPassword,
-                    onConfirmPasswordChange = { confirmPassword = it },
-                    isPasswordVisible = isPasswordVisible,
-                    onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible },
-                    isConfirmPasswordVisible = isConfirmPasswordVisible,
-                    onToggleConfirmPasswordVisibility = { isConfirmPasswordVisible = !isConfirmPasswordVisible },
-                    isCustomer = selectedRole == UserRole.CUSTOMER,
-                    focusManager = focusManager
-                )
-
-                // ---------------- DRIVER SPECIFIC FIELDS ----------------
-                if (selectedRole == UserRole.DRIVER) {
-                    Spacer(modifier = Modifier.height(AppSpacing.L))
-
-                    DriverInfoSection(
+                    label = "step_content"
+                ) { step ->
+                    RegisterStepContent(
+                        step = step,
+                        selectedRole = selectedRole,
+                        onRoleSelected = {
+                            selectedRole = it
+                            currentStep = 0
+                        },
+                        phoneNumber = phoneNumber,
+                        onPhoneChange = { phoneNumber = it },
+                        otpCode = otpCode,
+                        onOtpChange = { otpCode = it },
+                        verificationId = verificationId,
+                        isPhoneVerified = isPhoneVerified,
+                        isSendingOtp = otpUiState is OtpUiState.Loading,
+                        resendCountdown = resendCountdown,
+                        onSendOtp = {
+                            if (activity != null && phoneNumber.isNotBlank()) {
+                                authViewModel.sendOtp(phoneNumber, activity)
+                            }
+                        },
+                        onVerifyOtp = {
+                            if (verificationId.isNotBlank() && otpCode.length == 6) {
+                                authViewModel.verifyOtp(verificationId, otpCode)
+                            }
+                        },
+                        fullName = fullName,
+                        onFullNameChange = { fullName = it },
+                        email = email,
+                        onEmailChange = { email = it },
+                        password = password,
+                        onPasswordChange = { password = it },
+                        confirmPassword = confirmPassword,
+                        onConfirmPasswordChange = { confirmPassword = it },
+                        isPasswordVisible = isPasswordVisible,
+                        onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible },
+                        isConfirmPasswordVisible = isConfirmPasswordVisible,
+                        onToggleConfirmPasswordVisibility = { isConfirmPasswordVisible = !isConfirmPasswordVisible },
+                        focusManager = focusManager,
                         selectedVehicleType = selectedVehicleType,
                         onVehicleTypeSelected = { selectedVehicleType = it },
-                        isDropdownExpanded = isVehicleDropdownExpanded,
+                        isVehicleDropdownExpanded = isVehicleDropdownExpanded,
                         onDropdownExpandedChange = { isVehicleDropdownExpanded = it },
                         licensePlate = licensePlate,
                         onLicensePlateChange = { licensePlate = it },
                         vehicleModel = vehicleModel,
                         onVehicleModelChange = { vehicleModel = it },
-                        focusManager = focusManager
+                        docsState = docsState
                     )
                 }
 
                 Spacer(modifier = Modifier.height(AppSpacing.XL))
 
-                // ---------------- COMPLETE REGISTRATION BUTTON ----------------
                 val isRegistering = registerUiState is RegisterUiState.Loading
+                val isLastStep = currentStep == totalSteps - 1
 
-                val isCustomerFormValid = isPhoneVerified &&
-                        fullName.isNotBlank() &&
-                        password.isNotBlank() &&
-                        password == confirmPassword
+                val isCurrentStepValid = when (currentStep) {
+                    0 -> true
+                    1 -> isPhoneVerified
+                    2 -> fullName.isNotBlank() && password.length >= 6 && password == confirmPassword &&
+                            (selectedRole == UserRole.CUSTOMER || email.isNotBlank())
+                    3 -> licensePlate.isNotBlank() && vehicleModel.isNotBlank()
+                    4 -> docsState.isDocumentsUploaded
+                    else -> false
+                }
 
-                val isDriverFormValid = isCustomerFormValid &&
-                        licensePlate.isNotBlank() &&
-                        vehicleModel.isNotBlank()
-
-                val isSubmitEnabled = if (selectedRole == UserRole.CUSTOMER) isCustomerFormValid else isDriverFormValid
-
-                RegisterSubmitButton(
-                    isLoading = isRegistering,
-                    isEnabled = isSubmitEnabled,
-                    onClick = {
+                RegisterNavigationActions(
+                    currentStep = currentStep,
+                    isLastStep = isLastStep,
+                    isCurrentStepValid = isCurrentStepValid,
+                    isRegistering = isRegistering,
+                    onPreviousStep = { currentStep -= 1 },
+                    onNextOrSubmit = {
                         focusManager.clearFocus()
-                        if (selectedRole == UserRole.CUSTOMER) {
-                            val user = RegisterUser(
-                                email = email,
-                                password = password,
-                                fullName = fullName,
-                                phoneNumber = phoneNumber
-                            )
-                            authViewModel.registerCustomer(user)
+                        if (!isLastStep) {
+                            currentStep += 1
                         } else {
-                            val driver = RegisterDriver(
-                                user = RegisterUser(
+                            if (selectedRole == UserRole.CUSTOMER) {
+                                val user = RegisterUser(
                                     email = email,
                                     password = password,
                                     fullName = fullName,
                                     phoneNumber = phoneNumber
-                                ),
-                                vehicleType = selectedVehicleType,
-                                licensePlate = licensePlate,
-                                vehicleModel = vehicleModel
-                            )
-                            authViewModel.registerDriver(driver)
+                                )
+                                authViewModel.registerCustomer(user)
+                            } else {
+                                val driver = RegisterDriver(
+                                    user = RegisterUser(
+                                        email = email,
+                                        password = password,
+                                        fullName = fullName,
+                                        phoneNumber = phoneNumber
+                                    ),
+                                    vehicleType = selectedVehicleType,
+                                    licensePlate = licensePlate,
+                                    vehicleModel = vehicleModel,
+                                    cccdNumber = docsState.cccdNumber,
+                                    cccdFrontImage = docsState.cccdFrontUrl.orEmpty(),
+                                    cccdBackImage = docsState.cccdBackUrl.orEmpty(),
+                                    gplxNumber = docsState.gplxNumber,
+                                    gplxFrontImage = docsState.gplxFrontUrl.orEmpty(),
+                                    gplxBackImage = docsState.gplxBackUrl.orEmpty()
+                                )
+                                authViewModel.registerDriver(driver)
+                            }
                         }
                     }
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.L))
 
-                // Back to Log-in link
                 RegisterFooter(onNavigateToLogin = onNavigateToLogin)
 
                 Spacer(modifier = Modifier.height(AppSpacing.L))

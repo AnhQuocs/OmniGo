@@ -7,11 +7,14 @@ import com.example.omnigo.features.auth.data.remote.dto.request.DriverRegisterRe
 import com.example.omnigo.features.auth.data.remote.dto.request.LoginRequest
 import com.example.omnigo.features.auth.data.remote.dto.response.LoginResponse
 import com.example.omnigo.features.auth.data.remote.dto.response.UserResponse
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface AuthApi {
 
@@ -21,12 +24,18 @@ interface AuthApi {
     @POST(ApiEndpoints.REGISTER_CUSTOMER)
     suspend fun registerCustomer(
         @Body request: CustomerRegisterRequest
-    ): Response<ApiResponse<UserResponse>>
+    ): Response<ApiResponse<LoginResponse>>
 
     @POST(ApiEndpoints.REGISTER_DRIVER)
     suspend fun registerDriver(
         @Body request: DriverRegisterRequest
-    ): Response<ApiResponse<UserResponse>>
+    ): Response<ApiResponse<LoginResponse>>
+
+    @Multipart
+    @POST(ApiEndpoints.DRIVER_UPLOAD_DOCUMENT)
+    suspend fun uploadDriverDocument(
+        @Part file: MultipartBody.Part
+    ): Response<ApiResponse<Map<String, String>>>
 
     @POST(ApiEndpoints.LOGIN)
     suspend fun login(

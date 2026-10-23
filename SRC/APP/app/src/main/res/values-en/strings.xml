@@ -449,4 +449,73 @@
     <string name="driver_food_offer_collect_cash">Collect Cash</string>
     <string name="driver_food_offer_timeout_msg">Offer expired and has been declined</string>
     <string name="driver_food_offer_conflict">Order was already accepted by another driver</string>
+
+    <!-- DRIVER ACTIVE DELIVERY (PART 8) -->
+    <string name="driver_delivery_title">Active Delivery #%1$d</string>
+    <string name="driver_delivery_btn_back">Back</string>
+    <string name="driver_delivery_status_label">Current Status</string>
+    <string name="driver_delivery_badge_pickup">Heading to Restaurant</string>
+    <string name="driver_delivery_badge_delivering">Delivering to Customer</string>
+    <string name="driver_delivery_step_pickup">STEP 1: PICK UP FOOD</string>
+    <string name="driver_delivery_step_dropoff">STEP 2: DELIVER FOOD</string>
+    <string name="driver_delivery_default_name">Customer</string>
+    <string name="driver_delivery_gps_waiting">Locating GPS...</string>
+    <string name="driver_delivery_geofence_ready">Arrived (&lt;= 50m)</string>
+    <string name="driver_delivery_geofence_distance">%1$d m away (&gt; 50m)</string>
+    <string name="driver_delivery_paid_online_title">Paid Online</string>
+    <string name="driver_delivery_paid_online_note">Order paid online. DO NOT collect cash from customer.</string>
+    <string name="driver_delivery_cash_title">Collect Cash on Delivery</string>
+    <string name="driver_delivery_cash_note">Please collect full cash amount before handing over the food.</string>
+    <string name="driver_delivery_items_title">Order Items (%1$d)</string>
+    <string name="driver_delivery_item_note">Note: %1$s</string>
+    <string name="driver_delivery_order_note">Order note: %1$s</string>
+    <string name="driver_delivery_btn_confirm_pickup">Confirm Food Picked Up</string>
+    <string name="driver_delivery_btn_confirm_delivered">Confirm Delivered &amp; Complete</string>
+    <string name="driver_delivery_btn_home">Back to Home</string>
+    <string name="driver_delivery_error_geofence_outside">You are outside the 50m radius. Please move closer.</string>
+    <string name="driver_delivery_pickup_success">Food picked up successfully!</string>
+    <string name="driver_delivery_completed_success">Delivery completed successfully!</string>
+    <string name="driver_delivery_completed_dialog_title">Delivery Completed!</string>
+    <string name="driver_delivery_completed_dialog_msg">Great job! Delivery fee earned: %1$s</string>
+    <string name="driver_delivery_exit_dialog_title">Leave Delivery Screen?</string>
+    <string name="driver_delivery_exit_dialog_msg">Delivery is currently in progress. Are you sure you want to leave this screen?</string>
+    <string name="driver_delivery_btn_stay">Stay</string>
+    <string name="driver_delivery_btn_exit">Leave</string>
+    <string name="driver_delivery_missing_coordinates">Location coordinates not provided by system</string>
+
+    <!-- Registration Revamp & Document Upload -->
+    <string name="register_step_role">Role</string>
+    <string name="register_step_phone">Phone</string>
+    <string name="register_step_account">Account</string>
+    <string name="register_step_vehicle">Vehicle</string>
+    <string name="register_step_docs">Documents</string>
+    <string name="driver_doc_cccd_title">Citizen ID Card (CCCD / CMND)</string>
+    <string name="driver_doc_cccd_front">Front of Citizen ID</string>
+    <string name="driver_doc_cccd_back">Back of Citizen ID</string>
+    <string name="driver_doc_gplx_title">Driver License (GPLX)</string>
+    <string name="driver_doc_gplx_front">Front of Driver License</string>
+    <string name="driver_doc_gplx_back">Back of Driver License</string>
+    <string name="driver_doc_upload_hint">Tap to take photo or choose image</string>
+    <string name="driver_doc_uploading">Uploading image...</string>
+    <string name="driver_doc_uploaded">Uploaded</string>
+    <string name="driver_doc_reupload">Change</string>
+    <string name="driver_cccd_number">Citizen ID Number (optional)</string>
+    <string name="driver_cccd_number_hint">Enter 12-digit ID number</string>
+    <string name="driver_gplx_number">Driver License Number (optional)</string>
+    <string name="driver_gplx_number_hint">Enter driver license number</string>
+    <string name="error_missing_cccd_front">Please upload front photo of Citizen ID</string>
+    <string name="error_missing_cccd_back">Please upload back photo of Citizen ID</string>
+    <string name="error_missing_gplx_front">Please upload front photo of Driver License</string>
+    <string name="error_missing_gplx_back">Please upload back photo of Driver License</string>
+    <string name="btn_next_step">Next</string>
+    <string name="btn_prev_step">Back</string>
+    <string name="btn_complete_registration">Complete Registration</string>
+    <string name="driver_pending_title">Application Pending Approval</string>
+    <string name="driver_pending_desc">Thank you for registering as an OmniGo driver partner! Your application has been submitted and is under review by our admin team within 24 working hours.</string>
+    <string name="driver_pending_info_note">You will receive a notification once your account is activated to start receiving trips.</string>
+    <string name="driver_pending_btn_login">Back to Login</string>
+    <string name="password_strength_weak">Weak</string>
+    <string name="password_strength_medium">Medium</string>
+    <string name="password_strength_strong">Strong</string>
+    <string name="password_strength_label">Password security: %1$s</string>
 </resources>

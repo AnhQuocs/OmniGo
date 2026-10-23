@@ -9,6 +9,7 @@ object ApiEndpoints {
     const val LOGOUT = "$API_V1/auth/logout"
     const val REGISTER_CUSTOMER = "$API_V1/users/register/customer"
     const val REGISTER_DRIVER = "$API_V1/drivers/register"
+    const val DRIVER_UPLOAD_DOCUMENT = "$API_V1/drivers/upload-document"
 
     const val GET_ME = "$API_V1/users/me"
 
@@ -34,4 +35,6 @@ object ApiEndpoints {
     // --- BOOKING FOOD ORDERS (DRIVER) ---
     const val BOOKING_FOOD_ORDER_ACCEPT = "$API_V1/bookings/food-orders/{orderId}/accept"
     const val BOOKING_FOOD_ORDER_REJECT = "$API_V1/bookings/food-orders/{orderId}/reject"
+    const val FOOD_ORDERS_DRIVER = "$API_V1/food-orders/driver"
+    const val FOOD_ORDER_DRIVER_STATUS = "$API_V1/food-orders/{orderId}/driver-status"
 }

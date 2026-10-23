@@ -10,7 +10,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
@@ -71,5 +76,37 @@ class AuthRepositoryImplTest {
             }
             awaitComplete()
         }
+    }
+
+    @Test
+    fun `uploadDriverDocument returns url when API call succeeds`() = runTest {
+        val requestBody = "fake image".toRequestBody("image/jpeg".toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("file", "cccd.jpg", requestBody)
+        val uploadMap = mapOf("url" to "https://res.cloudinary.com/omnigo/image/upload/sample.jpg")
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "Uploaded",
+            data = uploadMap,
+            timestamp = "2026-10-22T17:00:00"
+        )
+        coEvery { authApi.uploadDriverDocument(part) } returns Response.success(apiResponse)
+
+        val result = repository.uploadDriverDocument(part)
+
+        assertTrue(result.isSuccess)
+        assertEquals("https://res.cloudinary.com/omnigo/image/upload/sample.jpg", result.getOrNull())
+    }
+
+    @Test
+    fun `uploadDriverDocument returns failure when API returns error`() = runTest {
+        val requestBody = "fake image".toRequestBody("image/jpeg".toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("file", "cccd.jpg", requestBody)
+        val errorResponseBody = "{\"success\":false,\"message\":\"File too large\"}"
+            .toResponseBody("application/json".toMediaTypeOrNull())
+        coEvery { authApi.uploadDriverDocument(part) } returns Response.error(400, errorResponseBody)
+
+        val result = repository.uploadDriverDocument(part)
+
+        assertTrue(result.isFailure)
     }
 }

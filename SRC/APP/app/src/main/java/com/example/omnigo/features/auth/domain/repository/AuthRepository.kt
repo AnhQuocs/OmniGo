@@ -41,4 +41,8 @@ interface AuthRepository {
     suspend fun refreshToken(): Boolean
 
     suspend fun getMe(): Flow<AuthUser>
+
+    suspend fun uploadDriverDocument(
+        file: okhttp3.MultipartBody.Part
+    ): Result<String>
 }

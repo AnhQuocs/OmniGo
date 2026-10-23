@@ -76,5 +76,12 @@ fun RegisterDriver.toDriverRequest(firebaseToken: String? = null) = DriverRegist
     firebaseToken = firebaseToken,
     vehicleType = vehicleType.name,
     licensePlate = licensePlate,
-    vehicleModel = vehicleModel
+    vehicleModel = vehicleModel,
+    cccdNumber = cccdNumber.ifBlank { null },
+    cccdFrontImage = cccdFrontImage.ifBlank { null },
+    cccdBackImage = cccdBackImage.ifBlank { null },
+    gplxNumber = gplxNumber.ifBlank { null },
+    gplxFrontImage = gplxFrontImage.ifBlank { null },
+    gplxBackImage = gplxBackImage.ifBlank { null },
+    autoApprove = false
 )

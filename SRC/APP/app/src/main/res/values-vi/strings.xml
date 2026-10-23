@@ -449,4 +449,73 @@
     <string name="driver_food_offer_collect_cash">Thu tiền mặt</string>
     <string name="driver_food_offer_timeout_msg">Đơn hàng đã hết hạn phản hồi và tự động bỏ qua</string>
     <string name="driver_food_offer_conflict">Đơn hàng đã được tài xế khác nhận</string>
+
+    <!-- DRIVER ACTIVE DELIVERY (PART 8) -->
+    <string name="driver_delivery_title">Đơn đang giao #%1$d</string>
+    <string name="driver_delivery_btn_back">Quay lại</string>
+    <string name="driver_delivery_status_label">Trạng thái hiện tại</string>
+    <string name="driver_delivery_badge_pickup">Đang đến quán ăn</string>
+    <string name="driver_delivery_badge_delivering">Đang giao cho khách</string>
+    <string name="driver_delivery_step_pickup">BƯỚC 1: LẤY MÓN TẠI QUÁN</string>
+    <string name="driver_delivery_step_dropoff">BƯỚC 2: GIAO CHO KHÁCH</string>
+    <string name="driver_delivery_default_name">Khách hàng</string>
+    <string name="driver_delivery_gps_waiting">Đang định vị GPS...</string>
+    <string name="driver_delivery_geofence_ready">Đã đến (&lt;= 50m)</string>
+    <string name="driver_delivery_geofence_distance">Cách điểm đến %1$d m (&gt; 50m)</string>
+    <string name="driver_delivery_paid_online_title">Đã thanh toán Online</string>
+    <string name="driver_delivery_paid_online_note">Đơn đã thanh toán online. Tuyệt đối KHÔNG thu tiền mặt từ khách.</string>
+    <string name="driver_delivery_cash_title">Thu tiền mặt khi giao hàng</string>
+    <string name="driver_delivery_cash_note">Vui lòng thu đủ tiền mặt từ khách hàng trước khi bàn giao đồ ăn.</string>
+    <string name="driver_delivery_items_title">Danh sách món cần lấy (%1$d)</string>
+    <string name="driver_delivery_item_note">Ghi chú: %1$s</string>
+    <string name="driver_delivery_order_note">Ghi chú đơn hàng: %1$s</string>
+    <string name="driver_delivery_btn_confirm_pickup">Xác nhận đã lấy món</string>
+    <string name="driver_delivery_btn_confirm_delivered">Xác nhận đã giao thành công</string>
+    <string name="driver_delivery_btn_home">Về trang chủ</string>
+    <string name="driver_delivery_error_geofence_outside">Bạn đang ở ngoài bán kính 50m. Vui lòng di chuyển đến gần hơn để thao tác.</string>
+    <string name="driver_delivery_pickup_success">Đã lấy món thành công!</string>
+    <string name="driver_delivery_completed_success">Đã giao hàng thành công!</string>
+    <string name="driver_delivery_completed_dialog_title">Hoàn thành giao hàng!</string>
+    <string name="driver_delivery_completed_dialog_msg">Tuyệt vời! Tiền cước tài xế nhận được: %1$s</string>
+    <string name="driver_delivery_exit_dialog_title">Rời khỏi màn hình giao hàng?</string>
+    <string name="driver_delivery_exit_dialog_msg">Đơn hàng đang trong tiến trình giao. Bạn có chắc chắn muốn rời khỏi màn hình này?</string>
+    <string name="driver_delivery_btn_stay">Ở lại</string>
+    <string name="driver_delivery_btn_exit">Rời đi</string>
+    <string name="driver_delivery_missing_coordinates">Hệ thống chưa cung cấp tọa độ địa điểm</string>
+
+    <!-- Registration Revamp & Document Upload -->
+    <string name="register_step_role">Vai trò</string>
+    <string name="register_step_phone">Số điện thoại</string>
+    <string name="register_step_account">Tài khoản</string>
+    <string name="register_step_vehicle">Phương tiện</string>
+    <string name="register_step_docs">Giấy tờ</string>
+    <string name="driver_doc_cccd_title">Căn cước công dân (CCCD / CMND)</string>
+    <string name="driver_doc_cccd_front">Mặt trước CCCD</string>
+    <string name="driver_doc_cccd_back">Mặt sau CCCD</string>
+    <string name="driver_doc_gplx_title">Giấy phép lái xe (GPLX)</string>
+    <string name="driver_doc_gplx_front">Mặt trước GPLX</string>
+    <string name="driver_doc_gplx_back">Mặt sau GPLX</string>
+    <string name="driver_doc_upload_hint">Chạm để chụp hoặc chọn ảnh</string>
+    <string name="driver_doc_uploading">Đang tải ảnh lên...</string>
+    <string name="driver_doc_uploaded">Đã tải lên</string>
+    <string name="driver_doc_reupload">Đổi ảnh</string>
+    <string name="driver_cccd_number">Số Căn cước công dân (tùy chọn)</string>
+    <string name="driver_cccd_number_hint">Nhập 12 số CCCD</string>
+    <string name="driver_gplx_number">Số Giấy phép lái xe (tùy chọn)</string>
+    <string name="driver_gplx_number_hint">Nhập số GPLX</string>
+    <string name="error_missing_cccd_front">Vui lòng tải lên ảnh CCCD mặt trước</string>
+    <string name="error_missing_cccd_back">Vui lòng tải lên ảnh CCCD mặt sau</string>
+    <string name="error_missing_gplx_front">Vui lòng tải lên ảnh GPLX mặt trước</string>
+    <string name="error_missing_gplx_back">Vui lòng tải lên ảnh GPLX mặt sau</string>
+    <string name="btn_next_step">Tiếp tục</string>
+    <string name="btn_prev_step">Quay lại</string>
+    <string name="btn_complete_registration">Hoàn tất đăng ký</string>
+    <string name="driver_pending_title">Hồ sơ đang chờ phê duyệt</string>
+    <string name="driver_pending_desc">Cảm ơn bạn đã đăng ký trở thành đối tác tài xế OmniGo! Hồ sơ của bạn đã được gửi thành công và đang được Ban quản trị xem xét trong vòng 24 giờ làm việc.</string>
+    <string name="driver_pending_info_note">Bạn sẽ nhận được thông báo sau khi tài khoản được kích hoạt để bắt đầu nhận chuyến.</string>
+    <string name="driver_pending_btn_login">Về màn hình đăng nhập</string>
+    <string name="password_strength_weak">Yếu</string>
+    <string name="password_strength_medium">Trung bình</string>
+    <string name="password_strength_strong">Mạnh</string>
+    <string name="password_strength_label">Độ bảo mật mật khẩu: %1$s</string>
 </resources>

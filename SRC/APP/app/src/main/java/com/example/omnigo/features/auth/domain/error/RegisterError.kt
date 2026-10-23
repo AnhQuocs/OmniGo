@@ -13,6 +13,12 @@ enum class RegisterError {
     EMPTY_LICENSE_PLATE,
     EMPTY_VEHICLE_MODEL,
 
+    // Driver Documents
+    MISSING_CCCD_FRONT_IMAGE,
+    MISSING_CCCD_BACK_IMAGE,
+    MISSING_GPLX_FRONT_IMAGE,
+    MISSING_GPLX_BACK_IMAGE,
+
     // OTP / Phone Auth
     INVALID_OTP,
     OTP_EXPIRED,

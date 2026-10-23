@@ -58,6 +58,22 @@ class RegisterDriverUseCase @Inject constructor(
             return RegisterError.EMPTY_VEHICLE_MODEL
         }
 
+        if (driver.cccdFrontImage.isBlank()) {
+            return RegisterError.MISSING_CCCD_FRONT_IMAGE
+        }
+
+        if (driver.cccdBackImage.isBlank()) {
+            return RegisterError.MISSING_CCCD_BACK_IMAGE
+        }
+
+        if (driver.gplxFrontImage.isBlank()) {
+            return RegisterError.MISSING_GPLX_FRONT_IMAGE
+        }
+
+        if (driver.gplxBackImage.isBlank()) {
+            return RegisterError.MISSING_GPLX_BACK_IMAGE
+        }
+
         return null
     }
 
