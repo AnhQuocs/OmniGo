@@ -43,4 +43,9 @@ object ApiEndpoints {
     const val BOOKING_FOOD_ORDER_REJECT = "$API_V1/bookings/food-orders/{orderId}/reject"
     const val FOOD_ORDERS_DRIVER = "$API_V1/food-orders/driver"
     const val FOOD_ORDER_DRIVER_STATUS = "$API_V1/food-orders/{orderId}/driver-status"
+
+    // --- RIDE & PRICING ---
+    const val PRICING_CALCULATE = "$API_V1/pricing/calculate"
+    const val BOOKINGS = "$API_V1/bookings"
+    const val BOOKING_DRIVER = "$API_V1/bookings/{bookingId}/driver"
 }
