@@ -38,13 +38,55 @@ import {
   Close as CloseIcon,
   Restaurant as ResIcon,
   Person as PersonIcon,
+  Phone as PhoneIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
+import driverService from '../services/driverService';
 import FoodOrderReviewModal from '../components/food/FoodOrderReviewModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+
+
+const CANCEL_REASON_MAP = {
+  CUSTOMER_CHANGE_MIND: 'Khách đổi ý, không muốn đặt nữa',
+  CUSTOMER_PAYMENT_FAILED: 'Thanh toán trực tuyến không thành công hoặc đã hủy giao dịch',
+  CUSTOMER_WAIT_TOO_LONG: 'Thời gian chờ món quá lâu',
+  CUSTOMER_WRONG_ORDER: 'Đặt nhầm món hoặc sai địa chỉ nhận',
+  CUSTOMER_OTHER: 'Lý do khác từ khách hàng',
+  RESTAURANT_OUT_OF_STOCK: 'Hết món / hết nguyên liệu',
+  RESTAURANT_OVERLOADED: 'Quán đang quá tải, không kịp làm món',
+  RESTAURANT_CLOSING: 'Quán sắp đến giờ đóng cửa',
+  RESTAURANT_OTHER: 'Lý do khác từ quán',
+  DRIVER_VEHICLE_BREAKDOWN: 'Sự cố phương tiện di chuyển',
+  DRIVER_WEATHER_INCLEMENT: 'Thời tiết xấu / mưa ngập',
+  DRIVER_CANNOT_CONTACT: 'Không thể liên lạc khách hàng hoặc quán',
+  DRIVER_DISTANCE_TOO_FAR: 'Khoảng cách giao hàng quá xa',
+  DRIVER_OTHER: 'Lý do khác từ tài xế',
+  SYSTEM_NO_DRIVER_FOUND: 'Không tìm thấy tài xế sau nhiều lần quét',
+  SYSTEM_TIMEOUT: 'Quá thời gian xử lý đơn hàng',
+};
+
+const formatCancelReason = (reason, reasonCode) => {
+  if (reasonCode && CANCEL_REASON_MAP[reasonCode]) {
+    return CANCEL_REASON_MAP[reasonCode];
+  }
+  if (reason && CANCEL_REASON_MAP[reason]) {
+    return CANCEL_REASON_MAP[reason];
+  }
+  if (reason && typeof reason === 'string' && reason.trim()) {
+    const trimmed = reason.trim();
+    for (const [key, label] of Object.entries(CANCEL_REASON_MAP)) {
+      if (trimmed === key) return label;
+      if (trimmed.includes(key)) {
+        return trimmed.replace(key, label);
+      }
+    }
+    return trimmed;
+  }
+  return 'Không có ghi chú lý do cụ thể';
+};
 
 export const FoodOrders = () => {
   const location = useLocation();
@@ -85,17 +127,27 @@ export const FoodOrders = () => {
   const statusFilter = queryParams.get('status')?.toUpperCase() || 'ALL';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [driverProfilesMap, setDriverProfilesMap] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [orderList, statsData] = await Promise.all([
+      const [orderList, statsData, driverRes] = await Promise.all([
         foodService.getAllFoodOrders(),
         foodService.getFoodStats(),
+        driverService.getAllDriverProfiles().catch(() => null),
       ]);
       setOrders(Array.isArray(orderList) ? orderList : []);
       if (statsData) setStats(statsData);
+      if (driverRes) {
+        const list = driverRes?.data || (Array.isArray(driverRes) ? driverRes : []);
+        const map = {};
+        list.forEach((d) => {
+          if (d.driverId) map[d.driverId] = d;
+        });
+        setDriverProfilesMap(map);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Không thể tải danh sách đơn giao đồ ăn';
       setError(msg);
@@ -105,17 +157,26 @@ export const FoodOrders = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     let active = true;
     async function init() {
       try {
-        const [orderList, statsData] = await Promise.all([
+        const [orderList, statsData, driverRes] = await Promise.all([
           foodService.getAllFoodOrders(),
           foodService.getFoodStats(),
+          driverService.getAllDriverProfiles().catch(() => null),
         ]);
         if (active) {
           setOrders(Array.isArray(orderList) ? orderList : []);
           if (statsData) setStats(statsData);
+          if (driverRes) {
+            const list = driverRes?.data || (Array.isArray(driverRes) ? driverRes : []);
+            const map = {};
+            list.forEach((d) => {
+              if (d.driverId) map[d.driverId] = d;
+            });
+            setDriverProfilesMap(map);
+          }
         }
       } catch (err) {
         if (active) {
@@ -127,8 +188,11 @@ export const FoodOrders = () => {
         if (active) setLoading(false);
       }
     }
+
     init();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleStatusTab = (val) => {
@@ -547,14 +611,19 @@ export const FoodOrders = () => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {order.driverId ? (
-                          <Chip
-                            icon={<DriverIcon sx={{ fontSize: '14px !important' }} />}
-                            label={order.driverName ? `${order.driverName} (${order.driverLicensePlate || `#${order.driverId}`})` : `Tài xế #${order.driverId}`}
-                            size="small"
-                            sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', fontWeight: 600 }}
-                          />
-                        ) : (
+                        {order.driverId ? (() => {
+                          const driver = driverProfilesMap[order.driverId];
+                          const name = driver?.fullName || order.driverName || `Tài xế #${order.driverId}`;
+                          const plate = driver?.licensePlate || order.driverLicensePlate;
+                          return (
+                            <Chip
+                              icon={<DriverIcon sx={{ fontSize: '14px !important' }} />}
+                              label={plate ? `${name} (${plate})` : name}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', fontWeight: 600 }}
+                            />
+                          );
+                        })() : (
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                             Chưa nhận
                           </Typography>
@@ -692,57 +761,203 @@ export const FoodOrders = () => {
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Customer & Restaurant Grid */}
+                            {/* Customer, Restaurant & Driver Sections */}
               <Grid container spacing={2}>
+                {/* 1. Thông tin Khách hàng & Điểm nhận món */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Card sx={{ p: 1.5, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <PersonIcon sx={{ fontSize: 16 }} /> Người Nhận Hàng
+                  <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2.5, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+                      <PersonIcon sx={{ fontSize: 18, color: '#0F172A' }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                        Người Nhận Hàng
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                      {selectedOrder.customerName || `Khách hàng #${selectedOrder.customerId}`}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
-                      {selectedOrder.customerName || `Khách #${selectedOrder.customerId}`}
+                    <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.3, fontWeight: 600 }}>
+                      <PhoneIcon sx={{ fontSize: 14, color: '#F97316' }} />
+                      {selectedOrder.customerPhone || 'Chưa cập nhật SĐT'}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      📞 {selectedOrder.customerPhone || 'Chưa có SĐT'}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                      {selectedOrder.deliveryAddress}
-                    </Typography>
+                    <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, display: 'block' }}>
+                        Địa chỉ nhận hàng:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', mt: 0.2 }}>
+                        {selectedOrder.deliveryAddress || 'Chưa có địa chỉ chi tiết'}
+                      </Typography>
+                    </Box>
                   </Card>
                 </Grid>
 
+                {/* 2. Thông tin Quán ăn / Nhà hàng */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Card sx={{ p: 1.5, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <ResIcon sx={{ fontSize: 16 }} /> Nhà Hàng & Tài Xế
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
+                  <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2.5, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+                      <ResIcon sx={{ fontSize: 18, color: '#0F172A' }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                        Nhà Hàng Chuẩn Bị
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#0F172A' }}>
                       {selectedOrder.restaurantName || `Nhà Hàng #${selectedOrder.restaurantId}`}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                      {selectedOrder.driverId ? `Tài xế nhận đơn: ${selectedOrder.driverName || `#${selectedOrder.driverId}`} ${selectedOrder.driverPhone ? `• ${selectedOrder.driverPhone}` : ''} ${selectedOrder.driverLicensePlate ? `• BS: ${selectedOrder.driverLicensePlate}` : ''}` : 'Chưa có tài xế'}
-                    </Typography>
-                    {selectedOrder.note && (
-                      <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 600, display: 'block', mt: 0.5 }}>
-                        Ghi chú: {selectedOrder.note}
+                    {selectedOrder.restaurantAddress && (
+                      <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mt: 0.3 }}>
+                        {selectedOrder.restaurantAddress}
                       </Typography>
                     )}
-                    {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (
-                      <Box sx={{ mt: 1.5, p: 1.2, bgcolor: 'rgba(255, 51, 102, 0.08)', borderRadius: 2, border: '1px solid rgba(255, 51, 102, 0.2)' }}>
-                        <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 700 }}>
-                          {selectedOrder.cancelledBy === 'DRIVER' ? 'Tài xế hủy đơn'
-                            : selectedOrder.cancelledBy === 'RESTAURANT' ? 'Quán hủy đơn'
-                            : selectedOrder.cancelledBy === 'CUSTOMER' ? 'Khách hàng hủy đơn'
-                            : selectedOrder.cancelledBy === 'SYSTEM' ? 'Hệ thống hủy (Không tìm thấy tài xế)'
-                            : 'Đơn hàng đã hủy'}
+                    {selectedOrder.note && selectedOrder.note.trim() && (
+                      <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: '#FFFBEB', border: '1px dashed #FDE68A' }}>
+                        <Typography variant="caption" sx={{ color: '#B45309', fontWeight: 700, display: 'block' }}>
+                          Ghi chú từ khách:
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#b91c1c', display: 'block', mt: 0.3 }}>
-                          Lý do: {selectedOrder.cancelReason || 'Không có ghi chú lý do'}
+                        <Typography variant="body2" sx={{ color: '#78350F', fontStyle: 'italic', mt: 0.2, fontSize: '0.85rem' }}>
+                          "{selectedOrder.note.trim()}"
                         </Typography>
                       </Box>
                     )}
                   </Card>
                 </Grid>
+
+                {/* 3. Thông tin Tài Xế Giao Hàng (Chi tiết kèm Avatar, SĐT, Biển số xe như bên Nhà hàng) */}
+                <Grid size={{ xs: 12 }}>
+                  <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DriverIcon sx={{ fontSize: 20, color: '#0F172A' }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                          Thông tin tài xế giao hàng
+                        </Typography>
+                      </Box>
+                      {selectedOrder.driverId ? (
+                        <Chip
+                          label={selectedOrder.status === 'COMPLETED' ? 'Đã giao thành công' : selectedOrder.status === 'DELIVERING' ? 'Đang trên đường giao' : 'Đã tiếp nhận đơn'}
+                          size="small"
+                          sx={{
+                            bgcolor: selectedOrder.status === 'COMPLETED' ? '#ECFDF5' : '#EFF6FF',
+                            color: selectedOrder.status === 'COMPLETED' ? '#047857' : '#1D4ED8',
+                            border: selectedOrder.status === 'COMPLETED' ? '1px solid #A7F3D0' : '1px solid #BFDBFE',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            height: 22,
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          label={selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED' ? 'Không có tài xế' : 'Đang tìm kiếm tài xế'}
+                          size="small"
+                          sx={{
+                            bgcolor: '#FFFBEB',
+                            color: '#B45309',
+                            border: '1px solid #FDE68A',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            height: 22,
+                          }}
+                        />
+                      )}
+                    </Box>
+
+                    {selectedOrder.driverId ? (() => {
+                      const driver = driverProfilesMap[selectedOrder.driverId];
+                      const dName = driver?.fullName || selectedOrder.driverName || `Tài xế đối tác #${selectedOrder.driverId}`;
+                      const dPhone = driver?.phoneNumber || selectedOrder.driverPhone || 'Chưa cập nhật SĐT';
+                      const dAvatar = driver?.avatarUrl || selectedOrder.driverAvatarUrl || '';
+                      const dPlate = driver?.licensePlate || selectedOrder.driverLicensePlate || 'Chưa có biển số';
+                      const dModel = driver?.vehicleModel || selectedOrder.driverVehicleModel || 'Honda Wave Alpha (Đội xe OmniGo)';
+
+                      return (
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+                            {/* Driver Avatar, Tên & SĐT */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Avatar
+                                src={dAvatar}
+                                alt={dName}
+                                sx={{
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: 2.5,
+                                  bgcolor: '#E0F2FE',
+                                  color: '#0284C7',
+                                  border: '1.5px solid #BAE6FD',
+                                }}
+                              >
+                                <DriverIcon sx={{ fontSize: 26 }} />
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                                  {dName}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
+                                  <PhoneIcon sx={{ fontSize: 13, color: '#F97316' }} />
+                                  {dPhone}
+                                </Typography>
+                              </Box>
+                            </Box>
+
+                            {/* Biển số xe & Dòng xe */}
+                            <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'flex-end' }, flexDirection: 'column', gap: 0.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Biển số xe:</Typography>
+                                <Chip
+                                  label={dPlate}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: '#0F172A',
+                                    color: '#F8FAFC',
+                                    fontWeight: 800,
+                                    fontSize: '0.78rem',
+                                    letterSpacing: '0.5px',
+                                    height: 24,
+                                    borderRadius: 1.5,
+                                  }}
+                                />
+                              </Box>
+                              <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
+                                {dModel}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      );
+                    })() : (
+                      <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px dashed #CBD5E1', textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500, fontStyle: 'italic', fontSize: '0.85rem' }}>
+                          {selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED'
+                            ? 'Đơn hàng kết thúc mà chưa có tài xế tiếp nhận.'
+                            : 'Đơn hàng đang chờ điều phối hoặc hệ thống đang tìm tài xế giao hàng.'}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Card>
+                </Grid>
+
+                {/* 4. Khối Thông tin hủy đơn (nếu có) - Hiển thị lý do tiếng Việt thân thiện, TUYỆT ĐỐI KHÔNG DÙNG ENUM */}
+                {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (
+                  <Grid size={{ xs: 12 }}>
+                    <Box sx={{ p: 2, bgcolor: '#FEF2F2', borderRadius: 2.5, border: '1px solid #FECACA' }}>
+                      <Typography variant="subtitle2" sx={{ color: '#DC2626', fontWeight: 800 }}>
+                        {selectedOrder.cancelledBy === 'DRIVER' ? 'Tài xế đã hủy đơn'
+                          : selectedOrder.cancelledBy === 'RESTAURANT' ? 'Quán đã từ chối đơn'
+                          : selectedOrder.cancelledBy === 'CUSTOMER' ? 'Khách hàng đã hủy đơn'
+                          : selectedOrder.cancelledBy === 'SYSTEM' ? 'Hệ thống tự động hủy'
+                          : 'Đơn hàng đã bị hủy'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, mt: 0.5, fontSize: '0.88rem' }}>
+                        Lý do: <span style={{ fontWeight: 700, fontStyle: 'italic' }}>
+                          "{formatCancelReason(selectedOrder.cancelReason, selectedOrder.cancelReasonCode)}"
+                        </span>
+                      </Typography>
+                      {selectedOrder.isPaid && (
+                        <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 0.5 }}>
+                          Tiền thanh toán của khách đã được hệ thống kích hoạt hoàn tiền tự động.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
 
               {/* Items List */}

@@ -1,3 +1,43 @@
+
+const CANCEL_REASON_MAP = {
+  CUSTOMER_CHANGE_MIND: 'Khách đổi ý, không muốn đặt nữa',
+  CUSTOMER_PAYMENT_FAILED: 'Thanh toán trực tuyến không thành công hoặc đã hủy giao dịch',
+  CUSTOMER_WAIT_TOO_LONG: 'Thời gian chờ món quá lâu',
+  CUSTOMER_WRONG_ORDER: 'Đặt nhầm món hoặc sai địa chỉ nhận',
+  CUSTOMER_OTHER: 'Lý do khác từ khách hàng',
+  RESTAURANT_OUT_OF_STOCK: 'Hết món / hết nguyên liệu',
+  RESTAURANT_OVERLOADED: 'Quán đang quá tải, không kịp làm món',
+  RESTAURANT_CLOSING: 'Quán sắp đến giờ đóng cửa',
+  RESTAURANT_OTHER: 'Lý do khác từ quán',
+  DRIVER_VEHICLE_BREAKDOWN: 'Sự cố phương tiện di chuyển',
+  DRIVER_WEATHER_INCLEMENT: 'Thời tiết xấu / mưa ngập',
+  DRIVER_CANNOT_CONTACT: 'Không thể liên lạc khách hàng hoặc quán',
+  DRIVER_DISTANCE_TOO_FAR: 'Khoảng cách giao hàng quá xa',
+  DRIVER_OTHER: 'Lý do khác từ tài xế',
+  SYSTEM_NO_DRIVER_FOUND: 'Không tìm thấy tài xế sau nhiều lần quét',
+  SYSTEM_TIMEOUT: 'Quá thời gian xử lý đơn hàng',
+};
+
+const formatCancelReason = (reason, reasonCode) => {
+  if (reasonCode && CANCEL_REASON_MAP[reasonCode]) {
+    return CANCEL_REASON_MAP[reasonCode];
+  }
+  if (reason && CANCEL_REASON_MAP[reason]) {
+    return CANCEL_REASON_MAP[reason];
+  }
+  if (reason && typeof reason === 'string' && reason.trim()) {
+    const trimmed = reason.trim();
+    for (const [key, label] of Object.entries(CANCEL_REASON_MAP)) {
+      if (trimmed === key) return label;
+      if (trimmed.includes(key)) {
+        return trimmed.replace(key, label);
+      }
+    }
+    return trimmed;
+  }
+  return 'Không có lý do cụ thể';
+};
+
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
@@ -117,7 +157,7 @@ const getStatusLabel = (status) => {
 const getCancelledInfo = (order) => {
   if (!order) return null;
   const by = order.cancelledBy;
-  const reason = order.cancelReason;
+  const reason = formatCancelReason(order.cancelReason, order.cancelReasonCode);
   let title = 'Đơn đã bị hủy';
   let badgeLabel = 'Đã hủy';
   let color = '#EF4444';
