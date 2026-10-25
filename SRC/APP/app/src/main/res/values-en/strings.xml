@@ -612,4 +612,37 @@
     <string name="ride_completed_dialog_title">Trip Completed</string>
     <string name="ride_completed_dialog_message">Thank you for riding with OmniGo. Have a great day!</string>
     <string name="ride_completed_done_button">Close</string>
+
+    <!-- FLOW 2 — PART 5 Driver Active Trip & Geofencing -->
+    <string name="driver_trip_title">Active Trip</string>
+    <string name="driver_trip_id_format">Trip #%1$d</string>
+    <string name="driver_trip_status_accepted">En Route to Pickup</string>
+    <string name="driver_trip_status_arrived">Arrived at Pickup</string>
+    <string name="driver_trip_status_in_progress">Trip in Progress</string>
+    <string name="driver_trip_status_completed">Trip Completed</string>
+    <string name="driver_trip_customer_title">Passenger Details</string>
+    <string name="driver_trip_customer_name_default">Passenger</string>
+    <string name="driver_trip_call_customer">Call</string>
+    <string name="driver_trip_pickup_title">Pickup Location</string>
+    <string name="driver_trip_dropoff_title">Dropoff Destination</string>
+    <string name="driver_trip_distance_remaining">Distance: %1$s</string>
+    <string name="driver_trip_geofence_in_range">Within 50m range</string>
+    <string name="driver_trip_geofence_out_of_range">Outside 50m range</string>
+    <string name="driver_trip_btn_arrived">Arrived at Pickup</string>
+    <string name="driver_trip_btn_start">Start Trip</string>
+    <string name="driver_trip_btn_complete">Complete Trip</string>
+    <string name="driver_trip_btn_cancel">Cancel Trip</string>
+    <string name="driver_trip_cancel_dialog_title">Confirm Trip Cancellation</string>
+    <string name="driver_trip_cancel_dialog_message">Are you sure you want to cancel this trip? The ride will be reassigned to another driver.</string>
+    <string name="driver_trip_cancel_confirm">Confirm Cancel</string>
+    <string name="driver_trip_cancel_dismiss">Keep Trip</string>
+    <string name="driver_trip_geofence_warning_pickup">You must be within 50 meters of the pickup location to confirm arrival.</string>
+    <string name="driver_trip_geofence_warning_dropoff">You must be within 50 meters of the dropoff location to complete the trip.</string>
+    <string name="driver_trip_settlement_title">Trip Settlement</string>
+    <string name="driver_trip_settlement_total_fare">Total Fare</string>
+    <string name="driver_trip_settlement_platform_fee">Platform Fee (20%)</string>
+    <string name="driver_trip_settlement_driver_income">Driver Earnings (80%)</string>
+    <string name="driver_trip_settlement_cash_collect">Collect Cash: %1$s</string>
+    <string name="driver_trip_settlement_app_paid">Passenger paid via app (0 VND)</string>
+    <string name="driver_trip_btn_finish_and_home">Continue Driving</string>
 </resources>

@@ -23,6 +23,7 @@ import com.example.omnigo.ui.theme.BackgroundLight
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.omnigo.features.driver.food.presentation.ui.DriverActiveDeliveryScreen
+import com.example.omnigo.features.driver.ride.presentation.ui.DriverActiveTripScreen
 
 @Composable
 fun MainDriverScreen(
@@ -32,7 +33,7 @@ fun MainDriverScreen(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: DriverBottomNavDestination.Home.route
-    val isDeliveryActive = currentRoute.startsWith("driver_active_delivery")
+    val isTripOrDeliveryActive = currentRoute.startsWith("driver_active_delivery") || currentRoute.startsWith("driver_active_trip")
 
     Box(
         modifier = modifier
@@ -54,6 +55,9 @@ fun MainDriverScreen(
                             }
                         }
                         navController.navigate(route)
+                    },
+                    onNavigateToActiveTrip = { bookingId ->
+                        navController.navigate("driver_active_trip/$bookingId")
                     }
                 )
             }
@@ -86,6 +90,52 @@ fun MainDriverScreen(
                 )
             }
 
+            composable(
+                route = "driver_active_trip/{bookingId}?pickupLat={pickupLat}&pickupLng={pickupLng}&dropoffLat={dropoffLat}&dropoffLng={dropoffLng}&price={price}&paymentMethod={paymentMethod}",
+                arguments = listOf(
+                    navArgument("bookingId") {
+                        type = NavType.LongType
+                        defaultValue = 0L
+                    },
+                    navArgument("pickupLat") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("pickupLng") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("dropoffLat") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("dropoffLng") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("price") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("paymentMethod") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) {
+                DriverActiveTripScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
             composable(DriverBottomNavDestination.Trips.route) {
                 DriverTripsScreen()
             }
@@ -101,7 +151,7 @@ fun MainDriverScreen(
             }
         }
 
-        if (!isDeliveryActive) {
+        if (!isTripOrDeliveryActive) {
             DriverBottomNavBar(
                 currentRoute = currentRoute,
                 onNavigateToDestination = { destination ->

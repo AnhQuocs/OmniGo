@@ -8,11 +8,14 @@ import com.example.omnigo.features.customer.ride.data.remote.dto.BookingRequest
 import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSource
 import com.example.omnigo.features.customer.ride.domain.error.RideError
 import com.example.omnigo.features.customer.ride.domain.model.AcceptRideBookingResult
+import com.example.omnigo.features.customer.ride.domain.model.ArriveRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingResult
+import com.example.omnigo.features.customer.ride.domain.model.CompleteRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
+import com.example.omnigo.features.customer.ride.domain.model.StartRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.repository.RideBookingRepository
 import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 import kotlinx.coroutines.flow.Flow
@@ -154,6 +157,75 @@ class RideBookingRepositoryImpl @Inject constructor(
             )
         } catch (e: Exception) {
             RejectRideBookingResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
+    }
+
+    override suspend fun arriveBooking(bookingId: Long): ArriveRideBookingResult {
+        return try {
+            val response = rideBookingApi.arriveBooking(bookingId)
+            ArriveRideBookingResult.Success(response.toDomain())
+        } catch (e: IOException) {
+            ArriveRideBookingResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: HttpException) {
+            val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
+            ArriveRideBookingResult.Error(
+                error = error,
+                message = e.message()
+            )
+        } catch (e: Exception) {
+            ArriveRideBookingResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
+    }
+
+    override suspend fun startBooking(bookingId: Long): StartRideBookingResult {
+        return try {
+            val response = rideBookingApi.startBooking(bookingId)
+            StartRideBookingResult.Success(response.toDomain())
+        } catch (e: IOException) {
+            StartRideBookingResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: HttpException) {
+            val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
+            StartRideBookingResult.Error(
+                error = error,
+                message = e.message()
+            )
+        } catch (e: Exception) {
+            StartRideBookingResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
+    }
+
+    override suspend fun completeBooking(bookingId: Long, paymentMethod: String?): CompleteRideBookingResult {
+        return try {
+            val response = rideBookingApi.completeBooking(bookingId, paymentMethod)
+            CompleteRideBookingResult.Success(response.toDomain())
+        } catch (e: IOException) {
+            CompleteRideBookingResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: HttpException) {
+            val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
+            CompleteRideBookingResult.Error(
+                error = error,
+                message = e.message()
+            )
+        } catch (e: Exception) {
+            CompleteRideBookingResult.Error(
                 error = RideError.UNKNOWN_ERROR,
                 message = e.message
             )

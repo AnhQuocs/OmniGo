@@ -51,4 +51,7 @@ object ApiEndpoints {
     const val BOOKING_CANCEL = "$API_V1/bookings/{bookingId}/cancel"
     const val BOOKING_ACCEPT = "$API_V1/bookings/{bookingId}/accept"
     const val BOOKING_DRIVER_CANCEL = "$API_V1/bookings/{bookingId}/driver-cancel"
+    const val BOOKING_ARRIVED = "$API_V1/bookings/{bookingId}/arrived"
+    const val BOOKING_START = "$API_V1/bookings/{bookingId}/start"
+    const val BOOKING_COMPLETE = "$API_V1/bookings/{bookingId}/complete"
 }

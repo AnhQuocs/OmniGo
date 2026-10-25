@@ -27,6 +27,10 @@ android {
 
         val baseUrl = keyStoreProperties.getProperty("BASE_URL") ?: "\"http://localhost:8080/\""
         buildConfigField("String", "BASE_URL", baseUrl)
+
+        val mapsApiKey = keyStoreProperties.getProperty("MAPS_API_KEY") ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
     }
 
     buildTypes {

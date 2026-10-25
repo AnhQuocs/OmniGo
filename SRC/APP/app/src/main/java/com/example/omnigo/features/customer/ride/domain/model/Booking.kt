@@ -1,17 +1,17 @@
 package com.example.omnigo.features.customer.ride.domain.model
 
 data class Booking(
-    val bookingId: Long,
-    val customerId: Long,
-    val driverId: Long?,
-    val customerAvatarUrl: String?,
-    val driverAvatarUrl: String?,
-    val startLongitude: Double,
-    val startLatitude: Double,
-    val endLongitude: Double,
-    val endLatitude: Double,
-    val status: BookingStatus,
-    val distanceInKm: Double,
-    val price: Double,
-    val paymentMethod: String?
+    val bookingId: Long = 0L,
+    val customerId: Long = 0L,
+    val driverId: Long? = null,
+    val customerAvatarUrl: String? = null,
+    val driverAvatarUrl: String? = null,
+    val startLongitude: Double = 0.0,
+    val startLatitude: Double = 0.0,
+    val endLongitude: Double = 0.0,
+    val endLatitude: Double = 0.0,
+    val status: BookingStatus = BookingStatus.PENDING,
+    val distanceInKm: Double = 0.0,
+    val price: Double = 0.0,
+    val paymentMethod: String? = null
 )

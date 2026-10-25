@@ -7,6 +7,7 @@ import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 import com.example.omnigo.features.driver.domain.usecase.AcceptRideBookingUseCase
 import com.example.omnigo.features.driver.domain.usecase.ObserveRideOffersUseCase
 import com.example.omnigo.features.driver.domain.usecase.RejectRideBookingUseCase
+import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,7 +19,8 @@ import kotlin.math.ceil
 class DriverRideOfferCoordinator @Inject constructor(
     private val observeRideOffersUseCase: ObserveRideOffersUseCase,
     private val acceptRideBookingUseCase: AcceptRideBookingUseCase,
-    private val rejectRideBookingUseCase: RejectRideBookingUseCase
+    private val rejectRideBookingUseCase: RejectRideBookingUseCase,
+    private val driverTripSessionManager: DriverTripSessionManager? = null
 ) {
     private var offersJob: Job? = null
     private var countdownJob: Job? = null
@@ -160,6 +162,7 @@ class DriverRideOfferCoordinator @Inject constructor(
             val result = acceptRideBookingUseCase(targetId)
             when (result) {
                 is AcceptRideBookingResult.Success -> {
+                    driverTripSessionManager?.saveActiveTrip(result.booking)
                     updateState {
                         it.copy(
                             currentRideOffer = null,

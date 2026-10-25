@@ -10,6 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface RideBookingApi {
 
@@ -36,5 +37,21 @@ interface RideBookingApi {
     @PUT(ApiEndpoints.BOOKING_DRIVER_CANCEL)
     suspend fun driverCancelBooking(
         @Path("bookingId") bookingId: Long
+    ): BookingResponse
+
+    @PUT(ApiEndpoints.BOOKING_ARRIVED)
+    suspend fun arriveBooking(
+        @Path("bookingId") bookingId: Long
+    ): BookingResponse
+
+    @PUT(ApiEndpoints.BOOKING_START)
+    suspend fun startBooking(
+        @Path("bookingId") bookingId: Long
+    ): BookingResponse
+
+    @PUT(ApiEndpoints.BOOKING_COMPLETE)
+    suspend fun completeBooking(
+        @Path("bookingId") bookingId: Long,
+        @Query("paymentMethod") paymentMethod: String? = "CASH"
     ): BookingResponse
 }

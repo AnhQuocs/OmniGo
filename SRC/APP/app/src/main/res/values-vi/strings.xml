@@ -612,4 +612,37 @@
     <string name="ride_completed_dialog_title">Chuyến đi hoàn tất</string>
     <string name="ride_completed_dialog_message">Cảm ơn bạn đã lựa chọn dịch vụ của OmniGo. Chúc bạn một ngày tốt lành!</string>
     <string name="ride_completed_done_button">Đóng</string>
+
+    <!-- FLOW 2 — PART 5 Driver Active Trip & Geofencing -->
+    <string name="driver_trip_title">Chuyến Đi Hiện Tại</string>
+    <string name="driver_trip_id_format">Mã chuyến #%1$d</string>
+    <string name="driver_trip_status_accepted">Đang đến điểm đón</string>
+    <string name="driver_trip_status_arrived">Đã đến điểm đón</string>
+    <string name="driver_trip_status_in_progress">Đang chở khách</string>
+    <string name="driver_trip_status_completed">Chuyến đi hoàn thành</string>
+    <string name="driver_trip_customer_title">Thông tin hành khách</string>
+    <string name="driver_trip_customer_name_default">Hành khách</string>
+    <string name="driver_trip_call_customer">Gọi khách</string>
+    <string name="driver_trip_pickup_title">Điểm đón khách</string>
+    <string name="driver_trip_dropoff_title">Điểm trả khách</string>
+    <string name="driver_trip_distance_remaining">Khoảng cách: %1$s</string>
+    <string name="driver_trip_geofence_in_range">Trong bán kính 50m</string>
+    <string name="driver_trip_geofence_out_of_range">Ngoài bán kính 50m</string>
+    <string name="driver_trip_btn_arrived">Đã đến điểm đón</string>
+    <string name="driver_trip_btn_start">Bắt đầu chuyến đi</string>
+    <string name="driver_trip_btn_complete">Hoàn thành chuyến đi</string>
+    <string name="driver_trip_btn_cancel">Hủy chuyến</string>
+    <string name="driver_trip_cancel_dialog_title">Xác nhận hủy chuyến</string>
+    <string name="driver_trip_cancel_dialog_message">Bạn có chắc chắn muốn hủy chuyến xe này không? Chuyến xe sẽ được điều phối cho tài xế khác.</string>
+    <string name="driver_trip_cancel_confirm">Xác nhận hủy</string>
+    <string name="driver_trip_cancel_dismiss">Tiếp tục chuyến</string>
+    <string name="driver_trip_geofence_warning_pickup">Bạn cần đến gần điểm đón trong bán kính 50m để xác nhận đã đến nơi.</string>
+    <string name="driver_trip_geofence_warning_dropoff">Bạn cần đến gần điểm trả trong bán kính 50m để hoàn thành chuyến đi.</string>
+    <string name="driver_trip_settlement_title">Quyết toán chuyến đi</string>
+    <string name="driver_trip_settlement_total_fare">Tổng cước phí</string>
+    <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn (20%)</string>
+    <string name="driver_trip_settlement_driver_income">Thu nhập thực nhận (80%)</string>
+    <string name="driver_trip_settlement_cash_collect">Thu tiền mặt: %1$s</string>
+    <string name="driver_trip_settlement_app_paid">Khách đã thanh toán qua ứng dụng (0 đ)</string>
+    <string name="driver_trip_btn_finish_and_home">Tiếp tục nhận cuốc</string>
 </resources>
