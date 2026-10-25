@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -268,14 +267,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái Chờ xác nhận (PENDING). Hiện tại: " + current);
                 }
                 order.setCancelledBy(OrderCancelledBy.RESTAURANT);
-                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán từ chối tiếp nhận đơn"));
+                order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Quán từ chối tiếp nhận đơn"));
                 order.setCancelReasonCode(reasonCode);
             } else if (newStatus == OrderStatus.CANCELLED) {
                 if (current == OrderStatus.COMPLETED || current == OrderStatus.REJECTED || current == OrderStatus.CANCELLED) {
                     throw new BadRequestException("Không thể hủy đơn hàng đã kết thúc (" + current + ")");
                 }
                 order.setCancelledBy(OrderCancelledBy.RESTAURANT);
-                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán hủy đơn"));
+                order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Quán hủy đơn"));
                 order.setCancelReasonCode(reasonCode);
             } else {
                 throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía nhà hàng: " + newStatus);
@@ -388,7 +387,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
             order.setStatus(OrderStatus.CANCELLED);
             order.setCancelledBy(OrderCancelledBy.CUSTOMER);
-            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Khách hàng tự hủy đơn"));
+            order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Khách hàng tự hủy đơn"));
             order.setCancelReasonCode(reasonCode);
             FoodOrder saved = saveAndNotifyStatus(order);
             log.info("Khách hàng ID {} đã hủy thành công đơn hàng ID {}", customerId, orderId);
@@ -450,7 +449,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         } else if (newStatus == OrderStatus.CANCELLED) {
             order.setStatus(OrderStatus.CANCELLED);
             order.setCancelledBy(OrderCancelledBy.DRIVER);
-            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Tài xế hủy đơn"));
+            order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Tài xế hủy đơn"));
             order.setCancelReasonCode(reasonCode);
         } else {
             throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía tài xế: " + newStatus);
@@ -596,21 +595,22 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private void enrichDriverDetails(FoodOrderResponse response) {
         if (response == null || response.getDriverId() == null) return;
         try {
             String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
                     ? driverServiceBaseUrl : "http://localhost:8081";
             String url = baseUrl + "/api/v1/internal/drivers/" + response.getDriverId();
-            ResponseEntity<JsonNode> resp = directRestTemplate.getForEntity(url, JsonNode.class);
-            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().has("data")) {
-                JsonNode data = resp.getBody().get("data");
-                if (data != null && !data.isNull()) {
-                    if (data.hasNonNull("fullName")) response.setDriverName(data.get("fullName").asText());
-                    if (data.hasNonNull("phoneNumber")) response.setDriverPhone(data.get("phoneNumber").asText());
-                    if (data.hasNonNull("avatarUrl")) response.setDriverAvatarUrl(data.get("avatarUrl").asText());
-                    if (data.hasNonNull("licensePlate")) response.setDriverLicensePlate(data.get("licensePlate").asText());
-                    if (data.hasNonNull("vehicleModel")) response.setDriverVehicleModel(data.get("vehicleModel").asText());
+            ResponseEntity<Map> resp = directRestTemplate.getForEntity(url, Map.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().containsKey("data")) {
+                Object dataObj = resp.getBody().get("data");
+                if (dataObj instanceof Map<?, ?> data) {
+                    if (data.get("fullName") != null) response.setDriverName(String.valueOf(data.get("fullName")));
+                    if (data.get("phoneNumber") != null) response.setDriverPhone(String.valueOf(data.get("phoneNumber")));
+                    if (data.get("avatarUrl") != null) response.setDriverAvatarUrl(String.valueOf(data.get("avatarUrl")));
+                    if (data.get("licensePlate") != null) response.setDriverLicensePlate(String.valueOf(data.get("licensePlate")));
+                    if (data.get("vehicleModel") != null) response.setDriverVehicleModel(String.valueOf(data.get("vehicleModel")));
                 }
             }
         } catch (Exception e) {
@@ -618,20 +618,22 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private List<FoodOrderResponse> enrichDriverDetails(List<FoodOrderResponse> responses) {
         if (responses == null || responses.isEmpty()) return responses;
-        Map<Long, JsonNode> cache = new HashMap<>();
+        Map<Long, Map<?, ?>> cache = new HashMap<>();
         for (FoodOrderResponse r : responses) {
             if (r.getDriverId() == null) continue;
             try {
-                JsonNode data = cache.computeIfAbsent(r.getDriverId(), id -> {
+                Map<?, ?> data = cache.computeIfAbsent(r.getDriverId(), id -> {
                     try {
                         String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
                                 ? driverServiceBaseUrl : "http://localhost:8081";
                         String url = baseUrl + "/api/v1/internal/drivers/" + id;
-                        ResponseEntity<JsonNode> resp = directRestTemplate.getForEntity(url, JsonNode.class);
-                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().has("data")) {
-                            return resp.getBody().get("data");
+                        ResponseEntity<Map> resp = directRestTemplate.getForEntity(url, Map.class);
+                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().containsKey("data")) {
+                            Object obj = resp.getBody().get("data");
+                            if (obj instanceof Map<?, ?> m) return m;
                         }
                     } catch (Exception ex) {
                         log.warn("Lỗi tải thông tin tài xế {}: {}", id, ex.getMessage());
@@ -639,18 +641,34 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     return null;
                 });
 
-                if (data != null && !data.isNull()) {
-                    if (data.hasNonNull("fullName")) r.setDriverName(data.get("fullName").asText());
-                    if (data.hasNonNull("phoneNumber")) r.setDriverPhone(data.get("phoneNumber").asText());
-                    if (data.hasNonNull("avatarUrl")) r.setDriverAvatarUrl(data.get("avatarUrl").asText());
-                    if (data.hasNonNull("licensePlate")) r.setDriverLicensePlate(data.get("licensePlate").asText());
-                    if (data.hasNonNull("vehicleModel")) r.setDriverVehicleModel(data.get("vehicleModel").asText());
+                if (data != null) {
+                    if (data.get("fullName") != null) r.setDriverName(String.valueOf(data.get("fullName")));
+                    if (data.get("phoneNumber") != null) r.setDriverPhone(String.valueOf(data.get("phoneNumber")));
+                    if (data.get("avatarUrl") != null) r.setDriverAvatarUrl(String.valueOf(data.get("avatarUrl")));
+                    if (data.get("licensePlate") != null) r.setDriverLicensePlate(String.valueOf(data.get("licensePlate")));
+                    if (data.get("vehicleModel") != null) r.setDriverVehicleModel(String.valueOf(data.get("vehicleModel")));
                 }
             } catch (Exception e) {
                 // Ignore individual driver enrichment errors
             }
         }
         return responses;
+    }
+
+    private String resolveCancelReasonText(String reason, OrderCancelReason reasonCode, String defaultFallback) {
+        if (reason != null && !reason.trim().isEmpty()) {
+            String trimmed = reason.trim();
+            try {
+                OrderCancelReason parsed = OrderCancelReason.valueOf(trimmed);
+                return parsed.getDefaultDescription();
+            } catch (IllegalArgumentException ignored) {
+                return trimmed;
+            }
+        }
+        if (reasonCode != null) {
+            return reasonCode.getDefaultDescription();
+        }
+        return defaultFallback;
     }
 
     @Override
@@ -712,15 +730,17 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
             String url = pricingServiceBaseUrl + "/api/v1/pricing/delivery-fee";
-            ResponseEntity<JsonNode> response = directRestTemplate.exchange(
+            @SuppressWarnings("rawtypes")
+            ResponseEntity<Map> response = directRestTemplate.exchange(
                     url,
                     HttpMethod.POST,
                     entity,
-                    JsonNode.class
+                    Map.class
             );
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().has("deliveryFee")) {
-                double fee = response.getBody().get("deliveryFee").asDouble();
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().containsKey("deliveryFee")) {
+                Object feeVal = response.getBody().get("deliveryFee");
+                double fee = feeVal instanceof Number ? ((Number) feeVal).doubleValue() : Double.parseDouble(String.valueOf(feeVal));
                 log.info("[DeliveryFee] Đã tính phí ship từ pricing-service (Google Routes/Cache): {} đ", fee);
                 return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
             }
