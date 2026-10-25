@@ -137,7 +137,13 @@ fun MainDriverScreen(
             }
 
             composable(DriverBottomNavDestination.Trips.route) {
-                DriverTripsScreen()
+                DriverTripsScreen(
+                    onResumeActiveTrip = { booking ->
+                        navController.navigate(
+                            "driver_active_trip/${booking.bookingId}?pickupLat=${booking.startLatitude}&pickupLng=${booking.startLongitude}&dropoffLat=${booking.endLatitude}&dropoffLng=${booking.endLongitude}&price=${booking.price}&paymentMethod=${booking.paymentMethod ?: "CASH"}"
+                        )
+                    }
+                )
             }
 
             composable(DriverBottomNavDestination.Earnings.route) {

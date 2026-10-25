@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,8 +58,10 @@ import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
+import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
+import com.example.omnigo.utils.semiBold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -232,11 +236,55 @@ fun RideBookingScreen(
     }
 
     // 3. Searching Radar Dialog when booking status is PENDING
-    if (uiState.isSearchingDriver) {
+    if (uiState.isSearchingDriver && !uiState.showSearchTimeoutDialog) {
         RideSearchingRadarDialog(
             countdownSeconds = uiState.searchCountdownSeconds,
             isCancelling = uiState.isCancellingBooking,
             onCancelClick = viewModel::cancelBooking
+        )
+    }
+
+    // 4. Search Timeout Resilience Dialog (60s without driver)
+    if (uiState.showSearchTimeoutDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissSearchTimeoutDialog() },
+            title = {
+                Text(
+                    text = stringResource(id = R.string.ride_search_timeout_dialog_title),
+                    style = MaterialTheme.typography.s18.bold(),
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.ride_search_timeout_dialog_message),
+                    style = MaterialTheme.typography.s14.normal(),
+                    color = TextPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.retrySearchDriver() },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    shape = RoundedCornerShape(AppShape.ShapeM)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ride_search_timeout_btn_retry),
+                        style = MaterialTheme.typography.s14.semiBold()
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { viewModel.dismissSearchTimeoutDialog() },
+                    shape = RoundedCornerShape(AppShape.ShapeM)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ride_search_timeout_btn_cancel),
+                        style = MaterialTheme.typography.s14.normal()
+                    )
+                }
+            }
         )
     }
 }

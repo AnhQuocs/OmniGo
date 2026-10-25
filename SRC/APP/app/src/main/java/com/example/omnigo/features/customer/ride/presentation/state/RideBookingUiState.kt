@@ -57,7 +57,8 @@ data class RideBookingUiState(
     val tripStatusMessage: String? = null,
     val driverLiveLocation: DriverLiveLocation? = null,
     val liveDistanceKm: Double? = null,
-    val liveEtaMinutes: Int? = null
+    val liveEtaMinutes: Int? = null,
+    val showSearchTimeoutDialog: Boolean = false
 ) {
     val isTripActive: Boolean
         get() = currentBooking != null && (

@@ -45,3 +45,26 @@ sealed interface GetBookingDriverResult {
         val message: String? = null
     ) : GetBookingDriverResult
 }
+
+sealed interface GetCustomerBookingsResult {
+    data class Success(
+        val bookings: List<Booking>
+    ) : GetCustomerBookingsResult
+
+    data class Error(
+        val error: RideError,
+        val message: String? = null
+    ) : GetCustomerBookingsResult
+}
+
+sealed interface GetDriverDailyReportResult {
+    data class Success(
+        val report: com.example.omnigo.features.driver.domain.model.DriverDailyReport
+    ) : GetDriverDailyReportResult
+
+    data class Error(
+        val error: RideError,
+        val message: String? = null
+    ) : GetDriverDailyReportResult
+}
+

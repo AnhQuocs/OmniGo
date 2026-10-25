@@ -662,4 +662,25 @@
     <string name="ride_live_tracking_nav_not_supported">Map navigation app is not installed</string>
     <string name="ride_driver_name_fallback">OmniGo Driver</string>
     <string name="ride_vehicle_plate_fallback">Updating plate number</string>
+
+    <!-- FLOW 2 — PART 7 Ride History, Driver Daily Report & Resilience -->
+    <string name="driver_daily_report_title">Today\'s Revenue Report</string>
+    <string name="driver_daily_report_trips_label">Completed Trips</string>
+    <string name="driver_daily_report_trips_count_format">%1$d trips</string>
+    <string name="driver_daily_report_gross_revenue">Gross Fare</string>
+    <string name="driver_daily_report_net_earnings">Driver Earnings (80%)</string>
+    <string name="driver_daily_report_platform_fee">Platform Fee (20%)</string>
+    <string name="driver_daily_report_cash">Cash: %1$s</string>
+    <string name="driver_daily_report_app_paid">App: %1$s</string>
+    <string name="driver_trips_active_trip_title">Ongoing Trip</string>
+    <string name="driver_trips_btn_resume_trip">Resume Trip</string>
+    <string name="driver_trips_report_loading">Loading daily report…</string>
+    <string name="ride_search_timeout_dialog_title">No Drivers Found Yet</string>
+    <string name="ride_search_timeout_dialog_message">Drivers in your area are currently busy. Would you like to keep searching for another 60 seconds?</string>
+    <string name="ride_search_timeout_btn_retry">Keep Searching</string>
+    <string name="ride_search_timeout_btn_cancel">Cancel Search</string>
+    <string name="activity_item_ongoing_badge">Ongoing</string>
+    <string name="activity_item_completed_badge">Completed</string>
+    <string name="activity_item_cancelled_badge">Cancelled</string>
+    <string name="activity_loading_rides">Loading trips…</string>
 </resources>

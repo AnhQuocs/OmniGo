@@ -5,6 +5,7 @@ import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingDriverResponse
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingRequest
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingResponse
+import com.example.omnigo.features.driver.data.remote.dto.DriverDailyReportDto
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -54,4 +55,10 @@ interface RideBookingApi {
         @Path("bookingId") bookingId: Long,
         @Query("paymentMethod") paymentMethod: String? = "CASH"
     ): BookingResponse
+
+    @GET(ApiEndpoints.BOOKINGS_CUSTOMER)
+    suspend fun getCustomerBookings(): ApiResponse<List<BookingResponse>>
+
+    @GET(ApiEndpoints.BOOKINGS_DRIVER_DAILY_REPORT)
+    suspend fun getDriverDailyReport(): ApiResponse<DriverDailyReportDto>
 }

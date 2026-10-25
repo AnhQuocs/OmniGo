@@ -234,12 +234,27 @@ class RideBookingViewModel @Inject constructor(
             // Timeout reached (60 seconds elapsed without matching)
             _uiState.update {
                 it.copy(
-                    isSearchingDriver = false,
                     searchCountdownSeconds = 0,
-                    infoMessage = "Hết thời gian tìm kiếm tài xế. Vui lòng thử lại sau ít phút."
+                    showSearchTimeoutDialog = true
                 )
             }
         }
+    }
+
+    fun retrySearchDriver() {
+        _uiState.update {
+            it.copy(
+                showSearchTimeoutDialog = false,
+                isSearchingDriver = true,
+                searchCountdownSeconds = 60
+            )
+        }
+        startSearchCountdown()
+    }
+
+    fun dismissSearchTimeoutDialog() {
+        _uiState.update { it.copy(showSearchTimeoutDialog = false) }
+        cancelBooking()
     }
 
     fun cancelBooking() {

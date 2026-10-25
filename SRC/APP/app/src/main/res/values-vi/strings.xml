@@ -664,4 +664,25 @@
     <string name="ride_live_tracking_nav_not_supported">Không tìm thấy ứng dụng bản đồ</string>
     <string name="ride_driver_name_fallback">Tài xế OmniGo</string>
     <string name="ride_vehicle_plate_fallback">Đang cập nhật biển số</string>
+
+    <!-- FLOW 2 — PART 7 Ride History, Driver Daily Report & Resilience -->
+    <string name="driver_daily_report_title">Báo cáo doanh thu hôm nay</string>
+    <string name="driver_daily_report_trips_label">Số chuyến hoàn thành</string>
+    <string name="driver_daily_report_trips_count_format">%1$d chuyến</string>
+    <string name="driver_daily_report_gross_revenue">Tổng cước phí</string>
+    <string name="driver_daily_report_net_earnings">Thực nhận (80%)</string>
+    <string name="driver_daily_report_platform_fee">Chiết khấu sàn (20%)</string>
+    <string name="driver_daily_report_cash">Tiền mặt: %1$s</string>
+    <string name="driver_daily_report_app_paid">Qua ứng dụng: %1$s</string>
+    <string name="driver_trips_active_trip_title">Chuyến xe đang thực hiện</string>
+    <string name="driver_trips_btn_resume_trip">Tiếp tục chuyến đi</string>
+    <string name="driver_trips_report_loading">Đang tải báo cáo doanh thu…</string>
+    <string name="ride_search_timeout_dialog_title">Chưa tìm thấy tài xế</string>
+    <string name="ride_search_timeout_dialog_message">Khu vực quanh bạn hiện chưa có tài xế nhận cuốc. Bạn có muốn tiếp tục tìm thêm 60 giây nữa không?</string>
+    <string name="ride_search_timeout_btn_retry">Tiếp tục tìm</string>
+    <string name="ride_search_timeout_btn_cancel">Hủy tìm xe</string>
+    <string name="activity_item_ongoing_badge">Đang diễn ra</string>
+    <string name="activity_item_completed_badge">Hoàn thành</string>
+    <string name="activity_item_cancelled_badge">Đã hủy</string>
+    <string name="activity_loading_rides">Đang tải danh sách chuyến đi…</string>
 </resources>

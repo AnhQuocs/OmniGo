@@ -54,4 +54,6 @@ object ApiEndpoints {
     const val BOOKING_ARRIVED = "$API_V1/bookings/{bookingId}/arrived"
     const val BOOKING_START = "$API_V1/bookings/{bookingId}/start"
     const val BOOKING_COMPLETE = "$API_V1/bookings/{bookingId}/complete"
+    const val BOOKINGS_CUSTOMER = "$API_V1/bookings/customer"
+    const val BOOKINGS_DRIVER_DAILY_REPORT = "$API_V1/bookings/driver/daily-report"
 }

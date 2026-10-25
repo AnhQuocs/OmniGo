@@ -8,52 +8,58 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.ride.domain.model.Booking
+import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
+import com.example.omnigo.ui.theme.ErrorColor
+import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.SuccessColor
+import com.example.omnigo.ui.theme.WarningColor
+import java.util.Locale
 
 @Composable
 fun ActivityListSection(
+    bookings: List<Booking>,
     isHistory: Boolean,
+    onBookingClick: (Booking) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val address1 = stringResource(id = R.string.activity_mock_ride_address)
-    val address2 = stringResource(id = R.string.activity_mock_food_name)
-    
-    val status1 = if (isHistory) {
-        stringResource(id = R.string.activity_mock_status_completed)
-    } else {
-        stringResource(id = R.string.activity_mock_status_ongoing)
-    }
-
-    val price1 = stringResource(id = R.string.activity_mock_price_1)
-    val price2 = stringResource(id = R.string.activity_mock_price_2)
-
-    val date1 = stringResource(id = R.string.activity_mock_date_1)
-    val date2 = stringResource(id = R.string.activity_mock_date_2)
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(Dimen.PaddingM),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
     ) {
-        ActivityItemCard(
-            type = ActivityType.RIDE,
-            title = address1,
-            date = date1,
-            price = price1,
-            status = status1,
-            isCompleted = isHistory
-        )
+        bookings.forEach { booking ->
+            val isCompleted = booking.status == BookingStatus.COMPLETED
+            val isCancelled = booking.status == BookingStatus.CANCELLED
+            
+            val statusColor = when {
+                isCompleted -> SuccessColor
+                isCancelled -> ErrorColor
+                else -> PrimaryColor
+            }
 
-        if (isHistory) {
+            val statusText = when (booking.status) {
+                BookingStatus.COMPLETED -> stringResource(R.string.activity_item_completed_badge)
+                BookingStatus.CANCELLED -> stringResource(R.string.activity_item_cancelled_badge)
+                else -> stringResource(R.string.activity_item_ongoing_badge)
+            }
+
+            val displayTitle = "${stringResource(R.string.home_service_ride)} #${booking.bookingId}"
+            val displayPrice = String.format(Locale.getDefault(), "%,.0f đ", booking.price)
+            val displayDate = stringResource(R.string.activity_mock_date_1)
+
             ActivityItemCard(
-                type = ActivityType.FOOD,
-                title = address2,
-                date = date2,
-                price = price2,
-                status = stringResource(id = R.string.activity_mock_status_completed),
-                isCompleted = true
+                type = ActivityType.RIDE,
+                title = displayTitle,
+                date = displayDate,
+                price = displayPrice,
+                status = statusText,
+                isCompleted = isCompleted,
+                statusColorOverride = statusColor,
+                onClick = { onBookingClick(booking) }
             )
         }
     }

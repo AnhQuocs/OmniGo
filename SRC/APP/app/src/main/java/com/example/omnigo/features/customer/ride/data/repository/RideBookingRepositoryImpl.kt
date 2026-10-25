@@ -14,6 +14,8 @@ import com.example.omnigo.features.customer.ride.domain.model.CompleteRideBookin
 import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
+import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.customer.ride.domain.model.StartRideBookingResult
@@ -247,5 +249,64 @@ class RideBookingRepositoryImpl @Inject constructor(
     override fun observeDriverLiveLocation(driverId: Long): Flow<DriverLiveLocation> {
         return rideStompSubscriptionSource.subscribeToDriverLocation(driverId)
             .mapNotNull { it.toDomain() }
+    }
+
+    override suspend fun getCustomerBookings(): GetCustomerBookingsResult {
+        return try {
+            val response = rideBookingApi.getCustomerBookings()
+            if (response.success && response.data != null) {
+                val bookings = response.data.map { it.toDomain() }
+                GetCustomerBookingsResult.Success(bookings)
+            } else {
+                GetCustomerBookingsResult.Error(
+                    error = RideError.UNKNOWN_ERROR,
+                    message = response.message
+                )
+            }
+        } catch (e: HttpException) {
+            GetCustomerBookingsResult.Error(
+                error = RideError.SERVER_ERROR,
+                message = e.message()
+            )
+        } catch (e: IOException) {
+            GetCustomerBookingsResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: Exception) {
+            GetCustomerBookingsResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
+    }
+
+    override suspend fun getDriverDailyReport(): GetDriverDailyReportResult {
+        return try {
+            val response = rideBookingApi.getDriverDailyReport()
+            if (response.success && response.data != null) {
+                GetDriverDailyReportResult.Success(response.data.toDomain())
+            } else {
+                GetDriverDailyReportResult.Error(
+                    error = RideError.UNKNOWN_ERROR,
+                    message = response.message
+                )
+            }
+        } catch (e: HttpException) {
+            GetDriverDailyReportResult.Error(
+                error = RideError.SERVER_ERROR,
+                message = e.message()
+            )
+        } catch (e: IOException) {
+            GetDriverDailyReportResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: Exception) {
+            GetDriverDailyReportResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
     }
 }

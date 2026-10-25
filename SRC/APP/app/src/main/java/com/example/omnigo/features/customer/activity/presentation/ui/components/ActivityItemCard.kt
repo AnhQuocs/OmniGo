@@ -1,6 +1,7 @@
 package com.example.omnigo.features.customer.activity.presentation.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,19 +55,29 @@ fun ActivityItemCard(
     price: String,
     status: String,
     isCompleted: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    statusColorOverride: androidx.compose.ui.graphics.Color? = null,
+    onClick: (() -> Unit)? = null
 ) {
     val icon: ImageVector = if (type == ActivityType.RIDE) Icons.Filled.DirectionsCar else Icons.Filled.Fastfood
-    val statusColor = if (isCompleted) SuccessColor else WarningColor
+    val statusColor = statusColorOverride ?: if (isCompleted) SuccessColor else WarningColor
+
+    val cardModifier = if (onClick != null) {
+        modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    } else {
+        modifier.fillMaxWidth()
+    }
 
     ElevatedCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = cardModifier,
         shape = RoundedCornerShape(AppShape.ShapeM),
         colors = CardDefaults.elevatedCardColors(
             containerColor = SurfaceLight
         ),
         elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = Dimen.PaddingXXS
         )
     ) {
         Row(
@@ -78,7 +89,7 @@ fun ActivityItemCard(
             // Icon
             Column(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(Dimen.SizeMega)
                     .clip(CircleShape)
                     .background(PrimaryContainer),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -118,7 +129,7 @@ fun ActivityItemCard(
                         style = MaterialTheme.typography.s12.medium(),
                         color = statusColor,
                         modifier = Modifier
-                            .background(statusColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                            .background(statusColor.copy(alpha = 0.1f), RoundedCornerShape(AppShape.ShapeXS))
                             .padding(horizontal = AppSpacing.S, vertical = AppSpacing.XXS)
                     )
                 }
