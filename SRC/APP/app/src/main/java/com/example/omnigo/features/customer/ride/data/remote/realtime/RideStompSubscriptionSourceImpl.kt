@@ -3,6 +3,7 @@ package com.example.omnigo.features.customer.ride.data.remote.realtime
 import com.example.omnigo.core.websocket.StompClientManager
 import com.example.omnigo.core.websocket.StompCommand
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingResponse
+import com.example.omnigo.features.customer.ride.data.remote.dto.DriverLiveLocationDto
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,20 @@ class RideStompSubscriptionSourceImpl @Inject constructor(
                     null
                 } else {
                     parsePayloadSafely<BookingResponse>(frame.body)
+                }
+            }
+    }
+
+    override fun subscribeToDriverLocation(driverId: Long): Flow<DriverLiveLocationDto> {
+        scope.launch { stompClientManager.ensureLocationConnected() }
+        val destination = RideStompDestinations.driverLocation(driverId)
+        return stompClientManager.locationClient
+            .subscribe(destination)
+            .mapNotNull { frame ->
+                if (frame.command != StompCommand.MESSAGE || frame.body.isNullOrBlank()) {
+                    null
+                } else {
+                    parsePayloadSafely<DriverLiveLocationDto>(frame.body)
                 }
             }
     }

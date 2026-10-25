@@ -643,4 +643,23 @@
     <string name="driver_trip_settlement_cash_collect">Collect Cash: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Passenger paid via app (0 VND)</string>
     <string name="driver_trip_btn_finish_and_home">Continue Driving</string>
+
+    <!-- FLOW 2 — PART 6 Live GPS Tracking & Trip Visualization -->
+    <string name="ride_live_tracking_title">Live GPS Tracking</string>
+    <string name="ride_live_tracking_badge">LIVE</string>
+    <string name="ride_live_tracking_status_en_route">Driver en route to pickup</string>
+    <string name="ride_live_tracking_status_arrived">Driver arrived at pickup</string>
+    <string name="ride_live_tracking_status_in_progress">Heading to destination</string>
+    <string name="ride_live_tracking_status_waiting">Waiting for driver GPS signal…</string>
+    <string name="ride_live_tracking_eta_label">Estimated Arrival</string>
+    <string name="ride_live_tracking_eta_min_format">%1$d mins</string>
+    <string name="ride_live_tracking_eta_less_than_minute">&lt; 1 min</string>
+    <string name="ride_live_tracking_distance_label">Distance</string>
+    <string name="ride_live_tracking_speed_label">Speed</string>
+    <string name="ride_live_tracking_speed_format">%1$.0f km/h</string>
+    <string name="ride_live_tracking_speed_stationary">Stopped</string>
+    <string name="ride_live_tracking_open_navigation">Open Navigation in Google Maps</string>
+    <string name="ride_live_tracking_nav_not_supported">Map navigation app is not installed</string>
+    <string name="ride_driver_name_fallback">OmniGo Driver</string>
+    <string name="ride_vehicle_plate_fallback">Updating plate number</string>
 </resources>

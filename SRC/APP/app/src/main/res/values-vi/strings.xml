@@ -645,4 +645,23 @@
     <string name="driver_trip_settlement_cash_collect">Thu tiền mặt: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Khách đã thanh toán qua ứng dụng (0 đ)</string>
     <string name="driver_trip_btn_finish_and_home">Tiếp tục nhận cuốc</string>
+
+    <!-- FLOW 2 — PART 6 Live GPS Tracking & Trip Visualization -->
+    <string name="ride_live_tracking_title">Theo dõi hành trình trực tiếp</string>
+    <string name="ride_live_tracking_badge">TRỰC TIẾP</string>
+    <string name="ride_live_tracking_status_en_route">Tài xế đang đến điểm đón</string>
+    <string name="ride_live_tracking_status_arrived">Tài xế đã đến điểm đón</string>
+    <string name="ride_live_tracking_status_in_progress">Đang di chuyển đến điểm trả</string>
+    <string name="ride_live_tracking_status_waiting">Đang kết nối tín hiệu GPS của tài xế…</string>
+    <string name="ride_live_tracking_eta_label">Dự kiến đến</string>
+    <string name="ride_live_tracking_eta_min_format">%1$d phút</string>
+    <string name="ride_live_tracking_eta_less_than_minute">&lt; 1 phút</string>
+    <string name="ride_live_tracking_distance_label">Khoảng cách</string>
+    <string name="ride_live_tracking_speed_label">Tốc độ</string>
+    <string name="ride_live_tracking_speed_format">%1$.0f km/h</string>
+    <string name="ride_live_tracking_speed_stationary">Đang dừng</string>
+    <string name="ride_live_tracking_open_navigation">Mở Google Maps chỉ đường</string>
+    <string name="ride_live_tracking_nav_not_supported">Không tìm thấy ứng dụng bản đồ</string>
+    <string name="ride_driver_name_fallback">Tài xế OmniGo</string>
+    <string name="ride_vehicle_plate_fallback">Đang cập nhật biển số</string>
 </resources>

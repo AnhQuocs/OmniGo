@@ -29,6 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
+import com.example.omnigo.features.customer.ride.domain.util.LiveTrackingCalculator
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideLiveTrackingCard
 import com.example.omnigo.features.driver.ride.presentation.ui.components.DriverTripActionSection
 import com.example.omnigo.features.driver.ride.presentation.ui.components.DriverTripCustomerCard
 import com.example.omnigo.features.driver.ride.presentation.ui.components.DriverTripHeaderBar
@@ -120,6 +123,30 @@ fun DriverActiveTripScreen(
                 customerName = uiState.customerName,
                 customerPhone = uiState.customerPhone,
                 customerAvatarUrl = uiState.customerAvatarUrl
+            )
+
+            Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
+
+            val targetLat = if (uiState.isInProgress) uiState.endLatitude else uiState.startLatitude
+            val targetLng = if (uiState.isInProgress) uiState.endLongitude else uiState.startLongitude
+            val curLat = uiState.currentLatitude
+            val curLng = uiState.currentLongitude
+            val driverLiveLoc = if (curLat != null && curLng != null) {
+                DriverLiveLocation(
+                    latitude = curLat,
+                    longitude = curLng
+                )
+            } else null
+
+            RideLiveTrackingCard(
+                status = uiState.status,
+                driverLocation = driverLiveLoc,
+                targetLatitude = targetLat,
+                targetLongitude = targetLng,
+                distanceKm = uiState.distanceToTargetMeters?.let { it / 1000.0 },
+                etaMinutes = uiState.distanceToTargetMeters?.let {
+                    LiveTrackingCalculator.calculateEtaMinutes(it / 1000.0, null)
+                }
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))

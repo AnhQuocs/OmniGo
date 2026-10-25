@@ -5,6 +5,7 @@ import com.example.omnigo.features.customer.home.domain.model.SavedAddress
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingDriverProfile
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
+import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
 import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
 
 data class LocationPoint(
@@ -53,7 +54,10 @@ data class RideBookingUiState(
     val infoMessage: String? = null,
     val assignedDriver: BookingDriverProfile? = null,
     val isDriverProfileLoading: Boolean = false,
-    val tripStatusMessage: String? = null
+    val tripStatusMessage: String? = null,
+    val driverLiveLocation: DriverLiveLocation? = null,
+    val liveDistanceKm: Double? = null,
+    val liveEtaMinutes: Int? = null
 ) {
     val isTripActive: Boolean
         get() = currentBooking != null && (
