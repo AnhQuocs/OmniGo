@@ -211,13 +211,13 @@ export const MerchantMenu = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
           <TextField
             size="small"
             placeholder="Tìm kiếm món ăn..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ width: 220 }}
+            sx={{ flex: { xs: 1, sm: 'none' }, minWidth: { xs: 140, sm: 220 } }}
           />
           <Button
             variant="contained"
@@ -229,6 +229,8 @@ export const MerchantMenu = () => {
               fontWeight: 700,
               textTransform: 'none',
               '&:hover': { bgcolor: '#EA580C' },
+              flex: { xs: 1, sm: 'none' },
+              whiteSpace: 'nowrap',
             }}
           >
             Thêm món mới
@@ -404,15 +406,15 @@ export const MerchantMenu = () => {
               label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Còn hàng để bán</Typography>}
             />
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button disabled={submitting} onClick={() => setOpenModal(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+          <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+            <Button disabled={submitting} onClick={() => setOpenModal(false)} sx={{ textTransform: 'none', fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}>
               Hủy
             </Button>
             <Button
               type="submit"
               variant="contained"
               disabled={submitting}
-              sx={{ bgcolor: '#F97316', fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#EA580C' } }}
+              sx={{ bgcolor: '#F97316', fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#EA580C' }, width: { xs: '100%', sm: 'auto' } }}
             >
               {submitting ? <CircularProgress size={20} color="inherit" /> : 'Lưu món ăn'}
             </Button>

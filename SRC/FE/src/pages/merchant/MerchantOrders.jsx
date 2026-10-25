@@ -57,6 +57,11 @@ import {
   TextField,
   DialogTitle,
   DialogActions,
+  Tabs,
+  Tab,
+  Paper,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -203,6 +208,9 @@ const getCancelledInfo = (order) => {
 export const MerchantOrders = () => {
   const { restaurant, loadingRes, refreshRestaurant } = useOutletContext();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileKanbanTab, setMobileKanbanTab] = useState('ALL');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(() => {
@@ -560,19 +568,19 @@ export const MerchantOrders = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* HEADER ROW */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.3 }}>
             Đơn hàng
           </Typography>
-          <Typography variant="body2" sx={{ color: '#64748B' }}>
+          <Typography variant="body2" sx={{ color: '#64748B', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
             Quản lý đơn hàng, theo dõi trạng thái và phục vụ khách hàng tốt hơn
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"
             size="small"
@@ -586,9 +594,10 @@ export const MerchantOrders = () => {
               bgcolor: '#FFF7ED',
               color: '#C2410C',
               '&:hover': { bgcolor: '#FFEDD5', borderColor: '#FDBA74' },
+              flex: { xs: 1, sm: 'none' },
             }}
           >
-            Báo cáo doanh thu
+            Báo cáo
           </Button>
 
           <FormControlLabel
@@ -600,30 +609,63 @@ export const MerchantOrders = () => {
                 size="small"
               />
             }
-            label={<Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Tự động làm mới (5s)</Typography>}
+            label={<Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Tự động (5s)</Typography>}
           />
           <Button
             variant="outlined"
             size="small"
             startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
             onClick={() => fetchOrders(true)}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, borderColor: '#E2E8F0', color: '#475569' }}
+            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, borderColor: '#E2E8F0', color: '#475569', flex: { xs: 1, sm: 'none' } }}
           >
             Làm mới
           </Button>
         </Box>
       </Box>
 
-      {/* 4 COLUMNS KANBAN LAYOUT (Responsive horizontal scroll on small/split screens) */}
+      {/* MOBILE TABS FOR KANBAN SWITCHING */}
+      {isMobile && (
+        <Paper sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+          <Tabs
+            value={mobileKanbanTab}
+            onChange={(_, val) => setMobileKanbanTab(val)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{
+              minHeight: 44,
+              '& .MuiTab-root': {
+                py: 0.8,
+                px: 1.8,
+                minHeight: 44,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+              },
+            }}
+          >
+            <Tab label="Tất cả (Cuộn ngang)" value="ALL" />
+            <Tab label={`Đơn mới (${newOrders.length})`} value="NEW" />
+            <Tab label={`Đang nấu (${cookingOrders.length})`} value="COOKING" />
+            <Tab label={`Sẵn sàng (${readyOrders.length})`} value="READY" />
+            <Tab label={`Lịch sử (${historyOrders.length})`} value="HISTORY" />
+          </Tabs>
+        </Paper>
+      )}
+
+      {/* 4 COLUMNS KANBAN LAYOUT (Responsive horizontal scroll or tabbed on mobile) */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: {
-            xs: 'repeat(4, minmax(280px, 1fr))',
+            xs: (!isMobile || mobileKanbanTab === 'ALL') ? 'repeat(4, minmax(280px, 1fr))' : '1fr',
             md: 'repeat(3, minmax(260px, 1fr)) 280px',
             lg: 'repeat(3, 1fr) 300px',
           },
-          overflowX: 'auto',
+          overflowX: (!isMobile || mobileKanbanTab === 'ALL') ? 'auto' : 'visible',
           pb: 2,
           gap: 2,
           alignItems: 'start',
@@ -638,7 +680,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'NEW') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -696,7 +738,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'COOKING') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -754,7 +796,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'READY') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -812,7 +854,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'HISTORY') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -1295,7 +1337,7 @@ export const MerchantOrders = () => {
             )}
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
               {selectedOrder.status === 'PENDING' && (
                 <>
                   <Button

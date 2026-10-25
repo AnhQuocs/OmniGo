@@ -958,6 +958,9 @@ export const Drivers = () => {
               setMainDriverTab(val);
               setPage(0);
             }}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             textColor="primary"
             indicatorColor="primary"
             sx={{
@@ -967,6 +970,7 @@ export const Drivers = () => {
                 fontWeight: 700,
                 fontSize: { xs: '0.85rem', sm: '0.95rem' },
                 minHeight: 48,
+                whiteSpace: 'nowrap',
               },
             }}
           >
