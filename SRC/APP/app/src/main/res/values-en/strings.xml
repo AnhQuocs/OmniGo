@@ -685,4 +685,26 @@
     <string name="activity_item_completed_badge">Completed</string>
     <string name="activity_item_cancelled_badge">Cancelled</string>
     <string name="activity_loading_rides">Loading trips…</string>
+
+    <!-- FLOW 2 — REVAMP ACTIVE TRIP BANNER & BOTTOM SHEET -->
+    <string name="active_trip_banner_pending">Searching for a driver…</string>
+    <string name="active_trip_banner_driver_cancelled">Driver cancelled. Finding a new driver…</string>
+    <string name="active_trip_banner_eta_format">Driver arriving • %1$d mins (%2$.1f km)</string>
+    <string name="active_trip_banner_arrived">Driver has arrived at pickup</string>
+    <string name="active_trip_banner_in_progress">Trip in progress to destination</string>
+    <string name="active_trip_sheet_title">Current Trip</string>
+    <string name="active_trip_sheet_btn_view_map">View Live Map</string>
+    <string name="active_trip_sheet_pickup_label">Pickup Location</string>
+    <string name="active_trip_sheet_dropoff_label">Drop-off Destination</string>
+    <string name="active_trip_sheet_fare_label">Total Fare</string>
+    <string name="active_trip_sheet_payment_cash">Cash</string>
+    <string name="active_trip_sheet_payment_app">In-app Payment</string>
+    <string name="active_trip_sheet_waiting_driver">Looking for nearby drivers…</string>
+    <string name="active_trip_sheet_waiting_gps">Updating vehicle location…</string>
+    <string name="active_trip_sheet_call_driver">Call</string>
+    <string name="active_trip_sheet_cancel_trip">Cancel Ride</string>
+    <string name="trip_map_title">Live Map</string>
+    <string name="trip_map_trip_id_format">Trip #%1$d</string>
+    <string name="trip_map_no_active_trip">No active trip found</string>
+    <string name="trip_map_close_button">Close Map</string>
 </resources>

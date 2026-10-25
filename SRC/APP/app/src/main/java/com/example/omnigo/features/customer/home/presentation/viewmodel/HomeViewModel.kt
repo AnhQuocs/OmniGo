@@ -2,6 +2,8 @@ package com.example.omnigo.features.customer.home.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.omnigo.core.datastore.SessionManager
+import com.example.omnigo.core.location.manager.UserLocationManager
 import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.core.region.domain.model.District
 import com.example.omnigo.core.region.domain.model.Province
@@ -9,13 +11,14 @@ import com.example.omnigo.core.region.domain.model.Ward
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantsUseCase
+import com.example.omnigo.features.customer.home.domain.model.SavedAddress
 import com.example.omnigo.features.customer.home.domain.usecase.DetectCurrentLocationUseCase
 import com.example.omnigo.features.customer.home.domain.usecase.DetectLocationResult
-import com.example.omnigo.features.customer.home.domain.usecase.GeocodeAddressUseCase
-import com.example.omnigo.features.customer.home.domain.usecase.GetDistrictsByProvinceUseCase
-import com.example.omnigo.features.customer.home.domain.usecase.GetProvincesUseCase
-import com.example.omnigo.features.customer.home.domain.usecase.GetWardsByDistrictUseCase
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerStep
+import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
+import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingResult
+import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,13 +28,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-import com.example.omnigo.core.datastore.SessionManager
-import com.example.omnigo.core.location.manager.UserLocationManager
-import com.example.omnigo.features.customer.home.domain.model.SavedAddress
-import com.example.omnigo.features.customer.home.domain.usecase.DeleteSavedAddressUseCase
-import com.example.omnigo.features.customer.home.domain.usecase.GetSavedAddressesUseCase
-import com.example.omnigo.features.customer.home.domain.usecase.SaveAddressUseCase
 
 data class HomeUiState(
     val isPopularPlacesLoading: Boolean = false,
@@ -51,7 +47,12 @@ data class HomeUiState(
     val streetDetail: String = "",
     val searchQuery: String = "",
     val savedAddresses: List<SavedAddress> = emptyList(),
-    val editingAddressId: String? = null
+    val editingAddressId: String? = null,
+    val activeRideState: ActiveRideState? = null,
+    val showActiveTripSheet: Boolean = false,
+    val isCancellingActiveTrip: Boolean = false,
+    val showCancelTripConfirmDialog: Boolean = false,
+    val cancelTripErrorMessage: String? = null
 )
 
 sealed interface HomeUiEvent {
@@ -64,15 +65,11 @@ sealed interface HomeUiEvent {
 class HomeViewModel @Inject constructor(
     private val getRestaurantsUseCase: GetRestaurantsUseCase,
     private val detectCurrentLocationUseCase: DetectCurrentLocationUseCase,
-    private val geocodeAddressUseCase: GeocodeAddressUseCase,
-    private val getProvincesUseCase: GetProvincesUseCase,
-    private val getDistrictsByProvinceUseCase: GetDistrictsByProvinceUseCase,
-    private val getWardsByDistrictUseCase: GetWardsByDistrictUseCase,
     private val userLocationManager: UserLocationManager,
-    private val getSavedAddressesUseCase: GetSavedAddressesUseCase,
-    private val saveAddressUseCase: SaveAddressUseCase,
-    private val deleteSavedAddressUseCase: DeleteSavedAddressUseCase,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val homeAddressCoordinator: HomeAddressCoordinator,
+    private val rideTrackingSessionManager: RideTrackingSessionManager,
+    private val cancelRideBookingUseCase: CancelRideBookingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -86,11 +83,29 @@ class HomeViewModel @Inject constructor(
         observeSavedAddresses()
         fetchPopularPlaces()
         loadProvinces()
+        observeActiveRideSession()
+    }
+
+    private fun observeActiveRideSession() {
+        viewModelScope.launch {
+            rideTrackingSessionManager.activeRideState.collect { activeRide ->
+                _uiState.update {
+                    it.copy(
+                        activeRideState = activeRide,
+                        showActiveTripSheet = if (activeRide == null || activeRide.isFinished) {
+                            false
+                        } else {
+                            it.showActiveTripSheet
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private fun observeSavedAddresses() {
         viewModelScope.launch {
-            getSavedAddressesUseCase().collect { list ->
+            homeAddressCoordinator.getSavedAddresses().collect { list ->
                 _uiState.update { it.copy(savedAddresses = list) }
             }
         }
@@ -124,13 +139,15 @@ class HomeViewModel @Inject constructor(
         if (_uiState.value.userLocation == null) {
             detectLocation()
         }
+        viewModelScope.launch {
+            rideTrackingSessionManager.restoreSessionIfAvailable()
+        }
     }
 
     private fun fetchPopularPlaces() {
         viewModelScope.launch {
             _uiState.update { it.copy(isPopularPlacesLoading = true) }
-            val result = getRestaurantsUseCase(search = null)
-            when (result) {
+            when (val result = getRestaurantsUseCase(search = null)) {
                 is GetRestaurantsResult.Success -> {
                     val topPlaces = result.restaurants.take(3)
                     _uiState.update {
@@ -138,9 +155,7 @@ class HomeViewModel @Inject constructor(
                     }
                 }
                 is GetRestaurantsResult.Error -> {
-                    _uiState.update {
-                        it.copy(isPopularPlacesLoading = false)
-                    }
+                    _uiState.update { it.copy(isPopularPlacesLoading = false) }
                 }
             }
         }
@@ -210,70 +225,20 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onSearchQueryChange(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
-        val state = _uiState.value
-        viewModelScope.launch {
-            when (state.addressPickerStep) {
-                AddressPickerStep.PROVINCE -> {
-                    val filtered = getProvincesUseCase(query)
-                    _uiState.update { it.copy(provinces = filtered) }
-                }
-                AddressPickerStep.DISTRICT -> {
-                    state.selectedProvince?.let { prov ->
-                        val filtered = getDistrictsByProvinceUseCase(prov.id, query)
-                        _uiState.update { it.copy(districts = filtered) }
-                    }
-                }
-                AddressPickerStep.WARD -> {
-                    val prov = state.selectedProvince
-                    val dist = state.selectedDistrict
-                    if (prov != null && dist != null) {
-                        val filtered = getWardsByDistrictUseCase(prov.id, dist.id, query)
-                        _uiState.update { it.copy(wards = filtered) }
-                    }
-                }
-                AddressPickerStep.STREET_DETAIL -> Unit
-            }
-        }
+        homeAddressCoordinator.onSearchQueryChange(viewModelScope, query, _uiState.value) { _uiState.update(it) }
     }
 
     private fun loadProvinces() {
-        viewModelScope.launch {
-            val list = getProvincesUseCase("")
-            _uiState.update { it.copy(provinces = list) }
-        }
+        homeAddressCoordinator.loadProvinces(viewModelScope) { _uiState.update(it) }
     }
 
     fun onSelectProvince(province: Province) {
-        viewModelScope.launch {
-            val districts = getDistrictsByProvinceUseCase(province.id, "")
-            _uiState.update {
-                it.copy(
-                    selectedProvince = province,
-                    selectedDistrict = null,
-                    selectedWard = null,
-                    districts = districts,
-                    addressPickerStep = AddressPickerStep.DISTRICT,
-                    searchQuery = ""
-                )
-            }
-        }
+        homeAddressCoordinator.onSelectProvince(viewModelScope, province) { _uiState.update(it) }
     }
 
     fun onSelectDistrict(district: District) {
-        viewModelScope.launch {
-            val provinceId = _uiState.value.selectedProvince?.id ?: return@launch
-            val wards = getWardsByDistrictUseCase(provinceId, district.id, "")
-            _uiState.update {
-                it.copy(
-                    selectedDistrict = district,
-                    selectedWard = null,
-                    wards = wards,
-                    addressPickerStep = AddressPickerStep.WARD,
-                    searchQuery = ""
-                )
-            }
-        }
+        val provinceId = _uiState.value.selectedProvince?.id ?: return
+        homeAddressCoordinator.onSelectDistrict(viewModelScope, provinceId, district) { _uiState.update(it) }
     }
 
     fun onSelectWard(ward: Ward) {
@@ -295,99 +260,62 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onSelectSavedAddress(savedAddress: SavedAddress) {
-        val location = UserLocation(
-            latitude = savedAddress.latitude,
-            longitude = savedAddress.longitude,
-            addressName = savedAddress.addressName,
-            fullAddress = savedAddress.fullAddress
-        )
-        userLocationManager.updateLocation(location)
-        viewModelScope.launch { sessionManager.saveUserLocation(location) }
-        _uiState.update {
-            it.copy(
-                userLocation = location,
-                displayAddress = savedAddress.addressName,
-                showLocationPromptDialog = false
-            )
-        }
+        homeAddressCoordinator.onSelectSavedAddress(viewModelScope, savedAddress) { _uiState.update(it) }
     }
 
     fun onEditSavedAddress(savedAddress: SavedAddress) {
-        viewModelScope.launch {
-            val provinces = getProvincesUseCase("")
-            val selectedProv = provinces.find { it.name.equals(savedAddress.provinceId, ignoreCase = true) || it.id == savedAddress.provinceId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
-            val districts = if (selectedProv != null) getDistrictsByProvinceUseCase(selectedProv.id, "") else emptyList()
-            val selectedDist = districts.find { it.name.equals(savedAddress.districtId, ignoreCase = true) || it.id == savedAddress.districtId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
-            val wards = if (selectedProv != null && selectedDist != null) getWardsByDistrictUseCase(selectedProv.id, selectedDist.id, "") else emptyList()
-            val selectedW = wards.find { it.name.equals(savedAddress.wardId, ignoreCase = true) || it.id == savedAddress.wardId || savedAddress.fullAddress.contains(it.name, ignoreCase = true) }
-
-            _uiState.update {
-                it.copy(
-                    showLocationPromptDialog = false,
-                    showAddressPickerSheet = true,
-                    editingAddressId = savedAddress.id,
-                    provinces = provinces,
-                    selectedProvince = selectedProv,
-                    districts = districts,
-                    selectedDistrict = selectedDist,
-                    wards = wards,
-                    selectedWard = selectedW,
-                    streetDetail = savedAddress.streetDetail.ifBlank { savedAddress.addressName.substringBefore(",") },
-                    addressPickerStep = AddressPickerStep.STREET_DETAIL,
-                    searchQuery = ""
-                )
-            }
-        }
+        homeAddressCoordinator.onEditSavedAddress(viewModelScope, savedAddress) { _uiState.update(it) }
     }
 
     fun onDeleteSavedAddress(savedAddress: SavedAddress) {
-        viewModelScope.launch { deleteSavedAddressUseCase(savedAddress.id) }
+        homeAddressCoordinator.onDeleteSavedAddress(viewModelScope, savedAddress)
     }
 
     fun onConfirmCustomAddress() {
-        val state = _uiState.value
-        val prov = state.selectedProvince?.name ?: ""
-        val dist = state.selectedDistrict?.name ?: ""
-        val ward = state.selectedWard?.name ?: ""
-        val detail = state.streetDetail.trim()
+        homeAddressCoordinator.onConfirmCustomAddress(viewModelScope, _uiState.value) { _uiState.update(it) }
+    }
 
-        if (detail.isBlank() || prov.isBlank() || dist.isBlank() || ward.isBlank()) return
+    fun onActiveTripBannerClick() {
+        if (_uiState.value.activeRideState != null) {
+            _uiState.update { it.copy(showActiveTripSheet = true) }
+        }
+    }
 
-        val fullAddress = "$detail, $ward, $dist, $prov"
-        val shortAddress = "$detail, $dist"
+    fun dismissActiveTripSheet() {
+        _uiState.update { it.copy(showActiveTripSheet = false) }
+    }
 
+    fun promptCancelActiveTrip() {
+        _uiState.update { it.copy(showCancelTripConfirmDialog = true, cancelTripErrorMessage = null) }
+    }
+
+    fun dismissCancelTripDialog() {
+        _uiState.update { it.copy(showCancelTripConfirmDialog = false, cancelTripErrorMessage = null) }
+    }
+
+    fun confirmCancelActiveTrip() {
+        val activeBookingId = _uiState.value.activeRideState?.bookingId ?: return
         viewModelScope.launch {
-            val coords = geocodeAddressUseCase(fullAddress)
-            val location = UserLocation(
-                latitude = coords?.first ?: 20.9626,
-                longitude = coords?.second ?: 105.7471,
-                addressName = shortAddress,
-                fullAddress = fullAddress
-            )
-
-            val addressId = state.editingAddressId ?: java.util.UUID.randomUUID().toString()
-            val savedAddress = SavedAddress(
-                id = addressId,
-                addressName = shortAddress,
-                fullAddress = fullAddress,
-                latitude = location.latitude,
-                longitude = location.longitude,
-                provinceId = state.selectedProvince?.id ?: "",
-                districtId = state.selectedDistrict?.id ?: "",
-                wardId = state.selectedWard?.id ?: "",
-                streetDetail = detail
-            )
-            saveAddressUseCase(savedAddress)
-
-            userLocationManager.updateLocation(location)
-            sessionManager.saveUserLocation(location)
-            _uiState.update {
-                it.copy(
-                    userLocation = location,
-                    displayAddress = shortAddress,
-                    showAddressPickerSheet = false,
-                    editingAddressId = null
-                )
+            _uiState.update { it.copy(isCancellingActiveTrip = true, cancelTripErrorMessage = null) }
+            when (val result = cancelRideBookingUseCase(activeBookingId)) {
+                is CancelRideBookingResult.Success -> {
+                    rideTrackingSessionManager.clearSession()
+                    _uiState.update {
+                        it.copy(
+                            isCancellingActiveTrip = false,
+                            showCancelTripConfirmDialog = false,
+                            showActiveTripSheet = false
+                        )
+                    }
+                }
+                is CancelRideBookingResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isCancellingActiveTrip = false,
+                            cancelTripErrorMessage = result.message ?: "Không thể hủy chuyến xe lúc này"
+                        )
+                    }
+                }
             }
         }
     }

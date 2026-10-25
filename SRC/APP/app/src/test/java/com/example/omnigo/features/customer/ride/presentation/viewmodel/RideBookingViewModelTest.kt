@@ -47,6 +47,8 @@ class RideBookingViewModelTest {
     private lateinit var cancelRideBookingUseCase: CancelRideBookingUseCase
     private lateinit var detectCurrentLocationUseCase: DetectCurrentLocationUseCase
     private lateinit var savedAddressRepository: SavedAddressRepository
+    private lateinit var rideTrackingSessionManager: com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+    private val activeRideStateFlow = kotlinx.coroutines.flow.MutableStateFlow<com.example.omnigo.features.customer.ride.domain.model.ActiveRideState?>(null)
 
     private lateinit var viewModel: RideBookingViewModel
 
@@ -102,6 +104,8 @@ class RideBookingViewModelTest {
         cancelRideBookingUseCase = mockk()
         detectCurrentLocationUseCase = mockk()
         savedAddressRepository = mockk()
+        rideTrackingSessionManager = mockk(relaxed = true)
+        every { rideTrackingSessionManager.activeRideState } returns activeRideStateFlow
 
         every { savedAddressRepository.getSavedAddresses() } returns flowOf(listOf(sampleSavedAddress))
         coEvery { detectCurrentLocationUseCase() } returns DetectLocationResult.Success(sampleUserLocation)
@@ -119,7 +123,8 @@ class RideBookingViewModelTest {
             cancelRideBookingUseCase = cancelRideBookingUseCase,
             detectCurrentLocationUseCase = detectCurrentLocationUseCase,
             savedAddressRepository = savedAddressRepository,
-            rideBookingStatusCoordinator = mockk(relaxed = true)
+            rideBookingStatusCoordinator = mockk(relaxed = true),
+            rideTrackingSessionManager = rideTrackingSessionManager
         )
     }
 

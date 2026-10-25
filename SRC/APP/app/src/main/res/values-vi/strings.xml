@@ -685,4 +685,26 @@
     <string name="activity_item_completed_badge">Hoàn thành</string>
     <string name="activity_item_cancelled_badge">Đã hủy</string>
     <string name="activity_loading_rides">Đang tải danh sách chuyến đi…</string>
+
+    <!-- FLOW 2 — REVAMP ACTIVE TRIP BANNER & BOTTOM SHEET -->
+    <string name="active_trip_banner_pending">Đang tìm tài xế…</string>
+    <string name="active_trip_banner_driver_cancelled">Tài xế đã hủy. Đang tìm tài xế mới…</string>
+    <string name="active_trip_banner_eta_format">Tài xế đang đến • %1$d phút (%2$.1f km)</string>
+    <string name="active_trip_banner_arrived">Tài xế đã tới điểm đón</string>
+    <string name="active_trip_banner_in_progress">Đang di chuyển tới điểm đến</string>
+    <string name="active_trip_sheet_title">Chuyến xe hiện tại</string>
+    <string name="active_trip_sheet_btn_view_map">Xem bản đồ trực tiếp</string>
+    <string name="active_trip_sheet_pickup_label">Điểm đón</string>
+    <string name="active_trip_sheet_dropoff_label">Điểm đến</string>
+    <string name="active_trip_sheet_fare_label">Cước phí</string>
+    <string name="active_trip_sheet_payment_cash">Tiền mặt</string>
+    <string name="active_trip_sheet_payment_app">Thanh toán qua ứng dụng</string>
+    <string name="active_trip_sheet_waiting_driver">Đang kết nối tài xế gần bạn…</string>
+    <string name="active_trip_sheet_waiting_gps">Đang cập nhật vị trí xe…</string>
+    <string name="active_trip_sheet_call_driver">Gọi</string>
+    <string name="active_trip_sheet_cancel_trip">Hủy chuyến xe</string>
+    <string name="trip_map_title">Bản đồ trực tiếp</string>
+    <string name="trip_map_trip_id_format">Chuyến #%1$d</string>
+    <string name="trip_map_no_active_trip">Không tìm thấy chuyến đi đang hoạt động</string>
+    <string name="trip_map_close_button">Đóng bản đồ</string>
 </resources>

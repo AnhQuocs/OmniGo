@@ -18,16 +18,24 @@ import com.example.omnigo.features.customer.home.domain.usecase.GetSavedAddresse
 import com.example.omnigo.features.customer.home.domain.usecase.GetWardsByDistrictUseCase
 import com.example.omnigo.features.customer.home.domain.usecase.SaveAddressUseCase
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerStep
+import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
+import com.example.omnigo.features.customer.ride.domain.model.Booking
+import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
+import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -49,7 +57,10 @@ class HomeViewModelTest {
     private lateinit var saveAddressUseCase: SaveAddressUseCase
     private lateinit var deleteSavedAddressUseCase: DeleteSavedAddressUseCase
     private lateinit var userLocationManager: com.example.omnigo.core.location.manager.UserLocationManager
+    private lateinit var cancelRideBookingUseCase: CancelRideBookingUseCase
     private lateinit var sessionManager: com.example.omnigo.core.datastore.SessionManager
+    private lateinit var rideTrackingSessionManager: RideTrackingSessionManager
+    private val activeRideStateFlow = MutableStateFlow<ActiveRideState?>(null)
 
     private lateinit var viewModel: HomeViewModel
 
@@ -66,6 +77,10 @@ class HomeViewModelTest {
         deleteSavedAddressUseCase = mockk(relaxed = true)
         userLocationManager = com.example.omnigo.core.location.manager.UserLocationManager()
         sessionManager = mockk(relaxed = true)
+        cancelRideBookingUseCase = mockk(relaxed = true)
+
+        rideTrackingSessionManager = mockk(relaxed = true)
+        every { rideTrackingSessionManager.activeRideState } returns activeRideStateFlow
 
         coEvery { getRestaurantsUseCase(any()) } returns GetRestaurantsResult.Success(emptyList())
         coEvery { getProvincesUseCase(any()) } returns listOf(Province("01", "Thành phố Hà Nội"))
@@ -74,9 +89,7 @@ class HomeViewModelTest {
             listOf(SavedAddress("1", "Nhà", "14D Nguyễn Hy Quang", 21.0, 105.8))
         )
 
-        viewModel = HomeViewModel(
-            getRestaurantsUseCase,
-            detectCurrentLocationUseCase,
+        val coordinator = HomeAddressCoordinator(
             geocodeAddressUseCase,
             getProvincesUseCase,
             getDistrictsByProvinceUseCase,
@@ -86,6 +99,16 @@ class HomeViewModelTest {
             saveAddressUseCase,
             deleteSavedAddressUseCase,
             sessionManager
+        )
+
+        viewModel = HomeViewModel(
+            getRestaurantsUseCase = getRestaurantsUseCase,
+            detectCurrentLocationUseCase = detectCurrentLocationUseCase,
+            userLocationManager = userLocationManager,
+            sessionManager = sessionManager,
+            homeAddressCoordinator = coordinator,
+            rideTrackingSessionManager = rideTrackingSessionManager,
+            cancelRideBookingUseCase = cancelRideBookingUseCase
         )
     }
 
@@ -97,6 +120,8 @@ class HomeViewModelTest {
         assertEquals("Thành phố Hà Nội", state.provinces[0].name)
         assertEquals(1, state.savedAddresses.size)
         assertEquals("Nhà", state.savedAddresses[0].addressName)
+        assertNull(state.activeRideState)
+        assertFalse(state.showActiveTripSheet)
     }
 
     @Test
@@ -196,5 +221,81 @@ class HomeViewModelTest {
         assertNotNull(finalState.userLocation)
         assertEquals("Số 1 Đại Cồ Việt, Quận Hai Bà Trưng", finalState.displayAddress)
         coVerify { saveAddressUseCase(any()) }
+    }
+
+    @Test
+    fun `activeRideState updates uiState and banner can open or close sheet`() = runTest {
+        val sampleRide = ActiveRideState(
+            bookingId = 101L,
+            status = BookingStatus.ACCEPTED,
+            price = 45000.0,
+            pickupAddress = "14D Nguyễn Hy Quang",
+            dropoffAddress = "Đại học Bách Khoa Hà Nội"
+        )
+
+        activeRideStateFlow.value = sampleRide
+
+        val stateAfterRide = viewModel.uiState.value
+        assertEquals(sampleRide, stateAfterRide.activeRideState)
+        assertFalse(stateAfterRide.showActiveTripSheet)
+
+        // Click banner to open sheet
+        viewModel.onActiveTripBannerClick()
+        assertTrue(viewModel.uiState.value.showActiveTripSheet)
+
+        // Dismiss sheet
+        viewModel.dismissActiveTripSheet()
+        assertFalse(viewModel.uiState.value.showActiveTripSheet)
+
+        // Re-open then trip finishes -> sheet should auto-close
+        viewModel.onActiveTripBannerClick()
+        assertTrue(viewModel.uiState.value.showActiveTripSheet)
+
+        activeRideStateFlow.value = sampleRide.copy(status = BookingStatus.COMPLETED)
+        assertFalse(viewModel.uiState.value.showActiveTripSheet)
+        assertEquals(BookingStatus.COMPLETED, viewModel.uiState.value.activeRideState?.status)
+    }
+
+    @Test
+    fun `cancel active trip prompt and confirmation flow invokes use case and clears session`() = runTest {
+        val sampleRide = ActiveRideState(
+            bookingId = 202L,
+            status = BookingStatus.ACCEPTED,
+            price = 50000.0
+        )
+        activeRideStateFlow.value = sampleRide
+        viewModel.onActiveTripBannerClick()
+        assertTrue(viewModel.uiState.value.showActiveTripSheet)
+
+        // 1. Prompt cancel
+        viewModel.promptCancelActiveTrip()
+        assertTrue(viewModel.uiState.value.showCancelTripConfirmDialog)
+
+        // 2. Dismiss dialog
+        viewModel.dismissCancelTripDialog()
+        assertFalse(viewModel.uiState.value.showCancelTripConfirmDialog)
+
+        // 3. Confirm cancel
+        coEvery { cancelRideBookingUseCase(202L) } returns com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingResult.Success(
+            Booking(
+                bookingId = 202L,
+                customerId = 1L,
+                status = BookingStatus.CANCELLED,
+                startLatitude = 0.0,
+                startLongitude = 0.0,
+                endLatitude = 0.0,
+                endLongitude = 0.0,
+                price = 50000.0,
+                paymentMethod = "CASH"
+            )
+        )
+
+        viewModel.confirmCancelActiveTrip()
+
+        assertFalse(viewModel.uiState.value.isCancellingActiveTrip)
+        assertFalse(viewModel.uiState.value.showCancelTripConfirmDialog)
+        assertFalse(viewModel.uiState.value.showActiveTripSheet)
+        coVerify { cancelRideBookingUseCase(202L) }
+        io.mockk.verify { rideTrackingSessionManager.clearSession() }
     }
 }

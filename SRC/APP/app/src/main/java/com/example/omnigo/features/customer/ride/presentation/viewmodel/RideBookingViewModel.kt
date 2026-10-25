@@ -16,6 +16,7 @@ import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookin
 import com.example.omnigo.features.customer.ride.domain.usecase.CreateRideBookingUseCase
 import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
 import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
+import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -42,7 +43,8 @@ class RideBookingViewModel @Inject constructor(
     private val cancelRideBookingUseCase: CancelRideBookingUseCase,
     private val detectCurrentLocationUseCase: DetectCurrentLocationUseCase,
     private val savedAddressRepository: SavedAddressRepository,
-    private val rideBookingStatusCoordinator: RideBookingStatusCoordinator
+    private val rideBookingStatusCoordinator: RideBookingStatusCoordinator,
+    private val rideTrackingSessionManager: RideTrackingSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideBookingUiState())
@@ -57,11 +59,36 @@ class RideBookingViewModel @Inject constructor(
     init {
         loadSavedAddresses()
         autoDetectPickupLocation()
+        observeActiveRideSession()
         rideBookingStatusCoordinator.restoreSessionIfAvailable(
             scope = viewModelScope,
             updateState = { _uiState.update(it) },
             getState = { _uiState.value }
         )
+    }
+
+    private fun observeActiveRideSession() {
+        viewModelScope.launch {
+            rideTrackingSessionManager.activeRideState.collect { activeRide ->
+                if (activeRide != null) {
+                    _uiState.update { current ->
+                        current.copy(
+                            currentBooking = current.currentBooking?.copy(
+                                status = activeRide.status,
+                                driverId = activeRide.driverProfile?.driverId ?: current.currentBooking?.driverId,
+                                price = if (activeRide.price > 0.0) activeRide.price else current.currentBooking?.price ?: 0.0
+                            ),
+                            assignedDriver = activeRide.driverProfile ?: current.assignedDriver,
+                            driverLiveLocation = activeRide.driverLiveLocation ?: current.driverLiveLocation,
+                            liveDistanceKm = activeRide.liveDistanceKm ?: current.liveDistanceKm,
+                            liveEtaMinutes = activeRide.liveEtaMinutes ?: current.liveEtaMinutes,
+                            isSearchingDriver = activeRide.isSearchingDriver,
+                            tripStatusMessage = activeRide.statusMessage ?: current.tripStatusMessage
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun loadSavedAddresses() {
@@ -202,6 +229,13 @@ class RideBookingViewModel @Inject constructor(
                         )
                     }
                     _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
+                    val pickupAddr = pickup.name.ifBlank { pickup.address }
+                    val dropoffAddr = dropoff.name.ifBlank { dropoff.address }
+                    rideTrackingSessionManager.startSession(
+                        booking = booking,
+                        pickupAddress = pickupAddr,
+                        dropoffAddress = dropoffAddr
+                    )
                     rideBookingStatusCoordinator.startObserving(
                         scope = viewModelScope,
                         bookingId = booking.bookingId,
@@ -263,6 +297,7 @@ class RideBookingViewModel @Inject constructor(
             // If just searching UI without active backend bookingId, close directly
             countdownJob?.cancel()
             rideBookingStatusCoordinator.stopObserving()
+            rideTrackingSessionManager.clearSession()
             _uiState.update { it.copy(isSearchingDriver = false) }
             return
         }
@@ -277,6 +312,7 @@ class RideBookingViewModel @Inject constructor(
                     countdownJob?.cancel()
                     rideBookingStatusCoordinator.stopObserving()
                     rideBookingStatusCoordinator.clearSession()
+                    rideTrackingSessionManager.clearSession()
                     _uiState.update {
                         it.copy(
                             isCancellingBooking = false,
@@ -321,6 +357,7 @@ class RideBookingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             rideBookingStatusCoordinator.clearSession()
+            rideTrackingSessionManager.clearSession()
         }
     }
 
