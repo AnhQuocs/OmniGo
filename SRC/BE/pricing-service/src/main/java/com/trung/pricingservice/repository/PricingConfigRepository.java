@@ -75,15 +75,32 @@ public class PricingConfigRepository {
         redisTemplate.opsForHash().putAll(REDIS_KEY, map);
     }
 
+    public void recordDemand(String h3Index, String customerIdentifier) {
+        String countKey = "pricing:demand:" + h3Index;
+        if (customerIdentifier != null && !customerIdentifier.isBlank()) {
+            String seenKey = "pricing:demand:seen:" + h3Index + ":" + customerIdentifier;
+            // 1 khách hàng chỉ tính 1 lượt Cầu trong ô H3 trong vòng 5 phút (tránh spam polling)
+            Boolean isNewDemand = redisTemplate.opsForValue().setIfAbsent(seenKey, "1", Duration.ofMinutes(5));
+            if (Boolean.TRUE.equals(isNewDemand)) {
+                redisTemplate.opsForValue().increment(countKey, 1);
+                redisTemplate.expire(countKey, Duration.ofMinutes(5));
+            }
+        } else {
+            String seenKey = "pricing:demand:seen:" + h3Index + ":anon";
+            Boolean isNew = redisTemplate.opsForValue().setIfAbsent(seenKey, "1", Duration.ofMinutes(1));
+            if (Boolean.TRUE.equals(isNew)) {
+                redisTemplate.opsForValue().increment(countKey, 1);
+                redisTemplate.expire(countKey, Duration.ofMinutes(5));
+            }
+        }
+    }
+
     public void updateDemand(String h3Index) {
-        String key = "pricing:demand:" + h3Index;
-        redisTemplate.opsForValue().increment(key, 1);
-        // Tự động hết hạn sau 5 phút để refresh cung cầu liên tục
-        redisTemplate.expire(key, Duration.ofMinutes(5));
+        recordDemand(h3Index, null);
     }
 
     public int getDemand(String h3Index) {
         Object val = redisTemplate.opsForValue().get("pricing:demand:" + h3Index);
         return val != null ? Integer.parseInt(val.toString()) : 0;
     }
-}
+}

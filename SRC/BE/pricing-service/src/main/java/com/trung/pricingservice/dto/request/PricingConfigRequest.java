@@ -45,7 +45,7 @@ public class PricingConfigRequest {
     @Min(value = 0, message = "Phí ship mỗi km tiếp theo phải >= 0")
     private Double deliveryPricePerKm;
 
-    // 4. Google Routes & Fallback
+    // 4. OSRM Routing & Fallback
     @Min(value = 1, message = "Hệ số uốn lượn fallback phải >= 1.0")
     private Double haversineFallbackMultiplier;
 

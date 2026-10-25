@@ -18,4 +18,6 @@ public class BookingRequest {
 
     @NotNull(message = "Điểm đến không được để trống")
     private Double endLatitude;
+
+    private String vehicleType;
 }

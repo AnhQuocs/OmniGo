@@ -11,8 +11,10 @@ import com.trung.bookingservice.event.BookingCompletedEvent;
 import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
 import com.trung.bookingservice.repository.BookingRepository;
+import com.trung.bookingservice.service.BookingAvatarService;
 import com.trung.bookingservice.service.BookingService;
 import com.trung.bookingservice.service.DispatchConfigService;
+import com.trung.bookingservice.service.DriverVehicleService;
 import com.trung.bookingservice.service.client.LocationClient;
 import com.trung.bookingservice.service.client.PricingClient;
 import com.trung.bookingservice.service.client.UserDriverClient;
@@ -53,7 +55,8 @@ public class BookingServiceImpl implements BookingService {
     private final BookingReassignService bookingReassignService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DispatchConfigService dispatchConfigService;
-    private final com.trung.bookingservice.service.BookingAvatarService bookingAvatarService;
+    private final BookingAvatarService bookingAvatarService;
+    private final DriverVehicleService driverVehicleService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -103,6 +106,8 @@ public class BookingServiceImpl implements BookingService {
                 .startLatitude(request.getStartLatitude())
                 .endLongitude(request.getEndLongitude())
                 .endLatitude(request.getEndLatitude())
+                .vehicleType(request.getVehicleType())
+                .customerId(customerId)
                 .build();
 
         PricingResponse pricingInfo;
@@ -129,14 +134,15 @@ public class BookingServiceImpl implements BookingService {
                 .endLatitude(request.getEndLatitude())
                 .status(BookingStatus.PENDING)
                 .price(pricingInfo.getTotalPrice())
+                .vehicleType(request.getVehicleType())
                 .distanceInKm(pricingInfo.getDistanceInKm())
                 .createdAt(LocalDateTime.now())
                 .build();
         bookingRepository.save(booking);
         bookingRepository.flush();
 
-        log.info("Khách hàng {} đặt xe. Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
-                customerId, String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice(), maxRideRadius);
+        log.info("Khách hàng {} đặt xe (Loại: {}). Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
+                customerId, request.getVehicleType(), String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice(), maxRideRadius);
 
         double[] searchRadiuses = (maxRideRadius <= 3.0)
                 ? new double[]{maxRideRadius}
@@ -151,6 +157,15 @@ public class BookingServiceImpl implements BookingService {
             for (DriverNearbyResponse driver : nearbyDrivers) {
                 Long driverId = driver.getDriverId();
 
+                // 1. Kiểm tra loại phương tiện của tài xế có khớp với yêu cầu cuốc xe không
+                String driverVehicleType = driverVehicleService.getDriverVehicleType(driverId);
+                if (!driverVehicleService.isVehicleTypeMatching(request.getVehicleType(), driverVehicleType)) {
+                    log.info("Bỏ qua tài xế ID {} vì loại xe ({}) không khớp với yêu cầu cuốc ({})",
+                            driverId, driverVehicleType, request.getVehicleType());
+                    continue;
+                }
+
+                // 2. Kiểm tra tài xế có đang online không
                 try {
                     ResponseEntity<Boolean> response = userDriverClient.isDriverOnlineInternal(driverId);
                     boolean isOnline = Boolean.TRUE.equals(response.getBody());
@@ -598,6 +613,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .distanceInKm(distance)
                 .price(booking.getPrice())
+                .vehicleType(booking.getVehicleType())
                 .paymentMethod(booking.getPaymentMethod())
                 .build();
     }

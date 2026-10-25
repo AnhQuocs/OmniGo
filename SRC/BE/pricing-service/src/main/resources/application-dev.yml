@@ -7,6 +7,17 @@ spring:
       host: localhost
       port: 6379
       database: 3
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pricing_db
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
 
 eureka:
   client:
@@ -38,8 +49,12 @@ logging:
     org.springframework: INFO
     org.apache.kafka: INFO
 
-google:
-  maps:
-    api-key: ${GOOGLE_MAPS_API_KEY}
-    connect-timeout-ms: 1500
-    read-timeout-ms: 1500
+osrm:
+  url: ${OSRM_URL:http://localhost:5000}
+  car-url: ${OSRM_CAR_URL:http://localhost:5000}
+  bike-url: ${OSRM_BIKE_URL:http://localhost:5001}
+  public-url: ${OSRM_PUBLIC_URL:https://router.project-osrm.org}
+  connect-timeout-ms: 2000
+  read-timeout-ms: 2500
+
+

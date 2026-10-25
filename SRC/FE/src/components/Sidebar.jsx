@@ -16,6 +16,7 @@ import {
   PeopleAltOutlined as UsersIcon,
   DirectionsCarOutlined as DriversIcon,
   TuneOutlined as PricingIcon,
+  ConfirmationNumberOutlined as VoucherIcon,
   ReceiptLongOutlined as BookingsIcon,
   AccountBalanceWalletOutlined as PaymentsIcon,
   StoreOutlined as RestaurantIcon,
@@ -685,6 +686,40 @@ export const Sidebar = ({ mobileOpen, handleDrawerToggle, isMobile }) => {
                   }}
                 >
                   Cấu hình hệ thống
+                </Typography>
+              }
+            />
+          </ListItemButton>
+        </ListItem>
+
+        {/* 6. Quản Lý Voucher Khuyến Mãi */}
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            onClick={() => handleNav('/vouchers')}
+            sx={{
+              borderRadius: 1.5,
+              py: 0.9,
+              px: 1.5,
+              bgcolor: isCurrent('/vouchers')
+                ? isDark ? 'rgba(0, 140, 255, 0.15)' : 'rgba(0, 140, 255, 0.1)'
+                : 'transparent',
+              '&:hover': { bgcolor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: isCurrent('/vouchers') ? '#f97316' : 'text.secondary' }}>
+              <VoucherIcon sx={{ fontSize: 20 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: isCurrent('/vouchers') ? 700 : 600,
+                    color: isCurrent('/vouchers') ? (isDark ? '#38bdf8' : '#0070cc') : 'text.primary',
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  Mã khuyến mãi
                 </Typography>
               }
             />

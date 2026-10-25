@@ -9,4 +9,6 @@ public class PricingRequest {
     private Double startLatitude;
     private Double endLongitude;
     private Double endLatitude;
+    private String vehicleType;
+    private Long customerId;
 }

@@ -326,6 +326,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                                     if (Boolean.TRUE.equals(savedCancelled.getIsPaid())) {
                                         triggerRefund(savedCancelled.getCustomerId(), savedCancelled.getId(), savedCancelled.getTotalPrice(), "Hệ thống hủy đơn do không tìm thấy tài xế");
                                     }
+                                    triggerVoucherRollback(savedCancelled.getCustomerId(), savedCancelled.getId());
                                 }
                             }
                         });
@@ -340,10 +341,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 if (saved.getDriverId() != null) {
                     updateDriverStatusOnline(saved.getDriverId());
                 }
+                triggerVoucherRollback(saved.getCustomerId(), saved.getId());
             } else if (newStatus == OrderStatus.REJECTED) {
                 if (Boolean.TRUE.equals(saved.getIsPaid())) {
                     triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng từ chối tiếp nhận đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
                 }
+                triggerVoucherRollback(saved.getCustomerId(), saved.getId());
             }
 
             return foodOrderMapper.toResponse(saved);
@@ -466,6 +469,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Tài xế hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
             }
             updateDriverStatusOnline(driverId);
+            triggerVoucherRollback(saved.getCustomerId(), saved.getId());
         }
 
         return foodOrderMapper.toResponse(saved);
@@ -579,6 +583,33 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             }
         } catch (Exception e) {
             log.error("Lỗi khi gọi hoàn tiền cho khách hàng ID {} (đơn #{}): {}", customerId, orderId, e.getMessage());
+        }
+    }
+
+    private void triggerVoucherRollback(Long customerId, Long orderId) {
+        try {
+            List<String> targetUrls = new ArrayList<>();
+            String paramStr = String.format("?userId=%s&orderId=%s",
+                    customerId != null ? customerId.toString() : "",
+                    orderId != null ? orderId.toString() : "");
+
+            if (pricingServiceBaseUrl != null && !pricingServiceBaseUrl.isBlank()) {
+                targetUrls.add(pricingServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/pricing/vouchers/rollback" + paramStr);
+            }
+            targetUrls.add("http://localhost:8084/api/v1/pricing/vouchers/rollback" + paramStr);
+            targetUrls.add("http://localhost:8080/api/v1/pricing/vouchers/rollback" + paramStr);
+
+            for (String url : targetUrls) {
+                try {
+                    directRestTemplate.postForEntity(url, null, Void.class);
+                    log.info("Đã gửi yêu cầu revert voucher cho đơn hàng #{} (khách #{}) thành công qua URL: {}", orderId, customerId, url);
+                    break;
+                } catch (Exception err) {
+                    log.warn("Không thể gọi revert voucher qua URL {}: {}", url, err.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi khi gửi yêu cầu revert voucher cho đơn hàng #{}: {}", orderId, e.getMessage());
         }
     }
 

@@ -12,3 +12,4 @@ build/
 .env.*
 user-driver-service/src/main/resources/firebase-service-account.json
 
+osrm-data/

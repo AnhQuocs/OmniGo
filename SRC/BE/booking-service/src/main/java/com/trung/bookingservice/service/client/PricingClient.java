@@ -15,4 +15,11 @@ public interface PricingClient {
             @RequestBody PricingRequest request,
             @RequestParam("nearbyDriversCount") int nearbyDriversCount
     );
+
+    @PostMapping("/api/v1/pricing/vouchers/rollback")
+    void rollbackVoucher(
+            @RequestParam(value = "code", required = false) String code,
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(value = "orderId", required = false) String orderId
+    );
 }

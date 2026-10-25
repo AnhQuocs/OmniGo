@@ -6,6 +6,7 @@ import com.trung.bookingservice.event.DriverAssignedToFoodOrderEvent;
 import com.trung.bookingservice.event.FindDriverForFoodOrderEvent;
 import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.service.DispatchConfigService;
+import com.trung.bookingservice.service.DriverVehicleService;
 import com.trung.bookingservice.service.FoodDeliveryDispatchService;
 import com.trung.bookingservice.service.client.LocationClient;
 import com.trung.bookingservice.service.client.UserDriverClient;
@@ -37,6 +38,7 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final DispatchConfigService dispatchConfigService;
+    private final com.trung.bookingservice.service.DriverVehicleService driverVehicleService;
 
     @Override
     public void dispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event) {
@@ -84,6 +86,14 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
 
         for (DriverNearbyResponse driver : allNearbyDrivers) {
             Long driverId = driver.getDriverId();
+
+            // Chỉ tài xế xe máy (BIKE/EXPRESS) mới nhận đơn giao đồ ăn
+            String driverVehicleType = driverVehicleService.getDriverVehicleType(driverId);
+            if (!driverVehicleService.isEligibleForFoodDelivery(driverVehicleType)) {
+                log.info("Bỏ qua tài xế ID {} vì loại xe ({}) không phù hợp giao đồ ăn (cần BIKE/EXPRESS)",
+                        driverId, driverVehicleType);
+                continue;
+            }
 
             // Nếu tài xế đã từng từ chối đơn này thì bỏ qua
             if (rejectedDrivers != null && rejectedDrivers.contains(driverId.toString())) {

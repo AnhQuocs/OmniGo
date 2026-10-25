@@ -49,6 +49,8 @@ public class Booking {
 
     private Double price;
 
+    private String vehicleType;
+
     private String paymentMethod;
 
     private LocalDateTime createdAt;

@@ -22,5 +22,7 @@ public class PricingRequest {
 
     @NotNull(message = "Vĩ độ điểm đến không được để trống")
     private Double endLatitude;
+
     private String vehicleType;
+    private Long customerId;
 }
