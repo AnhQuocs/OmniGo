@@ -268,6 +268,9 @@ class RideBookingViewModel @Inject constructor(
                             isSearchingDriver = false,
                             currentBooking = null,
                             assignedDriver = null,
+                            driverLiveLocation = null,
+                            liveDistanceKm = null,
+                            liveEtaMinutes = null,
                             infoMessage = "Đã hủy chuyến xe thành công."
                         )
                     }
@@ -295,7 +298,10 @@ class RideBookingViewModel @Inject constructor(
             it.copy(
                 currentBooking = null,
                 assignedDriver = null,
-                tripStatusMessage = null
+                tripStatusMessage = null,
+                driverLiveLocation = null,
+                liveDistanceKm = null,
+                liveEtaMinutes = null
             )
         }
         viewModelScope.launch {
