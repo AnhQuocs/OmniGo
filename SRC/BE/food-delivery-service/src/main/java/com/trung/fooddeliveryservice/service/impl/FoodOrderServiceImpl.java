@@ -772,7 +772,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().containsKey("deliveryFee")) {
                 Object feeVal = response.getBody().get("deliveryFee");
                 double fee = feeVal instanceof Number ? ((Number) feeVal).doubleValue() : Double.parseDouble(String.valueOf(feeVal));
-                log.info("[DeliveryFee] Đã tính phí ship từ pricing-service (Google Routes/Cache): {} đ", fee);
+                log.info("[DeliveryFee] Đã tính phí ship từ pricing-service (OSRM/Cache): {} đ", fee);
                 return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
             }
         } catch (Exception e) {

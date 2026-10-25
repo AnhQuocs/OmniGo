@@ -62,7 +62,7 @@ export const Pricing = () => {
     deliveryBaseFare: 15000,
     deliveryBaseKm: 2.0,
     deliveryPricePerKm: 5000,
-    // 4. Google Routes & Fallback
+    // 4. OSRM Routing Engine & Fallback
     haversineFallbackMultiplier: 1.35,
     minDistanceBypassMeters: 50,
     // 5. Hệ số tăng giá cao điểm (Surge)
@@ -349,7 +349,7 @@ export const Pricing = () => {
             Cấu Hình Hệ Thống
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
-            Quản lý bảng giá cước, hệ số xe, biểu phí ship đồ ăn, Google Routes và bán kính điều phối trong Redis theo thời gian thực
+            Quản lý bảng giá cước, hệ số xe, biểu phí ship đồ ăn, OSRM Routing Engine và bán kính điều phối trong Redis theo thời gian thực
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
@@ -638,7 +638,7 @@ export const Pricing = () => {
                     </Stack>
                   </Card>
 
-                  {/* Mục 4: Google Routes & Fallback */}
+                  {/* Mục 4: OSRM Routing Engine & Fallback */}
                   <Card
                     onClick={() => openModal('ROUTES_FALLBACK')}
                     sx={{
@@ -673,10 +673,10 @@ export const Pricing = () => {
                         </Box>
                         <Box>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                            4. Google Routes API & Cơ Chế Fallback
+                            4. OSRM Routing Engine & Cơ Chế Fallback
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
-                            Kiểm soát thuật toán quy đổi đường chim bay và khoảng cách chống gọi API trùng điểm
+                            Kiểm soát thuật toán quy đổi đường chim bay dự phòng (Haversine) và khoảng cách bypass khi trùng điểm
                           </Typography>
                         </Box>
                       </Box>
@@ -1218,7 +1218,7 @@ export const Pricing = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Modal 4: Google Routes API & Fallback */}
+          {/* Modal 4: OSRM Routing Engine & Fallback */}
           <Dialog
             open={activeModal === 'ROUTES_FALLBACK'}
             onClose={closeModal}
@@ -1233,10 +1233,10 @@ export const Pricing = () => {
                 </Box>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                    4. Google Routes API & Cơ Chế Fallback
+                    4. OSRM Routing Engine & Cơ Chế Fallback
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                    Kiểm soát thuật toán quy đổi đường chim bay và khoảng cách chống gọi API trùng điểm
+                    Kiểm soát thuật toán quy đổi đường chim bay dự phòng (Haversine) và khoảng cách bypass khi trùng điểm
                   </Typography>
                 </Box>
               </Box>
@@ -1260,7 +1260,7 @@ export const Pricing = () => {
                     input: { endAdornment: <InputAdornment position="end">x</InputAdornment> },
                     htmlInput: { step: 0.05, min: 1.0, max: 3.0 },
                   }}
-                  helperText="Hệ số nhân với khoảng cách chim bay bù ngõ hẻm khi API lỗi hoặc hết quota (mặc định: 1.35x)"
+                  helperText="Hệ số nhân với khoảng cách chim bay bù ngõ hẻm khi OSRM gián đoạn (mặc định: 1.35x)"
                 />
               </Box>
               <Box>
@@ -1277,7 +1277,7 @@ export const Pricing = () => {
                     input: { endAdornment: <InputAdornment position="end">mét</InputAdornment> },
                     htmlInput: { step: 5, min: 10, max: 500 },
                   }}
-                  helperText="Dưới ngưỡng này tự động coi là trùng điểm đón/trả và không gọi Google API (mặc định: 50m)"
+                  helperText="Dưới ngưỡng này tự động coi là trùng điểm đón/trả và bypass không gọi OSRM (mặc định: 50m)"
                 />
               </Box>
             </DialogContent>
