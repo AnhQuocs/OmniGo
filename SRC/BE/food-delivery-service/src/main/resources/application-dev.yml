@@ -88,3 +88,5 @@ logging:
 app:
   payment-service-url: http://localhost:8085
   driver-service-url: http://localhost:8081
+  pricing-service-url: ${PRICING_SERVICE_URL:http://localhost:8084}
+

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Box,
   Typography,
   Card,
-  Grid,
   Button,
   IconButton,
   Dialog,
@@ -16,7 +15,6 @@ import {
   Switch,
   Chip,
   CircularProgress,
-  Avatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,7 +22,6 @@ import {
   Delete as DeleteIcon,
   CheckCircle as AvailableIcon,
   Block as UnavailableIcon,
-  Search as SearchIcon,
   Restaurant as DishIcon,
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
@@ -70,7 +67,20 @@ export const MerchantMenu = () => {
   };
 
   useEffect(() => {
-    fetchMenu();
+    let active = true;
+    async function init() {
+      if (!restaurant?.id) return;
+      try {
+        const data = await foodService.getMerchantMenu(restaurant.id);
+        if (active) setMenuItems(data || []);
+      } catch (err) {
+        console.warn('Lỗi tải menu:', err.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    init();
+    return () => { active = false; };
   }, [restaurant?.id]);
 
   const handleOpenAdd = () => {
@@ -117,7 +127,7 @@ export const MerchantMenu = () => {
       setMenuItems((prev) =>
         prev.map((m) => (m.id === item.id ? { ...m, isAvailable: updated } : m))
       );
-    } catch (err) {
+    } catch {
       toast.error('Lỗi đổi trạng thái món ăn');
     }
   };
@@ -344,7 +354,7 @@ export const MerchantMenu = () => {
       <Dialog open={openModal} onClose={() => !submitting && setOpenModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3.5, p: 1 } }}>
         <form onSubmit={handleSubmitForm}>
           <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', pb: 1 }}>
-            {editingItem ? '✏️ Chỉnh sửa món ăn' : '🍽️ Thêm món ăn mới'}
+            {editingItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}
           </DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '10px !important' }}>
             <TextField
