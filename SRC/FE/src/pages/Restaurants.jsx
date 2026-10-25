@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -17,7 +17,6 @@ import {
   CircularProgress,
   Alert,
   Button,
-  ButtonGroup,
   IconButton,
   Dialog,
   DialogTitle,
@@ -25,10 +24,6 @@ import {
   DialogActions,
   Avatar,
   Divider,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
   Tab,
   Tabs,
   Stack,
@@ -51,8 +46,6 @@ import {
   LockOpen as UnlockIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
-  LocationOn as LocationIcon,
-  Image as ImageIcon,
   AccessTime as TimeIcon,
   Assignment as LicenseIcon,
 } from '@mui/icons-material';
@@ -283,7 +276,7 @@ export const Restaurants = () => {
     try {
       const items = await foodService.getMenuItems(restaurant.id);
       setMenuItems(items);
-    } catch (err) {
+    } catch {
       toast.error('Không thể tải thực đơn nhà hàng');
       setMenuItems([]);
     } finally {
@@ -396,7 +389,7 @@ export const Restaurants = () => {
       case 'OPEN':
         return (
           <Chip
-            label="🟢 Đang Mở Cửa"
+            label="Đang Mở Cửa"
             size="small"
             sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700 }}
           />
@@ -404,7 +397,7 @@ export const Restaurants = () => {
       case 'BUSY':
         return (
           <Chip
-            label="🟡 Đang Bận"
+            label="Đang Bận"
             size="small"
             sx={{ bgcolor: 'rgba(255, 170, 0, 0.15)', color: '#ffaa00', fontWeight: 700 }}
           />
@@ -413,7 +406,7 @@ export const Restaurants = () => {
       default:
         return (
           <Chip
-            label="🔴 Đóng Cửa"
+            label="Đóng Cửa"
             size="small"
             sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }}
           />
@@ -829,7 +822,7 @@ export const Restaurants = () => {
                           variant="rounded"
                           sx={{ width: 44, height: 44, borderRadius: 2 }}
                         >
-                          🍲
+                          <RestaurantIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                         </Avatar>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
@@ -856,7 +849,7 @@ export const Restaurants = () => {
                       {r.phone || 'Chưa cập nhật'}
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.85rem' }}>
-                      🕒 {r.openTime || '07:00'} - {r.closeTime || '22:00'}
+                      {r.openTime || '07:00'} - {r.closeTime || '22:00'}
                     </TableCell>
                     {mainTab === 0 ? (
                       <>

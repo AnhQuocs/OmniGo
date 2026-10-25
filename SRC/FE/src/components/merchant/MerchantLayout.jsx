@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -26,7 +26,6 @@ import {
   CheckCircle as OpenIcon,
   Schedule as BusyIcon,
   Cancel as ClosedIcon,
-  Store as StoreIcon,
   Menu as HamburgerIcon,
   BarChart as AnalyticsIcon,
   Star as StarIcon,
@@ -78,7 +77,29 @@ export const MerchantLayout = () => {
   };
 
   useEffect(() => {
-    fetchMyRestaurant();
+    let active = true;
+    async function init() {
+      try {
+        const res = await foodService.getMyRestaurant();
+        const actual = res?.data?.id ? res.data : res?.id ? res : null;
+        if (active) {
+          if (actual && actual.id) {
+            setRestaurant(actual);
+          } else {
+            setRestaurant(null);
+          }
+        }
+      } catch (err) {
+        if (active) {
+          console.warn('Chưa có thông tin nhà hàng hoặc lỗi:', err.message);
+          setRestaurant(null);
+        }
+      } finally {
+        if (active) setLoadingRes(false);
+      }
+    }
+    init();
+    return () => { active = false; };
   }, []);
 
   // Polling check for new reviews and unreplied count
@@ -104,7 +125,7 @@ export const MerchantLayout = () => {
           }
           setLastReviewTotal(total);
         }
-      } catch (e) {
+      } catch {
         // silent
       }
     };
@@ -126,7 +147,7 @@ export const MerchantLayout = () => {
       await foodService.updateRestaurantStatus(restaurant.id, newStatus);
       setRestaurant((prev) => ({ ...prev, status: newStatus }));
       toast.success(`Đã đổi trạng thái quán sang: ${newStatus === 'OPEN' ? 'Mở cửa' : newStatus === 'BUSY' ? 'Đang bận' : 'Tạm đóng cửa'}`);
-    } catch (err) {
+    } catch {
       toast.error('Lỗi khi đổi trạng thái quán');
     } finally {
       setUpdatingStatus(false);
@@ -206,7 +227,7 @@ export const MerchantLayout = () => {
               width: 42,
               height: 42,
               borderRadius: 3,
-              background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+              background: '#F97316',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
@@ -642,7 +663,7 @@ export const MerchantLayout = () => {
                 width: 38,
                 height: 38,
                 borderRadius: 2.5,
-                background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+                background: '#F97316',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',

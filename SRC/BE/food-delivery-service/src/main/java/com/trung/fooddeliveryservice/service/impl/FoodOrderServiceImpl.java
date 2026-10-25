@@ -24,9 +24,16 @@ import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -53,11 +60,15 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate directRestTemplate;
 
-    @org.springframework.beans.factory.annotation.Value("${app.payment-service-url:http://localhost:8085}")
+    @Value("${app.payment-service-url:http://localhost:8085}")
     private String paymentServiceBaseUrl;
 
-    @org.springframework.beans.factory.annotation.Value("${app.driver-service-url:http://localhost:8081}")
+    @Value("${app.driver-service-url:http://localhost:8081}")
     private String driverServiceBaseUrl;
+
+    @Value("${app.pricing-service-url:http://localhost:8084}")
+    private String pricingServiceBaseUrl;
+
 
     @Override
     @Transactional
@@ -165,14 +176,16 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     log.warn("Không tìm thấy đơn hàng ID {}", orderId);
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
                 });
-        return foodOrderMapper.toResponse(order);
+        FoodOrderResponse response = foodOrderMapper.toResponse(order);
+        enrichDriverDetails(response);
+        return response;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getCustomerOrders(Long customerId) {
         List<FoodOrder> orders = foodOrderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -193,14 +206,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .stream()
                 .filter(o -> o.getStatus() != OrderStatus.AWAITING_PAYMENT)
                 .collect(Collectors.toList());
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getDriverOrders(Long driverId) {
         List<FoodOrder> orders = foodOrderRepository.findByDriverIdOrderByCreatedAtDesc(driverId);
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -583,11 +596,68 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
     }
 
+    private void enrichDriverDetails(FoodOrderResponse response) {
+        if (response == null || response.getDriverId() == null) return;
+        try {
+            String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
+                    ? driverServiceBaseUrl : "http://localhost:8081";
+            String url = baseUrl + "/api/v1/internal/drivers/" + response.getDriverId();
+            ResponseEntity<JsonNode> resp = directRestTemplate.getForEntity(url, JsonNode.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().has("data")) {
+                JsonNode data = resp.getBody().get("data");
+                if (data != null && !data.isNull()) {
+                    if (data.hasNonNull("fullName")) response.setDriverName(data.get("fullName").asText());
+                    if (data.hasNonNull("phoneNumber")) response.setDriverPhone(data.get("phoneNumber").asText());
+                    if (data.hasNonNull("avatarUrl")) response.setDriverAvatarUrl(data.get("avatarUrl").asText());
+                    if (data.hasNonNull("licensePlate")) response.setDriverLicensePlate(data.get("licensePlate").asText());
+                    if (data.hasNonNull("vehicleModel")) response.setDriverVehicleModel(data.get("vehicleModel").asText());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Không thể lấy thông tin chi tiết tài xế ID {}: {}", response.getDriverId(), e.getMessage());
+        }
+    }
+
+    private List<FoodOrderResponse> enrichDriverDetails(List<FoodOrderResponse> responses) {
+        if (responses == null || responses.isEmpty()) return responses;
+        Map<Long, JsonNode> cache = new HashMap<>();
+        for (FoodOrderResponse r : responses) {
+            if (r.getDriverId() == null) continue;
+            try {
+                JsonNode data = cache.computeIfAbsent(r.getDriverId(), id -> {
+                    try {
+                        String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
+                                ? driverServiceBaseUrl : "http://localhost:8081";
+                        String url = baseUrl + "/api/v1/internal/drivers/" + id;
+                        ResponseEntity<JsonNode> resp = directRestTemplate.getForEntity(url, JsonNode.class);
+                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().has("data")) {
+                            return resp.getBody().get("data");
+                        }
+                    } catch (Exception ex) {
+                        log.warn("Lỗi tải thông tin tài xế {}: {}", id, ex.getMessage());
+                    }
+                    return null;
+                });
+
+                if (data != null && !data.isNull()) {
+                    if (data.hasNonNull("fullName")) r.setDriverName(data.get("fullName").asText());
+                    if (data.hasNonNull("phoneNumber")) r.setDriverPhone(data.get("phoneNumber").asText());
+                    if (data.hasNonNull("avatarUrl")) r.setDriverAvatarUrl(data.get("avatarUrl").asText());
+                    if (data.hasNonNull("licensePlate")) r.setDriverLicensePlate(data.get("licensePlate").asText());
+                    if (data.hasNonNull("vehicleModel")) r.setDriverVehicleModel(data.get("vehicleModel").asText());
+                }
+            } catch (Exception e) {
+                // Ignore individual driver enrichment errors
+            }
+        }
+        return responses;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getAllOrders() {
         List<FoodOrder> list = foodOrderRepository.findAllByOrderByCreatedAtDesc();
-        return foodOrderMapper.toResponseList(list);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(list));
     }
 
     @Override
@@ -625,14 +695,48 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     private BigDecimal calculateDeliveryFee(Double lat1, Double lon1, Double lat2, Double lon2) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            return BigDecimal.valueOf(15000).setScale(0, RoundingMode.HALF_UP);
+        }
+
+        try {
+            Map<String, Object> requestBody = Map.of(
+                    "restaurantLatitude", lat1,
+                    "restaurantLongitude", lon1,
+                    "customerLatitude", lat2,
+                    "customerLongitude", lon2
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            String url = pricingServiceBaseUrl + "/api/v1/pricing/delivery-fee";
+            ResponseEntity<JsonNode> response = directRestTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    JsonNode.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().has("deliveryFee")) {
+                double fee = response.getBody().get("deliveryFee").asDouble();
+                log.info("[DeliveryFee] Đã tính phí ship từ pricing-service (Google Routes/Cache): {} đ", fee);
+                return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
+            }
+        } catch (Exception e) {
+            log.warn("[DeliveryFee] Không thể kết nối tới pricing-service, tự động fallback tính Haversine nội bộ. Lỗi: {}", e.getMessage());
+        }
+
+        // Fallback nội bộ: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
         double distanceKm = calculateDistanceInKm(lat1, lon1, lat2, lon2);
-        // Phí cơ sở: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
         double fee = 15000.0;
         if (distanceKm > 2.0) {
             fee += (distanceKm - 2.0) * 5000.0;
         }
         return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
     }
+
 
     private double calculateDistanceInKm(Double lat1, Double lon1, Double lat2, Double lon2) {
         if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {

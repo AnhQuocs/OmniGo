@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -17,7 +17,6 @@ import {
   CircularProgress,
   Alert,
   Button,
-  ButtonGroup,
   IconButton,
   Dialog,
   DialogTitle,
@@ -34,7 +33,6 @@ import {
   Fastfood as FoodIcon,
   CheckCircle as SuccessIcon,
   TwoWheeler as DriverIcon,
-  Cancel as CancelIcon,
   AttachMoney as MoneyIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
@@ -83,23 +81,10 @@ export const FoodOrders = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const queryParams = new URLSearchParams(location.search);
+  const statusFilter = queryParams.get('status')?.toUpperCase() || 'ALL';
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-
-  // Detail Modal State
   const [selectedOrder, setSelectedOrder] = useState(null);
-
-  // Sync status filter from URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const statusParam = params.get('status');
-    if (statusParam) {
-      setStatusFilter(statusParam.toUpperCase());
-    } else {
-      setStatusFilter('ALL');
-    }
-    setPage(0);
-  }, [location.search]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -121,11 +106,32 @@ export const FoodOrders = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    let active = true;
+    async function init() {
+      try {
+        const [orderList, statsData] = await Promise.all([
+          foodService.getAllFoodOrders(),
+          foodService.getFoodStats(),
+        ]);
+        if (active) {
+          setOrders(Array.isArray(orderList) ? orderList : []);
+          if (statsData) setStats(statsData);
+        }
+      } catch (err) {
+        if (active) {
+          const msg = err.response?.data?.message || err.message || 'Không thể tải danh sách đơn giao đồ ăn';
+          setError(msg);
+          toast.error(msg);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    init();
+    return () => { active = false; };
   }, []);
 
   const handleStatusTab = (val) => {
-    setStatusFilter(val);
     setPage(0);
     if (val === 'ALL') {
       navigate('/food-orders');
@@ -192,37 +198,37 @@ export const FoodOrders = () => {
   const getStatusChip = (status, order = null) => {
     switch (status) {
       case 'AWAITING_PAYMENT':
-        return <Chip label="💳 Chờ Thanh Toán" size="small" sx={{ bgcolor: 'rgba(234, 88, 12, 0.15)', color: '#ea580c', fontWeight: 700 }} />;
+        return <Chip label="Chờ Thanh Toán" size="small" sx={{ bgcolor: 'rgba(234, 88, 12, 0.15)', color: '#ea580c', fontWeight: 700 }} />;
       case 'PENDING':
-        return <Chip label="⏳ Chờ Duyệt" size="small" sx={{ bgcolor: 'rgba(255, 170, 0, 0.15)', color: '#ffaa00', fontWeight: 700 }} />;
+        return <Chip label="Chờ Duyệt" size="small" sx={{ bgcolor: 'rgba(255, 170, 0, 0.15)', color: '#ffaa00', fontWeight: 700 }} />;
       case 'ACCEPTED':
-        return <Chip label="👌 Quán Đã Nhận" size="small" sx={{ bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff', fontWeight: 700 }} />;
+        return <Chip label="Quán Đã Nhận" size="small" sx={{ bgcolor: 'rgba(0, 140, 255, 0.15)', color: '#008cff', fontWeight: 700 }} />;
       case 'PREPARING':
-        return <Chip label="🍳 Đang Nấu Món" size="small" sx={{ bgcolor: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed', fontWeight: 700 }} />;
+        return <Chip label="Đang Nấu Món" size="small" sx={{ bgcolor: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed', fontWeight: 700 }} />;
       case 'READY_FOR_PICKUP':
-        return <Chip label="🛵 Chờ Tài Xế Đến" size="small" sx={{ bgcolor: 'rgba(249, 115, 22, 0.15)', color: '#f97316', fontWeight: 700 }} />;
+        return <Chip label="Chờ Tài Xế Đến" size="small" sx={{ bgcolor: 'rgba(249, 115, 22, 0.15)', color: '#f97316', fontWeight: 700 }} />;
       case 'DELIVERING':
-        return <Chip label="🚀 Đang Giao Hàng" size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 700 }} />;
+        return <Chip label="Đang Giao Hàng" size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 700 }} />;
       case 'COMPLETED':
-        return <Chip label="✅ Giao Hoàn Tất" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700 }} />;
+        return <Chip label="Giao Hoàn Tất" size="small" sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700 }} />;
       case 'CANCELLED':
         if (order?.cancelledBy === 'DRIVER') {
-          return <Chip label="🚫 Tài Xế Hủy" size="small" sx={{ bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626', fontWeight: 700 }} />;
+          return <Chip label="Tài Xế Hủy" size="small" sx={{ bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626', fontWeight: 700 }} />;
         }
         if (order?.cancelledBy === 'RESTAURANT') {
-          return <Chip label="🚫 Quán Hủy" size="small" sx={{ bgcolor: 'rgba(217, 119, 6, 0.15)', color: '#d97706', fontWeight: 700 }} />;
+          return <Chip label="Quán Hủy" size="small" sx={{ bgcolor: 'rgba(217, 119, 6, 0.15)', color: '#d97706', fontWeight: 700 }} />;
         }
         if (order?.cancelledBy === 'CUSTOMER') {
-          return <Chip label="❌ Khách Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+          return <Chip label="Khách Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
         }
         if (order?.cancelledBy === 'SYSTEM' || order?.cancelReasonCode === 'SYSTEM_NO_DRIVER_FOUND') {
-          return <Chip label="⚠️ Hết Giờ Tìm Xế" size="small" sx={{ bgcolor: 'rgba(147, 51, 234, 0.15)', color: '#9333ea', fontWeight: 700 }} />;
+          return <Chip label="Hết Giờ Tìm Xế" size="small" sx={{ bgcolor: 'rgba(147, 51, 234, 0.15)', color: '#9333ea', fontWeight: 700 }} />;
         }
-        return <Chip label="❌ Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+        return <Chip label="Đã Hủy" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
       case 'REJECTED':
-        return <Chip label="🚫 Quán Từ Chối" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
+        return <Chip label="Quán Từ Chối" size="small" sx={{ bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', fontWeight: 700 }} />;
       case 'NO_DRIVER_FOUND':
-        return <Chip label="⚠️ Chưa Thấy Tài Xế" size="small" sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', color: '#d97706', fontWeight: 700 }} />;
+        return <Chip label="Chưa Thấy Tài Xế" size="small" sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', color: '#d97706', fontWeight: 700 }} />;
       default:
         return <Chip label={status} size="small" />;
     }
@@ -544,7 +550,7 @@ export const FoodOrders = () => {
                         {order.driverId ? (
                           <Chip
                             icon={<DriverIcon sx={{ fontSize: '14px !important' }} />}
-                            label={`Tài xế #${order.driverId}`}
+                            label={order.driverName ? `${order.driverName} (${order.driverLicensePlate || `#${order.driverId}`})` : `Tài xế #${order.driverId}`}
                             size="small"
                             sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', fontWeight: 600 }}
                           />
@@ -700,7 +706,7 @@ export const FoodOrders = () => {
                       📞 {selectedOrder.customerPhone || 'Chưa có SĐT'}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                      📍 {selectedOrder.deliveryAddress}
+                      {selectedOrder.deliveryAddress}
                     </Typography>
                   </Card>
                 </Grid>
@@ -714,20 +720,20 @@ export const FoodOrders = () => {
                       {selectedOrder.restaurantName || `Nhà Hàng #${selectedOrder.restaurantId}`}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                      🛵 {selectedOrder.driverId ? `Tài xế nhận đơn: #${selectedOrder.driverId}` : 'Chưa có tài xế'}
+                      {selectedOrder.driverId ? `Tài xế nhận đơn: ${selectedOrder.driverName || `#${selectedOrder.driverId}`} ${selectedOrder.driverPhone ? `• ${selectedOrder.driverPhone}` : ''} ${selectedOrder.driverLicensePlate ? `• BS: ${selectedOrder.driverLicensePlate}` : ''}` : 'Chưa có tài xế'}
                     </Typography>
                     {selectedOrder.note && (
                       <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 600, display: 'block', mt: 0.5 }}>
-                        📝 Ghi chú: {selectedOrder.note}
+                        Ghi chú: {selectedOrder.note}
                       </Typography>
                     )}
                     {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (
                       <Box sx={{ mt: 1.5, p: 1.2, bgcolor: 'rgba(255, 51, 102, 0.08)', borderRadius: 2, border: '1px solid rgba(255, 51, 102, 0.2)' }}>
                         <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 700 }}>
-                          {selectedOrder.cancelledBy === 'DRIVER' ? '🚫 Tài xế hủy đơn'
-                            : selectedOrder.cancelledBy === 'RESTAURANT' ? '🚫 Quán hủy đơn'
-                            : selectedOrder.cancelledBy === 'CUSTOMER' ? '❌ Khách hàng hủy đơn'
-                            : selectedOrder.cancelledBy === 'SYSTEM' ? '⚠️ Hệ thống hủy (Không tìm thấy tài xế)'
+                          {selectedOrder.cancelledBy === 'DRIVER' ? 'Tài xế hủy đơn'
+                            : selectedOrder.cancelledBy === 'RESTAURANT' ? 'Quán hủy đơn'
+                            : selectedOrder.cancelledBy === 'CUSTOMER' ? 'Khách hàng hủy đơn'
+                            : selectedOrder.cancelledBy === 'SYSTEM' ? 'Hệ thống hủy (Không tìm thấy tài xế)'
                             : 'Đơn hàng đã hủy'}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#b91c1c', display: 'block', mt: 0.3 }}>
@@ -742,7 +748,7 @@ export const FoodOrders = () => {
               {/* Items List */}
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                  🍽️ Danh Sách Món Ăn:
+                  Danh Sách Món Ăn:
                 </Typography>
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
                   <Table size="small">

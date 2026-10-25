@@ -37,3 +37,9 @@ logging:
 
     org.springframework: INFO
     org.apache.kafka: INFO
+
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY}
+    connect-timeout-ms: 1500
+    read-timeout-ms: 1500

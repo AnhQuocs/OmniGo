@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -17,7 +17,6 @@ import {
   CircularProgress,
   Alert,
   Button,
-  ButtonGroup,
   Tooltip,
 } from '@mui/material';
 import {
@@ -27,7 +26,6 @@ import {
   CheckCircle as CompletedIcon,
   Schedule as PendingIcon,
   Cancel as CancelIcon,
-  LocationOn as LocationIcon,
   FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -44,19 +42,9 @@ export const Bookings = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [autoSync, setAutoSync] = useState(true);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const statusParam = params.get('status');
-    if (statusParam) {
-      setStatusFilter(statusParam.toUpperCase());
-    } else {
-      setStatusFilter('ALL');
-    }
-    setPage(0);
-  }, [location.search]);
+  const queryParams = new URLSearchParams(location.search);
+  const statusFilter = queryParams.get('status')?.toUpperCase() || 'ALL';
+  const [autoSync] = useState(true);
 
   const fetchBookings = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -76,7 +64,24 @@ export const Bookings = () => {
   };
 
   useEffect(() => {
-    fetchBookings();
+    let active = true;
+    async function init() {
+      try {
+        const data = await bookingService.getAllBookings();
+        if (active && data) {
+          setBookings(Array.isArray(data) ? data : (data.content || []));
+        }
+      } catch (err) {
+        if (active) {
+          const msg = err.response?.data?.message || err.message || 'Không thể tải danh sách chuyến xe';
+          toast.error(msg);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    init();
+    return () => { active = false; };
   }, []);
 
   // Realtime auto-sync every 10s
@@ -89,7 +94,6 @@ export const Bookings = () => {
   }, [autoSync]);
 
   const handleTabChange = (val) => {
-    setStatusFilter(val);
     setPage(0);
     if (val === 'ALL') {
       navigate('/bookings');
@@ -115,6 +119,35 @@ export const Bookings = () => {
         return <Chip label="Chờ Ghép Xe" size="small" sx={{ bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', fontWeight: 700 }} />;
     }
   };
+
+const KNOWN_LOCATIONS = {
+  '21.0245,105.8574': 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+  '21.0585,105.8202': 'Xuân La, Tây Hồ, Hà Nội',
+  '21.0285,105.8542': 'Đinh Tiên Hoàng, Hoàn Kiếm, Hà Nội',
+  '21.0031,105.8431': 'Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+  '21.0378,105.7836': 'Duy Tân, Cầu Giấy, Hà Nội',
+  '21.0135,105.7988': 'Trung Hòa, Cầu Giấy, Hà Nội',
+  '21.0333,105.8500': 'Điện Biên Phủ, Ba Đình, Hà Nội',
+  '21.0307,105.7845': 'Trần Thái Tông, Cầu Giấy, Hà Nội',
+  '21.0175,105.8540': 'Phố Huế, Hai Bà Trưng, Hà Nội',
+};
+
+const formatLocation = (lat, lng, addr) => {
+  if (addr && String(addr).trim()) return addr;
+  if (lat === undefined || lat === null || lng === undefined || lng === null) return '—';
+  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+  if (KNOWN_LOCATIONS[key]) return KNOWN_LOCATIONS[key];
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  if (nLat >= 20.9 && nLat <= 21.2 && nLng >= 105.7 && nLng <= 106.0) {
+    if (nLat > 21.05) return 'Tây Hồ, Hà Nội';
+    if (nLat > 21.03) return 'Ba Đình, Hà Nội';
+    if (nLng < 105.80) return 'Cầu Giấy, Hà Nội';
+    if (nLat < 21.01) return 'Hai Bà Trưng, Hà Nội';
+    return 'Hoàn Kiếm, Hà Nội';
+  }
+  return `Vị trí (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
+};
 
   const formatCoordinate = (lat, lng) => {
     if (lat === undefined || lat === null || lng === undefined || lng === null) return '—';
@@ -308,20 +341,20 @@ export const Bookings = () => {
         </Box>
 
         <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
-          <Table sx={{ minWidth: 900 }} size="small">
+          <Table sx={{ minWidth: 1050 }} size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 80 }}>Mã cuốc</TableCell>
-                <TableCell>Khách hàng</TableCell>
-                <TableCell>Tài xế</TableCell>
-                <TableCell>Điểm đón (Tọa độ)</TableCell>
-                <TableCell>Điểm đến (Tọa độ)</TableCell>
-                <TableCell align="center">Quãng đường</TableCell>
-                <TableCell align="right">Tiền cước</TableCell>
-                <TableCell>Thanh toán</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Thời gian đặt</TableCell>
-                <TableCell>Hoàn thành</TableCell>
+                <TableCell sx={{ width: 80, whiteSpace: 'nowrap' }}>Mã cuốc</TableCell>
+                <TableCell sx={{ minWidth: 100, whiteSpace: 'nowrap' }}>Khách hàng</TableCell>
+                <TableCell sx={{ minWidth: 110, whiteSpace: 'nowrap' }}>Tài xế</TableCell>
+                <TableCell sx={{ minWidth: 160, maxWidth: 240 }}>Điểm đón</TableCell>
+                <TableCell sx={{ minWidth: 160, maxWidth: 240 }}>Điểm đến</TableCell>
+                <TableCell align="center" sx={{ minWidth: 95, whiteSpace: 'nowrap' }}>Quãng đường</TableCell>
+                <TableCell align="right" sx={{ minWidth: 105, whiteSpace: 'nowrap' }}>Tiền cước</TableCell>
+                <TableCell sx={{ minWidth: 100, whiteSpace: 'nowrap' }}>Thanh toán</TableCell>
+                <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Trạng thái</TableCell>
+                <TableCell sx={{ minWidth: 130, whiteSpace: 'nowrap' }}>Thời gian đặt</TableCell>
+                <TableCell sx={{ minWidth: 130, whiteSpace: 'nowrap' }}>Hoàn thành</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -362,24 +395,18 @@ export const Bookings = () => {
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Tooltip title={`Lat: ${b.startLatitude}, Lng: ${b.startLongitude}`}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <LocationIcon sx={{ fontSize: 15, color: '#15ca20' }} />
-                          <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                            {formatCoordinate(b.startLatitude, b.startLongitude)}
-                          </Typography>
-                        </Box>
+                    <TableCell sx={{ minWidth: 160, maxWidth: 240, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      <Tooltip title={`Tọa độ GPS: ${formatCoordinate(b.startLatitude, b.startLongitude)}`}>
+                        <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.4 }}>
+                          {formatLocation(b.startLatitude, b.startLongitude, b.startAddress)}
+                        </Typography>
                       </Tooltip>
                     </TableCell>
-                    <TableCell>
-                      <Tooltip title={`Lat: ${b.endLatitude}, Lng: ${b.endLongitude}`}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <LocationIcon sx={{ fontSize: 15, color: '#ff3366' }} />
-                          <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                            {formatCoordinate(b.endLatitude, b.endLongitude)}
-                          </Typography>
-                        </Box>
+                    <TableCell sx={{ minWidth: 160, maxWidth: 240, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      <Tooltip title={`Tọa độ GPS: ${formatCoordinate(b.endLatitude, b.endLongitude)}`}>
+                        <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.4 }}>
+                          {formatLocation(b.endLatitude, b.endLongitude, b.endAddress)}
+                        </Typography>
                       </Tooltip>
                     </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 700 }}>
