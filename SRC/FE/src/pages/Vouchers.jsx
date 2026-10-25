@@ -280,23 +280,23 @@ export const Vouchers = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TicketIcon sx={{ fontSize: 32, color: '#f97316' }} />
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
               Quản Lý Mã Khuyến Mãi (Vouchers)
             </Typography>
           </Box>
         </Box>
 
-        <Stack direction="row" spacing={1.5}>
+        <Stack direction="row" spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={fetchVouchers}
             disabled={loading}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 2, flex: { xs: 1, sm: 'none' } }}
           >
             Làm mới
           </Button>
@@ -309,6 +309,8 @@ export const Vouchers = () => {
               bgcolor: '#f97316',
               '&:hover': { bgcolor: '#ea580c' },
               fontWeight: 700,
+              flex: { xs: 1, sm: 'none' },
+              whiteSpace: 'nowrap',
             }}
           >
             Thêm Voucher Mới
@@ -317,51 +319,51 @@ export const Vouchers = () => {
       </Box>
 
       {/* Stat Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2, border: 1, borderColor: 'divider' }}>
-            <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.1)', color: '#f97316' }}>
-              <VoucherIcon sx={{ fontSize: 28 }} />
+      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.1)', color: '#f97316' }}>
+              <VoucherIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Tổng số Voucher</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{stats.total}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng số Voucher</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.total}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2, border: 1, borderColor: 'divider' }}>
-            <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
-              <ActiveIcon sx={{ fontSize: 28 }} />
+        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+              <ActiveIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Đang hoạt động</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#22c55e' }}>{stats.active}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Đang hoạt động</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#22c55e', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.active}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2, border: 1, borderColor: 'divider' }}>
-            <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-              <ExpiredIcon sx={{ fontSize: 28 }} />
+        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+              <ExpiredIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Đã hết hạn</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ef4444' }}>{stats.expired}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Đã hết hạn</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ef4444', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.expired}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2, border: 1, borderColor: 'divider' }}>
-            <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-              <TimeIcon sx={{ fontSize: 28 }} />
+        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+              <TimeIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Lượt đã sử dụng</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6' }}>{stats.totalUsed}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Lượt sử dụng</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.totalUsed}</Typography>
             </Box>
           </Card>
         </Grid>

@@ -302,7 +302,7 @@ export const MerchantAnalytics = () => {
         </Box>
 
         {/* Primary Action Buttons */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
             size="small"
@@ -318,6 +318,7 @@ export const MerchantAnalytics = () => {
               height: 38,
               px: 2,
               '&:hover': { bgcolor: '#F8FAFC', borderColor: '#94A3B8' },
+              flex: { xs: 1, sm: 'none' },
             }}
           >
             Làm mới
@@ -338,9 +339,10 @@ export const MerchantAnalytics = () => {
               px: 2.2,
               boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)',
               whiteSpace: 'nowrap',
+              flex: { xs: 1, sm: 'none' },
             }}
           >
-            Quản lý đơn hàng
+            Quản lý đơn
           </Button>
         </Box>
       </Box>

@@ -948,11 +948,11 @@ export const Login = () => {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2.5, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
           <Button
             onClick={() => setOpenRegisterModal(false)}
             disabled={registerSubmitting}
-            sx={{ textTransform: 'none', color: 'text.secondary' }}
+            sx={{ textTransform: 'none', color: 'text.secondary', width: { xs: '100%', sm: 'auto' } }}
           >
             Hủy
           </Button>
@@ -967,16 +967,17 @@ export const Login = () => {
                 textTransform: 'none',
                 fontWeight: 700,
                 px: 3,
+                width: { xs: '100%', sm: 'auto' },
               }}
             >
               Tiếp tục: Thông tin quán ➡
             </Button>
           ) : (
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
               <Button
                 onClick={() => setRegisterTab(0)}
                 disabled={registerSubmitting}
-                sx={{ textTransform: 'none' }}
+                sx={{ textTransform: 'none', width: { xs: '100%', sm: 'auto' } }}
               >
                 ⬅ Quay lại bước 1
               </Button>
@@ -990,6 +991,7 @@ export const Login = () => {
                   textTransform: 'none',
                   fontWeight: 700,
                   px: 3,
+                  width: { xs: '100%', sm: 'auto' },
                 }}
               >
                 {registerSubmitting ? (

@@ -358,7 +358,7 @@ export const Pricing = () => {
             startIcon={<ResetIcon />}
             onClick={handleResetDefault}
             disabled={activeTab === 0 ? loading : dispatchLoading}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 2, flex: { xs: 1, sm: 'none' }, fontSize: { xs: '0.78rem', sm: '0.875rem' }, py: { xs: 0.8, sm: 1 } }}
           >
             Khôi Phục Mặc Định
           </Button>
@@ -367,7 +367,7 @@ export const Pricing = () => {
             startIcon={<RefreshIcon />}
             onClick={activeTab === 0 ? fetchPricingConfig : fetchDispatchConfig}
             disabled={activeTab === 0 ? loading : dispatchLoading}
-            sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2 }}
+            sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, flex: { xs: 1, sm: 'none' }, fontSize: { xs: '0.78rem', sm: '0.875rem' }, py: { xs: 0.8, sm: 1 } }}
           >
             Làm Mới
           </Button>
@@ -379,26 +379,32 @@ export const Pricing = () => {
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           indicatorColor="primary"
           textColor="primary"
           sx={{
+            minHeight: { xs: 48, sm: 54 },
             '& .MuiTab-root': {
               textTransform: 'none',
               fontWeight: 700,
-              fontSize: { xs: '0.85rem', sm: '0.95rem' },
-              py: 1.8,
+              fontSize: { xs: '0.82rem', sm: '0.92rem' },
+              py: { xs: 1.2, sm: 1.6 },
+              px: { xs: 2, sm: 3 },
+              minHeight: { xs: 48, sm: 54 },
+              whiteSpace: 'nowrap',
               transition: 'all 0.2s',
             },
           }}
         >
           <Tab
-            icon={<PricingIcon />}
+            icon={<PricingIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
             iconPosition="start"
             label="Bảng Giá Cước & Thuật Toán Động"
           />
           <Tab
-            icon={<DispatchIcon />}
+            icon={<DispatchIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
             iconPosition="start"
             label="Cấu Hình Bán Kính Điều Phối"
           />
@@ -427,7 +433,7 @@ export const Pricing = () => {
                   <Card
                     onClick={() => openModal('BASE_RIDE')}
                     sx={{
-                      p: 2.2,
+                      p: { xs: 1.8, sm: 2.2 },
                       borderRadius: 2.5,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -440,12 +446,13 @@ export const Pricing = () => {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.2, sm: 1.5 }, mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: { xs: '100%', sm: 'auto' }, flex: 1 }}>
                         <Box
                           sx={{
-                            width: 42,
-                            height: 42,
+                            width: { xs: 38, sm: 42 },
+                            height: { xs: 38, sm: 42 },
+                            minWidth: { xs: 38, sm: 42 },
                             borderRadius: 2,
                             bgcolor: 'rgba(0, 140, 255, 0.1)',
                             color: '#008cff',
@@ -454,13 +461,13 @@ export const Pricing = () => {
                             justifyContent: 'center',
                           }}
                         >
-                          <PricingIcon />
+                          <PricingIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
                             1. Bảng Giá Chuyến Xe Cơ Bản
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                             Mức giá chuẩn áp dụng cho xe máy (BIKE) làm mốc quy chiếu
                           </Typography>
                         </Box>
@@ -468,27 +475,63 @@ export const Pricing = () => {
                       <Button
                         size="small"
                         variant="outlined"
-                        startIcon={<EditIcon />}
-                        sx={{ borderRadius: 1.8, textTransform: 'none', fontWeight: 600 }}
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        sx={{
+                          borderRadius: 1.8,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: { xs: '0.78rem', sm: '0.82rem' },
+                          py: { xs: 0.4, sm: 0.5 },
+                          px: 1.5,
+                          alignSelf: { xs: 'flex-end', sm: 'center' },
+                          flexShrink: 0,
+                        }}
                       >
                         Chỉnh sửa
                       </Button>
                     </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       <Chip
                         size="small"
                         label={`Mở cửa: ${Number(form.baseFare).toLocaleString()} đ`}
-                        sx={{ bgcolor: 'rgba(0, 140, 255, 0.08)', fontWeight: 600, color: '#008cff' }}
+                        sx={{
+                          bgcolor: 'rgba(0, 140, 255, 0.08)',
+                          fontWeight: 600,
+                          color: '#008cff',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Giá km: ${Number(form.pricePerKm).toLocaleString()} đ/km`}
-                        sx={{ bgcolor: 'rgba(0, 140, 255, 0.08)', fontWeight: 600, color: '#008cff' }}
+                        sx={{
+                          bgcolor: 'rgba(0, 140, 255, 0.08)',
+                          fontWeight: 600,
+                          color: '#008cff',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Giá phút: ${Number(form.pricePerMinute).toLocaleString()} đ/p`}
-                        sx={{ bgcolor: 'rgba(0, 140, 255, 0.08)', fontWeight: 600, color: '#008cff' }}
+                        sx={{
+                          bgcolor: 'rgba(0, 140, 255, 0.08)',
+                          fontWeight: 600,
+                          color: '#008cff',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                     </Stack>
                   </Card>
@@ -497,7 +540,7 @@ export const Pricing = () => {
                   <Card
                     onClick={() => openModal('VEHICLE')}
                     sx={{
-                      p: 2.2,
+                      p: { xs: 1.8, sm: 2.2 },
                       borderRadius: 2.5,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -510,12 +553,13 @@ export const Pricing = () => {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.2, sm: 1.5 }, mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: { xs: '100%', sm: 'auto' }, flex: 1 }}>
                         <Box
                           sx={{
-                            width: 42,
-                            height: 42,
+                            width: { xs: 38, sm: 42 },
+                            height: { xs: 38, sm: 42 },
+                            minWidth: { xs: 38, sm: 42 },
                             borderRadius: 2,
                             bgcolor: 'rgba(46, 125, 50, 0.1)',
                             color: '#2e7d32',
@@ -524,13 +568,13 @@ export const Pricing = () => {
                             justifyContent: 'center',
                           }}
                         >
-                          <CarIcon />
+                          <CarIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
                             2. Hệ Số Giá Theo Loại Xe (Vehicle Multipliers)
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                             Hệ số nhân tương ứng với cước mở cửa, cước km và cước thời gian
                           </Typography>
                         </Box>
@@ -539,30 +583,66 @@ export const Pricing = () => {
                         size="small"
                         variant="outlined"
                         color="success"
-                        startIcon={<EditIcon />}
-                        sx={{ borderRadius: 1.8, textTransform: 'none', fontWeight: 600 }}
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        sx={{
+                          borderRadius: 1.8,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: { xs: '0.78rem', sm: '0.82rem' },
+                          py: { xs: 0.4, sm: 0.5 },
+                          px: 1.5,
+                          alignSelf: { xs: 'flex-end', sm: 'center' },
+                          flexShrink: 0,
+                        }}
                       >
                         Chỉnh sửa
                       </Button>
                     </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       <Chip
                         size="small"
                         icon={<BikeIcon fontSize="small" />}
                         label={`Xe máy: ${form.bikeMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(46, 125, 50, 0.08)', fontWeight: 600, color: '#2e7d32' }}
+                        sx={{
+                          bgcolor: 'rgba(46, 125, 50, 0.08)',
+                          fontWeight: 600,
+                          color: '#2e7d32',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         icon={<CarIcon fontSize="small" />}
                         label={`Ô tô 4 chỗ: ${form.car4SeatMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(46, 125, 50, 0.08)', fontWeight: 600, color: '#2e7d32' }}
+                        sx={{
+                          bgcolor: 'rgba(46, 125, 50, 0.08)',
+                          fontWeight: 600,
+                          color: '#2e7d32',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         icon={<CarIcon fontSize="small" />}
                         label={`Ô tô 7 chỗ: ${form.car7SeatMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(46, 125, 50, 0.08)', fontWeight: 600, color: '#2e7d32' }}
+                        sx={{
+                          bgcolor: 'rgba(46, 125, 50, 0.08)',
+                          fontWeight: 600,
+                          color: '#2e7d32',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                     </Stack>
                   </Card>
@@ -571,7 +651,7 @@ export const Pricing = () => {
                   <Card
                     onClick={() => openModal('FOOD_DELIVERY')}
                     sx={{
-                      p: 2.2,
+                      p: { xs: 1.8, sm: 2.2 },
                       borderRadius: 2.5,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -584,12 +664,13 @@ export const Pricing = () => {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.2, sm: 1.5 }, mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: { xs: '100%', sm: 'auto' }, flex: 1 }}>
                         <Box
                           sx={{
-                            width: 42,
-                            height: 42,
+                            width: { xs: 38, sm: 42 },
+                            height: { xs: 38, sm: 42 },
+                            minWidth: { xs: 38, sm: 42 },
                             borderRadius: 2,
                             bgcolor: 'rgba(237, 108, 2, 0.1)',
                             color: '#ed6c02',
@@ -598,13 +679,13 @@ export const Pricing = () => {
                             justifyContent: 'center',
                           }}
                         >
-                          <DeliveryIcon />
+                          <DeliveryIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
                             3. Biểu Phí Giao Đồ Ăn (Food Delivery Fee)
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                             Tính tự động theo khoảng cách đường bộ xe máy giữa nhà hàng và khách
                           </Typography>
                         </Box>
@@ -613,27 +694,63 @@ export const Pricing = () => {
                         size="small"
                         variant="outlined"
                         color="warning"
-                        startIcon={<EditIcon />}
-                        sx={{ borderRadius: 1.8, textTransform: 'none', fontWeight: 600 }}
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        sx={{
+                          borderRadius: 1.8,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: { xs: '0.78rem', sm: '0.82rem' },
+                          py: { xs: 0.4, sm: 0.5 },
+                          px: 1.5,
+                          alignSelf: { xs: 'flex-end', sm: 'center' },
+                          flexShrink: 0,
+                        }}
                       >
                         Chỉnh sửa
                       </Button>
                     </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       <Chip
                         size="small"
                         label={`Phí khởi điểm: ${Number(form.deliveryBaseFare).toLocaleString()} đ`}
-                        sx={{ bgcolor: 'rgba(237, 108, 2, 0.08)', fontWeight: 600, color: '#ed6c02' }}
+                        sx={{
+                          bgcolor: 'rgba(237, 108, 2, 0.08)',
+                          fontWeight: 600,
+                          color: '#ed6c02',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Cự ly mốc đầu: ${form.deliveryBaseKm} km`}
-                        sx={{ bgcolor: 'rgba(237, 108, 2, 0.08)', fontWeight: 600, color: '#ed6c02' }}
+                        sx={{
+                          bgcolor: 'rgba(237, 108, 2, 0.08)',
+                          fontWeight: 600,
+                          color: '#ed6c02',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Phí mỗi km thêm: ${Number(form.deliveryPricePerKm).toLocaleString()} đ/km`}
-                        sx={{ bgcolor: 'rgba(237, 108, 2, 0.08)', fontWeight: 600, color: '#ed6c02' }}
+                        sx={{
+                          bgcolor: 'rgba(237, 108, 2, 0.08)',
+                          fontWeight: 600,
+                          color: '#ed6c02',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                     </Stack>
                   </Card>
@@ -642,7 +759,7 @@ export const Pricing = () => {
                   <Card
                     onClick={() => openModal('ROUTES_FALLBACK')}
                     sx={{
-                      p: 2.2,
+                      p: { xs: 1.8, sm: 2.2 },
                       borderRadius: 2.5,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -655,12 +772,13 @@ export const Pricing = () => {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.2, sm: 1.5 }, mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: { xs: '100%', sm: 'auto' }, flex: 1 }}>
                         <Box
                           sx={{
-                            width: 42,
-                            height: 42,
+                            width: { xs: 38, sm: 42 },
+                            height: { xs: 38, sm: 42 },
+                            minWidth: { xs: 38, sm: 42 },
                             borderRadius: 2,
                             bgcolor: 'rgba(156, 39, 176, 0.1)',
                             color: '#9c27b0',
@@ -669,13 +787,13 @@ export const Pricing = () => {
                             justifyContent: 'center',
                           }}
                         >
-                          <RouteIcon />
+                          <RouteIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
                             4. OSRM Routing Engine & Cơ Chế Fallback
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                             Kiểm soát thuật toán quy đổi đường chim bay dự phòng (Haversine) và khoảng cách bypass khi trùng điểm
                           </Typography>
                         </Box>
@@ -684,22 +802,49 @@ export const Pricing = () => {
                         size="small"
                         variant="outlined"
                         color="secondary"
-                        startIcon={<EditIcon />}
-                        sx={{ borderRadius: 1.8, textTransform: 'none', fontWeight: 600 }}
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        sx={{
+                          borderRadius: 1.8,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: { xs: '0.78rem', sm: '0.82rem' },
+                          py: { xs: 0.4, sm: 0.5 },
+                          px: 1.5,
+                          alignSelf: { xs: 'flex-end', sm: 'center' },
+                          flexShrink: 0,
+                        }}
                       >
                         Chỉnh sửa
                       </Button>
                     </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       <Chip
                         size="small"
                         label={`Bù uốn lượn Fallback: ${form.haversineFallbackMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(156, 39, 176, 0.08)', fontWeight: 600, color: '#9c27b0' }}
+                        sx={{
+                          bgcolor: 'rgba(156, 39, 176, 0.08)',
+                          fontWeight: 600,
+                          color: '#9c27b0',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Bypass API nếu cự ly < ${form.minDistanceBypassMeters} m`}
-                        sx={{ bgcolor: 'rgba(156, 39, 176, 0.08)', fontWeight: 600, color: '#9c27b0' }}
+                        sx={{
+                          bgcolor: 'rgba(156, 39, 176, 0.08)',
+                          fontWeight: 600,
+                          color: '#9c27b0',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                     </Stack>
                   </Card>
@@ -708,7 +853,7 @@ export const Pricing = () => {
                   <Card
                     onClick={() => openModal('SURGE')}
                     sx={{
-                      p: 2.2,
+                      p: { xs: 1.8, sm: 2.2 },
                       borderRadius: 2.5,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -721,12 +866,13 @@ export const Pricing = () => {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.2, sm: 1.5 }, mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: { xs: '100%', sm: 'auto' }, flex: 1 }}>
                         <Box
                           sx={{
-                            width: 42,
-                            height: 42,
+                            width: { xs: 38, sm: 42 },
+                            height: { xs: 38, sm: 42 },
+                            minWidth: { xs: 38, sm: 42 },
                             borderRadius: 2,
                             bgcolor: 'rgba(211, 47, 47, 0.1)',
                             color: '#d32f2f',
@@ -735,13 +881,13 @@ export const Pricing = () => {
                             justifyContent: 'center',
                           }}
                         >
-                          <SurgeIcon />
+                          <SurgeIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
                             5. Hệ Số Tăng Giá Giờ Cao Điểm (H3 Dynamic Surge)
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.3, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                             Hệ số nhân theo mức độ thiếu hụt tài xế (Cung - Cầu Hexagon H3)
                           </Typography>
                         </Box>
@@ -750,27 +896,63 @@ export const Pricing = () => {
                         size="small"
                         variant="outlined"
                         color="error"
-                        startIcon={<EditIcon />}
-                        sx={{ borderRadius: 1.8, textTransform: 'none', fontWeight: 600 }}
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        sx={{
+                          borderRadius: 1.8,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: { xs: '0.78rem', sm: '0.82rem' },
+                          py: { xs: 0.4, sm: 0.5 },
+                          px: 1.5,
+                          alignSelf: { xs: 'flex-end', sm: 'center' },
+                          flexShrink: 0,
+                        }}
                       >
                         Chỉnh sửa
                       </Button>
                     </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       <Chip
                         size="small"
                         label={`Vừa (MODERATE): ${form.surgeLightMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(211, 47, 47, 0.08)', fontWeight: 600, color: '#d32f2f' }}
+                        sx={{
+                          bgcolor: 'rgba(211, 47, 47, 0.08)',
+                          fontWeight: 600,
+                          color: '#d32f2f',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Cao (HIGH): ${form.surgeModerateMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(211, 47, 47, 0.08)', fontWeight: 600, color: '#d32f2f' }}
+                        sx={{
+                          bgcolor: 'rgba(211, 47, 47, 0.08)',
+                          fontWeight: 600,
+                          color: '#d32f2f',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                       <Chip
                         size="small"
                         label={`Khẩn cấp (SEVERE): ${form.surgeSevereMultiplier}x`}
-                        sx={{ bgcolor: 'rgba(211, 47, 47, 0.08)', fontWeight: 600, color: '#d32f2f' }}
+                        sx={{
+                          bgcolor: 'rgba(211, 47, 47, 0.08)',
+                          fontWeight: 600,
+                          color: '#d32f2f',
+                          fontSize: { xs: '0.74rem', sm: '0.8rem' },
+                          height: 'auto',
+                          py: 0.4,
+                          maxWidth: '100%',
+                          '& .MuiChip-label': { px: 1, whiteSpace: 'normal', wordBreak: 'break-word' },
+                        }}
                       />
                     </Stack>
                   </Card>
@@ -779,11 +961,11 @@ export const Pricing = () => {
 
               {/* Cột phải: Công cụ mô phỏng cước tức thời */}
               <Grid size={{ xs: 12, lg: 5 }}>
-                <Card sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2.5, position: 'sticky', top: 20 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.05rem' }}>
+                <Card sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2.5, position: { xs: 'static', lg: 'sticky' }, top: 20 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: '0.98rem', sm: '1.05rem' } }}>
                     Công Cụ Mô Phỏng Cước Tức Thời
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2.5, fontSize: { xs: '0.74rem', sm: '0.78rem' } }}>
                     Kiểm tra ngay kết quả tính cước theo các thông số cấu hình bạn vừa thiết lập
                   </Typography>
 
@@ -936,7 +1118,7 @@ export const Pricing = () => {
             onClose={closeModal}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 }, m: { xs: 1.5, sm: 3 } } }}
           >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -1010,8 +1192,8 @@ export const Pricing = () => {
                 />
               </Box>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 }, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}>
                 Hủy bỏ
               </Button>
               <Button
@@ -1019,7 +1201,7 @@ export const Pricing = () => {
                 variant="contained"
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                sx={{ borderRadius: 2, bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, px: 3 }}
+                sx={{ borderRadius: 2, bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, px: 3, width: { xs: '100%', sm: 'auto' } }}
               >
                 {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
               </Button>
@@ -1032,7 +1214,7 @@ export const Pricing = () => {
             onClose={closeModal}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 }, m: { xs: 1.5, sm: 3 } } }}
           >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -1106,8 +1288,8 @@ export const Pricing = () => {
                 />
               </Box>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 }, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}>
                 Hủy bỏ
               </Button>
               <Button
@@ -1115,7 +1297,7 @@ export const Pricing = () => {
                 variant="contained"
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                sx={{ borderRadius: 2, bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' }, px: 3 }}
+                sx={{ borderRadius: 2, bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' }, px: 3, width: { xs: '100%', sm: 'auto' } }}
               >
                 {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
               </Button>
@@ -1128,7 +1310,7 @@ export const Pricing = () => {
             onClose={closeModal}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 }, m: { xs: 1.5, sm: 3 } } }}
           >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -1202,8 +1384,8 @@ export const Pricing = () => {
                 />
               </Box>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 }, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}>
                 Hủy bỏ
               </Button>
               <Button
@@ -1211,7 +1393,7 @@ export const Pricing = () => {
                 variant="contained"
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                sx={{ borderRadius: 2, bgcolor: '#ed6c02', '&:hover': { bgcolor: '#c75c00' }, px: 3 }}
+                sx={{ borderRadius: 2, bgcolor: '#ed6c02', '&:hover': { bgcolor: '#c75c00' }, px: 3, width: { xs: '100%', sm: 'auto' } }}
               >
                 {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
               </Button>
@@ -1224,7 +1406,7 @@ export const Pricing = () => {
             onClose={closeModal}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 }, m: { xs: 1.5, sm: 3 } } }}
           >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -1281,8 +1463,8 @@ export const Pricing = () => {
                 />
               </Box>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 }, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}>
                 Hủy bỏ
               </Button>
               <Button
@@ -1290,7 +1472,7 @@ export const Pricing = () => {
                 variant="contained"
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                sx={{ borderRadius: 2, bgcolor: '#9c27b0', '&:hover': { bgcolor: '#7b1fa2' }, px: 3 }}
+                sx={{ borderRadius: 2, bgcolor: '#9c27b0', '&:hover': { bgcolor: '#7b1fa2' }, px: 3, width: { xs: '100%', sm: 'auto' } }}
               >
                 {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
               </Button>
@@ -1303,7 +1485,7 @@ export const Pricing = () => {
             onClose={closeModal}
             maxWidth="sm"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 }, m: { xs: 1.5, sm: 3 } } }}
           >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -1377,8 +1559,8 @@ export const Pricing = () => {
                 />
               </Box>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 }, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+              <Button onClick={closeModal} variant="outlined" color="inherit" sx={{ borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}>
                 Hủy bỏ
               </Button>
               <Button
@@ -1386,7 +1568,7 @@ export const Pricing = () => {
                 variant="contained"
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SaveIcon />}
-                sx={{ borderRadius: 2, bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' }, px: 3 }}
+                sx={{ borderRadius: 2, bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' }, px: 3, width: { xs: '100%', sm: 'auto' } }}
               >
                 {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
               </Button>

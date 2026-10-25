@@ -586,6 +586,9 @@ export const Restaurants = () => {
               setMainTab(val);
               setPage(0);
             }}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             textColor="primary"
             indicatorColor="primary"
             sx={{
@@ -595,6 +598,7 @@ export const Restaurants = () => {
                 fontWeight: 700,
                 fontSize: { xs: '0.85rem', sm: '0.95rem' },
                 minHeight: 48,
+                whiteSpace: 'nowrap',
               },
             }}
           >
@@ -1460,11 +1464,11 @@ export const Restaurants = () => {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2.5, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
+        <DialogActions sx={{ p: { xs: 2, sm: 2.5 }, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
           <Button
             onClick={() => setOpenAddPartnerModal(false)}
             disabled={submittingPartner}
-            sx={{ textTransform: 'none' }}
+            sx={{ textTransform: 'none', width: { xs: '100%', sm: 'auto' } }}
           >
             Hủy
           </Button>
@@ -1472,7 +1476,7 @@ export const Restaurants = () => {
             <Button
               onClick={() => setPartnerTab(0)}
               disabled={submittingPartner}
-              sx={{ textTransform: 'none' }}
+              sx={{ textTransform: 'none', width: { xs: '100%', sm: 'auto' } }}
             >
               ⬅ Quay lại bước 1
             </Button>
@@ -1487,6 +1491,7 @@ export const Restaurants = () => {
               textTransform: 'none',
               fontWeight: 700,
               px: 3,
+              width: { xs: '100%', sm: 'auto' },
             }}
           >
             {submittingPartner ? (
@@ -1850,11 +1855,11 @@ export const Restaurants = () => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0', justifyContent: 'space-between' }}>
-          <Button onClick={() => setAppraisalModal({ open: false, restaurant: null })} color="inherit" sx={{ fontWeight: 600 }}>
+        <DialogActions sx={{ p: { xs: 1.5, sm: 2 }, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0', justifyContent: 'space-between', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1 }}>
+          <Button onClick={() => setAppraisalModal({ open: false, restaurant: null })} color="inherit" sx={{ fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}>
             Đóng
           </Button>
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
             {isRejectedRestaurant(appraisalModal.restaurant) ? (
               <Button
                 variant="contained"
@@ -1865,7 +1870,7 @@ export const Restaurants = () => {
                   setAppraisalModal({ open: false, restaurant: null });
                   await handleApproveRestaurant(rest);
                 }}
-                sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5 }}
+                sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5, width: { xs: '100%', sm: 'auto' } }}
               >
                 Xem xét lại & Phê duyệt quán
               </Button>
@@ -1879,7 +1884,7 @@ export const Restaurants = () => {
                     setAppraisalModal({ open: false, restaurant: null });
                     handleOpenReject(rest);
                   }}
-                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none' }}
+                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', width: { xs: '100%', sm: 'auto' } }}
                 >
                   Từ chối hồ sơ
                 </Button>
@@ -1892,7 +1897,7 @@ export const Restaurants = () => {
                     setAppraisalModal({ open: false, restaurant: null });
                     await handleApproveRestaurant(rest);
                   }}
-                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5 }}
+                  sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5, width: { xs: '100%', sm: 'auto' } }}
                 >
                   Phê duyệt quán
                 </Button>
