@@ -52,8 +52,20 @@ public class PaymentController {
     public ResponseEntity<WalletResponse> getMyWallet(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String roleStr) {
-        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        UserType userType = parseUserType(roleStr);
         return ResponseEntity.ok(paymentMapper.toWalletResponse(walletService.getOrCreateWallet(userId, userType)));
+    }
+
+    private UserType parseUserType(String roleStr) {
+        if (roleStr == null || roleStr.isBlank()) {
+            return UserType.CUSTOMER;
+        }
+        String clean = roleStr.toUpperCase().replace("ROLE_", "").trim();
+        try {
+            return UserType.valueOf(clean);
+        } catch (IllegalArgumentException e) {
+            return UserType.CUSTOMER;
+        }
     }
 
     @GetMapping("/booking/{bookingId}/payment-status")
@@ -109,7 +121,7 @@ public class PaymentController {
     public ResponseEntity<List<Transaction>> getTransactions(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String roleStr) {
-        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        UserType userType = parseUserType(roleStr);
         var wallet = walletService.getOrCreateWallet(userId, userType);
         return ResponseEntity.ok(transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId()));
     }
@@ -120,7 +132,7 @@ public class PaymentController {
             @RequestHeader(value = "X-User-Role", defaultValue = "CUSTOMER") String roleStr,
             @RequestParam Double amount,
             @RequestParam(required = false, defaultValue = "Nạp tiền vào ví") String note) {
-        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        UserType userType = parseUserType(roleStr);
         var wallet = walletService.depositWallet(userId, userType, amount, note);
         return ResponseEntity.ok(paymentMapper.toWalletResponse(wallet));
     }
@@ -130,7 +142,7 @@ public class PaymentController {
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader(value = "X-User-Role", defaultValue = "CUSTOMER") String roleStr,
             @RequestParam Double amount) {
-        UserType userType = UserType.valueOf(roleStr.toUpperCase());
+        UserType userType = parseUserType(roleStr);
         walletService.withdrawWallet(userId, userType, amount);
         return ResponseEntity.ok().build();
     }

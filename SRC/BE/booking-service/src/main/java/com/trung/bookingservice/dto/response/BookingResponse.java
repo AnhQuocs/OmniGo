@@ -21,5 +21,6 @@ public class BookingResponse {
     private BookingStatus status;
     private Double distanceInKm;
     private Double price;
+    private String vehicleType;
     private String paymentMethod;
 }

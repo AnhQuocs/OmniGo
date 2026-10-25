@@ -4,7 +4,9 @@ import com.trung.bookingservice.dto.response.BookingResponse;
 import com.trung.bookingservice.dto.response.DriverNearbyResponse;
 import com.trung.bookingservice.entity.Booking;
 import com.trung.bookingservice.repository.BookingRepository;
+import com.trung.bookingservice.service.DriverVehicleService;
 import com.trung.bookingservice.service.client.LocationClient;
+import com.trung.bookingservice.service.client.PricingClient;
 import com.trung.bookingservice.service.client.UserDriverClient;
 import com.trung.bookingservice.util.enums.BookingStatus;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +29,12 @@ import java.util.concurrent.TimeUnit;
 public class BookingReassignService {
 
     private final LocationClient locationClient;
+    private final PricingClient pricingClient;
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
     private final BookingRepository bookingRepository;
     private final UserDriverClient userDriverClient;
+    private final DriverVehicleService driverVehicleService;
 
     @Autowired
     @Lazy
@@ -69,6 +73,14 @@ public class BookingReassignService {
 
             for (DriverNearbyResponse driver : nearbyDrivers) {
                 Long driverId = driver.getDriverId();
+
+                // Kiểm tra loại xe tài xế có khớp với loại xe khách đặt không
+                String driverVehicleType = driverVehicleService.getDriverVehicleType(driverId);
+                if (!driverVehicleService.isVehicleTypeMatching(currentBooking.getVehicleType(), driverVehicleType)) {
+                    log.info("Auto-Reassign: Bỏ qua tài xế ID {} vì loại xe ({}) không khớp với cuốc #{} ({})",
+                            driverId, driverVehicleType, bookingId, currentBooking.getVehicleType());
+                    continue;
+                }
 
                 Boolean isRejected = redisTemplate.opsForSet().isMember(rejectedKey, driverId.toString());
                 if (Boolean.TRUE.equals(isRejected)) {
@@ -153,6 +165,14 @@ public class BookingReassignService {
 
             // Báo về cho khách hàng biết là chịu chết, không tìm được xe
             messagingTemplate.convertAndSendToUser(finalBooking.getCustomerId().toString(), "/queue/booking/status", cancelResponse);
+
+            // Tự động revert lại voucher cho khách hàng vì đây là lỗi hệ thống không tìm được tài xế
+            try {
+                pricingClient.rollbackVoucher(null, finalBooking.getCustomerId().toString(), finalBooking.getId().toString());
+                log.info("Đã tự động revert voucher cho khách hàng ID {} cuốc xe #{} do không tìm thấy tài xế", finalBooking.getCustomerId(), finalBooking.getId());
+            } catch (Exception ex) {
+                log.warn("Lỗi khi tự động rollback voucher cho cuốc xe #{}: {}", finalBooking.getId(), ex.getMessage());
+            }
         }
     }
 }

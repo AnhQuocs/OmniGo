@@ -7,17 +7,15 @@ import com.trung.pricingservice.dto.response.PricingResponse;
 import com.trung.pricingservice.entity.PricingConfig;
 import com.trung.pricingservice.mapper.PricingMapper;
 import com.trung.pricingservice.repository.PricingConfigRepository;
-import com.trung.pricingservice.service.GoogleRoutesService;
+import com.trung.pricingservice.service.RouteCalculationService;
 import com.trung.pricingservice.service.PricingService;
 import com.trung.pricingservice.util.enums.SurgeLevel;
 import com.uber.h3core.H3Core;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
 
-import com.trung.pricingservice.dto.google.RouteResult;
+import com.trung.pricingservice.dto.route.RouteResult;
 import com.trung.pricingservice.dto.response.DeliveryFeeResponse;
 
 @Slf4j
@@ -28,7 +26,7 @@ public class PricingServiceImpl implements PricingService {
     private final PricingConfigRepository configRepository;
     private final PricingMapper pricingMapper;
     private final H3Core h3Core;
-    private final GoogleRoutesService googleRoutesService;
+    private final RouteCalculationService routeCalculationService;
 
     private static final int H3_RESOLUTION = 8; // Bán kính ô lục giác khoảng 700 mét
     private static final double EARTH_RADIUS_KM = 6371.0;
@@ -38,14 +36,18 @@ public class PricingServiceImpl implements PricingService {
         // Phân vùng điểm đón khách hàng vào ô lục giác H3
         String h3Index = h3Core.latLngToCellAddress(request.getStartLatitude(), request.getStartLongitude(), H3_RESOLUTION);
 
-        // Ghi nhận thêm 1 lượt Cầu (Demand) mới vào ô lục giác này
-        configRepository.updateDemand(h3Index);
+        // Ghi nhận lượt Cầu (Demand) có khử trùng lặp theo customerId / tọa độ điểm đón trong 5 phút
+        String customerIdentifier = request.getCustomerId() != null
+                ? request.getCustomerId().toString()
+                : ("loc:" + Math.round(request.getStartLatitude() * 1000) + "_" + Math.round(request.getStartLongitude() * 1000));
+        configRepository.recordDemand(h3Index, customerIdentifier);
         int totalDemand = configRepository.getDemand(h3Index);
 
-        String vehicleType = GoogleRoutesService.normalizeVehicleType(request.getVehicleType());
 
-        // Lấy khoảng cách & thời gian thực tế qua Google Routes API theo loại xe
-        RouteResult route = googleRoutesService.getRouteInfo(
+        String vehicleType = RouteCalculationService.normalizeVehicleType(request.getVehicleType());
+
+        // Lấy khoảng cách & thời gian thực tế qua OSRM theo loại xe
+        RouteResult route = routeCalculationService.getRouteInfo(
                 request.getStartLatitude(), request.getStartLongitude(),
                 request.getEndLatitude(), request.getEndLongitude(),
                 vehicleType
@@ -94,10 +96,10 @@ public class PricingServiceImpl implements PricingService {
 
     @Override
     public DeliveryFeeResponse calculateDeliveryFee(DeliveryFeeRequest request) {
-        RouteResult route = googleRoutesService.getRouteInfo(
+        RouteResult route = routeCalculationService.getRouteInfo(
                 request.getRestaurantLatitude(), request.getRestaurantLongitude(),
                 request.getCustomerLatitude(), request.getCustomerLongitude(),
-                "TWO_WHEELER"
+                "BIKE"
         );
 
         PricingConfig baseConfig = configRepository.getBasePricingConfig();

@@ -7,6 +7,17 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       database: ${PRICING_REDIS_DB}
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${PRICING_DATABASE:pricing_db}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 eureka:
   client:
@@ -40,8 +51,12 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-google:
-  maps:
-    api-key: ${GOOGLE_MAPS_API_KEY}
-    connect-timeout-ms: 1500
-    read-timeout-ms: 1500
+osrm:
+  url: ${OSRM_URL:http://osrm:5000}
+  car-url: ${OSRM_CAR_URL:http://osrm:5000}
+  bike-url: ${OSRM_BIKE_URL:http://osrm-bike:5000}
+  public-url: ${OSRM_PUBLIC_URL:https://router.project-osrm.org}
+  connect-timeout-ms: 2000
+  read-timeout-ms: 2500
+
+

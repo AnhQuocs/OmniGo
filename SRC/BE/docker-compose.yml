@@ -18,8 +18,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 384M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx200m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${DISCOVERY_SERVICE_PORT}
       SPRING_SERVER_PORT: ${DISCOVERY_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -40,8 +41,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${API_GATEWAY_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
@@ -61,8 +63,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${USER_DRIVER_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -94,8 +97,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 450M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx250m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${LOCATION_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -115,8 +119,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${BOOKING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -143,20 +148,30 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${PRICING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
       SPRING_DATA_REDIS_DATABASE: ${PRICING_REDIS_DB}
-      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${PRICING_DATABASE:-pricing_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      OSRM_CAR_URL: ${OSRM_CAR_URL}
+      OSRM_BIKE_URL: ${OSRM_BIKE_URL}
+      OSRM_PUBLIC_URL: ${OSRM_PUBLIC_URL:-https://router.project-osrm.org}
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
       MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
     depends_on:
       - discovery-service
+      - postgres
       - redis
+      - osrm
+      - osrm-bike
       - fluentd
 
   payment-service:
@@ -165,8 +180,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${PAYMENT_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -204,8 +220,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${FOOD_DELIVERY_SERVICE_PORT:-8086}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -238,6 +255,10 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - ride-hailing
     environment:
@@ -251,8 +272,13 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy volatile-lru
     ports:
       - "127.0.0.1:6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
     networks:
       - ride-hailing
     volumes:
@@ -261,9 +287,14 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 600M
     networks:
       - ride-hailing
     environment:
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx384M"
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -282,12 +313,16 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.21
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 900M
     networks:
       - ride-hailing
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      ES_JAVA_OPTS: -Xms384m -Xmx384m
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
 
@@ -372,6 +407,40 @@ services:
     restart: unless-stopped
     networks:
       - ride-hailing
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: osrm-service
+    restart: unless-stopped
+    command: osrm-routed --algorithm mld --threads 2 --max-matching-size 100 /data/hanoi-latest.osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+    networks:
+      - ride-hailing
+
+  osrm-bike:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: osrm-bike
+    restart: unless-stopped
+    command: osrm-routed --algorithm mld --threads 2 --max-matching-size 100 /data/hanoi-bike.osrm
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./osrm-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    networks:
+      - ride-hailing
+
+
 
 
 

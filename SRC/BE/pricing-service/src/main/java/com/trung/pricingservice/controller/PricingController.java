@@ -1,11 +1,11 @@
 package com.trung.pricingservice.controller;
 
-import com.trung.pricingservice.dto.google.RouteResult;
+import com.trung.pricingservice.dto.route.RouteResult;
 import com.trung.pricingservice.dto.request.DeliveryFeeRequest;
 import com.trung.pricingservice.dto.request.PricingRequest;
 import com.trung.pricingservice.dto.response.DeliveryFeeResponse;
 import com.trung.pricingservice.dto.response.PricingResponse;
-import com.trung.pricingservice.service.GoogleRoutesService;
+import com.trung.pricingservice.service.RouteCalculationService;
 import com.trung.pricingservice.service.PricingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import com.trung.pricingservice.dto.request.RouteRequest;
 public class PricingController {
 
     private final PricingService pricingService;
-    private final GoogleRoutesService googleRoutesService;
+    private final RouteCalculationService routeCalculationService;
 
     @PostMapping("/calculate")
     public ResponseEntity<PricingResponse> calculatePrice(
@@ -41,7 +41,7 @@ public class PricingController {
 
     @GetMapping("/route")
     public ResponseEntity<RouteResult> getRoute(@Valid @ModelAttribute RouteRequest request) {
-        RouteResult result = googleRoutesService.getRouteInfo(
+        RouteResult result = routeCalculationService.getRouteInfo(
                 request.getStartLatitude(),
                 request.getStartLongitude(),
                 request.getEndLatitude(),
@@ -53,7 +53,7 @@ public class PricingController {
 
     @PostMapping("/route")
     public ResponseEntity<RouteResult> calculateRoute(@Valid @RequestBody RouteRequest request) {
-        RouteResult result = googleRoutesService.getRouteInfo(
+        RouteResult result = routeCalculationService.getRouteInfo(
                 request.getStartLatitude(),
                 request.getStartLongitude(),
                 request.getEndLatitude(),
@@ -63,5 +63,3 @@ public class PricingController {
         return ResponseEntity.ok(result);
     }
 }
-
-

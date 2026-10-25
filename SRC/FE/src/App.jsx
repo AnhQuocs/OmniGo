@@ -16,6 +16,7 @@ import Drivers from './pages/Drivers';
 import Bookings from './pages/Bookings';
 import Payments from './pages/Payments';
 import Pricing from './pages/Pricing';
+import Vouchers from './pages/Vouchers';
 import Restaurants from './pages/Restaurants';
 import FoodOrders from './pages/FoodOrders';
 import NotFound from './pages/NotFound';
@@ -63,6 +64,11 @@ export function App() {
                 <Route path="food-orders" element={<FoodOrders />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="pricing" element={<Pricing />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="vouchers" element={<Vouchers />} />
+                <Route path="/vouchers" element={<Vouchers />} />
+                <Route path="voucher" element={<Vouchers />} />
+                <Route path="/voucher" element={<Vouchers />} />
               </Route>
             </Route>
 

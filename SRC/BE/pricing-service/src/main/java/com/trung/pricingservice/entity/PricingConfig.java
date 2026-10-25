@@ -43,7 +43,7 @@ public class PricingConfig implements Serializable {
     @Builder.Default
     private double deliveryPricePerKm = 5000.0;
 
-    // 4. Google Routes API & Fallback
+    // 4. OSRM Routing & Fallback
     @Builder.Default
     private double haversineFallbackMultiplier = 1.35;
 
