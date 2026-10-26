@@ -50,6 +50,8 @@ import {
   ConfirmationNumber as TicketIcon,
   People as PeopleIcon,
   Close as CloseIcon,
+  EditOutlined as EditIcon,
+  HourglassEmpty as UpcomingIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import voucherService from '../services/voucherService';
@@ -73,9 +75,57 @@ export const Vouchers = () => {
     loading: false,
   });
 
-  // Modal tạo voucher
+  // Modal tạo / chỉnh sửa voucher
   const [openModal, setOpenModal] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Helper tính trạng thái chính xác theo ngày giờ thực tế
+  const getVoucherStatusInfo = useCallback((v) => {
+    if (!v) return { status: 'INACTIVE', label: 'Tạm dừng', color: 'default', isExpired: false, isUpcoming: false, isActive: false };
+    const now = new Date();
+    const start = v.startAt ? new Date(v.startAt) : null;
+    const expire = v.expireAt ? new Date(v.expireAt) : null;
+
+    if ((expire && now > expire) || v.status === 'EXPIRED') {
+      return {
+        status: 'EXPIRED',
+        label: 'Hết hạn',
+        color: 'error',
+        isExpired: true,
+        isUpcoming: false,
+        isActive: false,
+      };
+    }
+    if (start && now < start) {
+      return {
+        status: 'UPCOMING',
+        label: 'Chưa đến hạn',
+        color: 'info',
+        isExpired: false,
+        isUpcoming: true,
+        isActive: false,
+      };
+    }
+    if (v.status === 'INACTIVE') {
+      return {
+        status: 'INACTIVE',
+        label: 'Tạm dừng',
+        color: 'default',
+        isExpired: false,
+        isUpcoming: false,
+        isActive: false,
+      };
+    }
+    return {
+      status: 'ACTIVE',
+      label: 'Kích hoạt',
+      color: 'success',
+      isExpired: false,
+      isUpcoming: false,
+      isActive: true,
+    };
+  }, []);
 
   // Modal lịch sử sử dụng của user
   const [openUsagesModal, setOpenUsagesModal] = useState(false);
@@ -186,9 +236,36 @@ export const Vouchers = () => {
     }
   };
 
-  // Submit Create Voucher
-  const handleCreateVoucher = async (e) => {
-    e.preventDefault();
+  // Mở modal tạo mới
+  const handleOpenCreateModal = () => {
+    setEditingVoucher(null);
+    setFormData(initialForm);
+    setOpenModal(true);
+  };
+
+  // Mở modal chỉnh sửa
+  const handleOpenEditModal = (voucher) => {
+    setEditingVoucher(voucher);
+    setFormData({
+      code: voucher.code || '',
+      title: voucher.title || '',
+      description: voucher.description || '',
+      discountType: voucher.discountType || 'PERCENTAGE',
+      discountValue: voucher.discountValue ?? 20,
+      maxDiscountAmount: voucher.maxDiscountAmount ?? 30000,
+      minOrderAmount: voucher.minOrderAmount ?? 0,
+      startAt: voucher.startAt ? voucher.startAt.slice(0, 16) : new Date().toISOString().slice(0, 16),
+      expireAt: voucher.expireAt ? voucher.expireAt.slice(0, 16) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      totalUsageLimit: voucher.totalUsageLimit > 0 ? voucher.totalUsageLimit : '',
+      usageLimitPerUser: voucher.usageLimitPerUser ?? 1,
+      applicableService: voucher.applicableService || 'ALL',
+    });
+    setOpenModal(true);
+  };
+
+  // Submit Tạo mới hoặc Cập nhật Voucher
+  const handleSaveVoucher = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!formData.code.trim()) {
       toast.error('Vui lòng nhập mã voucher!');
       return;
@@ -207,8 +284,8 @@ export const Vouchers = () => {
       const payload = {
         ...formData,
         code: formData.code.trim().toUpperCase(),
-        startAt: formData.startAt + ':00',
-        expireAt: formData.expireAt + ':00',
+        startAt: formData.startAt.length === 16 ? formData.startAt + ':00' : formData.startAt,
+        expireAt: formData.expireAt.length === 16 ? formData.expireAt + ':00' : formData.expireAt,
         discountValue: Number(formData.discountValue),
         maxDiscountAmount: formData.discountType === 'PERCENTAGE' ? Number(formData.maxDiscountAmount) : null,
         minOrderAmount: Number(formData.minOrderAmount) || 0,
@@ -216,15 +293,26 @@ export const Vouchers = () => {
         usageLimitPerUser: Number(formData.usageLimitPerUser) || 1,
       };
 
-      const res = await voucherService.createVoucher(payload);
-      if (res && res.success) {
-        toast.success(`Đã tạo voucher '${payload.code}' và lưu vào pricing_db + Redis!`);
-        setOpenModal(false);
-        setFormData(initialForm);
-        fetchVouchers();
+      if (editingVoucher) {
+        const res = await voucherService.updateVoucher(editingVoucher.code, payload);
+        if (res && res.success) {
+          toast.success(`Đã cập nhật voucher '${payload.code}' thành công!`);
+          setOpenModal(false);
+          setEditingVoucher(null);
+          setFormData(initialForm);
+          fetchVouchers();
+        }
+      } else {
+        const res = await voucherService.createVoucher(payload);
+        if (res && res.success) {
+          toast.success(`Đã tạo voucher '${payload.code}' và lưu vào pricing_db + Redis!`);
+          setOpenModal(false);
+          setFormData(initialForm);
+          fetchVouchers();
+        }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi tạo mã khuyến mãi');
+      toast.error(err.response?.data?.message || (editingVoucher ? 'Lỗi khi cập nhật mã khuyến mãi' : 'Lỗi khi tạo mã khuyến mãi'));
     } finally {
       setSubmitting(false);
     }
@@ -233,24 +321,34 @@ export const Vouchers = () => {
   // Statistics
   const stats = useMemo(() => {
     const total = vouchers.length;
-    const active = vouchers.filter((v) => v.status === 'ACTIVE' && new Date(v.expireAt) > new Date()).length;
-    const expired = vouchers.filter((v) => v.status === 'EXPIRED' || new Date(v.expireAt) <= new Date()).length;
-    const totalUsed = vouchers.reduce((sum, v) => sum + (v.usedCount || 0), 0);
-    return { total, active, expired, totalUsed };
-  }, [vouchers]);
+    let active = 0;
+    let upcoming = 0;
+    let expired = 0;
+    let totalUsed = 0;
+
+    vouchers.forEach((v) => {
+      totalUsed += v.usedCount || 0;
+      const statusInfo = getVoucherStatusInfo(v);
+      if (statusInfo.status === 'ACTIVE') active++;
+      else if (statusInfo.status === 'UPCOMING') upcoming++;
+      else if (statusInfo.status === 'EXPIRED') expired++;
+    });
+
+    return { total, active, upcoming, expired, totalUsed };
+  }, [vouchers, getVoucherStatusInfo]);
 
   // Filtered Vouchers
   const filteredVouchers = useMemo(() => {
     return vouchers.filter((v) => {
       const matchSearch =
         v.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.title.toLowerCase().includes(searchQuery.toLowerCase());
+        (v.title && v.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const isExpired = new Date(v.expireAt) <= new Date();
+      const statusInfo = getVoucherStatusInfo(v);
       let matchStatus = true;
-      if (statusFilter === 'ACTIVE') matchStatus = v.status === 'ACTIVE' && !isExpired;
-      if (statusFilter === 'INACTIVE') matchStatus = v.status === 'INACTIVE' && !isExpired;
-      if (statusFilter === 'EXPIRED') matchStatus = isExpired || v.status === 'EXPIRED';
+      if (statusFilter !== 'ALL') {
+        matchStatus = statusInfo.status === statusFilter;
+      }
 
       let matchService = true;
       if (serviceFilter !== 'ALL') {
@@ -259,7 +357,7 @@ export const Vouchers = () => {
 
       return matchSearch && matchStatus && matchService;
     });
-  }, [vouchers, searchQuery, statusFilter, serviceFilter]);
+  }, [vouchers, searchQuery, statusFilter, serviceFilter, getVoucherStatusInfo]);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -303,7 +401,7 @@ export const Vouchers = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpenModal(true)}
+            onClick={handleOpenCreateModal}
             sx={{
               borderRadius: 2,
               bgcolor: '#f97316',
@@ -320,50 +418,62 @@ export const Vouchers = () => {
 
       {/* Stat Cards */}
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.1)', color: '#f97316' }}>
-              <VoucherIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+              <VoucherIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng số Voucher</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.total}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>{stats.total}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
-              <ActiveIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+              <ActiveIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Đang hoạt động</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#22c55e', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.active}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#22c55e', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>{stats.active}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+          <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+              <UpcomingIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Chưa đến hạn</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>{stats.upcoming}</Typography>
+            </Box>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-              <ExpiredIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+              <ExpiredIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Đã hết hạn</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ef4444', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.expired}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#ef4444', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>{stats.expired}</Typography>
             </Box>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 4, md: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
-            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-              <TimeIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+            <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
+              <TimeIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Lượt sử dụng</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>{stats.totalUsed}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#a855f7', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>{stats.totalUsed}</Typography>
             </Box>
           </Card>
         </Grid>
@@ -398,6 +508,7 @@ export const Vouchers = () => {
               >
                 <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
                 <MenuItem value="ACTIVE">Đang kích hoạt</MenuItem>
+                <MenuItem value="UPCOMING">Chưa đến hạn</MenuItem>
                 <MenuItem value="INACTIVE">Đang tạm dừng</MenuItem>
                 <MenuItem value="EXPIRED">Đã hết hạn</MenuItem>
               </Select>
@@ -438,8 +549,7 @@ export const Vouchers = () => {
       ) : (
         <Grid container spacing={2.5}>
           {filteredVouchers.map((v) => {
-            const isExpired = new Date(v.expireAt) <= new Date();
-            const isActive = v.status === 'ACTIVE' && !isExpired;
+            const statusInfo = getVoucherStatusInfo(v);
             const usagePercent = v.totalUsageLimit > 0 ? Math.min(100, Math.round((v.usedCount / v.totalUsageLimit) * 100)) : 0;
 
             return (
@@ -449,10 +559,18 @@ export const Vouchers = () => {
                     p: 2.5,
                     borderRadius: 3,
                     border: 1,
-                    borderColor: isActive ? 'rgba(249, 115, 22, 0.3)' : 'divider',
+                    borderColor: statusInfo.isActive
+                      ? 'rgba(249, 115, 22, 0.35)'
+                      : statusInfo.isUpcoming
+                      ? 'rgba(59, 130, 246, 0.35)'
+                      : 'divider',
                     bgcolor: isDark ? 'background.paper' : '#ffffff',
                     position: 'relative',
-                    boxShadow: isActive ? '0 4px 20px rgba(249, 115, 22, 0.08)' : 'none',
+                    boxShadow: statusInfo.isActive
+                      ? '0 4px 20px rgba(249, 115, 22, 0.08)'
+                      : statusInfo.isUpcoming
+                      ? '0 4px 20px rgba(59, 130, 246, 0.08)'
+                      : 'none',
                     transition: 'transform 0.2s, box-shadow 0.2s',
                     '&:hover': {
                       transform: 'translateY(-2px)',
@@ -495,14 +613,25 @@ export const Vouchers = () => {
                           <PeopleIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title={isActive ? 'Bấm để tạm dừng' : 'Bấm để kích hoạt'}>
-                        <Switch
+                      <Tooltip title="Chỉnh sửa mã voucher">
+                        <IconButton
                           size="small"
-                          checked={v.status === 'ACTIVE'}
-                          disabled={isExpired}
-                          onChange={() => handleToggleStatus(v.code)}
-                          color="warning"
-                        />
+                          sx={{ color: '#f59e0b', bgcolor: 'rgba(245, 158, 11, 0.1)' }}
+                          onClick={() => handleOpenEditModal(v)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={statusInfo.isExpired ? 'Mã đã hết hạn' : v.status === 'ACTIVE' ? 'Bấm để tạm dừng' : 'Bấm để kích hoạt'}>
+                        <span>
+                          <Switch
+                            size="small"
+                            checked={v.status === 'ACTIVE'}
+                            disabled={statusInfo.isExpired}
+                            onChange={() => handleToggleStatus(v.code)}
+                            color="warning"
+                          />
+                        </span>
                       </Tooltip>
                       <Tooltip title="Xóa vĩnh viễn">
                         <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(v.code)}>
@@ -573,7 +702,7 @@ export const Vouchers = () => {
 
                   {/* Footer tags */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
                       {/* Service Badge */}
                       <Chip
                         size="small"
@@ -592,14 +721,28 @@ export const Vouchers = () => {
                       {/* Status Badge */}
                       <Chip
                         size="small"
-                        label={isExpired ? 'Hết hạn' : v.status === 'ACTIVE' ? 'Kích hoạt' : 'Tạm dừng'}
-                        color={isExpired ? 'error' : v.status === 'ACTIVE' ? 'success' : 'default'}
+                        label={statusInfo.label}
+                        color={statusInfo.color}
                         sx={{ fontSize: '0.72rem', fontWeight: 700 }}
                       />
                     </Stack>
 
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <TimeIcon sx={{ fontSize: 13 }} /> Hết hạn: {formatDate(v.expireAt)}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: statusInfo.isExpired ? '#ef4444' : statusInfo.isUpcoming ? '#3b82f6' : 'text.secondary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        fontWeight: statusInfo.isExpired || statusInfo.isUpcoming ? 600 : 400,
+                      }}
+                    >
+                      <TimeIcon sx={{ fontSize: 13 }} />
+                      {statusInfo.isUpcoming
+                        ? `Bắt đầu: ${formatDate(v.startAt)}`
+                        : statusInfo.isExpired
+                        ? `Đã hết hạn: ${formatDate(v.expireAt)}`
+                        : `Hết hạn: ${formatDate(v.expireAt)}`}
                     </Typography>
                   </Box>
                 </Card>
@@ -694,13 +837,14 @@ export const Vouchers = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Modal Tạo Voucher Mới */}
+      {/* Modal Tạo / Chỉnh sửa Voucher */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5, pb: 1.5 }}>
-          <TicketIcon sx={{ color: '#f97316' }} /> Thêm Mã Khuyến Mãi Mới (Lưu DB & Redis)
+          <TicketIcon sx={{ color: '#f97316' }} />
+          {editingVoucher ? `Chỉnh Sửa Mã Khuyến Mãi: ${editingVoucher.code}` : 'Thêm Mã Khuyến Mãi Mới (Lưu DB & Redis)'}
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
-          <Box component="form" onSubmit={handleCreateVoucher}>
+          <Box component="form" onSubmit={handleSaveVoucher}>
             <Grid container spacing={2.5}>
               {/* Row 1: Code & Dịch vụ */}
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -710,6 +854,7 @@ export const Vouchers = () => {
                   label="Mã Voucher (Code)"
                   placeholder="VD: OMNIGO50 (3-20 ký tự)"
                   value={formData.code}
+                  helperText={editingVoucher ? 'Có thể chỉnh sửa nếu muốn đổi sang mã mới' : 'Từ 3-20 ký tự gồm chữ cái, số, gạch nối'}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 />
               </Grid>
@@ -869,7 +1014,7 @@ export const Vouchers = () => {
             Hủy
           </Button>
           <Button
-            onClick={handleCreateVoucher}
+            onClick={handleSaveVoucher}
             variant="contained"
             disabled={submitting}
             sx={{
@@ -878,7 +1023,7 @@ export const Vouchers = () => {
               fontWeight: 700,
             }}
           >
-            {submitting ? <CircularProgress size={22} color="inherit" /> : 'Lưu thay đổi'}
+            {submitting ? <CircularProgress size={22} color="inherit" /> : (editingVoucher ? 'Cập Nhật Voucher' : 'Tạo Voucher Mới')}
           </Button>
         </DialogActions>
       </Dialog>

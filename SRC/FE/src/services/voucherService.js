@@ -22,6 +22,14 @@ export const voucherService = {
   },
 
   /**
+   * Cập nhật mã khuyến mãi
+   * Endpoint BE: PUT /api/v1/pricing/admin/vouchers/:code
+   */
+  updateVoucher: async (code, payload) => {
+    return await put(`/api/v1/pricing/admin/vouchers/${code}`, payload);
+  },
+
+  /**
    * Xem chi tiết voucher theo mã
    * Endpoint BE: GET /api/v1/pricing/admin/vouchers/:code
    */

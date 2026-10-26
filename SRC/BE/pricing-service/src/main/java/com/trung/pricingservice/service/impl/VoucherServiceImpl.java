@@ -81,6 +81,66 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
+    public VoucherResponse updateVoucher(String code, CreateVoucherRequest request) {
+        String oldCode = code.trim().toUpperCase();
+        Voucher voucher = voucherJpaRepository.findByCode(oldCode)
+                .or(() -> voucherRedisRepository.findByCode(oldCode))
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy voucher với mã: " + code));
+
+        String newCode = request.getCode().trim().toUpperCase();
+        if (!newCode.equals(oldCode)) {
+            if (voucherJpaRepository.findByCode(newCode).filter(v -> !v.getId().equals(voucher.getId())).isPresent()
+                    || voucherRedisRepository.findByCode(newCode).isPresent()) {
+                throw new BadRequestException("Mã voucher mới '" + newCode + "' đã tồn tại trên hệ thống!");
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (request.getExpireAt().isBefore(request.getStartAt())) {
+            throw new BadRequestException("Thời gian hết hạn phải sau thời gian kích hoạt!");
+        }
+
+        if (request.getExpireAt().isBefore(now)) {
+            throw new BadRequestException("Thời gian hết hạn phải lớn hơn thời điểm hiện tại!");
+        }
+
+        if (request.getDiscountType() == DiscountType.PERCENTAGE) {
+            if (request.getDiscountValue() <= 0 || request.getDiscountValue() > 100) {
+                throw new BadRequestException("Phần trăm giảm giá phải nằm trong khoảng từ 1% đến 100%!");
+            }
+            if (request.getMaxDiscountAmount() == null || request.getMaxDiscountAmount() <= 0) {
+                throw new BadRequestException("Voucher giảm theo % bắt buộc phải thiết lập mức giảm tối đa (maxDiscountAmount)!");
+            }
+        }
+
+        // Cập nhật thông tin
+        voucher.setCode(newCode);
+        voucher.setTitle(request.getTitle());
+        voucher.setDescription(request.getDescription());
+        voucher.setDiscountType(request.getDiscountType());
+        voucher.setDiscountValue(request.getDiscountValue());
+        voucher.setMaxDiscountAmount(request.getDiscountType() == DiscountType.PERCENTAGE ? request.getMaxDiscountAmount() : null);
+        voucher.setMinOrderAmount(request.getMinOrderAmount() > 0 ? request.getMinOrderAmount() : 0.0);
+        voucher.setStartAt(request.getStartAt());
+        voucher.setExpireAt(request.getExpireAt());
+        voucher.setTotalUsageLimit(request.getTotalUsageLimit() != null && request.getTotalUsageLimit() > 0 ? request.getTotalUsageLimit() : 0);
+        voucher.setUsageLimitPerUser(request.getUsageLimitPerUser() > 0 ? request.getUsageLimitPerUser() : 1);
+        voucher.setApplicableService(request.getApplicableService() != null ? request.getApplicableService() : ApplicableService.ALL);
+        voucher.setUpdatedAt(LocalDateTime.now());
+
+        Voucher savedVoucher = voucherJpaRepository.save(voucher);
+
+        if (!newCode.equals(oldCode)) {
+            voucherRedisRepository.delete(oldCode);
+        }
+        voucherRedisRepository.saveVoucher(savedVoucher);
+
+        log.info("Admin đã cập nhật thành công voucher: {} -> {} (Đã đồng bộ DB và Redis)", oldCode, newCode);
+        return voucherMapper.toResponse(savedVoucher);
+    }
+
+    @Override
     public List<VoucherResponse> getAllVouchers() {
         // Thử lấy từ Redis
         List<Voucher> redisList = voucherRedisRepository.findAll();

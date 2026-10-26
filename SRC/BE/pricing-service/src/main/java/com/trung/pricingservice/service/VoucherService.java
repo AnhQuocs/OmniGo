@@ -13,6 +13,8 @@ public interface VoucherService {
 
     VoucherResponse createVoucher(CreateVoucherRequest request);
 
+    VoucherResponse updateVoucher(String code, CreateVoucherRequest request);
+
     List<VoucherResponse> getAllVouchers();
 
     VoucherResponse getVoucherByCode(String code);
