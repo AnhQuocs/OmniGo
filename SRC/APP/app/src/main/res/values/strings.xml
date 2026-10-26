@@ -578,6 +578,22 @@
     <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
     <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
 
+    <!-- RIDE REVAMP & VEHICLE SELECTION -->
+    <string name="ride_surge_banner_text">High demand in your area • Fare is x%1$s (Surge)</string>
+    <string name="ride_vehicle_bike_title">OmniBike</string>
+    <string name="ride_vehicle_bike_desc">1 seat • Fast &amp; nimble</string>
+    <string name="ride_vehicle_car4_title">OmniCar 4</string>
+    <string name="ride_vehicle_car4_desc">4 seats • Cool air conditioning</string>
+    <string name="ride_vehicle_car7_title">OmniCar 7</string>
+    <string name="ride_vehicle_car7_desc">7 seats • Spacious for group &amp; luggage</string>
+    <string name="ride_map_pin_badge">Pin Map</string>
+    <string name="ride_pin_picker_title_pickup">Set Pickup on Map</string>
+    <string name="ride_pin_picker_title_dropoff">Set Drop-off on Map</string>
+    <string name="ride_pin_picker_detecting">Pinpointing location…</string>
+    <string name="ride_pin_picker_btn_confirm_pickup">Confirm Pickup Here</string>
+    <string name="ride_pin_picker_btn_confirm_dropoff">Confirm Drop-off Here</string>
+    <string name="ride_pin_picker_drag_hint">Drag map to adjust exact pin point</string>
+
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">New Ride Request</string>
     <string name="driver_ride_offer_pickup">Pickup Location</string>

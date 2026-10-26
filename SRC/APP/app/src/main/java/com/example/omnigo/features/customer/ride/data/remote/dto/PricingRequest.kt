@@ -10,5 +10,7 @@ data class PricingRequest(
     @SerializedName("endLongitude")
     val endLongitude: Double,
     @SerializedName("endLatitude")
-    val endLatitude: Double
+    val endLatitude: Double,
+    @SerializedName("vehicleType")
+    val vehicleType: String? = "BIKE"
 )

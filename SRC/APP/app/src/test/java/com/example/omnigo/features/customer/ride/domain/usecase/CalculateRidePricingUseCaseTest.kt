@@ -44,7 +44,8 @@ class CalculateRidePricingUseCaseTest {
                 startLongitude = 105.8542,
                 endLatitude = 21.0333,
                 endLongitude = 105.8433,
-                nearbyDriversCount = 2
+                nearbyDriversCount = 2,
+                vehicleType = "BIKE"
             )
         } returns CalculateRidePricingResult.Success(sampleEstimate)
 
@@ -53,7 +54,8 @@ class CalculateRidePricingUseCaseTest {
             startLongitude = 105.8542,
             endLatitude = 21.0333,
             endLongitude = 105.8433,
-            nearbyDriversCount = 2
+            nearbyDriversCount = 2,
+            vehicleType = "BIKE"
         )
 
         assertTrue(result is CalculateRidePricingResult.Success)
@@ -61,7 +63,7 @@ class CalculateRidePricingUseCaseTest {
         assertEquals(50000.0, success.estimate.totalPrice, 0.001)
         assertEquals(5.0, success.estimate.distanceInKm, 0.001)
         coVerify(exactly = 1) {
-            pricingRepository.calculatePricing(21.0285, 105.8542, 21.0333, 105.8433, 2)
+            pricingRepository.calculatePricing(21.0285, 105.8542, 21.0333, 105.8433, 2, "BIKE")
         }
     }
 
@@ -78,7 +80,7 @@ class CalculateRidePricingUseCaseTest {
         val error = result as CalculateRidePricingResult.Error
         assertEquals(RideError.INVALID_COORDINATES, error.error)
         coVerify(exactly = 0) {
-            pricingRepository.calculatePricing(any(), any(), any(), any(), any())
+            pricingRepository.calculatePricing(any(), any(), any(), any(), any(), any())
         }
     }
 
@@ -95,7 +97,7 @@ class CalculateRidePricingUseCaseTest {
         val error = result as CalculateRidePricingResult.Error
         assertEquals(RideError.INVALID_COORDINATES, error.error)
         coVerify(exactly = 0) {
-            pricingRepository.calculatePricing(any(), any(), any(), any(), any())
+            pricingRepository.calculatePricing(any(), any(), any(), any(), any(), any())
         }
     }
 
@@ -112,14 +114,14 @@ class CalculateRidePricingUseCaseTest {
         val error = result as CalculateRidePricingResult.Error
         assertEquals(RideError.INVALID_COORDINATES, error.error)
         coVerify(exactly = 0) {
-            pricingRepository.calculatePricing(any(), any(), any(), any(), any())
+            pricingRepository.calculatePricing(any(), any(), any(), any(), any(), any())
         }
     }
 
     @Test
     fun `invoke when repository returns network error propagates error`() = runTest {
         coEvery {
-            pricingRepository.calculatePricing(any(), any(), any(), any(), any())
+            pricingRepository.calculatePricing(any(), any(), any(), any(), any(), any())
         } returns CalculateRidePricingResult.Error(
             error = RideError.NETWORK_ERROR,
             message = "No connection"

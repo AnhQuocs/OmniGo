@@ -19,14 +19,16 @@ class PricingRepositoryImpl @Inject constructor(
         startLongitude: Double,
         endLatitude: Double,
         endLongitude: Double,
-        nearbyDriversCount: Int
+        nearbyDriversCount: Int,
+        vehicleType: String?
     ): CalculateRidePricingResult {
         return try {
             val request = toPricingRequest(
                 startLatitude = startLatitude,
                 startLongitude = startLongitude,
                 endLatitude = endLatitude,
-                endLongitude = endLongitude
+                endLongitude = endLongitude,
+                vehicleType = vehicleType
             )
             val response = pricingApi.calculatePricing(
                 request = request,

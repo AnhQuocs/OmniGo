@@ -66,4 +66,33 @@ class PricingMapperTest {
         assertEquals(0, domain.estimatedDurationMinutes)
         assertNull(domain.h3Index)
     }
+
+    @Test
+    fun `toPricingRequest creates request with correct coordinates and vehicleType`() {
+        val request = toPricingRequest(
+            startLatitude = 10.77,
+            startLongitude = 106.70,
+            endLatitude = 10.80,
+            endLongitude = 106.75,
+            vehicleType = "CAR_4_SEAT"
+        )
+
+        assertEquals(10.77, request.startLatitude, 0.0001)
+        assertEquals(106.70, request.startLongitude, 0.0001)
+        assertEquals(10.80, request.endLatitude, 0.0001)
+        assertEquals(106.75, request.endLongitude, 0.0001)
+        assertEquals("CAR_4_SEAT", request.vehicleType)
+    }
+
+    @Test
+    fun `toPricingRequest defaults vehicleType to BIKE when omitted`() {
+        val request = toPricingRequest(
+            startLatitude = 10.77,
+            startLongitude = 106.70,
+            endLatitude = 10.80,
+            endLongitude = 106.75
+        )
+
+        assertEquals("BIKE", request.vehicleType)
+    }
 }

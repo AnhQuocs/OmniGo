@@ -309,4 +309,21 @@ class RideBookingRepositoryImpl @Inject constructor(
             )
         }
     }
+
+    override suspend fun getNearbyDrivers(
+        latitude: Double,
+        longitude: Double,
+        radius: Double
+    ): List<com.example.omnigo.features.customer.ride.domain.model.NearbyDriver> {
+        return try {
+            val response = rideBookingApi.getNearbyDrivers(
+                longitude = longitude,
+                latitude = latitude,
+                radius = radius
+            )
+            response.toDomain()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 }

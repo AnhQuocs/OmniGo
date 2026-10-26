@@ -13,7 +13,8 @@ class CalculateRidePricingUseCase @Inject constructor(
         startLongitude: Double,
         endLatitude: Double,
         endLongitude: Double,
-        nearbyDriversCount: Int = 0
+        nearbyDriversCount: Int = 0,
+        vehicleType: String? = "BIKE"
     ): CalculateRidePricingResult {
         if (!isValidCoordinate(startLatitude, startLongitude) || !isValidCoordinate(endLatitude, endLongitude)) {
             return CalculateRidePricingResult.Error(
@@ -27,7 +28,8 @@ class CalculateRidePricingUseCase @Inject constructor(
             startLongitude = startLongitude,
             endLatitude = endLatitude,
             endLongitude = endLongitude,
-            nearbyDriversCount = nearbyDriversCount
+            nearbyDriversCount = nearbyDriversCount,
+            vehicleType = vehicleType
         )
     }
 

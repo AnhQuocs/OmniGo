@@ -6,12 +6,14 @@ fun toPricingRequest(
     startLatitude: Double,
     startLongitude: Double,
     endLatitude: Double,
-    endLongitude: Double
+    endLongitude: Double,
+    vehicleType: String? = "BIKE"
 ): PricingRequest {
     return PricingRequest(
         startLongitude = startLongitude,
         startLatitude = startLatitude,
         endLongitude = endLongitude,
-        endLatitude = endLatitude
+        endLatitude = endLatitude,
+        vehicleType = vehicleType
     )
 }

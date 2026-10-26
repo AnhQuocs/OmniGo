@@ -17,6 +17,9 @@ import com.example.omnigo.features.customer.ride.domain.usecase.CreateRideBookin
 import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
 import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
 import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+import com.example.omnigo.features.auth.domain.model.VehicleType
+import com.example.omnigo.features.customer.ride.domain.usecase.GetNearbyDriversUseCase
+import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,7 +47,8 @@ class RideBookingViewModel @Inject constructor(
     private val detectCurrentLocationUseCase: DetectCurrentLocationUseCase,
     private val savedAddressRepository: SavedAddressRepository,
     private val rideBookingStatusCoordinator: RideBookingStatusCoordinator,
-    private val rideTrackingSessionManager: RideTrackingSessionManager
+    private val rideTrackingSessionManager: RideTrackingSessionManager,
+    private val getNearbyDriversUseCase: GetNearbyDriversUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideBookingUiState())
@@ -69,21 +73,21 @@ class RideBookingViewModel @Inject constructor(
 
     private fun observeActiveRideSession() {
         viewModelScope.launch {
-            rideTrackingSessionManager.activeRideState.collect { activeRide ->
-                if (activeRide != null) {
-                    _uiState.update { current ->
-                        current.copy(
-                            currentBooking = current.currentBooking?.copy(
-                                status = activeRide.status,
-                                driverId = activeRide.driverProfile?.driverId ?: current.currentBooking?.driverId,
-                                price = if (activeRide.price > 0.0) activeRide.price else current.currentBooking?.price ?: 0.0
+            rideTrackingSessionManager.activeRideState.collect { active ->
+                if (active != null) {
+                    _uiState.update { curr ->
+                        curr.copy(
+                            currentBooking = curr.currentBooking?.copy(
+                                status = active.status,
+                                driverId = active.driverProfile?.driverId ?: curr.currentBooking?.driverId,
+                                price = if (active.price > 0.0) active.price else curr.currentBooking?.price ?: 0.0
                             ),
-                            assignedDriver = activeRide.driverProfile ?: current.assignedDriver,
-                            driverLiveLocation = activeRide.driverLiveLocation ?: current.driverLiveLocation,
-                            liveDistanceKm = activeRide.liveDistanceKm ?: current.liveDistanceKm,
-                            liveEtaMinutes = activeRide.liveEtaMinutes ?: current.liveEtaMinutes,
-                            isSearchingDriver = activeRide.isSearchingDriver,
-                            tripStatusMessage = activeRide.statusMessage ?: current.tripStatusMessage
+                            assignedDriver = active.driverProfile ?: curr.assignedDriver,
+                            driverLiveLocation = active.driverLiveLocation ?: curr.driverLiveLocation,
+                            liveDistanceKm = active.liveDistanceKm ?: curr.liveDistanceKm,
+                            liveEtaMinutes = active.liveEtaMinutes ?: curr.liveEtaMinutes,
+                            isSearchingDriver = active.isSearchingDriver,
+                            tripStatusMessage = active.statusMessage ?: curr.tripStatusMessage
                         )
                     }
                 }
@@ -111,6 +115,7 @@ class RideBookingViewModel @Inject constructor(
                             isLocatingCurrentPosition = false
                         )
                     }
+                    loadNearbyDrivers(locationPoint.latitude, locationPoint.longitude)
                     recalculatePricingIfNeeded()
                 }
                 else -> {
@@ -122,12 +127,55 @@ class RideBookingViewModel @Inject constructor(
 
     fun setPickupLocation(location: LocationPoint) {
         _uiState.update { it.copy(pickupLocation = location, errorMessage = null) }
+        loadNearbyDrivers(location.latitude, location.longitude)
         recalculatePricingIfNeeded()
     }
 
     fun setDropoffLocation(location: LocationPoint) {
         _uiState.update { it.copy(dropoffLocation = location, errorMessage = null) }
         recalculatePricingIfNeeded()
+    }
+
+    fun selectVehicleType(type: VehicleType) {
+        if (_uiState.value.selectedVehicleType == type) return
+        _uiState.update {
+            it.copy(
+                selectedVehicleType = type,
+                pricingEstimate = it.vehicleEstimates[type] ?: it.pricingEstimate
+            )
+        }
+        recalculatePricingIfNeeded()
+    }
+
+    fun startMapPinPicking(target: LocationTarget) {
+        _uiState.update { it.copy(isMapPinPicking = true, pinPickingTarget = target) }
+    }
+
+    fun confirmMapPinLocation(point: LocationPoint) {
+        val target = _uiState.value.pinPickingTarget
+        _uiState.update {
+            it.copy(
+                isMapPinPicking = false,
+                pinPickingTarget = null,
+                pickupLocation = if (target == LocationTarget.PICKUP) point else it.pickupLocation,
+                dropoffLocation = if (target == LocationTarget.DROPOFF) point else it.dropoffLocation
+            )
+        }
+        if (target == LocationTarget.PICKUP) {
+            loadNearbyDrivers(point.latitude, point.longitude)
+        }
+        recalculatePricingIfNeeded()
+    }
+
+    fun cancelMapPinPicking() {
+        _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null) }
+    }
+
+    fun loadNearbyDrivers(lat: Double, lng: Double) {
+        viewModelScope.launch {
+            val drivers = getNearbyDriversUseCase(lat, lng)
+            _uiState.update { it.copy(nearbyDrivers = drivers) }
+        }
     }
 
     fun swapLocations() {
@@ -141,6 +189,9 @@ class RideBookingViewModel @Inject constructor(
                     errorMessage = null
                 )
             }
+            if (currentDropoff != null) {
+                loadNearbyDrivers(currentDropoff.latitude, currentDropoff.longitude)
+            }
             recalculatePricingIfNeeded()
         }
     }
@@ -150,7 +201,7 @@ class RideBookingViewModel @Inject constructor(
         val dropoff = _uiState.value.dropoffLocation
 
         if (pickup == null || dropoff == null) {
-            _uiState.update { it.copy(pricingEstimate = null, pricingError = null) }
+            _uiState.update { it.copy(pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null) }
             return
         }
 
@@ -158,12 +209,14 @@ class RideBookingViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     pricingEstimate = null,
+                    vehicleEstimates = emptyMap(),
                     pricingError = "Điểm đón và điểm đến không thể trùng nhau"
                 )
             }
             return
         }
 
+        val selectedType = _uiState.value.selectedVehicleType
         priceCalculationJob?.cancel()
         priceCalculationJob = viewModelScope.launch {
             _uiState.update { it.copy(isCalculatingPrice = true, pricingError = null) }
@@ -171,14 +224,22 @@ class RideBookingViewModel @Inject constructor(
                 startLatitude = pickup.latitude,
                 startLongitude = pickup.longitude,
                 endLatitude = dropoff.latitude,
-                endLongitude = dropoff.longitude
+                endLongitude = dropoff.longitude,
+                vehicleType = selectedType.name
             )
             when (result) {
                 is CalculateRidePricingResult.Success -> {
+                    val base = result.estimate
+                    val estimates = mapOf(
+                        VehicleType.BIKE to base,
+                        VehicleType.CAR_4_SEAT to base.copy(totalPrice = base.totalPrice * 1.5),
+                        VehicleType.CAR_7_SEAT to base.copy(totalPrice = base.totalPrice * 2.0)
+                    )
                     _uiState.update {
                         it.copy(
                             isCalculatingPrice = false,
-                            pricingEstimate = result.estimate,
+                            pricingEstimate = estimates[selectedType] ?: base,
+                            vehicleEstimates = estimates,
                             pricingError = null
                         )
                     }
@@ -188,6 +249,7 @@ class RideBookingViewModel @Inject constructor(
                         it.copy(
                             isCalculatingPrice = false,
                             pricingEstimate = null,
+                            vehicleEstimates = emptyMap(),
                             pricingError = result.message ?: "Không thể tính cước phí chuyến đi"
                         )
                     }
@@ -205,18 +267,11 @@ class RideBookingViewModel @Inject constructor(
             return
         }
 
-        if (_uiState.value.isCreatingBooking || _uiState.value.isSearchingDriver) {
-            return
-        }
+        if (_uiState.value.isCreatingBooking || _uiState.value.isSearchingDriver) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCreatingBooking = true, errorMessage = null) }
-            val result = createRideBookingUseCase(
-                startLatitude = pickup.latitude,
-                startLongitude = pickup.longitude,
-                endLatitude = dropoff.latitude,
-                endLongitude = dropoff.longitude
-            )
+            val result = createRideBookingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude)
             when (result) {
                 is CreateRideBookingResult.Success -> {
                     val booking = result.booking
@@ -229,12 +284,10 @@ class RideBookingViewModel @Inject constructor(
                         )
                     }
                     _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
-                    val pickupAddr = pickup.name.ifBlank { pickup.address }
-                    val dropoffAddr = dropoff.name.ifBlank { dropoff.address }
                     rideTrackingSessionManager.startSession(
                         booking = booking,
-                        pickupAddress = pickupAddr,
-                        dropoffAddress = dropoffAddr
+                        pickupAddress = pickup.name.ifBlank { pickup.address },
+                        dropoffAddress = dropoff.name.ifBlank { dropoff.address }
                     )
                     rideBookingStatusCoordinator.startObserving(
                         scope = viewModelScope,
@@ -242,16 +295,11 @@ class RideBookingViewModel @Inject constructor(
                         updateState = { _uiState.update(it) },
                         getState = { _uiState.value }
                     )
-                    if (booking.status == BookingStatus.PENDING) {
-                        startSearchCountdown()
-                    }
+                    if (booking.status == BookingStatus.PENDING) startSearchCountdown()
                 }
                 is CreateRideBookingResult.Error -> {
                     _uiState.update {
-                        it.copy(
-                            isCreatingBooking = false,
-                            errorMessage = result.message ?: "Không thể tạo yêu cầu đặt xe"
-                        )
+                        it.copy(isCreatingBooking = false, errorMessage = result.message ?: "Không thể tạo yêu cầu đặt xe")
                     }
                 }
             }
@@ -265,24 +313,12 @@ class RideBookingViewModel @Inject constructor(
                 _uiState.update { it.copy(searchCountdownSeconds = sec) }
                 delay(1000L)
             }
-            // Timeout reached (60 seconds elapsed without matching)
-            _uiState.update {
-                it.copy(
-                    searchCountdownSeconds = 0,
-                    showSearchTimeoutDialog = true
-                )
-            }
+            _uiState.update { it.copy(searchCountdownSeconds = 0, showSearchTimeoutDialog = true) }
         }
     }
 
     fun retrySearchDriver() {
-        _uiState.update {
-            it.copy(
-                showSearchTimeoutDialog = false,
-                isSearchingDriver = true,
-                searchCountdownSeconds = 60
-            )
-        }
+        _uiState.update { it.copy(showSearchTimeoutDialog = false, isSearchingDriver = true, searchCountdownSeconds = 60) }
         startSearchCountdown()
     }
 
@@ -294,11 +330,7 @@ class RideBookingViewModel @Inject constructor(
     fun cancelBooking() {
         val booking = _uiState.value.currentBooking
         if (booking == null) {
-            // If just searching UI without active backend bookingId, close directly
-            countdownJob?.cancel()
-            rideBookingStatusCoordinator.stopObserving()
-            rideTrackingSessionManager.clearSession()
-            _uiState.update { it.copy(isSearchingDriver = false) }
+            resetBookingState()
             return
         }
 
@@ -309,22 +341,7 @@ class RideBookingViewModel @Inject constructor(
             val result = cancelRideBookingUseCase(booking.bookingId)
             when (result) {
                 is CancelRideBookingResult.Success -> {
-                    countdownJob?.cancel()
-                    rideBookingStatusCoordinator.stopObserving()
-                    rideBookingStatusCoordinator.clearSession()
-                    rideTrackingSessionManager.clearSession()
-                    _uiState.update {
-                        it.copy(
-                            isCancellingBooking = false,
-                            isSearchingDriver = false,
-                            currentBooking = null,
-                            assignedDriver = null,
-                            driverLiveLocation = null,
-                            liveDistanceKm = null,
-                            liveEtaMinutes = null,
-                            infoMessage = "Đã hủy chuyến xe thành công."
-                        )
-                    }
+                    resetBookingState("Đã hủy chuyến xe thành công.")
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
                 }
                 is CancelRideBookingResult.Error -> {
@@ -345,19 +362,26 @@ class RideBookingViewModel @Inject constructor(
     }
 
     fun dismissCompletedTrip() {
+        resetBookingState()
+    }
+
+    private fun resetBookingState(infoMsg: String? = null) {
+        countdownJob?.cancel()
+        rideBookingStatusCoordinator.stopObserving()
+        viewModelScope.launch { rideBookingStatusCoordinator.clearSession() }
+        rideTrackingSessionManager.clearSession()
         _uiState.update {
             it.copy(
+                isCancellingBooking = false,
+                isSearchingDriver = false,
                 currentBooking = null,
                 assignedDriver = null,
                 tripStatusMessage = null,
                 driverLiveLocation = null,
                 liveDistanceKm = null,
-                liveEtaMinutes = null
+                liveEtaMinutes = null,
+                infoMessage = infoMsg ?: it.infoMessage
             )
-        }
-        viewModelScope.launch {
-            rideBookingStatusCoordinator.clearSession()
-            rideTrackingSessionManager.clearSession()
         }
     }
 

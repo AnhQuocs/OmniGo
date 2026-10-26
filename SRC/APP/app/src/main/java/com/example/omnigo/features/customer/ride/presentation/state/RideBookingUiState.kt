@@ -37,6 +37,11 @@ data class LocationPoint(
     }
 }
 
+enum class LocationTarget {
+    PICKUP,
+    DROPOFF
+}
+
 data class RideBookingUiState(
     val pickupLocation: LocationPoint? = null,
     val dropoffLocation: LocationPoint? = null,
@@ -58,7 +63,14 @@ data class RideBookingUiState(
     val driverLiveLocation: DriverLiveLocation? = null,
     val liveDistanceKm: Double? = null,
     val liveEtaMinutes: Int? = null,
-    val showSearchTimeoutDialog: Boolean = false
+    val showSearchTimeoutDialog: Boolean = false,
+    val selectedVehicleType: com.example.omnigo.features.auth.domain.model.VehicleType = com.example.omnigo.features.auth.domain.model.VehicleType.BIKE,
+    val vehicleEstimates: Map<com.example.omnigo.features.auth.domain.model.VehicleType, PricingEstimate> = emptyMap(),
+    val nearbyDrivers: List<com.example.omnigo.features.customer.ride.domain.model.NearbyDriver> = emptyList(),
+    val isMapPinPicking: Boolean = false,
+    val pinPickingTarget: LocationTarget? = null,
+    val pinPickedLocation: LocationPoint? = null,
+    val isGeocodingPin: Boolean = false
 ) {
     val isTripActive: Boolean
         get() = currentBooking != null && (

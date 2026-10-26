@@ -60,6 +60,7 @@ fun RideLocationPickerSection(
     onSelectPickup: (LocationPoint) -> Unit,
     onSelectDropoff: (LocationPoint) -> Unit,
     onSwapClick: () -> Unit,
+    onOpenMapPicker: (com.example.omnigo.features.customer.ride.presentation.state.LocationTarget) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -111,7 +112,8 @@ fun RideLocationPickerSection(
                         label = stringResource(id = R.string.ride_pickup_label),
                         point = pickupLocation,
                         placeholder = stringResource(id = R.string.ride_pickup_hint),
-                        isPickup = true
+                        isPickup = true,
+                        onMapPickClick = { onOpenMapPicker(com.example.omnigo.features.customer.ride.presentation.state.LocationTarget.PICKUP) }
                     )
 
                     Spacer(modifier = Modifier.height(AppSpacing.S))
@@ -130,7 +132,8 @@ fun RideLocationPickerSection(
                         label = stringResource(id = R.string.ride_dropoff_label),
                         point = dropoffLocation,
                         placeholder = stringResource(id = R.string.ride_dropoff_hint),
-                        isPickup = false
+                        isPickup = false,
+                        onMapPickClick = { onOpenMapPicker(com.example.omnigo.features.customer.ride.presentation.state.LocationTarget.DROPOFF) }
                     )
                 }
 
@@ -248,29 +251,66 @@ private fun LocationRow(
     point: LocationPoint?,
     placeholder: String,
     isPickup: Boolean,
+    onMapPickClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.s10.medium(),
-            color = if (isPickup) PrimaryColor else SecondaryColor
-        )
-        Text(
-            text = point?.name ?: placeholder,
-            style = MaterialTheme.typography.s14.bold(),
-            color = if (point != null) TextPrimary else TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        if (point != null && point.address.isNotBlank()) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AppShape.ShapeS))
+            .clickable { onMapPickClick() }
+            .padding(vertical = Dimen.PaddingXXS),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = point.address,
-                style = MaterialTheme.typography.s12.medium(),
-                color = TextSecondary,
+                text = label,
+                style = MaterialTheme.typography.s10.medium(),
+                color = if (isPickup) PrimaryColor else SecondaryColor
+            )
+            Text(
+                text = point?.name ?: placeholder,
+                style = MaterialTheme.typography.s14.bold(),
+                color = if (point != null) TextPrimary else TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            if (point != null && point.address.isNotBlank()) {
+                Text(
+                    text = point.address,
+                    style = MaterialTheme.typography.s12.medium(),
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(AppShape.ShapeS),
+            color = if (isPickup) PrimaryColor.copy(alpha = 0.08f) else SecondaryColor.copy(alpha = 0.08f),
+            modifier = Modifier
+                .padding(start = Dimen.PaddingXS)
+                .clickable { onMapPickClick() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = null,
+                    tint = if (isPickup) PrimaryColor else SecondaryColor,
+                    modifier = Modifier.size(Dimen.SizeS)
+                )
+                Spacer(modifier = Modifier.width(AppSpacing.XXS))
+                Text(
+                    text = stringResource(id = R.string.ride_map_pin_badge),
+                    style = MaterialTheme.typography.s10.semiBold(),
+                    color = if (isPickup) PrimaryColor else SecondaryColor
+                )
+            }
         }
     }
 }

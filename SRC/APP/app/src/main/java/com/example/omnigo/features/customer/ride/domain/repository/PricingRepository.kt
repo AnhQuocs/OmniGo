@@ -8,6 +8,7 @@ interface PricingRepository {
         startLongitude: Double,
         endLatitude: Double,
         endLongitude: Double,
-        nearbyDriversCount: Int = 0
+        nearbyDriversCount: Int = 0,
+        vehicleType: String? = "BIKE"
     ): CalculateRidePricingResult
 }

@@ -61,4 +61,11 @@ interface RideBookingApi {
 
     @GET(ApiEndpoints.BOOKINGS_DRIVER_DAILY_REPORT)
     suspend fun getDriverDailyReport(): ApiResponse<DriverDailyReportDto>
+
+    @GET(ApiEndpoints.LOCATIONS_NEARBY)
+    suspend fun getNearbyDrivers(
+        @Query("longitude") longitude: Double,
+        @Query("latitude") latitude: Double,
+        @Query("radius") radius: Double = 5.0
+    ): List<com.example.omnigo.features.customer.ride.data.remote.dto.DriverLocationResponse>
 }

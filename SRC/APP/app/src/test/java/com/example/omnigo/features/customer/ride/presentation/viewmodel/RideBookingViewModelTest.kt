@@ -15,7 +15,10 @@ import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
 import com.example.omnigo.features.customer.ride.domain.usecase.CalculateRidePricingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CreateRideBookingUseCase
+import com.example.omnigo.features.customer.ride.domain.usecase.GetNearbyDriversUseCase
+import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
+import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -47,6 +50,7 @@ class RideBookingViewModelTest {
     private lateinit var cancelRideBookingUseCase: CancelRideBookingUseCase
     private lateinit var detectCurrentLocationUseCase: DetectCurrentLocationUseCase
     private lateinit var savedAddressRepository: SavedAddressRepository
+    private lateinit var getNearbyDriversUseCase: GetNearbyDriversUseCase
     private lateinit var rideTrackingSessionManager: com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
     private val activeRideStateFlow = kotlinx.coroutines.flow.MutableStateFlow<com.example.omnigo.features.customer.ride.domain.model.ActiveRideState?>(null)
 
@@ -104,6 +108,8 @@ class RideBookingViewModelTest {
         cancelRideBookingUseCase = mockk()
         detectCurrentLocationUseCase = mockk()
         savedAddressRepository = mockk()
+        getNearbyDriversUseCase = mockk(relaxed = true)
+        coEvery { getNearbyDriversUseCase(any(), any(), any()) } returns emptyList()
         rideTrackingSessionManager = mockk(relaxed = true)
         every { rideTrackingSessionManager.activeRideState } returns activeRideStateFlow
 
@@ -124,7 +130,8 @@ class RideBookingViewModelTest {
             detectCurrentLocationUseCase = detectCurrentLocationUseCase,
             savedAddressRepository = savedAddressRepository,
             rideBookingStatusCoordinator = mockk(relaxed = true),
-            rideTrackingSessionManager = rideTrackingSessionManager
+            rideTrackingSessionManager = rideTrackingSessionManager,
+            getNearbyDriversUseCase = getNearbyDriversUseCase
         )
     }
 
@@ -296,5 +303,58 @@ class RideBookingViewModelTest {
         assertFalse(state.isSearchingDriver)
         assertNull(state.currentBooking)
         assertNotNull(state.infoMessage)
+    }
+
+    @Test
+    fun `selectVehicleType updates selected vehicle and triggers recalculation`() = runTest {
+        coEvery {
+            calculateRidePricingUseCase(any(), any(), any(), any(), any(), any())
+        } returns CalculateRidePricingResult.Success(sampleEstimate)
+
+        initViewModel()
+        advanceUntilIdle()
+
+        val dropoff = LocationPoint(
+            name = "Office",
+            address = "456 Ba Trieu",
+            latitude = 21.0100,
+            longitude = 105.8500
+        )
+        viewModel.setDropoffLocation(dropoff)
+        advanceUntilIdle()
+
+        viewModel.selectVehicleType(VehicleType.CAR_4_SEAT)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(VehicleType.CAR_4_SEAT, state.selectedVehicleType)
+    }
+
+    @Test
+    fun `map pin picking flow opens picker and confirms new pickup location`() = runTest {
+        coEvery {
+            calculateRidePricingUseCase(any(), any(), any(), any(), any(), any())
+        } returns CalculateRidePricingResult.Success(sampleEstimate)
+
+        initViewModel()
+        advanceUntilIdle()
+
+        viewModel.startMapPinPicking(LocationTarget.PICKUP)
+        assertTrue(viewModel.uiState.value.isMapPinPicking)
+        assertEquals(LocationTarget.PICKUP, viewModel.uiState.value.pinPickingTarget)
+
+        val pinnedPoint = LocationPoint(
+            name = "Pinned Point",
+            address = "123 Pinned Road",
+            latitude = 10.77,
+            longitude = 106.70
+        )
+        viewModel.confirmMapPinLocation(pinnedPoint)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isMapPinPicking)
+        assertNotNull(state.pickupLocation)
+        assertEquals("Pinned Point", state.pickupLocation!!.name)
     }
 }

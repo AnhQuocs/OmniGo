@@ -580,6 +580,22 @@
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
 
+    <!-- RIDE REVAMP & VEHICLE SELECTION -->
+    <string name="ride_surge_banner_text">Nhu cầu xe tăng cao • Giá đang nhân x%1$s (Giờ cao điểm)</string>
+    <string name="ride_vehicle_bike_title">OmniBike</string>
+    <string name="ride_vehicle_bike_desc">1 người ngồi • Nhanh &amp; tiện lợi</string>
+    <string name="ride_vehicle_car4_title">OmniCar 4</string>
+    <string name="ride_vehicle_car4_desc">4 chỗ • Êm ái &amp; có máy lạnh</string>
+    <string name="ride_vehicle_car7_title">OmniCar 7</string>
+    <string name="ride_vehicle_car7_desc">7 chỗ • Rộng rãi cho nhóm &amp; vali</string>
+    <string name="ride_map_pin_badge">Ghim Map</string>
+    <string name="ride_pin_picker_title_pickup">Chọn điểm đón trên bản đồ</string>
+    <string name="ride_pin_picker_title_dropoff">Chọn điểm đến trên bản đồ</string>
+    <string name="ride_pin_picker_detecting">Đang xác định toạ độ…</string>
+    <string name="ride_pin_picker_btn_confirm_pickup">Xác nhận điểm đón tại đây</string>
+    <string name="ride_pin_picker_btn_confirm_dropoff">Xác nhận điểm đến tại đây</string>
+    <string name="ride_pin_picker_drag_hint">Kéo bản đồ để chọn chính xác vị trí ghim</string>
+
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">Chuyến xe chở khách mới</string>
     <string name="driver_ride_offer_pickup">Điểm đón khách</string>

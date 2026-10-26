@@ -46,4 +46,10 @@ interface RideBookingRepository {
     suspend fun getCustomerBookings(): GetCustomerBookingsResult
 
     suspend fun getDriverDailyReport(): GetDriverDailyReportResult
+
+    suspend fun getNearbyDrivers(
+        latitude: Double,
+        longitude: Double,
+        radius: Double = 5.0
+    ): List<com.example.omnigo.features.customer.ride.domain.model.NearbyDriver>
 }
