@@ -312,7 +312,8 @@ export const Vouchers = () => {
         }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || (editingVoucher ? 'Lỗi khi cập nhật mã khuyến mãi' : 'Lỗi khi tạo mã khuyến mãi'));
+      console.error('Lỗi khi lưu voucher:', err);
+      toast.error(err.response?.data?.message || err.message || (editingVoucher ? 'Lỗi khi cập nhật mã khuyến mãi' : 'Lỗi khi tạo mã khuyến mãi'));
     } finally {
       setSubmitting(false);
     }
