@@ -37,6 +37,19 @@ public class AdminVoucherController {
                 .build(), HttpStatus.CREATED);
     }
 
+    @PutMapping("/{code}")
+    public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(
+            @PathVariable String code,
+            @Valid @RequestBody CreateVoucherRequest request) {
+        VoucherResponse response = voucherService.updateVoucher(code, request);
+        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
+                .success(true)
+                .message("Cập nhật thông tin voucher thành công!")
+                .data(response)
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<VoucherResponse>>> getAllVouchers() {
         List<VoucherResponse> list = voucherService.getAllVouchers();

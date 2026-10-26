@@ -41,8 +41,11 @@ import {
 import toast from 'react-hot-toast';
 import pricingService from '../services/pricingService';
 import dispatchConfigService from '../services/dispatchConfigService';
+import { useColorMode } from '../context/ThemeContext';
 
 export const Pricing = () => {
+  const { mode } = useColorMode();
+  const isDark = mode === 'dark';
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -374,37 +377,65 @@ export const Pricing = () => {
         </Stack>
       </Box>
 
-      {/* 2 Tabs chính */}
-      <Paper sx={{ borderRadius: 2.5, mb: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider', overflow: 'hidden' }}>
+      {/* 2 Tabs chính cân xứng, hiện đại */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          mb: 3,
+          p: 0.6,
+          bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+          border: 1,
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        }}
+      >
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
-          indicatorColor="primary"
-          textColor="primary"
+          variant="fullWidth"
+          TabIndicatorProps={{ style: { display: 'none' } }}
           sx={{
-            minHeight: { xs: 48, sm: 54 },
+            minHeight: { xs: 46, sm: 52 },
+            '& .MuiTabs-flexContainer': {
+              gap: 1,
+            },
             '& .MuiTab-root': {
+              flex: 1,
+              borderRadius: 2.5,
               textTransform: 'none',
               fontWeight: 700,
-              fontSize: { xs: '0.82rem', sm: '0.92rem' },
-              py: { xs: 1.2, sm: 1.6 },
-              px: { xs: 2, sm: 3 },
-              minHeight: { xs: 48, sm: 54 },
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s',
+              fontSize: { xs: '0.85rem', sm: '0.96rem' },
+              minHeight: { xs: 46, sm: 52 },
+              color: 'text.secondary',
+              py: { xs: 1.1, sm: 1.4 },
+              px: { xs: 1.5, sm: 3 },
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1.2,
+              '&:hover:not(.Mui-selected)': {
+                bgcolor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.6)',
+                color: 'text.primary',
+              },
+              '&.Mui-selected': {
+                bgcolor: isDark ? '#1e293b' : '#ffffff',
+                color: '#008cff',
+                boxShadow: isDark
+                  ? '0 4px 14px rgba(0, 0, 0, 0.4)'
+                  : '0 2px 10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05)',
+              },
             },
           }}
         >
           <Tab
-            icon={<PricingIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+            icon={<PricingIcon sx={{ fontSize: { xs: 19, sm: 22 } }} />}
             iconPosition="start"
             label="Bảng Giá Cước & Thuật Toán Động"
           />
           <Tab
-            icon={<DispatchIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+            icon={<DispatchIcon sx={{ fontSize: { xs: 19, sm: 22 } }} />}
             iconPosition="start"
             label="Cấu Hình Bán Kính Điều Phối"
           />

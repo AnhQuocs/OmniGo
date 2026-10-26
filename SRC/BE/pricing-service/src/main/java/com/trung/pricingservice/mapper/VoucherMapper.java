@@ -37,8 +37,11 @@ public class VoucherMapper {
         int remaining = voucher.getTotalUsageLimit() <= 0 ? -1 : Math.max(0, voucher.getTotalUsageLimit() - voucher.getUsedCount());
 
         VoucherStatus calculatedStatus = voucher.getStatus();
+        LocalDateTime now = LocalDateTime.now();
         if (voucher.isExpired()) {
             calculatedStatus = VoucherStatus.EXPIRED;
+        } else if (voucher.getStartAt() != null && now.isBefore(voucher.getStartAt())) {
+            calculatedStatus = VoucherStatus.UPCOMING;
         }
 
         return VoucherResponse.builder()
