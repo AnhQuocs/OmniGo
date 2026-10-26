@@ -8,4 +8,5 @@ interface LocationTracker {
     suspend fun getCurrentLocation(): UserLocation?
     suspend fun getAddressFromCoordinates(latitude: Double, longitude: Double): String?
     suspend fun getCoordinatesFromAddress(address: String): Pair<Double, Double>?
+    suspend fun searchPlaces(query: String): List<UserLocation>
 }

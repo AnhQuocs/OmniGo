@@ -36,6 +36,7 @@ fun RideMapCanvas(
     dropoffLocation: LocationPoint?,
     nearbyDrivers: List<NearbyDriver>,
     selectedVehicleType: VehicleType,
+    routeCoordinates: List<Pair<Double, Double>> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val initialLat = pickupLocation?.latitude ?: DEFAULT_LATITUDE
@@ -115,15 +116,12 @@ fun RideMapCanvas(
                 )
             }
 
-            // Direct route polyline connecting Pickup and Dropoff
-            if (pickupLocation != null && dropoffLocation != null) {
+            // Real road network route polyline connecting Pickup and Dropoff
+            if (routeCoordinates.isNotEmpty()) {
                 Polyline(
-                    points = listOf(
-                        LatLng(pickupLocation.latitude, pickupLocation.longitude),
-                        LatLng(dropoffLocation.latitude, dropoffLocation.longitude)
-                    ),
+                    points = routeCoordinates.map { LatLng(it.first, it.second) },
                     color = PrimaryColor,
-                    width = 8f
+                    width = 10f
                 )
             }
 

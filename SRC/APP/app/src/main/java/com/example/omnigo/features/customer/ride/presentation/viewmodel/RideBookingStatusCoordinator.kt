@@ -10,6 +10,8 @@ import com.example.omnigo.features.customer.ride.domain.usecase.ObserveRideBooki
 import com.example.omnigo.features.customer.ride.domain.util.BearingCalculator
 import com.example.omnigo.features.customer.ride.domain.util.LiveTrackingCalculator
 import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
+import com.example.omnigo.R
+import com.example.omnigo.utils.UiText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.firstOrNull
@@ -112,7 +114,7 @@ class RideBookingStatusCoordinator @Inject constructor(
                         isSearchingDriver = false,
                         currentBooking = null,
                         assignedDriver = null,
-                        infoMessage = STATUS_CANCELLED_MSG,
+                        infoMessage = UiText.StringResource(R.string.ride_booking_cancelled_success),
                         tripStatusMessage = null
                     )
                 }

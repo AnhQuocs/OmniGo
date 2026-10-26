@@ -14,6 +14,7 @@ import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingR
 import com.example.omnigo.features.customer.ride.domain.usecase.CalculateRidePricingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CreateRideBookingUseCase
+import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
 import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
 import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
 import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
@@ -33,11 +34,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface RideBookingEvent {
-    data class ShowToast(val message: String) : RideBookingEvent
-    data class BookingCreated(val bookingId: Long) : RideBookingEvent
-    data object BookingCancelled : RideBookingEvent
-}
+import com.example.omnigo.core.location.tracker.OsrmRoutingService
+import kotlinx.coroutines.async
+import com.example.omnigo.R
+import com.example.omnigo.utils.UiText
 
 @HiltViewModel
 class RideBookingViewModel @Inject constructor(
@@ -48,7 +48,9 @@ class RideBookingViewModel @Inject constructor(
     private val savedAddressRepository: SavedAddressRepository,
     private val rideBookingStatusCoordinator: RideBookingStatusCoordinator,
     private val rideTrackingSessionManager: RideTrackingSessionManager,
-    private val getNearbyDriversUseCase: GetNearbyDriversUseCase
+    private val getNearbyDriversUseCase: GetNearbyDriversUseCase,
+    private val ridePlaceSearchCoordinator: RidePlaceSearchCoordinator,
+    private val osrmRoutingService: OsrmRoutingService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideBookingUiState())
@@ -109,24 +111,17 @@ class RideBookingViewModel @Inject constructor(
             when (val result = detectCurrentLocationUseCase()) {
                 is DetectLocationResult.Success -> {
                     val locationPoint = LocationPoint.fromUserLocation(result.location)
-                    _uiState.update {
-                        it.copy(
-                            pickupLocation = locationPoint,
-                            isLocatingCurrentPosition = false
-                        )
-                    }
+                    _uiState.update { it.copy(pickupLocation = locationPoint, isLocatingCurrentPosition = false) }
                     loadNearbyDrivers(locationPoint.latitude, locationPoint.longitude)
                     recalculatePricingIfNeeded()
                 }
-                else -> {
-                    _uiState.update { it.copy(isLocatingCurrentPosition = false) }
-                }
+                else -> _uiState.update { it.copy(isLocatingCurrentPosition = false) }
             }
         }
     }
 
     fun setPickupLocation(location: LocationPoint) {
-        _uiState.update { it.copy(pickupLocation = location, errorMessage = null) }
+        _uiState.update { it.copy(pickupLocation = location, isPickupPinConfirmed = true, errorMessage = null) }
         loadNearbyDrivers(location.latitude, location.longitude)
         recalculatePricingIfNeeded()
     }
@@ -138,44 +133,95 @@ class RideBookingViewModel @Inject constructor(
 
     fun selectVehicleType(type: VehicleType) {
         if (_uiState.value.selectedVehicleType == type) return
+        val estimate = _uiState.value.vehicleEstimates[type]
         _uiState.update {
             it.copy(
-                selectedVehicleType = type,
-                pricingEstimate = it.vehicleEstimates[type] ?: it.pricingEstimate
+                selectedVehicleType = type, pricingEstimate = estimate,
+                pricingError = if (estimate == null && !it.isCalculatingPrice) UiText.StringResource(R.string.ride_pricing_unavailable) else null
             )
         }
-        recalculatePricingIfNeeded()
+        updateRouteForSelectedVehicle()
     }
 
-    fun startMapPinPicking(target: LocationTarget) {
-        _uiState.update { it.copy(isMapPinPicking = true, pinPickingTarget = target) }
+    private fun updateRouteForSelectedVehicle() {
+        val pickup = _uiState.value.pickupLocation ?: return
+        val dropoff = _uiState.value.dropoffLocation ?: return
+        val selectedType = _uiState.value.selectedVehicleType
+        viewModelScope.launch {
+            val coords = osrmRoutingService.getRouteCoordinates(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, selectedType.name)
+            if (coords.isNotEmpty()) _uiState.update { it.copy(routeCoordinates = coords) }
+        }
+    }
+
+    fun openPlaceSearch(target: LocationTarget) = ridePlaceSearchCoordinator.openPlaceSearch(target) { _uiState.update(it) }
+    fun closePlaceSearch() = ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
+    fun updateSearchQuery(query: String) = ridePlaceSearchCoordinator.updateSearchQuery(viewModelScope, query) { _uiState.update(it) }
+
+    fun selectSearchResult(point: LocationPoint) {
+        val target = _uiState.value.searchTarget
+        ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
+        if (target == LocationTarget.DROPOFF && !_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) {
+            _uiState.update { it.copy(pendingDropoffPinLocation = point) }
+            startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation)
+        } else {
+            startMapPinPicking(target, point)
+        }
+    }
+
+    fun selectCurrentLocation(currentLocationName: String) {
+        val target = _uiState.value.searchTarget
+        ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLocatingCurrentPosition = true) }
+            when (val result = detectCurrentLocationUseCase()) {
+                is DetectLocationResult.Success -> {
+                    val point = LocationPoint(currentLocationName, result.location.fullAddress.ifBlank { result.location.addressName }, result.location.latitude, result.location.longitude, isCurrentLocation = true)
+                    _uiState.update { it.copy(isLocatingCurrentPosition = false) }
+                    if (target == LocationTarget.PICKUP) {
+                        _uiState.update { it.copy(pickupLocation = point, isPickupPinConfirmed = false) }
+                        startMapPinPicking(LocationTarget.PICKUP, point)
+                    } else if (!_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) {
+                        _uiState.update { it.copy(pendingDropoffPinLocation = point) }
+                        startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation)
+                    } else {
+                        startMapPinPicking(LocationTarget.DROPOFF, point)
+                    }
+                }
+                else -> _uiState.update { it.copy(isLocatingCurrentPosition = false, errorMessage = UiText.StringResource(R.string.ride_gps_required_msg)) }
+            }
+        }
+    }
+
+    fun startMapPinPicking(target: LocationTarget, initialPoint: LocationPoint? = null) {
+        _uiState.update { it.copy(isMapPinPicking = true, pinPickingTarget = target, pinPickedLocation = initialPoint) }
     }
 
     fun confirmMapPinLocation(point: LocationPoint) {
         val target = _uiState.value.pinPickingTarget
-        _uiState.update {
-            it.copy(
-                isMapPinPicking = false,
-                pinPickingTarget = null,
-                pickupLocation = if (target == LocationTarget.PICKUP) point else it.pickupLocation,
-                dropoffLocation = if (target == LocationTarget.DROPOFF) point else it.dropoffLocation
-            )
-        }
         if (target == LocationTarget.PICKUP) {
             loadNearbyDrivers(point.latitude, point.longitude)
+            val pendingDropoff = _uiState.value.pendingDropoffPinLocation
+            if (pendingDropoff != null) {
+                _uiState.update { it.copy(pickupLocation = point, isPickupPinConfirmed = true, pendingDropoffPinLocation = null, pinPickingTarget = LocationTarget.DROPOFF, pinPickedLocation = pendingDropoff) }
+            } else {
+                val currentDropoff = _uiState.value.dropoffLocation
+                val info = if (currentDropoff == null) UiText.StringResource(R.string.ride_pickup_confirmed_hint) else null
+                _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, pickupLocation = point, isPickupPinConfirmed = true, infoMessage = info) }
+                if (currentDropoff == null) openPlaceSearch(LocationTarget.DROPOFF) else recalculatePricingIfNeeded()
+            }
+        } else {
+            _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, dropoffLocation = point, pendingDropoffPinLocation = null) }
+            recalculatePricingIfNeeded()
         }
-        recalculatePricingIfNeeded()
     }
 
-    fun cancelMapPinPicking() {
-        _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null) }
+    fun cancelMapPinPicking() = _uiState.update {
+        it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, pendingDropoffPinLocation = null)
     }
 
-    fun loadNearbyDrivers(lat: Double, lng: Double) {
-        viewModelScope.launch {
-            val drivers = getNearbyDriversUseCase(lat, lng)
-            _uiState.update { it.copy(nearbyDrivers = drivers) }
-        }
+    fun loadNearbyDrivers(lat: Double, lng: Double) = viewModelScope.launch {
+        val drivers = getNearbyDriversUseCase(lat, lng)
+        _uiState.update { it.copy(nearbyDrivers = drivers) }
     }
 
     fun swapLocations() {
@@ -183,15 +229,9 @@ class RideBookingViewModel @Inject constructor(
         val currentDropoff = _uiState.value.dropoffLocation
         if (currentPickup != null || currentDropoff != null) {
             _uiState.update {
-                it.copy(
-                    pickupLocation = currentDropoff,
-                    dropoffLocation = currentPickup,
-                    errorMessage = null
-                )
+                it.copy(pickupLocation = currentDropoff, dropoffLocation = currentPickup, isPickupPinConfirmed = true, errorMessage = null)
             }
-            if (currentDropoff != null) {
-                loadNearbyDrivers(currentDropoff.latitude, currentDropoff.longitude)
-            }
+            if (currentDropoff != null) loadNearbyDrivers(currentDropoff.latitude, currentDropoff.longitude)
             recalculatePricingIfNeeded()
         }
     }
@@ -199,20 +239,12 @@ class RideBookingViewModel @Inject constructor(
     private fun recalculatePricingIfNeeded() {
         val pickup = _uiState.value.pickupLocation
         val dropoff = _uiState.value.dropoffLocation
-
         if (pickup == null || dropoff == null) {
-            _uiState.update { it.copy(pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null) }
+            _uiState.update { it.copy(pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null, routeCoordinates = emptyList()) }
             return
         }
-
         if (pickup.latitude == dropoff.latitude && pickup.longitude == dropoff.longitude) {
-            _uiState.update {
-                it.copy(
-                    pricingEstimate = null,
-                    vehicleEstimates = emptyMap(),
-                    pricingError = "Điểm đón và điểm đến không thể trùng nhau"
-                )
-            }
+            _uiState.update { it.copy(pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = UiText.StringResource(R.string.ride_error_same_locations), routeCoordinates = emptyList()) }
             return
         }
 
@@ -220,40 +252,39 @@ class RideBookingViewModel @Inject constructor(
         priceCalculationJob?.cancel()
         priceCalculationJob = viewModelScope.launch {
             _uiState.update { it.copy(isCalculatingPrice = true, pricingError = null) }
-            val result = calculateRidePricingUseCase(
-                startLatitude = pickup.latitude,
-                startLongitude = pickup.longitude,
-                endLatitude = dropoff.latitude,
-                endLongitude = dropoff.longitude,
-                vehicleType = selectedType.name
-            )
-            when (result) {
-                is CalculateRidePricingResult.Success -> {
-                    val base = result.estimate
-                    val estimates = mapOf(
-                        VehicleType.BIKE to base,
-                        VehicleType.CAR_4_SEAT to base.copy(totalPrice = base.totalPrice * 1.5),
-                        VehicleType.CAR_7_SEAT to base.copy(totalPrice = base.totalPrice * 2.0)
-                    )
-                    _uiState.update {
-                        it.copy(
-                            isCalculatingPrice = false,
-                            pricingEstimate = estimates[selectedType] ?: base,
-                            vehicleEstimates = estimates,
-                            pricingError = null
-                        )
-                    }
-                }
-                is CalculateRidePricingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isCalculatingPrice = false,
-                            pricingEstimate = null,
-                            vehicleEstimates = emptyMap(),
-                            pricingError = result.message ?: "Không thể tính cước phí chuyến đi"
-                        )
-                    }
-                }
+            val bikeDeferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "BIKE") }
+            val car4Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "CAR_4_SEAT") }
+            val car7Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "CAR_7_SEAT") }
+            val routeDeferred = async { osrmRoutingService.getRouteCoordinates(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, selectedType.name) }
+
+            val bikeRes = bikeDeferred.await()
+            val car4Res = car4Deferred.await()
+            val car7Res = car7Deferred.await()
+            val routeCoords = routeDeferred.await()
+
+            val estimates = buildMap {
+                if (bikeRes is CalculateRidePricingResult.Success) put(VehicleType.BIKE, bikeRes.estimate)
+                if (car4Res is CalculateRidePricingResult.Success) put(VehicleType.CAR_4_SEAT, car4Res.estimate)
+                if (car7Res is CalculateRidePricingResult.Success) put(VehicleType.CAR_7_SEAT, car7Res.estimate)
+            }
+            val selectedResult = when (selectedType) {
+                VehicleType.BIKE -> bikeRes
+                VehicleType.CAR_4_SEAT -> car4Res
+                VehicleType.CAR_7_SEAT -> car7Res
+                else -> null
+            }
+            val errorUiText: UiText? = when {
+                estimates.isEmpty() -> (bikeRes as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
+                    ?: (car4Res as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
+                    ?: (car7Res as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
+                    ?: UiText.StringResource(R.string.ride_pricing_failed)
+                selectedResult is CalculateRidePricingResult.Error -> selectedResult.message?.let { UiText.DynamicString(it) }
+                    ?: UiText.StringResource(R.string.ride_pricing_failed)
+                else -> null
+            }
+
+            _uiState.update {
+                it.copy(isCalculatingPrice = false, pricingEstimate = estimates[selectedType], vehicleEstimates = estimates, pricingError = errorUiText, routeCoordinates = routeCoords)
             }
         }
     }
@@ -261,46 +292,35 @@ class RideBookingViewModel @Inject constructor(
     fun createBooking() {
         val pickup = _uiState.value.pickupLocation
         val dropoff = _uiState.value.dropoffLocation
-
         if (pickup == null || dropoff == null) {
-            _uiState.update { it.copy(errorMessage = "Vui lòng chọn đầy đủ điểm đón và điểm đến") }
+            _uiState.update { it.copy(errorMessage = UiText.StringResource(R.string.ride_error_incomplete_locations)) }
             return
         }
-
         if (_uiState.value.isCreatingBooking || _uiState.value.isSearchingDriver) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCreatingBooking = true, errorMessage = null) }
-            val result = createRideBookingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude)
+            val selectedType = _uiState.value.selectedVehicleType
+            val result = createRideBookingUseCase(
+                startLatitude = pickup.latitude, startLongitude = pickup.longitude, endLatitude = dropoff.latitude, endLongitude = dropoff.longitude,
+                vehicleType = selectedType.name, pickupAddress = pickup.name.ifBlank { pickup.address }, dropoffAddress = dropoff.name.ifBlank { dropoff.address }
+            )
             when (result) {
                 is CreateRideBookingResult.Success -> {
                     val booking = result.booking
-                    _uiState.update {
-                        it.copy(
-                            isCreatingBooking = false,
-                            currentBooking = booking,
-                            isSearchingDriver = booking.status == BookingStatus.PENDING,
-                            searchCountdownSeconds = 60
-                        )
+                    if (booking.status == BookingStatus.CANCELLED) {
+                        _uiState.update { it.copy(isCreatingBooking = false, isSearchingDriver = false, currentBooking = null, errorMessage = UiText.StringResource(R.string.ride_error_no_driver_found)) }
+                    } else {
+                        _uiState.update { it.copy(isCreatingBooking = false, currentBooking = booking, isSearchingDriver = booking.status == BookingStatus.PENDING, searchCountdownSeconds = 60) }
+                        _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
+                        rideTrackingSessionManager.startSession(booking, pickup.name.ifBlank { pickup.address }, dropoff.name.ifBlank { dropoff.address })
+                        rideBookingStatusCoordinator.startObserving(viewModelScope, booking.bookingId, { _uiState.update(it) }, { _uiState.value })
+                        if (booking.status == BookingStatus.PENDING) startSearchCountdown()
                     }
-                    _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
-                    rideTrackingSessionManager.startSession(
-                        booking = booking,
-                        pickupAddress = pickup.name.ifBlank { pickup.address },
-                        dropoffAddress = dropoff.name.ifBlank { dropoff.address }
-                    )
-                    rideBookingStatusCoordinator.startObserving(
-                        scope = viewModelScope,
-                        bookingId = booking.bookingId,
-                        updateState = { _uiState.update(it) },
-                        getState = { _uiState.value }
-                    )
-                    if (booking.status == BookingStatus.PENDING) startSearchCountdown()
                 }
                 is CreateRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(isCreatingBooking = false, errorMessage = result.message ?: "Không thể tạo yêu cầu đặt xe")
-                    }
+                    val errorUi = result.message?.let { UiText.DynamicString(it) } ?: UiText.StringResource(R.string.ride_error_create_failed)
+                    _uiState.update { it.copy(isCreatingBooking = false, errorMessage = errorUi) }
                 }
             }
         }
@@ -322,77 +342,53 @@ class RideBookingViewModel @Inject constructor(
         startSearchCountdown()
     }
 
-    fun dismissSearchTimeoutDialog() {
-        _uiState.update { it.copy(showSearchTimeoutDialog = false) }
-        cancelBooking()
-    }
+    fun dismissSearchTimeoutDialog() { _uiState.update { it.copy(showSearchTimeoutDialog = false) }; cancelBooking() }
 
     fun cancelBooking() {
-        val booking = _uiState.value.currentBooking
-        if (booking == null) {
-            resetBookingState()
-            return
-        }
-
+        val booking = _uiState.value.currentBooking ?: run { resetBookingState(); return }
         if (_uiState.value.isCancellingBooking) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCancellingBooking = true, errorMessage = null) }
-            val result = cancelRideBookingUseCase(booking.bookingId)
-            when (result) {
+            when (val result = cancelRideBookingUseCase(booking.bookingId)) {
                 is CancelRideBookingResult.Success -> {
-                    resetBookingState("Đã hủy chuyến xe thành công.")
+                    resetBookingState(UiText.StringResource(R.string.ride_booking_cancelled_success))
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
                 }
                 is CancelRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isCancellingBooking = false,
-                            errorMessage = result.message ?: "Không thể hủy chuyến xe lúc này"
-                        )
-                    }
+                    val errorUi = result.message?.let { UiText.DynamicString(it) }
+                        ?: UiText.StringResource(R.string.ride_error_cancel_failed)
+                    _uiState.update { it.copy(isCancellingBooking = false, errorMessage = errorUi) }
                 }
             }
         }
     }
 
-    fun dismissRadar() {
-        countdownJob?.cancel()
-        _uiState.update { it.copy(isSearchingDriver = false) }
-    }
+    fun dismissRadar() { countdownJob?.cancel(); _uiState.update { it.copy(isSearchingDriver = false) } }
 
-    fun dismissCompletedTrip() {
-        resetBookingState()
-    }
+    fun dismissCompletedTrip() = resetBookingState()
 
-    private fun resetBookingState(infoMsg: String? = null) {
+    private fun resetBookingState(infoMsg: UiText? = null) {
         countdownJob?.cancel()
         rideBookingStatusCoordinator.stopObserving()
         viewModelScope.launch { rideBookingStatusCoordinator.clearSession() }
         rideTrackingSessionManager.clearSession()
         _uiState.update {
             it.copy(
-                isCancellingBooking = false,
-                isSearchingDriver = false,
-                currentBooking = null,
-                assignedDriver = null,
-                tripStatusMessage = null,
-                driverLiveLocation = null,
-                liveDistanceKm = null,
-                liveEtaMinutes = null,
+                isCancellingBooking = false, isSearchingDriver = false, currentBooking = null, assignedDriver = null,
+                tripStatusMessage = null, driverLiveLocation = null, liveDistanceKm = null, liveEtaMinutes = null,
                 infoMessage = infoMsg ?: it.infoMessage
             )
         }
     }
 
-    fun clearMessages() {
-        _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
-    }
+    fun clearMessages() = _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
 
     override fun onCleared() {
         super.onCleared()
         countdownJob?.cancel()
         priceCalculationJob?.cancel()
         rideBookingStatusCoordinator.stopObserving()
+        ridePlaceSearchCoordinator.cancel()
     }
 }

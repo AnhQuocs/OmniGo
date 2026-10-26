@@ -25,7 +25,8 @@ import kotlin.coroutines.resume
 @Singleton
 class DefaultLocationTracker @Inject constructor(
     private val locationClient: FusedLocationProviderClient,
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val placesSearchService: PlacesSearchService
 ) : LocationTracker {
 
     override fun isLocationPermissionGranted(): Boolean {
@@ -242,6 +243,66 @@ class DefaultLocationTracker @Inject constructor(
             } catch (e: Exception) {
                 null
             }
+        }
+    }
+
+    override suspend fun searchPlaces(query: String): List<UserLocation> {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) return emptyList()
+
+        // 1. Priority: Google Places SDK for real POIs (universities, hospitals, cafes, malls)
+        val placesResults = placesSearchService.searchPlaces(trimmed)
+        if (placesResults.isNotEmpty()) {
+            return placesResults
+        }
+
+        // 2. Fallback: Android Geocoder restricted to Vietnam Bounding Box
+        return searchPlacesWithGeocoder(trimmed)
+    }
+
+    private suspend fun searchPlacesWithGeocoder(query: String): List<UserLocation> = withContext(Dispatchers.IO) {
+        try {
+            val geocoder = Geocoder(context, Locale.forLanguageTag("vi-VN"))
+            // Vietnam Bounding Box: 8.18 Lat (South) to 23.40 Lat (North), 102.14 Lng (West) to 109.50 Lng (East)
+            val searchTarget = if (!query.contains("Việt Nam", true) && !query.contains("Vietnam", true)) {
+                "$query, Việt Nam"
+            } else query
+
+            val addresses: List<android.location.Address> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine { cont ->
+                    geocoder.getFromLocationName(searchTarget, 6, 8.18, 102.14, 23.40, 109.50) { results ->
+                        cont.resume(results ?: emptyList())
+                    }
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                geocoder.getFromLocationName(searchTarget, 6, 8.18, 102.14, 23.40, 109.50) ?: emptyList()
+            }
+
+            addresses.mapNotNull { address ->
+                val lat = address.latitude
+                val lng = address.longitude
+                if (lat == 0.0 && lng == 0.0) return@mapNotNull null
+                if (address.countryCode != null && !address.countryCode.equals("VN", ignoreCase = true)) return@mapNotNull null
+
+                val fullAddress = address.getAddressLine(0) ?: "$lat, $lng"
+                val rawFeature = address.featureName
+                val isGenericStreet = rawFeature != null && fullAddress.startsWith(rawFeature, ignoreCase = true)
+                val shortName = if (!isGenericStreet && !rawFeature.isNullOrBlank()) {
+                    rawFeature
+                } else {
+                    extractShortAddress(fullAddress)
+                }
+
+                UserLocation(
+                    latitude = lat,
+                    longitude = lng,
+                    addressName = shortName.ifBlank { query },
+                    fullAddress = fullAddress
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 

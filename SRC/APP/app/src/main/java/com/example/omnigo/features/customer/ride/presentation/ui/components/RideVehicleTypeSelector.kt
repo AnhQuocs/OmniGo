@@ -26,7 +26,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.example.omnigo.R
@@ -54,8 +55,7 @@ data class VehicleOption(
     val type: VehicleType,
     val titleResId: Int,
     val descResId: Int,
-    val icon: ImageVector,
-    val multiplier: Double
+    val icon: ImageVector
 )
 
 private val vehicleOptions = listOf(
@@ -63,22 +63,19 @@ private val vehicleOptions = listOf(
         type = VehicleType.BIKE,
         titleResId = R.string.ride_vehicle_bike_title,
         descResId = R.string.ride_vehicle_bike_desc,
-        icon = Icons.AutoMirrored.Filled.DirectionsBike,
-        multiplier = 1.0
+        icon = Icons.AutoMirrored.Filled.DirectionsBike
     ),
     VehicleOption(
         type = VehicleType.CAR_4_SEAT,
         titleResId = R.string.ride_vehicle_car4_title,
         descResId = R.string.ride_vehicle_car4_desc,
-        icon = Icons.Default.DirectionsCar,
-        multiplier = 1.5
+        icon = Icons.Default.DirectionsCar
     ),
     VehicleOption(
         type = VehicleType.CAR_7_SEAT,
         titleResId = R.string.ride_vehicle_car7_title,
         descResId = R.string.ride_vehicle_car7_desc,
-        icon = Icons.Default.ElectricCar,
-        multiplier = 2.0
+        icon = Icons.Default.ElectricCar
     )
 )
 
@@ -86,7 +83,6 @@ private val vehicleOptions = listOf(
 fun RideVehicleTypeSelector(
     selectedType: VehicleType,
     vehicleEstimates: Map<VehicleType, PricingEstimate>,
-    baselineEstimate: PricingEstimate?,
     isCalculating: Boolean,
     onSelectType: (VehicleType) -> Unit,
     modifier: Modifier = Modifier
@@ -100,23 +96,13 @@ fun RideVehicleTypeSelector(
         vehicleOptions.forEach { option ->
             val isSelected = option.type == selectedType
             val estimate = vehicleEstimates[option.type]
-                ?: baselineEstimate?.let { base ->
-                    base.copy(totalPrice = base.totalPrice * option.multiplier)
-                }
 
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(AppShape.ShapeL))
-                    .clickable { onSelectType(option.type) }
-                    .border(
-                        width = if (isSelected) Dimen.PaddingXXS else Dimen.PaddingXXS,
-                        color = if (isSelected) PrimaryColor else OutlineVariantLight,
-                        shape = RoundedCornerShape(AppShape.ShapeL)
-                    ),
-                shape = RoundedCornerShape(AppShape.ShapeL),
-                color = if (isSelected) PrimaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
-                tonalElevation = if (isSelected) Dimen.PaddingXS else Dimen.PaddingXXS
+                    .clickable { onSelectType(option.type) },
+                shape = RectangleShape,
+                color = if (isSelected) PrimaryContainer.copy(alpha = 0.35f) else Color.Transparent
             ) {
                 Row(
                     modifier = Modifier
@@ -129,22 +115,12 @@ fun RideVehicleTypeSelector(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(Dimen.SizeXL)
-                                .clip(RoundedCornerShape(AppShape.ShapeM))
-                                .background(
-                                    if (isSelected) PrimaryColor else MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = option.icon,
-                                contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else TextSecondary,
-                                modifier = Modifier.size(Dimen.SizeM)
-                            )
-                        }
+                        Icon(
+                            imageVector = option.icon,
+                            contentDescription = null,
+                            tint = if (isSelected) PrimaryColor else TextSecondary,
+                            modifier = Modifier.size(Dimen.SizeL)
+                        )
 
                         Spacer(modifier = Modifier.width(AppSpacing.M))
 

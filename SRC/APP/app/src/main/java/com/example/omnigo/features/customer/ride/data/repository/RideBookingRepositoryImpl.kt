@@ -37,14 +37,20 @@ class RideBookingRepositoryImpl @Inject constructor(
         startLatitude: Double,
         startLongitude: Double,
         endLatitude: Double,
-        endLongitude: Double
+        endLongitude: Double,
+        vehicleType: String?,
+        pickupAddress: String?,
+        dropoffAddress: String?
     ): CreateRideBookingResult {
         return try {
             val request = BookingRequest(
                 startLongitude = startLongitude,
                 startLatitude = startLatitude,
                 endLongitude = endLongitude,
-                endLatitude = endLatitude
+                endLatitude = endLatitude,
+                vehicleType = vehicleType,
+                pickupAddress = pickupAddress,
+                dropoffAddress = dropoffAddress
             )
             val response = rideBookingApi.createBooking(request)
             CreateRideBookingResult.Success(response.toDomain())

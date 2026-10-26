@@ -12,17 +12,21 @@ data class LocationPoint(
     val name: String,
     val address: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val isCurrentLocation: Boolean = false
 ) {
     companion object {
         fun fromUserLocation(userLocation: UserLocation): LocationPoint {
-            val title = userLocation.addressName.ifBlank { "Current Location" }
-            val desc = userLocation.fullAddress.ifBlank { "Lat: ${userLocation.latitude}, Lng: ${userLocation.longitude}" }
+            val title = "Vị trí hiện tại"
+            val desc = userLocation.fullAddress.ifBlank {
+                userLocation.addressName.ifBlank { "Lat: ${userLocation.latitude}, Lng: ${userLocation.longitude}" }
+            }
             return LocationPoint(
                 name = title,
                 address = desc,
                 latitude = userLocation.latitude,
-                longitude = userLocation.longitude
+                longitude = userLocation.longitude,
+                isCurrentLocation = true
             )
         }
 
@@ -31,7 +35,8 @@ data class LocationPoint(
                 name = saved.addressName,
                 address = saved.fullAddress,
                 latitude = saved.latitude,
-                longitude = saved.longitude
+                longitude = saved.longitude,
+                isCurrentLocation = false
             )
         }
     }
@@ -49,14 +54,14 @@ data class RideBookingUiState(
     val isLocatingCurrentPosition: Boolean = false,
     val isCalculatingPrice: Boolean = false,
     val pricingEstimate: PricingEstimate? = null,
-    val pricingError: String? = null,
+    val pricingError: com.example.omnigo.utils.UiText? = null,
     val isCreatingBooking: Boolean = false,
     val currentBooking: Booking? = null,
     val isSearchingDriver: Boolean = false,
     val searchCountdownSeconds: Int = 60,
     val isCancellingBooking: Boolean = false,
-    val errorMessage: String? = null,
-    val infoMessage: String? = null,
+    val errorMessage: com.example.omnigo.utils.UiText? = null,
+    val infoMessage: com.example.omnigo.utils.UiText? = null,
     val assignedDriver: BookingDriverProfile? = null,
     val isDriverProfileLoading: Boolean = false,
     val tripStatusMessage: String? = null,
@@ -70,8 +75,19 @@ data class RideBookingUiState(
     val isMapPinPicking: Boolean = false,
     val pinPickingTarget: LocationTarget? = null,
     val pinPickedLocation: LocationPoint? = null,
-    val isGeocodingPin: Boolean = false
+    val isPickupPinConfirmed: Boolean = false,
+    val pendingDropoffPinLocation: LocationPoint? = null,
+    val isGeocodingPin: Boolean = false,
+    val isSearchingPlaces: Boolean = false,
+    val searchTarget: LocationTarget = LocationTarget.DROPOFF,
+    val searchQuery: String = "",
+    val searchResults: List<LocationPoint> = emptyList(),
+    val isSearchingPlacesLoading: Boolean = false,
+    val routeCoordinates: List<Pair<Double, Double>> = emptyList()
 ) {
+    val isDualLocationReady: Boolean
+        get() = pickupLocation != null && dropoffLocation != null
+
     val isTripActive: Boolean
         get() = currentBooking != null && (
             currentBooking.status == BookingStatus.ACCEPTED ||

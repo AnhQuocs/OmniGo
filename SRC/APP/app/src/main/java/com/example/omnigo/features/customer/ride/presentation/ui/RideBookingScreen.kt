@@ -1,18 +1,23 @@
 package com.example.omnigo.features.customer.ride.presentation.ui
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -53,15 +57,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
 import com.example.omnigo.features.customer.ride.presentation.ui.components.CustomerActiveTripContent
-import com.example.omnigo.features.customer.ride.presentation.ui.components.RideLocationPickerSection
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideFloatingHeader
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapCanvas
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapPinPicker
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RidePlaceSearchOverlay
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSearchingRadarDialog
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSurgeBanner
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideVehicleTypeSelector
@@ -77,7 +82,6 @@ import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
-import com.example.omnigo.utils.s16
 import com.example.omnigo.utils.s18
 import com.example.omnigo.utils.semiBold
 import java.text.DecimalFormat
@@ -92,11 +96,53 @@ fun RideBookingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    BackHandler {
-        if (uiState.isMapPinPicking) {
-            viewModel.cancelMapPinPicking()
+    // 0. Mandatory Location & GPS Enforcement
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            val isGpsEnabled = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
+                    locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+            if (isGpsEnabled) {
+                viewModel.autoDetectPickupLocation()
+            } else {
+                Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
+                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            }
         } else {
+            Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
             onBackClick()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) {
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        } else {
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            val isGpsEnabled = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
+                    locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+            if (isGpsEnabled) {
+                viewModel.autoDetectPickupLocation()
+            } else {
+                Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
+                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            }
+        }
+    }
+
+    BackHandler {
+        when {
+            uiState.isSearchingPlaces -> viewModel.closePlaceSearch()
+            uiState.isMapPinPicking -> viewModel.cancelMapPinPicking()
+            else -> onBackClick()
         }
     }
 
@@ -112,14 +158,14 @@ fun RideBookingScreen(
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, it.asString(context), Toast.LENGTH_SHORT).show()
             viewModel.clearMessages()
         }
     }
@@ -127,7 +173,8 @@ fun RideBookingScreen(
     // 1. Interactive Center-Pin Map Mode
     if (uiState.isMapPinPicking) {
         val target = uiState.pinPickingTarget ?: LocationTarget.PICKUP
-        val initialPoint = if (target == LocationTarget.PICKUP) uiState.pickupLocation else uiState.dropoffLocation
+        val initialPoint = uiState.pinPickedLocation
+            ?: if (target == LocationTarget.PICKUP) uiState.pickupLocation else uiState.dropoffLocation
         RideMapPinPicker(
             target = target,
             initialPoint = initialPoint,
@@ -174,10 +221,7 @@ fun RideBookingScreen(
         return
     }
 
-    // 3. Map-First Booking Canvas & Bottom Sheet Setup
-    val formatter = DecimalFormat("#,###")
-    val selectedPrice = uiState.pricingEstimate?.totalPrice
-
+    // 3. Map-First Booking Canvas & Controls
     Box(modifier = modifier.fillMaxSize()) {
         // Layer 0: Map-First Canvas
         RideMapCanvas(
@@ -185,45 +229,29 @@ fun RideBookingScreen(
             dropoffLocation = uiState.dropoffLocation,
             nearbyDrivers = uiState.nearbyDrivers,
             selectedVehicleType = uiState.selectedVehicleType,
+            routeCoordinates = uiState.routeCoordinates,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Layer 1: Floating Transparent Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = Dimen.PaddingS,
-                modifier = Modifier.size(Dimen.SizeXL)
-            ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = TextPrimary)
-                }
-            }
-
-            Spacer(modifier = Modifier.width(AppSpacing.M))
-
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = Dimen.PaddingS
-            ) {
-                Text(
-                    text = stringResource(id = R.string.ride_booking_title),
-                    style = MaterialTheme.typography.s16.bold(),
-                    color = TextPrimary,
-                    modifier = Modifier.padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingS)
-                )
-            }
-        }
+        // Layer 1: Floating Trip Header (Pickup & Dropoff)
+        RideFloatingHeader(
+            pickupLocation = uiState.pickupLocation,
+            dropoffLocation = uiState.dropoffLocation,
+            isLocatingPickup = uiState.isLocatingCurrentPosition,
+            onPickupClick = { viewModel.openPlaceSearch(LocationTarget.PICKUP) },
+            onDropoffClick = { viewModel.openPlaceSearch(LocationTarget.DROPOFF) },
+            onSwapClick = viewModel::swapLocations,
+            onBackClick = onBackClick,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
 
         // Layer 2: Floating MyLocation FAB
+        val fabBottomPadding = if (uiState.isDualLocationReady) {
+            Dimen.HeightRideBottomSheetOffset
+        } else {
+            Dimen.PaddingXL
+        }
+
         FloatingActionButton(
             onClick = viewModel::autoDetectPickupLocation,
             shape = CircleShape,
@@ -231,7 +259,7 @@ fun RideBookingScreen(
             contentColor = PrimaryColor,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = Dimen.PaddingM, bottom = 390.dp)
+                .padding(end = Dimen.PaddingM, bottom = fabBottomPadding)
                 .shadow(Dimen.PaddingS, CircleShape)
         ) {
             if (uiState.isLocatingCurrentPosition) {
@@ -241,109 +269,48 @@ fun RideBookingScreen(
             }
         }
 
-        // Layer 3: Draggable Bottom Control Sheet
-        Surface(
+        // Layer 3: Minimal & Clean Bottom Sheet (Only visible when pickup & dropoff are selected)
+        AnimatedVisibility(
+            visible = uiState.isDualLocationReady,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding(),
-            shape = RoundedCornerShape(topStart = AppShape.ShapeXL, topEnd = AppShape.ShapeXL),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = Dimen.PaddingM
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimen.PaddingM)
-            ) {
-                // Drag handle
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .width(36.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(OutlineLight)
-                )
+            com.example.omnigo.features.customer.ride.presentation.ui.components.RideBookingBottomSheet(
+                uiState = uiState,
+                onSelectVehicleType = viewModel::selectVehicleType,
+                onCreateBooking = viewModel::createBooking
+            )
+        }
 
-                Spacer(modifier = Modifier.height(AppSpacing.S))
-
-                // Location Picker
-                RideLocationPickerSection(
-                    pickupLocation = uiState.pickupLocation,
-                    dropoffLocation = uiState.dropoffLocation,
-                    isLocating = uiState.isLocatingCurrentPosition,
-                    savedAddresses = uiState.savedAddresses,
-                    onDetectCurrentLocation = viewModel::autoDetectPickupLocation,
-                    onSelectPickup = viewModel::setPickupLocation,
-                    onSelectDropoff = viewModel::setDropoffLocation,
-                    onSwapClick = viewModel::swapLocations,
-                    onOpenMapPicker = viewModel::startMapPinPicking
-                )
-
-                // Surge Banner if applicable
-                val surge = uiState.pricingEstimate?.surgeMultiplier ?: 1.0
-                if (surge > 1.0) {
-                    Spacer(modifier = Modifier.height(AppSpacing.S))
-                    RideSurgeBanner(surgeMultiplier = surge, surgeLevel = uiState.pricingEstimate?.surgeLevel)
-                }
-
-                Spacer(modifier = Modifier.height(AppSpacing.S))
-
-                // Vehicle Type Selector (BIKE, CAR_4, CAR_7)
-                RideVehicleTypeSelector(
-                    selectedType = uiState.selectedVehicleType,
-                    vehicleEstimates = uiState.vehicleEstimates,
-                    baselineEstimate = uiState.pricingEstimate,
-                    isCalculating = uiState.isCalculatingPrice,
-                    onSelectType = viewModel::selectVehicleType
-                )
-
-                Spacer(modifier = Modifier.height(AppSpacing.M))
-
-                // Book Now Button
-                val isEnabled = uiState.pickupLocation != null &&
-                        uiState.dropoffLocation != null &&
-                        uiState.pricingEstimate != null &&
-                        !uiState.isCreatingBooking &&
-                        !uiState.isSearchingDriver &&
-                        !uiState.isCalculatingPrice
-
-                Button(
-                    onClick = viewModel::createBooking,
-                    enabled = isEnabled,
-                    shape = RoundedCornerShape(AppShape.ShapeM),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryColor,
-                        disabledContainerColor = PrimaryColor.copy(alpha = 0.4f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimen.HeightDefault)
-                ) {
-                    if (uiState.isCreatingBooking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(Dimen.SizeM),
-                            color = TextWhite,
-                            strokeWidth = Dimen.PaddingXXS
-                        )
-                    } else {
-                        val bookText = stringResource(id = R.string.ride_book_now_button)
-                        val priceText = if (selectedPrice != null && selectedPrice > 0.0) {
-                            " • ${formatter.format(selectedPrice)} đ"
-                        } else ""
-                        Text(
-                            text = "$bookText$priceText",
-                            color = TextWhite,
-                            style = MaterialTheme.typography.s14.bold()
-                        )
-                    }
-                }
-            }
+        // Layer 4: Autocomplete Place Search Fullscreen Overlay (no map teardown, no black flicker)
+        AnimatedVisibility(
+            visible = uiState.isSearchingPlaces,
+            enter = fadeIn() + slideInVertically { it / 6 },
+            exit = fadeOut() + slideOutVertically { it / 6 },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            RidePlaceSearchOverlay(
+                target = uiState.searchTarget,
+                query = uiState.searchQuery,
+                searchResults = uiState.searchResults,
+                savedAddresses = uiState.savedAddresses,
+                isLoading = uiState.isSearchingPlacesLoading,
+                onQueryChange = viewModel::updateSearchQuery,
+                onSelectPlace = viewModel::selectSearchResult,
+                onPickOnMap = { target -> viewModel.startMapPinPicking(target) },
+                onSelectCurrentLocation = {
+                    viewModel.selectCurrentLocation(context.getString(R.string.ride_my_location))
+                },
+                onClose = viewModel::closePlaceSearch,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 
-    // Radar & Timeout Dialogs
+    // 5. Radar & Timeout Dialogs
     if (uiState.isSearchingDriver && !uiState.showSearchTimeoutDialog) {
         RideSearchingRadarDialog(
             countdownSeconds = uiState.searchCountdownSeconds,

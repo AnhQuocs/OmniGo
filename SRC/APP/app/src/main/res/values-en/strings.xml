@@ -579,6 +579,10 @@
     <string name="ride_booking_cancelled_success">Search cancelled successfully.</string>
     <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
     <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
+    <string name="ride_error_incomplete_locations">Please select both pickup and drop-off locations.</string>
+    <string name="ride_error_no_driver_found">No drivers available nearby right now. Please try again in a few moments.</string>
+    <string name="ride_error_create_failed">Unable to create ride booking.</string>
+    <string name="ride_error_cancel_failed">Unable to cancel ride right now.</string>
 
     <!-- RIDE REVAMP & VEHICLE SELECTION -->
     <string name="ride_surge_banner_text">High demand in your area • Fare is x%1$s (Surge)</string>
@@ -588,13 +592,29 @@
     <string name="ride_vehicle_car4_desc">4 seats • Cool air conditioning</string>
     <string name="ride_vehicle_car7_title">OmniCar 7</string>
     <string name="ride_vehicle_car7_desc">7 seats • Spacious for group &amp; luggage</string>
+    <string name="ride_pricing_unavailable">Fare for this vehicle is currently unavailable.</string>
+    <string name="ride_pricing_failed">Unable to calculate fare from server.</string>
     <string name="ride_map_pin_badge">Pin Map</string>
     <string name="ride_pin_picker_title_pickup">Set Pickup on Map</string>
     <string name="ride_pin_picker_title_dropoff">Set Drop-off on Map</string>
     <string name="ride_pin_picker_detecting">Pinpointing location…</string>
-    <string name="ride_pin_picker_btn_confirm_pickup">Confirm Pickup Here</string>
-    <string name="ride_pin_picker_btn_confirm_dropoff">Confirm Drop-off Here</string>
+    <string name="ride_pin_picker_btn_confirm_pickup">Confirm Pickup</string>
+    <string name="ride_pin_picker_btn_confirm_dropoff">Confirm Drop-off</string>
+    <string name="ride_pin_picker_badge_pickup">PICKUP LOCATION</string>
+    <string name="ride_pin_picker_badge_dropoff">DROP-OFF LOCATION</string>
     <string name="ride_pin_picker_drag_hint">Drag map to adjust exact pin point</string>
+
+    <!-- RIDE BOOKING UX 2.0 PLACE SEARCH & GPS -->
+    <string name="ride_search_destination_hint">Where to?</string>
+    <string name="ride_search_places_title">Search Places</string>
+    <string name="ride_search_input_placeholder">Enter address or place name…</string>
+    <string name="ride_search_pick_on_map">Pick location on map</string>
+    <string name="ride_search_no_results">No places found. Try a different keyword or pick on map.</string>
+    <string name="ride_gps_required_msg">GPS location is required to book a ride. Please turn on location.</string>
+    <string name="ride_clear_search">Clear</string>
+    <string name="ride_current_location">Current Location</string>
+    <string name="ride_search_step_dropoff_guide">Pickup confirmed. Please choose your drop-off destination.</string>
+    <string name="ride_pickup_confirmed_hint">Pickup confirmed. Please choose your destination.</string>
 
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">New Ride Request</string>

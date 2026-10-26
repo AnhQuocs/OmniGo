@@ -63,6 +63,7 @@ import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
+import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
@@ -93,19 +94,10 @@ fun RideMapPinPicker(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var currentLat by remember {
-        mutableDoubleStateOf(initialPoint?.latitude ?: DEFAULT_LATITUDE)
-    }
-    var currentLng by remember {
-        mutableDoubleStateOf(initialPoint?.longitude ?: DEFAULT_LONGITUDE)
-    }
-
-    var locationName by remember {
-        mutableStateOf(initialPoint?.name ?: context.getString(R.string.ride_pin_picker_detecting))
-    }
-    var locationAddress by remember {
-        mutableStateOf(initialPoint?.address ?: "")
-    }
+    var currentLat by remember { mutableDoubleStateOf(initialPoint?.latitude ?: DEFAULT_LATITUDE) }
+    var currentLng by remember { mutableDoubleStateOf(initialPoint?.longitude ?: DEFAULT_LONGITUDE) }
+    var locationName by remember { mutableStateOf(initialPoint?.name ?: context.getString(R.string.ride_pin_picker_detecting)) }
+    var locationAddress by remember { mutableStateOf(initialPoint?.address ?: "") }
     var isGeocoding by remember { mutableStateOf(false) }
     var geocodeJob by remember { mutableStateOf<Job?>(null) }
 
@@ -125,7 +117,6 @@ fun RideMapPinPicker(
         }
     }
 
-    // When user stops moving the map, reverse-geocode the center point
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             val center = cameraPositionState.position.target
@@ -135,8 +126,14 @@ fun RideMapPinPicker(
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (initialPoint == null) {
+    LaunchedEffect(initialPoint) {
+        if (initialPoint != null) {
+            currentLat = initialPoint.latitude
+            currentLng = initialPoint.longitude
+            locationName = initialPoint.name
+            locationAddress = initialPoint.address
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(LatLng(initialPoint.latitude, initialPoint.longitude), PIN_PICKER_ZOOM)
+        } else {
             triggerReverseGeocode(currentLat, currentLng)
         }
     }
@@ -151,17 +148,31 @@ fun RideMapPinPicker(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(
-                            id = if (target == LocationTarget.PICKUP) {
-                                R.string.ride_pin_picker_title_pickup
-                            } else {
-                                R.string.ride_pin_picker_title_dropoff
-                            }
-                        ),
-                        style = MaterialTheme.typography.s18.bold(),
-                        color = TextPrimary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(AppShape.ShapeXS),
+                            color = if (target == LocationTarget.PICKUP) PrimaryColor else SecondaryColor
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    id = if (target == LocationTarget.PICKUP) R.string.ride_pin_picker_badge_pickup else R.string.ride_pin_picker_badge_dropoff
+                                ),
+                                style = MaterialTheme.typography.s10.bold(),
+                                color = TextWhite,
+                                modifier = Modifier.padding(horizontal = Dimen.PaddingXS, vertical = Dimen.PaddingXXS)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(AppSpacing.S))
+                        Text(
+                            text = stringResource(
+                                id = if (target == LocationTarget.PICKUP) R.string.ride_pin_picker_title_pickup else R.string.ride_pin_picker_title_dropoff
+                            ),
+                            style = MaterialTheme.typography.s16.bold(),
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -195,6 +206,34 @@ fun RideMapPinPicker(
                 )
             )
 
+            // Prominent Target Guidance Card on top of map
+            Surface(
+                shape = RoundedCornerShape(AppShape.ShapeL),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = Dimen.PaddingS,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = Dimen.PaddingM)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimen.PaddingS)
+                            .clip(CircleShape)
+                            .background(if (target == LocationTarget.PICKUP) PrimaryColor else SecondaryColor)
+                    )
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
+                    Text(
+                        text = stringResource(id = R.string.ride_pin_picker_drag_hint),
+                        style = MaterialTheme.typography.s12.medium(),
+                        color = TextPrimary
+                    )
+                }
+            }
+
             // Fixed Center Pin with shadow & spring elevation
             Box(
                 modifier = Modifier
@@ -225,12 +264,7 @@ fun RideMapPinPicker(
                     coroutineScope.launch {
                         val targetLat = initialPoint?.latitude ?: DEFAULT_LATITUDE
                         val targetLng = initialPoint?.longitude ?: DEFAULT_LONGITUDE
-                        cameraPositionState.animate(
-                            CameraUpdateFactory.newLatLngZoom(
-                                LatLng(targetLat, targetLng),
-                                PIN_PICKER_ZOOM
-                            )
-                        )
+                        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(targetLat, targetLng), PIN_PICKER_ZOOM))
                     }
                 },
                 shape = CircleShape,
@@ -241,33 +275,18 @@ fun RideMapPinPicker(
                     .padding(end = Dimen.PaddingM, bottom = Dimen.HeightPinPickerBottomOffset)
                     .shadow(Dimen.PaddingS, CircleShape)
             ) {
-                Icon(
-                    imageVector = Icons.Default.MyLocation,
-                    contentDescription = null
-                )
+                Icon(imageVector = Icons.Default.MyLocation, contentDescription = null)
             }
 
             // Bottom Confirmation Sheet Card
             Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(
-                    topStart = AppShape.ShapeXL,
-                    topEnd = AppShape.ShapeXL
-                ),
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = AppShape.ShapeXL, topEnd = AppShape.ShapeXL),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = Dimen.PaddingM
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimen.PaddingM)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(Dimen.PaddingM)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(Dimen.SizeL)

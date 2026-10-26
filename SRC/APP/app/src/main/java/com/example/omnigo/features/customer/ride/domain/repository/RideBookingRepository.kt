@@ -20,7 +20,10 @@ interface RideBookingRepository {
         startLatitude: Double,
         startLongitude: Double,
         endLatitude: Double,
-        endLongitude: Double
+        endLongitude: Double,
+        vehicleType: String? = null,
+        pickupAddress: String? = null,
+        dropoffAddress: String? = null
     ): CreateRideBookingResult
 
     suspend fun cancelBooking(bookingId: Long): CancelRideBookingResult

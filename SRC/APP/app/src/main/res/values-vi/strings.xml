@@ -579,6 +579,10 @@
     <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
+    <string name="ride_error_incomplete_locations">Vui lòng chọn đầy đủ điểm đón và điểm đến.</string>
+    <string name="ride_error_no_driver_found">Hiện không có tài xế nào ở gần bạn. Vui lòng thử lại sau ít phút.</string>
+    <string name="ride_error_create_failed">Không thể tạo yêu cầu đặt xe lúc này.</string>
+    <string name="ride_error_cancel_failed">Không thể hủy chuyến xe lúc này.</string>
 
     <!-- RIDE REVAMP & VEHICLE SELECTION -->
     <string name="ride_surge_banner_text">Nhu cầu xe tăng cao • Giá đang nhân x%1$s (Giờ cao điểm)</string>
@@ -588,13 +592,29 @@
     <string name="ride_vehicle_car4_desc">4 chỗ • Êm ái &amp; có máy lạnh</string>
     <string name="ride_vehicle_car7_title">OmniCar 7</string>
     <string name="ride_vehicle_car7_desc">7 chỗ • Rộng rãi cho nhóm &amp; vali</string>
+    <string name="ride_pricing_unavailable">Cước phí cho loại xe này hiện chưa khả dụng.</string>
+    <string name="ride_pricing_failed">Không thể tính cước phí từ máy chủ.</string>
     <string name="ride_map_pin_badge">Ghim Map</string>
     <string name="ride_pin_picker_title_pickup">Chọn điểm đón trên bản đồ</string>
     <string name="ride_pin_picker_title_dropoff">Chọn điểm đến trên bản đồ</string>
     <string name="ride_pin_picker_detecting">Đang xác định toạ độ…</string>
-    <string name="ride_pin_picker_btn_confirm_pickup">Xác nhận điểm đón tại đây</string>
-    <string name="ride_pin_picker_btn_confirm_dropoff">Xác nhận điểm đến tại đây</string>
+    <string name="ride_pin_picker_btn_confirm_pickup">Xác nhận điểm đón</string>
+    <string name="ride_pin_picker_btn_confirm_dropoff">Xác nhận điểm đến</string>
+    <string name="ride_pin_picker_badge_pickup">ĐIỂM ĐÓN</string>
+    <string name="ride_pin_picker_badge_dropoff">ĐIỂM ĐẾN</string>
     <string name="ride_pin_picker_drag_hint">Kéo bản đồ để chọn chính xác vị trí ghim</string>
+
+    <!-- RIDE BOOKING UX 2.0 PLACE SEARCH & GPS -->
+    <string name="ride_search_destination_hint">Bạn muốn đi đâu?</string>
+    <string name="ride_search_places_title">Tìm kiếm địa điểm</string>
+    <string name="ride_search_input_placeholder">Nhập địa chỉ hoặc tên địa điểm…</string>
+    <string name="ride_search_pick_on_map">Chọn trực tiếp trên bản đồ</string>
+    <string name="ride_search_no_results">Không tìm thấy địa điểm. Hãy thử tìm từ khác hoặc chọn trên bản đồ.</string>
+    <string name="ride_gps_required_msg">Cần bật định vị GPS để tìm và đặt chuyến xe. Vui lòng bật GPS.</string>
+    <string name="ride_clear_search">Xóa</string>
+    <string name="ride_current_location">Vị trí hiện tại</string>
+    <string name="ride_search_step_dropoff_guide">Đã xác nhận điểm đón. Vui lòng chọn điểm đến của bạn.</string>
+    <string name="ride_pickup_confirmed_hint">Đã xác nhận điểm đón. Vui lòng chọn điểm đến.</string>
 
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">Chuyến xe chở khách mới</string>

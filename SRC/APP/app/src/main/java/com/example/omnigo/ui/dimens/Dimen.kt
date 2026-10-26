@@ -55,4 +55,5 @@ object Dimen {
     val SizeWalletIcon = 38.dp
     val SizeHeaderLocation = 38.dp
     val HeightPinPickerBottomOffset = 180.dp
+    val HeightRideBottomSheetOffset = 290.dp
 }
