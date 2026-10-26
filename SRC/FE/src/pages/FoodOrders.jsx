@@ -45,6 +45,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import foodService from '../services/foodService';
 import driverService from '../services/driverService';
+import userService from '../services/userService';
 import FoodOrderReviewModal from '../components/food/FoodOrderReviewModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
@@ -128,15 +129,17 @@ export const FoodOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [driverProfilesMap, setDriverProfilesMap] = useState({});
+  const [usersMap, setUsersMap] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [orderList, statsData, driverRes] = await Promise.all([
+      const [orderList, statsData, driverRes, usersRes] = await Promise.all([
         foodService.getAllFoodOrders(),
         foodService.getFoodStats(),
         driverService.getAllDriverProfiles().catch(() => null),
+        userService.getAllUsers({ page: 0, size: 200 }).catch(() => null),
       ]);
       setOrders(Array.isArray(orderList) ? orderList : []);
       if (statsData) setStats(statsData);
@@ -147,6 +150,16 @@ export const FoodOrders = () => {
           if (d.driverId) map[d.driverId] = d;
         });
         setDriverProfilesMap(map);
+      }
+      if (usersRes) {
+        const uList = usersRes?.content || (Array.isArray(usersRes) ? usersRes : usersRes?.data?.content || usersRes?.data || []);
+        if (Array.isArray(uList)) {
+          const uMap = {};
+          uList.forEach((u) => {
+            if (u.id) uMap[u.id] = u;
+          });
+          setUsersMap(uMap);
+        }
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Không thể tải danh sách đơn giao đồ ăn';
@@ -161,10 +174,11 @@ export const FoodOrders = () => {
     let active = true;
     async function init() {
       try {
-        const [orderList, statsData, driverRes] = await Promise.all([
+        const [orderList, statsData, driverRes, usersRes] = await Promise.all([
           foodService.getAllFoodOrders(),
           foodService.getFoodStats(),
           driverService.getAllDriverProfiles().catch(() => null),
+          userService.getAllUsers({ page: 0, size: 200 }).catch(() => null),
         ]);
         if (active) {
           setOrders(Array.isArray(orderList) ? orderList : []);
@@ -176,6 +190,16 @@ export const FoodOrders = () => {
               if (d.driverId) map[d.driverId] = d;
             });
             setDriverProfilesMap(map);
+          }
+          if (usersRes) {
+            const uList = usersRes?.content || (Array.isArray(usersRes) ? usersRes : usersRes?.data?.content || usersRes?.data || []);
+            if (Array.isArray(uList)) {
+              const uMap = {};
+              uList.forEach((u) => {
+                if (u.id) uMap[u.id] = u;
+              });
+              setUsersMap(uMap);
+            }
           }
         }
       } catch (err) {
@@ -228,11 +252,17 @@ export const FoodOrders = () => {
 
   // Filtering
   const filteredOrders = orders.filter((o) => {
+    const customer = usersMap[o.customerId];
+    const customerFullName = o.customerName || customer?.fullName || '';
+    const customerPhoneNumber = o.customerPhone || customer?.phoneNumber || '';
+
     const matchSearch =
       searchTerm === '' ||
       o.id?.toString().includes(searchTerm) ||
-      o.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.customerPhone?.includes(searchTerm) ||
+      o.customerId?.toString().includes(searchTerm) ||
+      customerFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customerPhoneNumber.includes(searchTerm) ||
+      (customer?.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       o.restaurantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       o.deliveryAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       o.driverId?.toString().includes(searchTerm);
@@ -589,12 +619,49 @@ export const FoodOrders = () => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {order.customerName || `Khách #${order.customerId}`}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.2 }}>
-                          📞 {order.customerPhone || 'Chưa có SĐT'}
-                        </Typography>
+                        {(() => {
+                          const customer = usersMap[order.customerId];
+                          const cName = order.customerName || customer?.fullName || `Khách #${order.customerId}`;
+                          const cPhone = order.customerPhone || customer?.phoneNumber || 'Chưa có SĐT';
+                          const cAvatar = customer?.avatarUrl || '';
+                          return (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Avatar
+                                src={cAvatar}
+                                alt={cName}
+                                sx={{
+                                  width: 32,
+                                  height: 32,
+                                  fontSize: '0.8rem',
+                                  bgcolor: '#e0f2fe',
+                                  color: '#0369a1',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {cName.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+                                  {cName}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: 'text.secondary',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.4,
+                                    mt: 0.2,
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  <PhoneIcon sx={{ fontSize: 11, color: '#f97316' }} />
+                                  {cPhone}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 180 }}>
                         <Typography
@@ -765,29 +832,71 @@ export const FoodOrders = () => {
               <Grid container spacing={2}>
                 {/* 1. Thông tin Khách hàng & Điểm nhận món */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2.5, height: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
-                      <PersonIcon sx={{ fontSize: 18, color: '#0F172A' }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                        Người Nhận Hàng
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                      {selectedOrder.customerName || `Khách hàng #${selectedOrder.customerId}`}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.3, fontWeight: 600 }}>
-                      <PhoneIcon sx={{ fontSize: 14, color: '#F97316' }} />
-                      {selectedOrder.customerPhone || 'Chưa cập nhật SĐT'}
-                    </Typography>
-                    <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
-                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, display: 'block' }}>
-                        Địa chỉ nhận hàng:
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', mt: 0.2 }}>
-                        {selectedOrder.deliveryAddress || 'Chưa có địa chỉ chi tiết'}
-                      </Typography>
-                    </Box>
-                  </Card>
+                  {(() => {
+                    const customer = usersMap[selectedOrder.customerId];
+                    const cName = selectedOrder.customerName || customer?.fullName || `Khách hàng #${selectedOrder.customerId}`;
+                    const cPhone = selectedOrder.customerPhone || customer?.phoneNumber || 'Chưa cập nhật SĐT';
+                    const cEmail = customer?.email || '';
+                    const cAvatar = customer?.avatarUrl || '';
+
+                    return (
+                      <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2.5, height: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <PersonIcon sx={{ fontSize: 18, color: '#0F172A' }} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                              Người Nhận Hàng
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={`User #${selectedOrder.customerId}`}
+                            size="small"
+                            sx={{ bgcolor: '#E0F2FE', color: '#0369A1', fontWeight: 700, fontSize: '0.7rem', height: 20 }}
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.2 }}>
+                          <Avatar
+                            src={cAvatar}
+                            alt={cName}
+                            sx={{
+                              width: 44,
+                              height: 44,
+                              fontSize: '1rem',
+                              bgcolor: '#E0F2FE',
+                              color: '#0369A1',
+                              fontWeight: 800,
+                              border: '1.5px solid #BAE6FD',
+                            }}
+                          >
+                            {cName.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                              {cName}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.3, fontWeight: 600 }}>
+                              <PhoneIcon sx={{ fontSize: 14, color: '#F97316' }} />
+                              {cPhone}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        {cEmail && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+                            <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Email:</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F172A' }}>{cEmail}</Typography>
+                          </Box>
+                        )}
+                        <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                          <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, display: 'block' }}>
+                            Địa chỉ nhận hàng:
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', mt: 0.2 }}>
+                            {selectedOrder.deliveryAddress || 'Chưa có địa chỉ chi tiết'}
+                          </Typography>
+                        </Box>
+                      </Card>
+                    );
+                  })()}
                 </Grid>
 
                 {/* 2. Thông tin Quán ăn / Nhà hàng */}

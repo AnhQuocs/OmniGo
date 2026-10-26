@@ -1116,9 +1116,10 @@
                                 map.fitBounds(driverRoutePolyline.getBounds(), { padding: [40, 40] });
                             }
                             let distStr = (route.distanceKm || booking.distanceInKm || 0).toFixed(1);
-                            let durStr = route.durationMinutes || 15;
+                            let pickupText = booking.pickupAddress ? `<br><b>🟢 Điểm đón:</b> <span style="color:#16a34a;">${booking.pickupAddress}</span>` : '';
+                            let dropoffText = booking.dropoffAddress ? `<br><b>🔴 Điểm đến:</b> <span style="color:#dc2626;">${booking.dropoffAddress}</span>` : '';
                             document.getElementById('match-info').innerHTML = `
-                                <b>Khách hàng:</b> #${booking.customerId}<br>
+                                <b>Khách hàng:</b> #${booking.customerId}${pickupText}${dropoffText}<br>
                                 <b>Lộ trình:</b> <span style="color:#2563eb; font-weight:700;">${distStr} km (~${durStr} phút)</span> [${route.source || 'OSRM'}]<br>
                                 <b>Thu nhập cuốc:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(booking.price).toLocaleString('vi-VN')} VND</b><br>
                                 <span style="font-size:11px; color:#64748b;">(Hệ thống cam kết tài xế nhận đủ doanh thu kể cả khách áp voucher)</span>

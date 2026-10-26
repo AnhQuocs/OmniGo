@@ -128,6 +128,8 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = Booking.builder()
                 .customerId(customerId)
                 .customerAvatarUrl(bookingAvatarService.getAvatar(customerId))
+                .pickupAddress(request.getPickupAddress())
+                .dropoffAddress(request.getDropoffAddress())
                 .startLongitude(request.getStartLongitude())
                 .startLatitude(request.getStartLatitude())
                 .endLongitude(request.getEndLongitude())
@@ -615,6 +617,8 @@ public class BookingServiceImpl implements BookingService {
                 .price(booking.getPrice())
                 .vehicleType(booking.getVehicleType())
                 .paymentMethod(booking.getPaymentMethod())
+                .pickupAddress(booking.getPickupAddress())
+                .dropoffAddress(booking.getDropoffAddress())
                 .build();
     }
 }
