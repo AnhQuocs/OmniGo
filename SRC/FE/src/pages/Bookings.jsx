@@ -417,14 +417,14 @@ export const Bookings = () => {
         </Box>
 
         <TableContainer sx={{ overflowX: 'auto', width: '100%', flex: 1, minHeight: 380 }}>
-          <Table sx={{ minWidth: 1100 }} size="small">
+          <Table sx={{ minWidth: 1350 }} size="small">
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
                 <TableCell sx={{ width: 85, whiteSpace: 'nowrap', fontWeight: 700 }}>#Mã cuốc</TableCell>
-                <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap', fontWeight: 700 }}>Khách hàng</TableCell>
-                <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap', fontWeight: 700 }}>Tài xế</TableCell>
-                <TableCell sx={{ minWidth: 170, maxWidth: 250, fontWeight: 700 }}>Điểm đón</TableCell>
-                <TableCell sx={{ minWidth: 170, maxWidth: 250, fontWeight: 700 }}>Điểm đến</TableCell>
+                <TableCell sx={{ minWidth: 175, whiteSpace: 'nowrap', fontWeight: 700 }}>Khách hàng</TableCell>
+                <TableCell sx={{ minWidth: 160, whiteSpace: 'nowrap', fontWeight: 700 }}>Tài xế</TableCell>
+                <TableCell sx={{ minWidth: 210, maxWidth: 280, whiteSpace: 'nowrap', fontWeight: 700 }}>Điểm đón</TableCell>
+                <TableCell sx={{ minWidth: 210, maxWidth: 280, whiteSpace: 'nowrap', fontWeight: 700 }}>Điểm đến</TableCell>
                 <TableCell align="center" sx={{ minWidth: 110, whiteSpace: 'nowrap', fontWeight: 700 }}>Phương tiện</TableCell>
                 <TableCell align="right" sx={{ minWidth: 105, whiteSpace: 'nowrap', fontWeight: 700 }}>Tiền cước</TableCell>
                 <TableCell sx={{ minWidth: 95, whiteSpace: 'nowrap', fontWeight: 700 }}>Thanh toán</TableCell>
@@ -471,25 +471,25 @@ export const Bookings = () => {
 
                   return (
                     <TableRow key={b.id} hover>
-                      <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace', color: '#008cff' }}>
+                      <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace', color: '#008cff', whiteSpace: 'nowrap' }}>
                         #{b.id}
                       </TableCell>
 
                       {/* Khách hàng Column */}
-                      <TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 175 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Avatar
                             src={cAvatar}
                             alt={cName}
-                            sx={{ width: 34, height: 34, fontSize: '0.85rem', bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}
+                            sx={{ width: 34, height: 34, fontSize: '0.85rem', bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 700, flexShrink: 0 }}
                           >
                             {cName.charAt(0).toUpperCase()}
                           </Avatar>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                               {cName}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.2, whiteSpace: 'nowrap' }}>
                               <PhoneIcon sx={{ fontSize: 11, color: '#16a34a' }} />
                               {cPhone}
                             </Typography>
@@ -498,22 +498,22 @@ export const Bookings = () => {
                       </TableCell>
 
                       {/* Tài xế Column */}
-                      <TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 160 }}>
                         {b.driverId ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                             <Avatar
                               src={dAvatar}
                               alt={dName}
-                              sx={{ width: 34, height: 34, fontSize: '0.85rem', bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700 }}
+                              sx={{ width: 34, height: 34, fontSize: '0.85rem', bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700, flexShrink: 0 }}
                             >
                               {dName.charAt(0).toUpperCase()}
                             </Avatar>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                                 {dName}
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mt: 0.2 }}>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
                                   {dPhone}
                                 </Typography>
                                 {dPlate && (
@@ -544,11 +544,22 @@ export const Bookings = () => {
                       </TableCell>
 
                       {/* Điểm đón */}
-                      <TableCell sx={{ minWidth: 170, maxWidth: 250, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        <Tooltip title={`Tọa độ GPS đón: ${formatCoordinate(b.startLatitude, b.startLongitude)}`}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.8 }}>
-                            <PickupIcon sx={{ fontSize: 16, color: '#16a34a', mt: 0.3, flexShrink: 0 }} />
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.35 }}>
+                      <TableCell sx={{ minWidth: 210, maxWidth: 280 }}>
+                        <Tooltip title={`Tọa độ GPS đón: ${formatCoordinate(b.startLatitude, b.startLongitude)} | ${pickupDisplay}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <PickupIcon sx={{ fontSize: 16, color: '#16a34a', flexShrink: 0 }} />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                color: 'text.primary',
+                                lineHeight: 1.35,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
                               {pickupDisplay}
                             </Typography>
                           </Box>
@@ -556,11 +567,22 @@ export const Bookings = () => {
                       </TableCell>
 
                       {/* Điểm đến */}
-                      <TableCell sx={{ minWidth: 170, maxWidth: 250, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        <Tooltip title={`Tọa độ GPS đến: ${formatCoordinate(b.endLatitude, b.endLongitude)}`}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.8 }}>
-                            <DropoffIcon sx={{ fontSize: 16, color: '#dc2626', mt: 0.3, flexShrink: 0 }} />
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.35 }}>
+                      <TableCell sx={{ minWidth: 210, maxWidth: 280 }}>
+                        <Tooltip title={`Tọa độ GPS đến: ${formatCoordinate(b.endLatitude, b.endLongitude)} | ${dropoffDisplay}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <DropoffIcon sx={{ fontSize: 16, color: '#dc2626', flexShrink: 0 }} />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                color: 'text.primary',
+                                lineHeight: 1.35,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
                               {dropoffDisplay}
                             </Typography>
                           </Box>
