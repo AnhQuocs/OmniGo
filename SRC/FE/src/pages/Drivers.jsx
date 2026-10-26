@@ -291,7 +291,9 @@ export const Drivers = () => {
         toast.success('Đã tải ảnh lên Cloudinary thành công');
       }
     } catch (err) {
-      console.warn('Lỗi khi tải ảnh lên Cloudinary qua API, giữ ảnh để BE lưu trữ:', err);
+      console.error('Lỗi khi tải ảnh lên Cloudinary qua API:', err);
+      toast.error('Không thể tải ảnh lên máy chủ Cloudinary. Vui lòng kiểm tra kết nối mạng hoặc thử lại!');
+      setCreateForm((prev) => ({ ...prev, [key]: '' }));
     } finally {
       setUploadingDocKeys((prev) => ({ ...prev, [key]: false }));
     }
@@ -317,10 +319,18 @@ export const Drivers = () => {
       return;
     }
 
+    if (!createForm.cccdFrontImage || !createForm.cccdBackImage || !createForm.gplxFrontImage || !createForm.gplxBackImage) {
+      toast.error('Vui lòng tải lên đầy đủ 4 ảnh giấy tờ pháp lý (CCCD & GPLX) trước khi tạo tài xế!');
+      return;
+    }
+
+    if ([createForm.cccdFrontImage, createForm.cccdBackImage, createForm.gplxFrontImage, createForm.gplxBackImage].some((img) => img.startsWith('data:'))) {
+      toast.error('Ảnh giấy tờ đang trong quá trình tải lên Cloudinary, vui lòng đợi hoàn tất!');
+      return;
+    }
+
     setCreateSubmitting(true);
     try {
-      const defaultDocPlaceholder = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" fill="%23e2e8f0"/><text x="50%" y="50%" font-size="16" fill="%2364748b" text-anchor="middle" dominant-baseline="middle">Hồ sơ giấy tờ mẫu OmniGo</text></svg>';
-
       await driverService.createDriver({
         fullName: createForm.fullName.trim(),
         phoneNumber: createForm.phoneNumber.trim(),
@@ -330,11 +340,11 @@ export const Drivers = () => {
         licensePlate: createForm.licensePlate.trim().toUpperCase(),
         vehicleModel: createForm.vehicleModel.trim() || 'Xe tiêu chuẩn',
         cccdNumber: createForm.cccdNumber || undefined,
-        cccdFrontImage: createForm.cccdFrontImage || defaultDocPlaceholder,
-        cccdBackImage: createForm.cccdBackImage || defaultDocPlaceholder,
+        cccdFrontImage: createForm.cccdFrontImage,
+        cccdBackImage: createForm.cccdBackImage,
         gplxNumber: createForm.gplxNumber || undefined,
-        gplxFrontImage: createForm.gplxFrontImage || defaultDocPlaceholder,
-        gplxBackImage: createForm.gplxBackImage || defaultDocPlaceholder,
+        gplxFrontImage: createForm.gplxFrontImage,
+        gplxBackImage: createForm.gplxBackImage,
         autoApprove: true,
       });
       toast.success('Thêm tài xế mới thành công! Tài xế đã được tự động duyệt hoạt động.');

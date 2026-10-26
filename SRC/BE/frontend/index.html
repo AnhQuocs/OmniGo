@@ -155,6 +155,14 @@
             display: block;
         }
 
+        .doc-status {
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 4px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
         .error-msg {
             color: red;
             font-size: 13px;
@@ -245,12 +253,14 @@
                     <input type="file" id="file-cccd-front" accept="image/*" onchange="handleImagePick(event, 'cccdFront')">
                     <span id="ph-cccd-front" class="doc-placeholder">📁 Bấm chọn ảnh</span>
                     <img id="prev-cccd-front" class="doc-preview" alt="CCCD Mặt trước">
+                    <div id="status-cccd-front" class="doc-status" style="display: none;"></div>
                 </div>
                 <div class="doc-box" onclick="document.getElementById('file-cccd-back').click()">
                     <label>Mặt sau CCCD *</label>
                     <input type="file" id="file-cccd-back" accept="image/*" onchange="handleImagePick(event, 'cccdBack')">
                     <span id="ph-cccd-back" class="doc-placeholder">📁 Bấm chọn ảnh</span>
                     <img id="prev-cccd-back" class="doc-preview" alt="CCCD Mặt sau">
+                    <div id="status-cccd-back" class="doc-status" style="display: none;"></div>
                 </div>
             </div>
 
@@ -267,12 +277,14 @@
                     <input type="file" id="file-gplx-front" accept="image/*" onchange="handleImagePick(event, 'gplxFront')">
                     <span id="ph-gplx-front" class="doc-placeholder">📁 Bấm chọn ảnh</span>
                     <img id="prev-gplx-front" class="doc-preview" alt="GPLX Mặt trước">
+                    <div id="status-gplx-front" class="doc-status" style="display: none;"></div>
                 </div>
                 <div class="doc-box" onclick="document.getElementById('file-gplx-back').click()">
                     <label>Mặt sau GPLX *</label>
                     <input type="file" id="file-gplx-back" accept="image/*" onchange="handleImagePick(event, 'gplxBack')">
                     <span id="ph-gplx-back" class="doc-placeholder">📁 Bấm chọn ảnh</span>
                     <img id="prev-gplx-back" class="doc-preview" alt="GPLX Mặt sau">
+                    <div id="status-gplx-back" class="doc-status" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -374,7 +386,14 @@
         }
     }
 
-    // Lưu trữ ảnh giấy tờ CCCD & GPLX dưới dạng Base64
+    // Lưu trữ File và Cloudinary URL của ảnh giấy tờ
+    const driverDocFiles = {
+        cccdFront: null,
+        cccdBack: null,
+        gplxFront: null,
+        gplxBack: null
+    };
+
     const driverDocs = {
         cccdFront: '',
         cccdBack: '',
@@ -382,7 +401,34 @@
         gplxBack: ''
     };
 
-    function handleImagePick(event, docType) {
+    const keyMap = {
+        'cccdFront': { ph: 'ph-cccd-front', prev: 'prev-cccd-front', status: 'status-cccd-front', label: 'CCCD mặt trước' },
+        'cccdBack': { ph: 'ph-cccd-back', prev: 'prev-cccd-back', status: 'status-cccd-back', label: 'CCCD mặt sau' },
+        'gplxFront': { ph: 'ph-gplx-front', prev: 'prev-gplx-front', status: 'status-gplx-front', label: 'GPLX mặt trước' },
+        'gplxBack': { ph: 'ph-gplx-back', prev: 'prev-gplx-back', status: 'status-gplx-back', label: 'GPLX mặt sau' }
+    };
+
+    async function uploadDriverDocFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${API_BASE}/drivers/upload-document`, {
+            method: 'POST',
+            body: formData
+        });
+        const resText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(resText);
+        } catch (e) {
+            throw new Error(`Lỗi máy chủ (${res.status})`);
+        }
+        if (!res.ok || !data.success || !data.data || !data.data.url) {
+            throw new Error(data.message || data.error || 'Tải ảnh lên Cloudinary thất bại');
+        }
+        return data.data.url;
+    }
+
+    async function handleImagePick(event, docType) {
         const file = event.target.files[0];
         if (!file) return;
 
@@ -392,24 +438,43 @@
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            driverDocs[docType] = e.target.result;
-            const keyMap = {
-                'cccdFront': { ph: 'ph-cccd-front', prev: 'prev-cccd-front' },
-                'cccdBack': { ph: 'ph-cccd-back', prev: 'prev-cccd-back' },
-                'gplxFront': { ph: 'ph-gplx-front', prev: 'prev-gplx-front' },
-                'gplxBack': { ph: 'ph-gplx-back', prev: 'prev-gplx-back' }
-            };
-            const map = keyMap[docType];
-            if (map) {
-                document.getElementById(map.ph).style.display = 'none';
-                const img = document.getElementById(map.prev);
+        driverDocFiles[docType] = file;
+        driverDocs[docType] = '';
+
+        const map = keyMap[docType];
+        if (map) {
+            document.getElementById(map.ph).style.display = 'none';
+            const img = document.getElementById(map.prev);
+            const statusEl = document.getElementById(map.status);
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
                 img.src = e.target.result;
                 img.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#0056b3';
+                statusEl.innerText = '⏳ Đang tải ảnh lên Cloudinary...';
             }
-        };
-        reader.readAsDataURL(file);
+
+            try {
+                const url = await uploadDriverDocFile(file);
+                driverDocs[docType] = url;
+                if (statusEl) {
+                    statusEl.style.color = '#28a745';
+                    statusEl.innerText = '✓ Đã tải lên Cloudinary';
+                }
+            } catch (err) {
+                console.warn('Lỗi tải ảnh ngay khi chọn:', err);
+                if (statusEl) {
+                    statusEl.style.color = '#e67e22';
+                    statusEl.innerText = '⚠️ Sẽ tải lại khi bấm Đăng ký';
+                }
+            }
+        }
     }
 
     // Xử lý Register
@@ -429,26 +494,68 @@
         if (accType === 'DRIVER') {
             url = `${API_BASE}/drivers/register`;
             payload.vehicleType = document.getElementById('reg-vehicle-type').value;
-            payload.licensePlate = document.getElementById('reg-plate').value;
-            payload.vehicleModel = document.getElementById('reg-model').value;
+            payload.licensePlate = (document.getElementById('reg-plate').value || '').trim().toUpperCase();
+            payload.vehicleModel = (document.getElementById('reg-model').value || '').trim();
             if (!payload.licensePlate || !payload.vehicleModel) return errorEl.innerText = "Vui lòng nhập đủ thông tin xe";
 
             payload.cccdNumber = document.getElementById('reg-cccd-number').value.trim() || undefined;
+            payload.gplxNumber = document.getElementById('reg-gplx-number').value.trim() || undefined;
+
+            if (!driverDocFiles.cccdFront || !driverDocFiles.cccdBack) {
+                errorEl.style.color = "red";
+                return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Căn cước công dân (CCCD)!";
+            }
+            if (!driverDocFiles.gplxFront || !driverDocFiles.gplxBack) {
+                errorEl.style.color = "red";
+                return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Giấy phép lái xe (GPLX)!";
+            }
+
+            errorEl.style.color = "blue";
+            errorEl.innerText = "Đang tải ảnh giấy tờ lên hệ thống Cloudinary...";
+
+            const docKeys = ['cccdFront', 'cccdBack', 'gplxFront', 'gplxBack'];
+            for (const key of docKeys) {
+                if (!driverDocs[key]) {
+                    const map = keyMap[key];
+                    const statusEl = document.getElementById(map.status);
+                    if (statusEl) {
+                        statusEl.style.display = 'block';
+                        statusEl.style.color = '#0056b3';
+                        statusEl.innerText = '⏳ Đang tải ảnh lên Cloudinary...';
+                    }
+                    try {
+                        driverDocs[key] = await uploadDriverDocFile(driverDocFiles[key]);
+                        if (statusEl) {
+                            statusEl.style.color = '#28a745';
+                            statusEl.innerText = '✓ Đã tải lên Cloudinary';
+                        }
+                    } catch (uploadErr) {
+                        if (statusEl) {
+                            statusEl.style.color = 'red';
+                            statusEl.innerText = '⚠️ Tải ảnh thất bại!';
+                        }
+                        errorEl.style.color = "red";
+                        return errorEl.innerText = `Lỗi tải ảnh ${map.label}: ${uploadErr.message}`;
+                    }
+                }
+            }
+
             payload.cccdFrontImage = driverDocs.cccdFront;
             payload.cccdBackImage = driverDocs.cccdBack;
-            payload.gplxNumber = document.getElementById('reg-gplx-number').value.trim() || undefined;
             payload.gplxFrontImage = driverDocs.gplxFront;
             payload.gplxBackImage = driverDocs.gplxBack;
 
             if (!payload.cccdFrontImage || !payload.cccdBackImage) {
+                errorEl.style.color = "red";
                 return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Căn cước công dân (CCCD)!";
             }
             if (!payload.gplxFrontImage || !payload.gplxBackImage) {
+                errorEl.style.color = "red";
                 return errorEl.innerText = "Vui lòng tải lên đầy đủ ảnh chụp 2 mặt Giấy phép lái xe (GPLX)!";
             }
         }
 
-        errorEl.innerText = "Đang xử lý...";
+        errorEl.innerText = "Đang xử lý đăng ký...";
         errorEl.style.color = "blue";
 
         try {
