@@ -20,4 +20,6 @@ public class BookingRequest {
     private Double endLatitude;
 
     private String vehicleType;
+    private String pickupAddress;
+    private String dropoffAddress;
 }

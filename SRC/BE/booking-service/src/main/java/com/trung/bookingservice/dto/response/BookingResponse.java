@@ -23,4 +23,6 @@ public class BookingResponse {
     private Double price;
     private String vehicleType;
     private String paymentMethod;
+    private String pickupAddress;
+    private String dropoffAddress;
 }

@@ -128,6 +128,8 @@ public class BookingReassignService {
                             .status(currentBooking.getStatus())
                             .distanceInKm(distanceInKm)
                             .price(currentBooking.getPrice())
+                            .pickupAddress(currentBooking.getPickupAddress())
+                            .dropoffAddress(currentBooking.getDropoffAddress())
                             .build();
 
                     // Bắn WebSocket mời tài xế mới nhận cuốc
@@ -160,6 +162,8 @@ public class BookingReassignService {
                     .endLatitude(finalBooking.getEndLatitude())
                     .distanceInKm(0.0)
                     .price(finalBooking.getPrice())
+                    .pickupAddress(finalBooking.getPickupAddress())
+                    .dropoffAddress(finalBooking.getDropoffAddress())
                     .status(BookingStatus.CANCELLED)
                     .build();
 
