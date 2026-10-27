@@ -229,8 +229,8 @@ class RideTrackingSessionManager @Inject constructor(
         val currLoc = current.driverLiveLocation
         if (currLoc == null) {
             val known = knownDriverLocations[driverId]
-            val initLat = known?.first ?: (targetLat + 0.0075)
-            val initLng = known?.second ?: (targetLng - 0.0085)
+            val initLat = if (inProgress && current.startLatitude != 0.0) current.startLatitude else (known?.first ?: (targetLat + 0.0075))
+            val initLng = if (inProgress && current.startLongitude != 0.0) current.startLongitude else (known?.second ?: (targetLng - 0.0085))
             val bearing = BearingCalculator.calculateBearing(initLat, initLng, targetLat, targetLng)
             handleDriverLocation(DriverLiveLocation(driverId, initLat, initLng, bearing, 25.0f, System.currentTimeMillis()))
         } else if (current.routeCoordinates.size > 1) {
