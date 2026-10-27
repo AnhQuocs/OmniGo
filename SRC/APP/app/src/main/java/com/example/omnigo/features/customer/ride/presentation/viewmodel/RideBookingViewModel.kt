@@ -223,6 +223,7 @@ class RideBookingViewModel @Inject constructor(
 
     fun loadNearbyDrivers(lat: Double, lng: Double) = viewModelScope.launch {
         val drivers = getNearbyDriversUseCase(lat, lng)
+        drivers.forEach { rideTrackingSessionManager.registerDriverLocation(it.driverId, it.latitude, it.longitude) }
         _uiState.update { it.copy(nearbyDrivers = drivers) }
     }
 

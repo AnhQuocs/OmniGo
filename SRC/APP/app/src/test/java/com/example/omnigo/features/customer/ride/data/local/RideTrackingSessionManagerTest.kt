@@ -366,6 +366,22 @@ class RideTrackingSessionManagerTest {
     }
 
     @Test
+    fun `driver location uses registered acceptance coordinate when booking accepted`() = testScope.runTest {
+        sessionManager.registerDriverLocation(77L, 21.0500, 105.8000)
+        sessionManager.startSession(sampleBooking)
+        advanceUntilIdle()
+
+        statusFlow.emit(RideStatusEvent(100L, BookingStatus.ACCEPTED, driverId = 77L))
+        advanceUntilIdle()
+
+        val state = sessionManager.activeRideState.value
+        assertNotNull(state?.driverLiveLocation)
+        assertEquals(21.0500, state?.driverLiveLocation?.latitude ?: 0.0, 0.0001)
+        assertEquals(105.8000, state?.driverLiveLocation?.longitude ?: 0.0, 0.0001)
+        sessionManager.stopTrackingRealtime()
+    }
+
+    @Test
     fun `clearSession cancels tracking and sets active state to null`() = testScope.runTest {
         sessionManager.startSession(sampleBooking)
         advanceUntilIdle()

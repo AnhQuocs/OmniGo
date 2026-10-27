@@ -48,6 +48,9 @@ class DriverLocationForegroundService : Service() {
     @Inject
     lateinit var sessionManager: SessionManager
 
+    @Inject
+    lateinit var rideTrackingSessionManager: com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isTracking = false
 
@@ -72,6 +75,11 @@ class DriverLocationForegroundService : Service() {
                         fullAddress = ""
                     )
                 )
+
+                val userId = sessionManager.getUserId() ?: 0L
+                if (userId > 0L) {
+                    rideTrackingSessionManager.registerDriverLocation(userId, location.latitude, location.longitude)
+                }
             }
         }
     }

@@ -43,6 +43,14 @@ class RideTrackingSessionManager @Inject constructor(
     internal var scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     internal var pollingIntervalMs: Long = 4000L
 
+    private val knownDriverLocations = java.util.concurrent.ConcurrentHashMap<Long, Pair<Double, Double>>()
+
+    fun registerDriverLocation(driverId: Long, latitude: Double, longitude: Double) {
+        if (driverId > 0L && latitude != 0.0 && longitude != 0.0) {
+            knownDriverLocations[driverId] = Pair(latitude, longitude)
+        }
+    }
+
     private val _activeRideState = MutableStateFlow<ActiveRideState?>(null)
     val activeRideState: StateFlow<ActiveRideState?> = _activeRideState.asStateFlow()
 
@@ -152,16 +160,23 @@ class RideTrackingSessionManager @Inject constructor(
     }
 
     private fun subscribeDriverLocation(driverId: Long) {
-        if (driverId <= 0L) return
-        if (currentDriverId == driverId && locationJob?.isActive == true && locationPollingJob?.isActive == true) return
+        if (driverId <= 0L || (currentDriverId == driverId && locationJob?.isActive == true && locationPollingJob?.isActive == true)) return
 
         unsubscribeDriverLocation()
         currentDriverId = driverId
 
+        val known = knownDriverLocations[driverId]
+        if (known != null && _activeRideState.value?.driverLiveLocation == null) {
+            val cur = _activeRideState.value
+            val inProg = cur?.status == BookingStatus.IN_PROGRESS
+            val tLat = if (inProg) cur.endLatitude else (cur?.startLatitude ?: 0.0)
+            val tLng = if (inProg) cur.endLongitude else (cur?.startLongitude ?: 0.0)
+            val bearing = if (tLat != 0.0 && tLng != 0.0) BearingCalculator.calculateBearing(known.first, known.second, tLat, tLng) else null
+            handleDriverLocation(DriverLiveLocation(driverId, known.first, known.second, bearing, 25.0f, System.currentTimeMillis()))
+        }
+
         locationJob = scope.launch {
-            observeDriverLiveLocationUseCase(driverId).collect { liveLocation ->
-                handleDriverLocation(liveLocation)
-            }
+            observeDriverLiveLocationUseCase(driverId).collect(::handleDriverLocation)
         }
 
         locationPollingJob = scope.launch {
@@ -196,6 +211,7 @@ class RideTrackingSessionManager @Inject constructor(
             val nearby = getNearbyDriversUseCase(latitude = centerLat, longitude = centerLng, radius = 50.0)
             val driver = nearby.firstOrNull { it.driverId == driverId }
             if (driver != null) {
+                knownDriverLocations[driverId] = Pair(driver.latitude, driver.longitude)
                 val targetLat = if (inProgress) current.endLatitude else current.startLatitude
                 val targetLng = if (inProgress) current.endLongitude else current.startLongitude
                 val bearing = if (targetLat != 0.0 && targetLng != 0.0) {
@@ -212,20 +228,17 @@ class RideTrackingSessionManager @Inject constructor(
 
         val currLoc = current.driverLiveLocation
         if (currLoc == null) {
-            val initLat = targetLat + 0.0075
-            val initLng = targetLng - 0.0085
+            val known = knownDriverLocations[driverId]
+            val initLat = known?.first ?: (targetLat + 0.0075)
+            val initLng = known?.second ?: (targetLng - 0.0085)
             val bearing = BearingCalculator.calculateBearing(initLat, initLng, targetLat, targetLng)
             handleDriverLocation(DriverLiveLocation(driverId, initLat, initLng, bearing, 25.0f, System.currentTimeMillis()))
         } else if (current.routeCoordinates.size > 1) {
             val route = current.routeCoordinates
-            var closestIdx = 0
-            var minDist = Double.MAX_VALUE
-            for (i in route.indices) {
-                val d = LiveTrackingCalculator.calculateRemainingDistanceKm(currLoc.latitude, currLoc.longitude, route[i].first, route[i].second)
-                if (d < minDist) { minDist = d; closestIdx = i }
-            }
-            val nextIdx = (closestIdx + 2).coerceAtMost(route.size - 1)
-            val next = route[nextIdx]
+            val closestIdx = route.indices.minByOrNull {
+                LiveTrackingCalculator.calculateRemainingDistanceKm(currLoc.latitude, currLoc.longitude, route[it].first, route[it].second)
+            } ?: 0
+            val next = route[(closestIdx + 2).coerceAtMost(route.size - 1)]
             val bearing = BearingCalculator.calculateBearing(currLoc.latitude, currLoc.longitude, next.first, next.second)
             handleDriverLocation(DriverLiveLocation(driverId, next.first, next.second, bearing, 25.0f, System.currentTimeMillis()))
         }
@@ -320,22 +333,11 @@ class RideTrackingSessionManager @Inject constructor(
             _activeRideState.update { it?.copy(isDriverProfileLoading = true) }
             when (val result = getBookingDriverUseCase(bookingId)) {
                 is GetBookingDriverResult.Success -> {
-                    _activeRideState.update {
-                        it?.copy(
-                            driverProfile = result.driverProfile,
-                            isDriverProfileLoading = false
-                        )
-                    }
+                    _activeRideState.update { it?.copy(driverProfile = result.driverProfile, isDriverProfileLoading = false) }
                     val currentLoc = _activeRideState.value?.driverLiveLocation
-                    if (currentLoc != null && _activeRideState.value?.routeCoordinates.isNullOrEmpty()) {
-                        handleDriverLocation(currentLoc)
-                    }
+                    if (currentLoc != null && _activeRideState.value?.routeCoordinates.isNullOrEmpty()) handleDriverLocation(currentLoc)
                 }
-                is GetBookingDriverResult.Error -> {
-                    _activeRideState.update {
-                        it?.copy(isDriverProfileLoading = false)
-                    }
-                }
+                is GetBookingDriverResult.Error -> _activeRideState.update { it?.copy(isDriverProfileLoading = false) }
             }
         }
     }
@@ -343,18 +345,12 @@ class RideTrackingSessionManager @Inject constructor(
     suspend fun restoreSessionIfAvailable() {
         val savedBookingId = rideSessionManager.activeBookingIdFlow.firstOrNull() ?: 0L
         val current = _activeRideState.value
-
-        // Already active in memory for this bookingId
-        if (savedBookingId > 0L && current?.bookingId == savedBookingId && (current.isTripActive || current.isPending)) {
-            return
-        }
+        if (savedBookingId > 0L && current?.bookingId == savedBookingId && (current.isTripActive || current.isPending)) return
 
         when (val result = getCustomerBookingsUseCase()) {
             is GetCustomerBookingsResult.Success -> {
-                val activeBooking = (if (savedBookingId > 0L) {
-                    result.bookings.firstOrNull { it.bookingId == savedBookingId && it.status != BookingStatus.COMPLETED && it.status != BookingStatus.CANCELLED }
-                } else null) ?: result.bookings.firstOrNull { it.status == BookingStatus.PENDING || it.status == BookingStatus.ACCEPTED || it.status == BookingStatus.ARRIVED || it.status == BookingStatus.IN_PROGRESS }
-
+                val activeBooking = (if (savedBookingId > 0L) result.bookings.firstOrNull { it.bookingId == savedBookingId && it.status != BookingStatus.COMPLETED && it.status != BookingStatus.CANCELLED } else null)
+                    ?: result.bookings.firstOrNull { it.status == BookingStatus.PENDING || it.status == BookingStatus.ACCEPTED || it.status == BookingStatus.ARRIVED || it.status == BookingStatus.IN_PROGRESS }
                 if (activeBooking != null) startSession(activeBooking)
                 else if (savedBookingId > 0L || current != null) clearSession()
             }
@@ -372,6 +368,7 @@ class RideTrackingSessionManager @Inject constructor(
     fun clearSession() {
         stopTrackingRealtime()
         _activeRideState.value = null
+        knownDriverLocations.clear()
         scope.launch { rideSessionManager.clearActiveBookingId() }
     }
 
