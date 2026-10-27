@@ -224,7 +224,9 @@ class RideBookingViewModel @Inject constructor(
     fun loadNearbyDrivers(lat: Double, lng: Double) = viewModelScope.launch {
         val drivers = getNearbyDriversUseCase(lat, lng)
         drivers.forEach { rideTrackingSessionManager.registerDriverLocation(it.driverId, it.latitude, it.longitude) }
+        val wasEmpty = _uiState.value.nearbyDrivers.isEmpty()
         _uiState.update { it.copy(nearbyDrivers = drivers) }
+        if (wasEmpty && drivers.isNotEmpty() && _uiState.value.dropoffLocation != null) recalculatePricingIfNeeded()
     }
 
     fun swapLocations() {
@@ -252,12 +254,13 @@ class RideBookingViewModel @Inject constructor(
         }
 
         val selectedType = _uiState.value.selectedVehicleType
+        val nearbyCount = _uiState.value.nearbyDrivers.size.coerceAtLeast(1)
         priceCalculationJob?.cancel()
         priceCalculationJob = viewModelScope.launch {
             _uiState.update { it.copy(isCalculatingPrice = true, pricingError = null) }
-            val bikeDeferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "BIKE") }
-            val car4Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "CAR_4_SEAT") }
-            val car7Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, vehicleType = "CAR_7_SEAT") }
+            val bikeDeferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "BIKE") }
+            val car4Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "CAR_4_SEAT") }
+            val car7Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "CAR_7_SEAT") }
             val routeDeferred = async { osrmRoutingService.getRouteCoordinates(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, selectedType.name) }
 
             val bikeRes = bikeDeferred.await()
@@ -341,12 +344,7 @@ class RideBookingViewModel @Inject constructor(
     }
 
     fun cancelSearchCountdown() { countdownJob?.cancel(); _uiState.update { it.copy(showSearchTimeoutDialog = false) } }
-
-    fun retrySearchDriver() {
-        _uiState.update { it.copy(showSearchTimeoutDialog = false, isSearchingDriver = true, searchCountdownSeconds = 60) }
-        startSearchCountdown()
-    }
-
+    fun retrySearchDriver() { _uiState.update { it.copy(showSearchTimeoutDialog = false, isSearchingDriver = true, searchCountdownSeconds = 60) }; startSearchCountdown() }
     fun dismissSearchTimeoutDialog() { cancelSearchCountdown(); cancelBooking() }
 
     fun cancelBooking() {
