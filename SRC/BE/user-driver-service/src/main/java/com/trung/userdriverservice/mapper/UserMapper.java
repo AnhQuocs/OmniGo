@@ -104,7 +104,7 @@ public class UserMapper {
                 .avatarUrl(user != null ? user.getAvatarUrl() : null)
                 .phoneNumber(user != null ? user.getPhoneNumber() : "")
                 .email(user != null ? user.getEmail() : "")
-                .isLocked(user != null ? user.getIsLocked() : false)
+                .isLocked(user != null && Boolean.TRUE.equals(user.getIsLocked()))
                 .lockedReason(user != null ? user.getLockedReason() : null)
                 .vehicleType(profile.getVehicleType())
                 .licensePlate(profile.getLicensePlate())

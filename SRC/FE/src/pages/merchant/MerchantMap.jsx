@@ -95,7 +95,7 @@ export const MerchantMap = () => {
           <div style="
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+            background: #F97316;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
             box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45);

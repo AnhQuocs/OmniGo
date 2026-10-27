@@ -35,7 +35,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: find-driver-for-food:com.trung.fooddeliveryservice.event.FindDriverForFoodOrderEvent,driver-assigned-food:com.trung.fooddeliveryservice.event.DriverAssignedToFoodOrderEvent
+        spring.json.type.mapping: food-order-status:com.trung.fooddeliveryservice.event.FoodOrderStatusEvent,find-driver-for-food:com.trung.fooddeliveryservice.event.FindDriverForFoodOrderEvent,driver-assigned-food:com.trung.fooddeliveryservice.event.DriverAssignedToFoodOrderEvent
     consumer:
       group-id: food-delivery-service-group
       auto-offset-reset: earliest
@@ -90,4 +90,6 @@ logging:
 
 app:
   payment-service-url: ${PAYMENT_SERVICE_URL:https://api.ridehailingsystem.online}
-  driver-service-url: ${DRIVER_SERVICE_URL:https://api.ridehailingsystem.online}
+  driver-service-url: ${DRIVER_SERVICE_URL:http://user-driver-service:8081}
+  pricing-service-url: ${PRICING_SERVICE_URL:http://pricing-service:8084}
+

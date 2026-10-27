@@ -24,9 +24,15 @@ import com.trung.fooddeliveryservice.util.enums.OrderCancelReason;
 import com.trung.fooddeliveryservice.util.enums.RestaurantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -53,11 +59,15 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate directRestTemplate;
 
-    @org.springframework.beans.factory.annotation.Value("${app.payment-service-url:http://localhost:8085}")
+    @Value("${app.payment-service-url:http://localhost:8085}")
     private String paymentServiceBaseUrl;
 
-    @org.springframework.beans.factory.annotation.Value("${app.driver-service-url:http://localhost:8081}")
+    @Value("${app.driver-service-url:http://localhost:8081}")
     private String driverServiceBaseUrl;
+
+    @Value("${app.pricing-service-url:http://localhost:8084}")
+    private String pricingServiceBaseUrl;
+
 
     @Override
     @Transactional
@@ -151,7 +161,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setTotalPrice(itemsTotal.add(deliveryFee));
         order.setOrderItems(orderItems);
 
-        FoodOrder savedOrder = foodOrderRepository.save(order);
+        FoodOrder savedOrder = saveAndNotifyStatus(order);
         log.info("Tạo thành công đơn hàng ID {} cho khách hàng ID {}, tổng tiền: {} đ (chờ nhà hàng duyệt)", savedOrder.getId(), customerId, savedOrder.getTotalPrice());
 
         return foodOrderMapper.toResponse(savedOrder);
@@ -165,14 +175,16 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     log.warn("Không tìm thấy đơn hàng ID {}", orderId);
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
                 });
-        return foodOrderMapper.toResponse(order);
+        FoodOrderResponse response = foodOrderMapper.toResponse(order);
+        enrichDriverDetails(response);
+        return response;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getCustomerOrders(Long customerId) {
         List<FoodOrder> orders = foodOrderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -193,14 +205,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .stream()
                 .filter(o -> o.getStatus() != OrderStatus.AWAITING_PAYMENT)
                 .collect(Collectors.toList());
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getDriverOrders(Long driverId) {
         List<FoodOrder> orders = foodOrderRepository.findByDriverIdOrderByCreatedAtDesc(driverId);
-        return foodOrderMapper.toResponseList(orders);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -255,21 +267,21 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái Chờ xác nhận (PENDING). Hiện tại: " + current);
                 }
                 order.setCancelledBy(OrderCancelledBy.RESTAURANT);
-                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán từ chối tiếp nhận đơn"));
+                order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Quán từ chối tiếp nhận đơn"));
                 order.setCancelReasonCode(reasonCode);
             } else if (newStatus == OrderStatus.CANCELLED) {
                 if (current == OrderStatus.COMPLETED || current == OrderStatus.REJECTED || current == OrderStatus.CANCELLED) {
                     throw new BadRequestException("Không thể hủy đơn hàng đã kết thúc (" + current + ")");
                 }
                 order.setCancelledBy(OrderCancelledBy.RESTAURANT);
-                order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Quán hủy đơn"));
+                order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Quán hủy đơn"));
                 order.setCancelReasonCode(reasonCode);
             } else {
                 throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía nhà hàng: " + newStatus);
             }
 
             order.setStatus(newStatus);
-            FoodOrder saved = foodOrderRepository.save(order);
+            FoodOrder saved = saveAndNotifyStatus(order);
             log.info("Chủ nhà hàng ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", ownerId, orderId, newStatus);
 
             if (newStatus == OrderStatus.READY_FOR_PICKUP) {
@@ -303,17 +315,18 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                                 if (retryCount < 1) {
                                     log.warn("Đơn hàng ID {} không có tài xế nhận sau lần quét đầu, chuyển sang NO_DRIVER_FOUND", targetOrderId);
                                     o.setStatus(OrderStatus.NO_DRIVER_FOUND);
-                                    foodOrderRepository.save(o);
+                                    saveAndNotifyStatus(o);
                                 } else {
                                     log.warn("Đơn hàng ID {} không có tài xế nhận sau khi quét lại lần 2, tự động hủy CANCELLED", targetOrderId);
                                     o.setStatus(OrderStatus.CANCELLED);
                                     o.setCancelledBy(OrderCancelledBy.SYSTEM);
                                     o.setCancelReason("Không tìm thấy tài xế sau nhiều lần tìm kiếm");
                                     o.setCancelReasonCode(OrderCancelReason.SYSTEM_NO_DRIVER_FOUND);
-                                    FoodOrder savedCancelled = foodOrderRepository.save(o);
+                                    FoodOrder savedCancelled = saveAndNotifyStatus(o);
                                     if (Boolean.TRUE.equals(savedCancelled.getIsPaid())) {
                                         triggerRefund(savedCancelled.getCustomerId(), savedCancelled.getId(), savedCancelled.getTotalPrice(), "Hệ thống hủy đơn do không tìm thấy tài xế");
                                     }
+                                    triggerVoucherRollback(savedCancelled.getCustomerId(), savedCancelled.getId());
                                 }
                             }
                         });
@@ -328,10 +341,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 if (saved.getDriverId() != null) {
                     updateDriverStatusOnline(saved.getDriverId());
                 }
+                triggerVoucherRollback(saved.getCustomerId(), saved.getId());
             } else if (newStatus == OrderStatus.REJECTED) {
                 if (Boolean.TRUE.equals(saved.getIsPaid())) {
                     triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Nhà hàng từ chối tiếp nhận đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
                 }
+                triggerVoucherRollback(saved.getCustomerId(), saved.getId());
             }
 
             return foodOrderMapper.toResponse(saved);
@@ -375,9 +390,9 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
             order.setStatus(OrderStatus.CANCELLED);
             order.setCancelledBy(OrderCancelledBy.CUSTOMER);
-            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Khách hàng tự hủy đơn"));
+            order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Khách hàng tự hủy đơn"));
             order.setCancelReasonCode(reasonCode);
-            FoodOrder saved = foodOrderRepository.save(order);
+            FoodOrder saved = saveAndNotifyStatus(order);
             log.info("Khách hàng ID {} đã hủy thành công đơn hàng ID {}", customerId, orderId);
 
             if (Boolean.TRUE.equals(saved.getIsPaid())) {
@@ -404,7 +419,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             order.setStatus(OrderStatus.DELIVERING);
         }
 
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã gán thành công tài xế ID {} cho đơn hàng ID {}", driverId, orderId);
         return foodOrderMapper.toResponse(saved);
     }
@@ -437,13 +452,13 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         } else if (newStatus == OrderStatus.CANCELLED) {
             order.setStatus(OrderStatus.CANCELLED);
             order.setCancelledBy(OrderCancelledBy.DRIVER);
-            order.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : (reasonCode != null ? reasonCode.getDefaultDescription() : "Tài xế hủy đơn"));
+            order.setCancelReason(resolveCancelReasonText(reason, reasonCode, "Tài xế hủy đơn"));
             order.setCancelReasonCode(reasonCode);
         } else {
             throw new BadRequestException("Trạng thái chuyển đổi không hợp lệ cho phía tài xế: " + newStatus);
         }
 
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Tài xế ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", driverId, orderId, newStatus);
 
         if (newStatus == OrderStatus.COMPLETED) {
@@ -454,6 +469,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Tài xế hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
             }
             updateDriverStatusOnline(driverId);
+            triggerVoucherRollback(saved.getCustomerId(), saved.getId());
         }
 
         return foodOrderMapper.toResponse(saved);
@@ -469,7 +485,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             order.setStatus(OrderStatus.PENDING);
             log.info("Đơn hàng #{} đã thanh toán thành công, tự động chuyển từ AWAITING_PAYMENT sang PENDING để quán nhận đơn", orderId);
         }
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã đánh dấu đơn hàng #{} là ĐÃ THANH TOÁN (isPaid = true)", orderId);
         return foodOrderMapper.toResponse(saved);
     }
@@ -493,9 +509,15 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setPaymentMethod("CASH");
         order.setIsPaid(false);
         order.setStatus(OrderStatus.PENDING);
-        FoodOrder saved = foodOrderRepository.save(order);
+        FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Khách hàng ID {} đã chuyển đơn hàng #{} sang thanh toán TIỀN MẶT (CASH), chuyển trạng thái sang PENDING để quán nhận đơn", customerId, orderId);
         return foodOrderMapper.toResponse(saved);
+    }
+
+    private FoodOrder saveAndNotifyStatus(FoodOrder order) {
+        FoodOrder saved = foodOrderRepository.save(order);
+        foodEventPublisher.publishOrderStatusAfterCommit(saved);
+        return saved;
     }
 
     private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal deliveryFee, String paymentMethod) {
@@ -564,6 +586,33 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
     }
 
+    private void triggerVoucherRollback(Long customerId, Long orderId) {
+        try {
+            List<String> targetUrls = new ArrayList<>();
+            String paramStr = String.format("?userId=%s&orderId=%s",
+                    customerId != null ? customerId.toString() : "",
+                    orderId != null ? orderId.toString() : "");
+
+            if (pricingServiceBaseUrl != null && !pricingServiceBaseUrl.isBlank()) {
+                targetUrls.add(pricingServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/pricing/vouchers/rollback" + paramStr);
+            }
+            targetUrls.add("http://localhost:8084/api/v1/pricing/vouchers/rollback" + paramStr);
+            targetUrls.add("http://localhost:8080/api/v1/pricing/vouchers/rollback" + paramStr);
+
+            for (String url : targetUrls) {
+                try {
+                    directRestTemplate.postForEntity(url, null, Void.class);
+                    log.info("Đã gửi yêu cầu revert voucher cho đơn hàng #{} (khách #{}) thành công qua URL: {}", orderId, customerId, url);
+                    break;
+                } catch (Exception err) {
+                    log.warn("Không thể gọi revert voucher qua URL {}: {}", url, err.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi khi gửi yêu cầu revert voucher cho đơn hàng #{}: {}", orderId, e.getMessage());
+        }
+    }
+
     private void updateDriverStatusOnline(Long driverId) {
         try {
             String url = (driverServiceBaseUrl != null ? driverServiceBaseUrl : "http://localhost:8081") + "/api/v1/drivers/" + driverId + "/status?isActive=true";
@@ -577,11 +626,87 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
     }
 
+    @SuppressWarnings("rawtypes")
+    private void enrichDriverDetails(FoodOrderResponse response) {
+        if (response == null || response.getDriverId() == null) return;
+        try {
+            String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
+                    ? driverServiceBaseUrl : "http://localhost:8081";
+            String url = baseUrl + "/api/v1/internal/drivers/" + response.getDriverId();
+            ResponseEntity<Map> resp = directRestTemplate.getForEntity(url, Map.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().containsKey("data")) {
+                Object dataObj = resp.getBody().get("data");
+                if (dataObj instanceof Map<?, ?> data) {
+                    if (data.get("fullName") != null) response.setDriverName(String.valueOf(data.get("fullName")));
+                    if (data.get("phoneNumber") != null) response.setDriverPhone(String.valueOf(data.get("phoneNumber")));
+                    if (data.get("avatarUrl") != null) response.setDriverAvatarUrl(String.valueOf(data.get("avatarUrl")));
+                    if (data.get("licensePlate") != null) response.setDriverLicensePlate(String.valueOf(data.get("licensePlate")));
+                    if (data.get("vehicleModel") != null) response.setDriverVehicleModel(String.valueOf(data.get("vehicleModel")));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Không thể lấy thông tin chi tiết tài xế ID {}: {}", response.getDriverId(), e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private List<FoodOrderResponse> enrichDriverDetails(List<FoodOrderResponse> responses) {
+        if (responses == null || responses.isEmpty()) return responses;
+        Map<Long, Map<?, ?>> cache = new HashMap<>();
+        for (FoodOrderResponse r : responses) {
+            if (r.getDriverId() == null) continue;
+            try {
+                Map<?, ?> data = cache.computeIfAbsent(r.getDriverId(), id -> {
+                    try {
+                        String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
+                                ? driverServiceBaseUrl : "http://localhost:8081";
+                        String url = baseUrl + "/api/v1/internal/drivers/" + id;
+                        ResponseEntity<Map> resp = directRestTemplate.getForEntity(url, Map.class);
+                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().containsKey("data")) {
+                            Object obj = resp.getBody().get("data");
+                            if (obj instanceof Map<?, ?> m) return m;
+                        }
+                    } catch (Exception ex) {
+                        log.warn("Lỗi tải thông tin tài xế {}: {}", id, ex.getMessage());
+                    }
+                    return null;
+                });
+
+                if (data != null) {
+                    if (data.get("fullName") != null) r.setDriverName(String.valueOf(data.get("fullName")));
+                    if (data.get("phoneNumber") != null) r.setDriverPhone(String.valueOf(data.get("phoneNumber")));
+                    if (data.get("avatarUrl") != null) r.setDriverAvatarUrl(String.valueOf(data.get("avatarUrl")));
+                    if (data.get("licensePlate") != null) r.setDriverLicensePlate(String.valueOf(data.get("licensePlate")));
+                    if (data.get("vehicleModel") != null) r.setDriverVehicleModel(String.valueOf(data.get("vehicleModel")));
+                }
+            } catch (Exception e) {
+                // Ignore individual driver enrichment errors
+            }
+        }
+        return responses;
+    }
+
+    private String resolveCancelReasonText(String reason, OrderCancelReason reasonCode, String defaultFallback) {
+        if (reason != null && !reason.trim().isEmpty()) {
+            String trimmed = reason.trim();
+            try {
+                OrderCancelReason parsed = OrderCancelReason.valueOf(trimmed);
+                return parsed.getDefaultDescription();
+            } catch (IllegalArgumentException ignored) {
+                return trimmed;
+            }
+        }
+        if (reasonCode != null) {
+            return reasonCode.getDefaultDescription();
+        }
+        return defaultFallback;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getAllOrders() {
         List<FoodOrder> list = foodOrderRepository.findAllByOrderByCreatedAtDesc();
-        return foodOrderMapper.toResponseList(list);
+        return enrichDriverDetails(foodOrderMapper.toResponseList(list));
     }
 
     @Override
@@ -619,14 +744,50 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     private BigDecimal calculateDeliveryFee(Double lat1, Double lon1, Double lat2, Double lon2) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            return BigDecimal.valueOf(15000).setScale(0, RoundingMode.HALF_UP);
+        }
+
+        try {
+            Map<String, Object> requestBody = Map.of(
+                    "restaurantLatitude", lat1,
+                    "restaurantLongitude", lon1,
+                    "customerLatitude", lat2,
+                    "customerLongitude", lon2
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            String url = pricingServiceBaseUrl + "/api/v1/pricing/delivery-fee";
+            @SuppressWarnings("rawtypes")
+            ResponseEntity<Map> response = directRestTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().containsKey("deliveryFee")) {
+                Object feeVal = response.getBody().get("deliveryFee");
+                double fee = feeVal instanceof Number ? ((Number) feeVal).doubleValue() : Double.parseDouble(String.valueOf(feeVal));
+                log.info("[DeliveryFee] Đã tính phí ship từ pricing-service (OSRM/Cache): {} đ", fee);
+                return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
+            }
+        } catch (Exception e) {
+            log.warn("[DeliveryFee] Không thể kết nối tới pricing-service, tự động fallback tính Haversine nội bộ. Lỗi: {}", e.getMessage());
+        }
+
+        // Fallback nội bộ: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
         double distanceKm = calculateDistanceInKm(lat1, lon1, lat2, lon2);
-        // Phí cơ sở: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
         double fee = 15000.0;
         if (distanceKm > 2.0) {
             fee += (distanceKm - 2.0) * 5000.0;
         }
         return BigDecimal.valueOf(fee).setScale(0, RoundingMode.HALF_UP);
     }
+
 
     private double calculateDistanceInKm(Double lat1, Double lon1, Double lat2, Double lon2) {
         if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {

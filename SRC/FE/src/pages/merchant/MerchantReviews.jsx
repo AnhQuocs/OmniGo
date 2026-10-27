@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Box,
@@ -60,7 +59,7 @@ export const MerchantReviews = () => {
                 width: 40,
                 height: 40,
                 borderRadius: 2.5,
-                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                background: '#F59E0B',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

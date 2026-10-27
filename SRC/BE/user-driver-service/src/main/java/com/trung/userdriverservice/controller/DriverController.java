@@ -42,13 +42,13 @@ public class DriverController {
     private final UserService userService;
     private final CloudinaryService cloudinaryService;
 
-    @PostMapping("/upload-document")
+    @PostMapping(value = "/upload-document", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadDriverDocument(@RequestParam("file") MultipartFile file) throws BadRequestException {
         String url = cloudinaryService.uploadImage(file);
         return ResponseEntity.ok(ApiResponse.<Map<String, String>>builder()
                 .success(true)
                 .message("Tải lên giấy tờ thành công")
-                .data(Map.of("url", url != null ? url : ""))
+                .data(Map.of("url", url))
                 .timestamp(LocalDateTime.now())
                 .build());
     }

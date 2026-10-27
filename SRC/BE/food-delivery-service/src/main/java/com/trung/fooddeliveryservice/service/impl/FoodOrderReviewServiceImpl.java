@@ -231,7 +231,7 @@ public class FoodOrderReviewServiceImpl implements FoodOrderReviewService {
         if (images == null || images.isEmpty()) return null;
         List<String> processedUrls = images.stream()
                 .filter(Objects::nonNull)
-                .map(img -> cloudinaryService != null ? cloudinaryService.uploadBase64(img) : img)
+                .map(img -> cloudinaryService.validateImageUrl(img))
                 .filter(Objects::nonNull)
                 .toList();
         try {

@@ -18,11 +18,25 @@ public class PricingMapper {
             int duration,
             String h3Index) {
 
+        return toPricingResponse(config, distanceFare, durationFare, level, level.getMultiplier(), totalPrice, distance, duration, h3Index);
+    }
+
+    public PricingResponse toPricingResponse(
+            PricingConfig config,
+            double distanceFare,
+            double durationFare,
+            SurgeLevel level,
+            double surgeMultiplier,
+            double totalPrice,
+            double distance,
+            int duration,
+            String h3Index) {
+
         return PricingResponse.builder()
                 .baseFare(config.getBaseFare())
                 .distanceFare(distanceFare)
                 .durationFare(durationFare)
-                .surgeMultiplier(level.getMultiplier())
+                .surgeMultiplier(surgeMultiplier)
                 .surgeLevel(level.name())
                 .totalPrice(totalPrice)
                 .distanceInKm(distance)

@@ -82,7 +82,7 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.completeTrip(driverId, bookingId, paymentMethod));
     }
 
-    @PutMapping("/{bookingId}/cancel")
+    @RequestMapping(value = "/{bookingId}/cancel", method = {RequestMethod.PUT, RequestMethod.POST})
     public ResponseEntity<BookingResponse> cancelBooking(
             @RequestHeader("X-User-Id") Long customerId,
             @PathVariable Long bookingId) throws ResourceNotFoundException, BadRequestException {

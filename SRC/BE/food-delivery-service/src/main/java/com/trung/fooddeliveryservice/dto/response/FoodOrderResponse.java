@@ -22,7 +22,14 @@ public class FoodOrderResponse implements Serializable {
     private Long restaurantId;
     private String restaurantName;
     private String restaurantAddress;
+    private Double restaurantLatitude;
+    private Double restaurantLongitude;
     private Long driverId;
+    private String driverName;
+    private String driverPhone;
+    private String driverAvatarUrl;
+    private String driverLicensePlate;
+    private String driverVehicleModel;
     private OrderStatus status;
     private BigDecimal totalPrice;
     private BigDecimal deliveryFee;

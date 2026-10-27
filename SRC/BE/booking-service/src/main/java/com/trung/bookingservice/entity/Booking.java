@@ -29,6 +29,12 @@ public class Booking {
     @Column(name = "driver_avatar_url", length = 2048)
     private String driverAvatarUrl;
 
+    @Column(name = "pickup_address", length = 1000)
+    private String pickupAddress;
+
+    @Column(name = "dropoff_address", length = 1000)
+    private String dropoffAddress;
+
     @Column(nullable = false)
     private Double startLongitude;
 
@@ -48,6 +54,8 @@ public class Booking {
     private BookingStatus status;
 
     private Double price;
+
+    private String vehicleType;
 
     private String paymentMethod;
 

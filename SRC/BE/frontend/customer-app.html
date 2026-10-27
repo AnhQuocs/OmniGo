@@ -131,6 +131,81 @@
             box-shadow: var(--shadow-sm);
         }
 
+        /* Autocomplete dropdown styles */
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            max-height: 280px;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+        .autocomplete-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.15s ease;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover {
+            background-color: #f0fdf4;
+        }
+        .autocomplete-item .item-icon {
+            font-size: 15px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .autocomplete-item .item-content {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .autocomplete-item .item-title {
+            font-weight: 600;
+            font-size: 12.5px;
+            color: #1e293b;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .autocomplete-item .item-subtitle {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .autocomplete-item .item-tag {
+            font-size: 9.5px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            white-space: nowrap;
+            background: #e0f2fe;
+            color: #0369a1;
+            flex-shrink: 0;
+        }
+        .autocomplete-loading {
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+
         .stats-panel {
             position: absolute;
             top: 10px;
@@ -526,6 +601,78 @@
         .form-control:focus {
             border-color: var(--food-primary);
         }
+
+        /* Ride Planner & Voucher Styles */
+        .quick-chip {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #334155;
+        }
+        .quick-chip:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+        .vehicle-option-card {
+            flex: 1;
+            min-width: 120px;
+            background: #f8fafc;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .vehicle-option-card:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .vehicle-option-card.active-vehicle {
+            border-color: #007bff;
+            background: #eff6ff;
+            box-shadow: 0 0 0 1px #007bff;
+        }
+        .voucher-ticket {
+            display: flex;
+            align-items: stretch;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .voucher-ticket:hover {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .voucher-left-tag {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            text-align: center;
+        }
+        .voucher-ticket.food-theme .voucher-left-tag {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+        }
+        .voucher-right-body {
+            flex: 1;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
@@ -554,21 +701,131 @@
 
 <!-- 1. KHU VỰC GỌI XE (RIDE HAILING) -->
 <div id="section-ride">
-    <h2>🚕 Đặt Xe Trực Tuyến (Mô phỏng Giá Động)</h2>
-
-    <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button id="btnConnect" class="btn-action" style="background:#007bff; color:white;" onclick="connectNotification()">1. Kết nối hệ thống</button>
-        <button id="btnBook" class="btn-action" onclick="bookRide()" disabled style="background-color: #28a745; color: white;">
-            2. 🚕 ĐẶT XE NGAY
-        </button>
-        <button id="btnHistory" class="btn-action" onclick="toggleBookingHistory()" style="background-color: #17a2b8; color: white;">
-            3. 📜 Lịch sử chuyến đi
-        </button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h2 style="margin: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">🚕 Đặt Xe Trực Tuyến (OSRM Engine & Voucher)</h2>
+            <p style="margin: 4px 0 0; color: #64748b; font-size: 13px;">Tích hợp OSRM Routing Engine (Docker), thuật toán Surge Pricing động & Khuyến mãi áp mã thời gian thực</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btnConnect" class="btn-action" style="background:#007bff; color:white; font-size:13px;" onclick="connectNotification()">🔌 Kết nối hệ thống</button>
+            <button id="btnHistory" class="btn-action" onclick="toggleBookingHistory()" style="background-color: #17a2b8; color: white; font-size:13px;">📜 Lịch sử chuyến</button>
+        </div>
     </div>
 
-    <div id="status" style="margin-top: 15px; font-weight: bold; color: gray;">Trạng thái: Chưa kết nối</div>
+    <div id="status" style="margin-bottom: 12px; font-weight: bold; color: gray;">Trạng thái: Chưa kết nối</div>
 
-    <div id="history-panel" style="display: none; margin-top: 15px; background: #fff; border: 2px solid #17a2b8; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <!-- Booking Planner & Route Picker Card -->
+    <div class="ride-planner-card" style="background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 14px;">
+            <!-- Pickup point -->
+            <div style="position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 6px; margin-bottom: 0;">
+                        🟢 Điểm đón (Pickup)
+                    </label>
+                    <button type="button" onclick="getCurrentLocationForRidePickup()" style="background:none; border:none; color:#16a34a; font-size:11px; cursor:pointer; font-weight:600;">🎯 Vị trí hiện tại</button>
+                </div>
+                <div style="position: relative;">
+                    <input type="text" id="ride-pickup-address" class="form-control" style="font-size: 13px; padding: 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội" placeholder="Nhập địa chỉ đón (VD: Bách Khoa, Cầu Giấy...)" autocomplete="off" oninput="handleAddressInputDebounced('pickup', this.value)" onfocus="handleAddressFocus('pickup', this.value)">
+                    <div id="pickup-autocomplete-dropdown" class="autocomplete-dropdown" style="display:none;"></div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
+                    <span style="font-size:11px; color:#64748b;">Gợi ý:</span>
+                    <button type="button" class="quick-chip" onclick="setRidePickup('Hồ Hoàn Kiếm, Tràng Tiền', 21.028511, 105.854444)">Hoàn Kiếm</button>
+                    <button type="button" class="quick-chip" onclick="setRidePickup('Đại học Bách Khoa, Hai Bà Trưng', 21.0042, 105.8437)">Bách Khoa</button>
+                    <button type="button" class="quick-chip" onclick="setRidePickup('Cầu Giấy, 123 Đường Cầu Giấy', 21.033333, 105.789123)">Cầu Giấy</button>
+                    <button type="button" class="quick-chip" onclick="setRidePickup('Bến xe Mỹ Đình, Nam Từ Liêm', 21.0280, 105.7780)">Mỹ Đình</button>
+                </div>
+            </div>
+
+            <!-- Destination point -->
+            <div style="position: relative;">
+                <label style="font-size: 13px; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                    🔴 Điểm đến (Destination)
+                </label>
+                <div style="position: relative;">
+                    <input type="text" id="ride-dropoff-address" class="form-control" style="font-size: 13px; padding: 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Tây (Phủ Tây Hồ), Quảng An, Hà Nội" placeholder="Nhập địa chỉ đến (VD: Hồ Tây, Keangnam...)" autocomplete="off" oninput="handleAddressInputDebounced('dropoff', this.value)" onfocus="handleAddressFocus('dropoff', this.value)">
+                    <div id="dropoff-autocomplete-dropdown" class="autocomplete-dropdown" style="display:none;"></div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
+                    <span style="font-size:11px; color:#64748b;">Gợi ý:</span>
+                    <button type="button" class="quick-chip" onclick="setRideDropoff('Hồ Tây (Phủ Tây Hồ), Tây Hồ', 21.0585, 105.8202)">Hồ Tây</button>
+                    <button type="button" class="quick-chip" onclick="setRideDropoff('Keangnam Landmark 72, Nam Từ Liêm', 21.0173, 105.7839)">Keangnam</button>
+                    <button type="button" class="quick-chip" onclick="setRideDropoff('Royal City, 72A Nguyễn Trãi, Thanh Xuân', 21.0028, 105.8159)">Royal City</button>
+                    <button type="button" class="quick-chip" onclick="setRideDropoff('Sân bay Nội Bài (Ga T1)', 21.2212, 105.8072)">Sân bay Nội Bài</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Type Selector -->
+        <div style="margin-bottom: 14px;">
+            <label style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">🚘 Chọn phương tiện di chuyển:</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="vehicle-option-card active-vehicle" id="opt-vehicle-BIKE" onclick="selectRideVehicle('BIKE')">
+                    <div style="font-size: 20px;">🛵</div>
+                    <div style="font-weight: 700; font-size: 13px;">Xe máy (BIKE)</div>
+                    <div style="font-size: 11px; color: #64748b;">Nhanh & Tiết kiệm</div>
+                </div>
+                <div class="vehicle-option-card" id="opt-vehicle-CAR_4" onclick="selectRideVehicle('CAR_4')">
+                    <div style="font-size: 20px;">🚗</div>
+                    <div style="font-weight: 700; font-size: 13px;">Ô tô 4 chỗ (CAR_4)</div>
+                    <div style="font-size: 11px; color: #64748b;">Thoải mái & An toàn</div>
+                </div>
+                <div class="vehicle-option-card" id="opt-vehicle-CAR_7" onclick="selectRideVehicle('CAR_7')">
+                    <div style="font-size: 20px;">🚙</div>
+                    <div style="font-weight: 700; font-size: 13px;">Ô tô 7 chỗ (CAR_7)</div>
+                    <div style="font-size: 11px; color: #64748b;">Rộng rãi cho nhóm</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Routes API & Surge Badge -->
+        <div id="route-stats-pill" style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <span style="font-weight:700; color:#1d4ed8;">🛣️ Lộ trình: <span id="route-distance-val">--</span> km</span>
+                <span style="color:#64748b;">•</span>
+                <span style="font-weight:700; color:#1d4ed8;">⏱️ Ước tính: <span id="route-duration-val">--</span> phút</span>
+                <span style="color:#64748b;">•</span>
+                <span id="route-source-badge" style="background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">OSRM Engine</span>
+            </div>
+            <div>
+                <span id="surge-badge" style="font-size: 12px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 6px;">⚡ Giá chuẩn (x1.0)</span>
+            </div>
+        </div>
+
+        <!-- Voucher Selection Box (Grab/Shopee style) -->
+        <div style="background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 22px;">🎟️</span>
+                <div>
+                    <div style="font-weight: 700; font-size: 13px; color: #b45309;" id="ride-voucher-title">Khuyến Mãi & Voucher Chuyến Đi</div>
+                    <div style="font-size: 12px; color: #92400e;" id="ride-voucher-desc">Chưa áp dụng mã voucher</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;" id="ride-voucher-actions">
+                <button type="button" class="btn-action" style="background: #f59e0b; color: white; padding: 6px 14px; font-size: 12px; font-weight: 700;" onclick="openVoucherModal('RIDE_HAILING')">
+                    Chọn / Nhập Mã
+                </button>
+            </div>
+        </div>
+
+        <!-- Price Breakdown & Book Action Button -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+            <div>
+                <div style="font-size: 12px; color: #64748b;">Giá cước ước tính:</div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span id="ride-original-price" style="display:none; text-decoration: line-through; color: #94a3b8; font-size: 15px;">-- đ</span>
+                    <span id="ride-final-price" style="font-size: 24px; font-weight: 800; color: #007bff;">-- đ</span>
+                    <span id="ride-discount-tag" style="display:none; background:#fee2e2; color:#dc2626; font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">-0 đ</span>
+                </div>
+            </div>
+            <button id="btnBook" class="btn-action" onclick="bookRide()" style="background-color: #28a745; color: white; padding: 12px 28px; font-size: 16px; font-weight: 800; border-radius: 8px; box-shadow: 0 4px 12px rgba(40,167,69,0.3); cursor:pointer;">
+                🚕 ĐẶT XE NGAY
+            </button>
+        </div>
+    </div>
+
+    <div id="history-panel" style="display: none; margin-bottom: 15px; background: #fff; border: 2px solid #17a2b8; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h3 style="color: #17a2b8; margin-top: 0; display: flex; justify-content: space-between;">
             <span>📜 LỊCH SỬ CHUYẾN ĐI CỦA BẠN</span>
             <button onclick="toggleBookingHistory()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: red;">❌ Đóng</button>
@@ -582,7 +839,6 @@
         <div class="stats-panel" id="stats-panel" style="display: none;">
             <h4>📊 Radar Khu vực</h4>
             <p style="margin: 5px 0; font-weight: bold;">🚕 Cung (Tài xế rảnh): <span id="supply-count" style="color: green; font-size: 18px;">0</span></p>
-            <p style="margin: 5px 0; font-weight: bold;">📈 Mức giá hiện tại: <br><span id="surge-badge" style="color: blue; font-size: 14px; background: #e9ecef; padding: 3px 6px; border-radius: 4px;">Đang tính toán...</span></p>
         </div>
     </div>
 
@@ -975,14 +1231,34 @@
             </select>
         </div>
 
+        <!-- Voucher Section for Food Delivery (ShopeeFood style) -->
+        <div style="background: #fff7ed; border: 1px dashed #f97316; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🎟️</span>
+                <div>
+                    <div style="font-weight: 700; font-size: 13px; color: #ea580c;" id="food-voucher-title">Ưu đãi giảm giá món & ship</div>
+                    <div style="font-size: 12px; color: #9a3412;" id="food-voucher-desc">Chưa chọn mã voucher</div>
+                </div>
+            </div>
+            <div id="food-voucher-actions">
+                <button type="button" class="btn-action" style="background: var(--food-primary); color: white; padding: 6px 12px; font-size: 12px; font-weight: 700;" onclick="openVoucherModal('FOOD_DELIVERY')">
+                    Áp Dụng Voucher
+                </button>
+            </div>
+        </div>
+
         <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; line-height: 1.8;">
             <div style="display:flex; justify-content:space-between;">
                 <span>Tiền món ăn:</span>
                 <b id="summary-subtotal">0 đ</b>
             </div>
             <div style="display:flex; justify-content:space-between;">
-                <span>Phí giao hàng ước tính:</span>
+                <span>Phí giao hàng (OSRM):</span>
                 <b id="summary-shipping">15.000 đ</b>
+            </div>
+            <div id="summary-discount-row" style="display:none; justify-content:space-between; color:#dc2626;">
+                <span>Giảm giá voucher:</span>
+                <b id="summary-discount">-0 đ</b>
             </div>
             <hr style="margin: 6px 0; border: none; border-top: 1px dashed #cbd5e1;">
             <div style="display:flex; justify-content:space-between; font-size: 15px; color: var(--food-primary);">
@@ -991,9 +1267,35 @@
             </div>
         </div>
 
-        <button class="btn-action" style="width: 100%; background: var(--food-primary); color: white; padding: 12px; font-size: 15px;" onclick="submitFoodOrder()">
+        <button class="btn-action" style="width: 100%; background: var(--food-primary); color: white; padding: 12px; font-size: 15px; font-weight: 700; border-radius: 8px;" onclick="submitFoodOrder()">
             🚀 XÁC NHẬN ĐẶT MÓN
         </button>
+    </div>
+</div>
+
+<!-- Modal: Chọn & Nhập Mã Khuyến Mãi (Voucher) -->
+<div class="modal-backdrop" id="modal-voucher-picker" style="display: none; z-index: 3000;">
+    <div class="modal-card" style="max-width: 480px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-head" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
+            <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0;">
+                🎟️ Ưu Đãi & Khuyến Mãi
+            </h3>
+            <button style="background:none; border:none; font-size:22px; cursor:pointer;" onclick="closeModal('modal-voucher-picker')">✕</button>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+            <input type="text" id="voucher-input-code" class="form-control" placeholder="Nhập mã ưu đãi (VD: HELLOMOBILE, GIAM20K...)" style="text-transform: uppercase; font-weight: 700; flex: 1;">
+            <button class="btn-action" style="background: #0284c7; color: white; white-space: nowrap; padding: 8px 16px; font-weight: 700;" onclick="submitInputVoucher()">Áp Dụng</button>
+        </div>
+
+        <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span id="voucher-modal-subtitle">Danh sách mã khả dụng:</span>
+            <button onclick="refreshVoucherModalList()" style="background: none; border: none; color: #0284c7; cursor: pointer; font-size: 12px; font-weight: 600;">🔄 Làm mới</button>
+        </div>
+
+        <div id="voucher-modal-list" style="flex: 1; overflow-y: auto; max-height: 380px; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
+            <div style="text-align: center; color: #94a3b8; padding: 20px;">Đang tải danh sách ưu đãi...</div>
+        </div>
     </div>
 </div>
 
@@ -1122,8 +1424,52 @@
     let hasInitiatedPayment = false;
     let driverMarkers = {};
     let paymentCheckInterval = null;
-    const startPoint = [21.0245, 105.8574];
-    const endPoint = [21.0585, 105.8202];
+    let startPoint = [21.028511, 105.854444]; // Mặc định: Hồ Hoàn Kiếm
+    let endPoint = [21.0585, 105.8202]; // Mặc định: Hồ Tây
+    let currentVehicleType = 'BIKE';
+    let currentRouteResult = null;
+    let currentRoutePolyline = null;
+    let currentStartMarker = null;
+    let currentEndMarker = null;
+    let appliedRideVoucher = null;
+    let appliedFoodVoucher = null;
+    let currentTripBasePrice = 0;
+    let currentFoodDeliveryFee = 15000;
+    let currentFoodDistanceKm = 0;
+    let currentActiveServiceForVoucher = 'RIDE_HAILING';
+
+    // Google Polyline Decoder (Thuật toán chuẩn Google Polyline Algorithm)
+    function decodePolyline(encoded) {
+        if (!encoded) return [];
+        let poly = [];
+        let index = 0, len = encoded.length;
+        let lat = 0, lng = 0;
+
+        while (index < len) {
+            let b, shift = 0, result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            poly.push([lat / 1e5, lng / 1e5]);
+        }
+        return poly;
+    }
+
     const nearbyCarIcon = L.divIcon({
         className: 'nearby-car-icon',
         html: `<div style="width: 30px; height: 15px;"><svg width="30" height="15" viewBox="0 0 100 50" version="1.1" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="100" height="50" rx="10" ry="10" style="fill:#FDD835;stroke:black;stroke-width:2" /><rect x="70" y="5" width="25" height="40" style="fill:#0D47A1;" /><text x="50" y="32" font-family="Arial" font-size="20" font-weight="bold" fill="black" text-anchor="middle">TAXI</text></svg></div>`,
@@ -1313,19 +1659,11 @@
             loadCustomerProfile();
         }
 
-        map = L.map('map').setView([21.0415, 105.8388], 13);
+        map = L.map('map').setView([21.035, 105.835], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(map);
-        L.marker(startPoint).addTo(map).bindPopup("<b>Điểm đón</b>").openPopup();
-        const redIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34]
-        });
-        L.marker(endPoint, {icon: redIcon}).addTo(map).bindPopup("<b>Điểm đến</b>");
-        L.polyline([startPoint, endPoint], {color: '#007bff', weight: 4, dashArray: '10, 10'}).addTo(map);
 
         connectNotification();
+        updateRideRouteAndPricing();
 
         foodPollingInterval = setInterval(() => {
             const foodSection = document.getElementById('section-food');
@@ -2233,16 +2571,45 @@
         return earthRadius * c;
     }
 
-    function calculateFoodDeliveryFee(lat1, lon1, lat2, lon2) {
-        const distanceKm = calculateFoodDistanceInKm(lat1, lon1, lat2, lon2);
-        // Phí cơ sở: 15.000đ cho 2km đầu tiên, 5.000đ cho mỗi km tiếp theo
-        let fee = 15000.0;
-        if (distanceKm > 2.0) {
-            fee += (distanceKm - 2.0) * 5000.0;
+    async function calculateFoodDeliveryFeeFromApi(resLat, resLng, custLat, custLng) {
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/delivery-fee`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    restaurantLatitude: resLat,
+                    restaurantLongitude: resLng,
+                    customerLatitude: custLat,
+                    customerLongitude: custLng
+                })
+            });
+            if (res.ok) {
+                let data = await res.json();
+                return {
+                    fee: Math.round(data.deliveryFee || 15000),
+                    distanceKm: data.distanceInKm || 0,
+                    source: data.calculationSource || 'OSRM Engine',
+                    durationMinutes: data.estimatedDurationMinutes || 15
+                };
+            }
+        } catch (e) {
+            console.warn("Lỗi tính phí ship từ pricing-service:", e);
         }
+        let dist = calculateFoodDistanceInKm(resLat, resLng, custLat, custLng);
+        let fallbackFee = 15000.0;
+        if (dist > 2.0) fallbackFee += (dist - 2.0) * 5000.0;
         return {
-            fee: Math.round(fee),
-            distanceKm: distanceKm
+            fee: Math.round(fallbackFee),
+            distanceKm: dist,
+            source: 'FALLBACK_HAVERSINE',
+            durationMinutes: Math.round(dist * 3 + 10)
+        };
+    }
+
+    function calculateFoodDeliveryFee(lat1, lon1, lat2, lon2) {
+        return {
+            fee: currentFoodDeliveryFee || 15000,
+            distanceKm: currentFoodDistanceKm || 0
         };
     }
 
@@ -2318,7 +2685,7 @@
         getCurrentLocationForFoodDelivery();
     }
 
-    function renderCartModalItems() {
+    async function renderCartModalItems() {
         const listEl = document.getElementById('cart-items-list');
         const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
 
@@ -2335,11 +2702,6 @@
         let resLat = (targetRes && targetRes.latitude != null) ? parseFloat(targetRes.latitude) : 21.028333;
         let resLng = (targetRes && targetRes.longitude != null) ? parseFloat(targetRes.longitude) : 105.835833;
 
-        let feeCalc = calculateFoodDeliveryFee(resLat, resLng, deliveryLat, deliveryLng);
-        let shipping = feeCalc.fee;
-        let distanceKm = feeCalc.distanceKm;
-        let total = subtotal + shipping;
-
         listEl.innerHTML = cart.map((item, idx) => `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9;">
                 <div>
@@ -2355,7 +2717,25 @@
         `).join('');
 
         document.getElementById('summary-subtotal').innerText = subtotal.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('summary-shipping').innerHTML = `${shipping.toLocaleString('vi-VN')} đ <span style="font-size:11px; color:#64748b; font-weight:normal;">(~${distanceKm.toFixed(1)} km từ quán ${targetRes?.name || ''})</span>`;
+
+        // Lấy phí ship từ Routes API qua pricing-service
+        let feeCalc = await calculateFoodDeliveryFeeFromApi(resLat, resLng, deliveryLat, deliveryLng);
+        currentFoodDeliveryFee = feeCalc.fee;
+        currentFoodDistanceKm = feeCalc.distanceKm;
+
+        document.getElementById('summary-shipping').innerHTML = `${currentFoodDeliveryFee.toLocaleString('vi-VN')} đ <span style="font-size:11px; color:#64748b; font-weight:normal;">(~${currentFoodDistanceKm.toFixed(1)} km - ${feeCalc.source})</span>`;
+
+        // Tính giảm giá nếu có voucher
+        let discount = 0;
+        if (appliedFoodVoucher && appliedFoodVoucher.valid) {
+            discount = appliedFoodVoucher.discountAmount || 0;
+            document.getElementById('summary-discount-row').style.display = 'flex';
+            document.getElementById('summary-discount').innerText = '-' + discount.toLocaleString('vi-VN') + ' đ';
+        } else {
+            document.getElementById('summary-discount-row').style.display = 'none';
+        }
+
+        let total = Math.max(0, subtotal + currentFoodDeliveryFee - discount);
         document.getElementById('summary-total').innerText = total.toLocaleString('vi-VN') + ' đ';
     }
 
@@ -2450,6 +2830,28 @@
                 let createdOrder = data.data || {};
                 let orderId = createdOrder.id;
                 let totalPrice = createdOrder.totalPrice || 0;
+
+                // Cam kết (Commit) sử dụng voucher khi đơn đồ ăn đã được tạo thành công
+                if (appliedFoodVoucher && appliedFoodVoucher.voucher?.code) {
+                    fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/commit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-User-Id': customerId.toString() },
+                        body: JSON.stringify({
+                            code: appliedFoodVoucher.voucher.code,
+                            userId: customerId.toString(),
+                            orderId: orderId.toString(),
+                            serviceType: 'FOOD_DELIVERY',
+                            originalAmount: appliedFoodVoucher.originalAmount || 0,
+                            discountAmount: appliedFoodVoucher.discountAmount || 0,
+                            finalAmount: appliedFoodVoucher.finalAmount || totalPrice
+                        })
+                    }).then(r => r.json()).then(resp => {
+                        if (resp.success) {
+                            console.log("Đã commit voucher food thành công:", resp);
+                        }
+                    }).catch(e => console.warn("Lỗi commit voucher food:", e));
+                    appliedFoodVoucher = null;
+                }
 
                 cart = [];
                 updateCartUI();
@@ -2737,16 +3139,27 @@
             case 'COMPLETED': return `<span class="badge-food" style="background:#d1fae5; color:#047857;">✅ Giao thành công</span>`;
             case 'CANCELLED': {
                 let text = "❌ Đơn đã hủy";
-                if (order.cancelledBy === 'DRIVER') text = "🚫 Tài xế hủy đơn";
-                else if (order.cancelledBy === 'RESTAURANT') text = "🚫 Quán hủy đơn";
-                else if (order.cancelledBy === 'CUSTOMER') text = "❌ Bạn đã hủy";
-                else if (order.cancelledBy === 'SYSTEM' || order.cancelReasonCode === 'SYSTEM_NO_DRIVER_FOUND') text = "⚠️ Không tìm thấy xế (Đã hủy)";
+                let voucherNotice = "";
+                if (order.cancelledBy === 'DRIVER') {
+                    text = "🚫 Tài xế hủy đơn";
+                    voucherNotice = "<div style='font-size:11px; color:#16a34a; font-weight:600; margin-top:2px;'>✅ Mã voucher đã được hoàn lại</div>";
+                } else if (order.cancelledBy === 'RESTAURANT') {
+                    text = "🚫 Quán hủy đơn";
+                    voucherNotice = "<div style='font-size:11px; color:#16a34a; font-weight:600; margin-top:2px;'>✅ Mã voucher đã được hoàn lại</div>";
+                } else if (order.cancelledBy === 'CUSTOMER') {
+                    text = "❌ Bạn đã hủy";
+                    voucherNotice = "<div style='font-size:11px; color:#dc2626; margin-top:2px;'>⚠️ Không hoàn voucher (Bạn tự hủy đơn)</div>";
+                } else if (order.cancelledBy === 'SYSTEM' || order.cancelReasonCode === 'SYSTEM_NO_DRIVER_FOUND') {
+                    text = "⚠️ Không tìm thấy xế (Đã hủy)";
+                    voucherNotice = "<div style='font-size:11px; color:#16a34a; font-weight:600; margin-top:2px;'>✅ Mã voucher đã được hoàn lại</div>";
+                }
                 let reasonHtml = order.cancelReason ? `<div style="font-size:11px; color:#b91c1c; font-style:italic; margin-top:2px;">Lý do: ${order.cancelReason}</div>` : '';
-                return `<div><span class="badge-food" style="background:#fee2e2; color:#b91c1c;">${text}</span>${reasonHtml}</div>`;
+                return `<div><span class="badge-food" style="background:#fee2e2; color:#b91c1c;">${text}</span>${reasonHtml}${voucherNotice}</div>`;
             }
             case 'REJECTED': {
                 let reasonHtml = order.cancelReason ? `<div style="font-size:11px; color:#b91c1c; font-style:italic; margin-top:2px;">Lý do: ${order.cancelReason}</div>` : '';
-                return `<div><span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Quán từ chối</span>${reasonHtml}</div>`;
+                let voucherNotice = "<div style='font-size:11px; color:#16a34a; font-weight:600; margin-top:2px;'>✅ Mã voucher đã được hoàn lại</div>";
+                return `<div><span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Quán từ chối</span>${reasonHtml}${voucherNotice}</div>`;
             }
             case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fef3c7; color:#b45309;">⚠️ Chưa tìm thấy xế (Quán đang tìm lại)</span>`;
             default: return `<span class="badge-food">${status}</span>`;
@@ -2838,7 +3251,7 @@
             });
             let data = await res.json();
             if (res.ok && data.success) {
-                alert("Đã hủy đơn hàng thành công!");
+                alert("Đã hủy đơn hàng thành công!\n\nLưu ý: Do bạn chủ động tự hủy đơn, mã khuyến mãi voucher đã áp dụng sẽ không được hoàn lại.");
                 fetchMyFoodOrders();
                 if (typeof fetchCustomerWallet === 'function') fetchCustomerWallet(true);
             } else {
@@ -3469,6 +3882,295 @@
         }, 1000);
     }
 
+    // ==========================================
+    // ADDRESS AUTOCOMPLETE & GEOCODING SYSTEM
+    // ==========================================
+    const POPULAR_HANOI_PLACES = [
+        { name: "Hồ Hoàn Kiếm", desc: "Hàng Trống, Hoàn Kiếm, Hà Nội", lat: 21.028511, lng: 105.854444, category: "Danh lam", icon: "🏛️" },
+        { name: "Hồ Tây (Phủ Tây Hồ)", desc: "Quảng An, Tây Hồ, Hà Nội", lat: 21.058500, lng: 105.820200, category: "Danh lam", icon: "🌊" },
+        { name: "Đại học Bách Khoa Hà Nội", desc: "Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội", lat: 21.004200, lng: 105.843700, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Quốc Gia Hà Nội", desc: "144 Xuân Thủy, Dịch Vọng Hậu, Cầu Giấy, Hà Nội", lat: 21.037100, lng: 105.781800, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Kinh tế Quốc dân (NEU)", desc: "207 Giải Phóng, Đồng Tâm, Hai Bà Trưng, Hà Nội", lat: 20.999500, lng: 105.843000, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Ngoại Thương (FTU)", desc: "91 Chùa Láng, Láng Thượng, Đống Đa, Hà Nội", lat: 21.022700, lng: 105.802300, category: "Trường ĐH", icon: "🎓" },
+        { name: "Bến xe Mỹ Đình", desc: "Số 20 Phạm Hùng, Mỹ Đình 2, Nam Từ Liêm, Hà Nội", lat: 21.028000, lng: 105.778000, category: "Bến xe", icon: "🚌" },
+        { name: "Bến xe Giáp Bát", desc: "Km6 Đường Giải Phóng, Giáp Bát, Hoàng Mai, Hà Nội", lat: 20.981800, lng: 105.841500, category: "Bến xe", icon: "🚌" },
+        { name: "Ga Hà Nội", desc: "120 Lê Duẩn, Văn Miếu, Đống Đa, Hà Nội", lat: 21.024500, lng: 105.841000, category: "Nhà ga", icon: "🚆" },
+        { name: "Sân bay Quốc tế Nội Bài (Ga T1)", desc: "Xã Phú Cường, Huyện Sóc Sơn, Hà Nội", lat: 21.221200, lng: 105.807200, category: "Sân bay", icon: "✈️" },
+        { name: "Keangnam Landmark 72", desc: "Khu E6 Đô thị mới Cầu Giấy, Nam Từ Liêm, Hà Nội", lat: 21.017300, lng: 105.783900, category: "Tòa nhà", icon: "🏢" },
+        { name: "Lotte Center Liễu Giai", desc: "54 Liễu Giai, Cống Vị, Ba Đình, Hà Nội", lat: 21.033000, lng: 105.812500, category: "TTTM", icon: "🏬" },
+        { name: "Vincom Mega Mall Royal City", desc: "72A Nguyễn Trãi, Thượng Đình, Thanh Xuân, Hà Nội", lat: 21.002800, lng: 105.815900, category: "TTTM", icon: "🏬" },
+        { name: "Vincom Mega Mall Times City", desc: "458 Minh Khai, Vĩnh Tuy, Hai Bà Trưng, Hà Nội", lat: 20.995300, lng: 105.867200, category: "TTTM", icon: "🏬" },
+        { name: "Aeon Mall Long Biên", desc: "Số 27 Cổ Linh, Long Biên, Hà Nội", lat: 21.026300, lng: 105.901500, category: "TTTM", icon: "🏬" },
+        { name: "Aeon Mall Hà Đông", desc: "Khu dân cư Hoàng Văn Thụ, Dương Nội, Hà Đông, Hà Nội", lat: 20.983700, lng: 105.753300, category: "TTTM", icon: "🏬" },
+        { name: "Bệnh viện Bạch Mai", desc: "78 Giải Phóng, Phương Mai, Đống Đa, Hà Nội", lat: 21.001600, lng: 105.840000, category: "Bệnh viện", icon: "🏥" },
+        { name: "Bệnh viện Việt Đức", desc: "40 Tràng Thi, Hàng Bông, Hoàn Kiếm, Hà Nội", lat: 21.028700, lng: 105.847900, category: "Bệnh viện", icon: "🏥" },
+        { name: "Cầu Giấy (123 Đường Cầu Giấy)", desc: "Phường Cầu Giấy, Hà Nội", lat: 21.033333, lng: 105.789123, category: "Đường phố", icon: "📍" },
+        { name: "Văn Miếu - Quốc Tử Giám", desc: "58 Quốc Tử Giám, Văn Miếu, Đống Đa, Hà Nội", lat: 21.029400, lng: 105.836000, category: "Di tích", icon: "⛩️" },
+        { name: "Lăng Chủ tịch Hồ Chí Minh", desc: "Số 2 Hùng Vương, Điện Bàn, Ba Đình, Hà Nội", lat: 21.036800, lng: 105.834700, category: "Di tích", icon: "⭐" },
+        { name: "Công viên Cầu Giấy", desc: "Phố Duy Tân, Dịch Vọng, Cầu Giấy, Hà Nội", lat: 21.031500, lng: 105.789500, category: "Công viên", icon: "🌳" }
+    ];
+
+    let addressSearchTimeout = null;
+
+    function handleAddressFocus(type, value) {
+        if (!value || value.trim().length === 0) {
+            renderAutocompleteResults(type, POPULAR_HANOI_PLACES.slice(0, 5), true);
+        } else {
+            handleAddressInputDebounced(type, value);
+        }
+    }
+
+    function handleAddressInputDebounced(type, query) {
+        if (addressSearchTimeout) clearTimeout(addressSearchTimeout);
+        const dropdown = document.getElementById(`${type}-autocomplete-dropdown`);
+        if (!dropdown) return;
+
+        if (!query || query.trim().length < 2) {
+            renderAutocompleteResults(type, POPULAR_HANOI_PLACES.slice(0, 5), true);
+            return;
+        }
+
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = `<div class="autocomplete-loading">🔍 Đang tìm kiếm địa chỉ "${query}"...</div>`;
+
+        addressSearchTimeout = setTimeout(async () => {
+            const results = await fetchAddressSuggestions(query);
+            renderAutocompleteResults(type, results, false);
+        }, 300);
+    }
+
+    async function fetchAddressSuggestions(query) {
+        const qNorm = query.trim().toLowerCase();
+        
+        let localMatches = POPULAR_HANOI_PLACES.filter(p => 
+            p.name.toLowerCase().includes(qNorm) || p.desc.toLowerCase().includes(qNorm)
+        );
+
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=6&addressdetails=1`;
+            const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+            if (res.ok) {
+                const data = await res.json();
+                const remoteMatches = data.map(item => {
+                    let parts = (item.display_name || '').split(',');
+                    let mainName = parts[0] ? parts[0].trim() : item.display_name;
+                    let subAddress = parts.slice(1, 4).join(',').trim();
+                    return {
+                        name: mainName,
+                        desc: subAddress || item.display_name,
+                        lat: parseFloat(item.lat),
+                        lng: parseFloat(item.lon),
+                        category: item.type || 'Bản đồ',
+                        icon: '📍'
+                    };
+                });
+                
+                let combined = [...localMatches];
+                remoteMatches.forEach(rm => {
+                    let exists = combined.some(c => Math.abs(c.lat - rm.lat) < 0.001 && Math.abs(c.lng - rm.lng) < 0.001);
+                    if (!exists) combined.push(rm);
+                });
+                return combined.slice(0, 7);
+            }
+        } catch (e) {
+            console.warn("Không kết nối được dịch vụ Geocoding:", e);
+        }
+
+        return localMatches.slice(0, 6);
+    }
+
+    function renderAutocompleteResults(type, list, isDefault = false) {
+        const dropdown = document.getElementById(`${type}-autocomplete-dropdown`);
+        if (!dropdown) return;
+
+        if (!list || list.length === 0) {
+            dropdown.innerHTML = `<div class="autocomplete-loading" style="color:#ef4444;">Không tìm thấy địa chỉ phù hợp. Vui lòng gõ thêm chi tiết hoặc chọn trên bản đồ!</div>`;
+            dropdown.style.display = 'block';
+            return;
+        }
+
+        let html = '';
+        if (isDefault) {
+            html += `<div style="padding:6px 12px; font-size:11px; font-weight:700; color:#64748b; background:#f8fafc; border-bottom:1px solid #e2e8f0;">⭐ ĐỊA ĐIỂM NỔI BẬT GỢI Ý:</div>`;
+        }
+
+        list.forEach(item => {
+            const escapedName = item.name.replace(/'/g, "\\'");
+            const escapedDesc = (item.desc || '').replace(/'/g, "\\'");
+            html += `
+                <div class="autocomplete-item" onclick="selectAutocompleteAddress('${type}', '${escapedName}', '${escapedDesc}', ${item.lat}, ${item.lng})">
+                    <span class="item-icon">${item.icon || '📍'}</span>
+                    <div class="item-content">
+                        <div class="item-title">${item.name}</div>
+                        <div class="item-subtitle">${item.desc || ''}</div>
+                    </div>
+                    <span class="item-tag">${item.category || 'Địa điểm'}</span>
+                </div>
+            `;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+    }
+
+    function selectAutocompleteAddress(type, name, desc, lat, lng) {
+        const fullName = desc ? `${name}, ${desc}` : name;
+        const dropdown = document.getElementById(`${type}-autocomplete-dropdown`);
+        if (dropdown) dropdown.style.display = 'none';
+
+        if (type === 'pickup') {
+            setRidePickup(fullName, lat, lng);
+        } else {
+            setRideDropoff(fullName, lat, lng);
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#ride-pickup-address') && !e.target.closest('#pickup-autocomplete-dropdown')) {
+            const d1 = document.getElementById('pickup-autocomplete-dropdown');
+            if (d1) d1.style.display = 'none';
+        }
+        if (!e.target.closest('#ride-dropoff-address') && !e.target.closest('#dropoff-autocomplete-dropdown')) {
+            const d2 = document.getElementById('dropoff-autocomplete-dropdown');
+            if (d2) d2.style.display = 'none';
+        }
+    });
+
+    async function fetchReverseGeocode(lat, lng, type) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+            const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+            if (res.ok) {
+                const data = await res.json();
+                let addr = data.display_name || `Vị trí (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                const input = document.getElementById(type === 'pickup' ? 'ride-pickup-address' : 'ride-dropoff-address');
+                if (input) input.value = addr;
+            }
+        } catch (e) {
+            console.warn("Reverse geocode failed:", e);
+        }
+    }
+
+    function setRidePickup(address, lat, lng) {
+        startPoint = [lat, lng];
+        const input = document.getElementById('ride-pickup-address');
+        if (input) input.value = address;
+        updateRideRouteAndPricing();
+    }
+
+    function setRideDropoff(address, lat, lng) {
+        endPoint = [lat, lng];
+        const input = document.getElementById('ride-dropoff-address');
+        if (input) input.value = address;
+        updateRideRouteAndPricing();
+    }
+
+    function getCurrentLocationForRidePickup() {
+        if (!navigator.geolocation) {
+            alert("Trình duyệt không hỗ trợ Geolocation!");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setRidePickup(`Vị trí GPS của bạn (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng);
+        }, err => {
+            alert("Không lấy được GPS hiện tại: " + err.message);
+        }, { enableHighAccuracy: true, timeout: 8000 });
+    }
+
+    function selectRideVehicle(vehicleType) {
+        currentVehicleType = vehicleType;
+        document.querySelectorAll('.vehicle-option-card').forEach(el => el.classList.remove('active-vehicle'));
+        const opt = document.getElementById(`opt-vehicle-${vehicleType}`);
+        if (opt) opt.classList.add('active-vehicle');
+        updateRideRouteAndPricing();
+    }
+
+    async function updateRideRouteAndPricing() {
+        if (!map) return;
+
+        // Xóa các marker và polyline cũ nếu có
+        if (currentStartMarker) map.removeLayer(currentStartMarker);
+        if (currentEndMarker) map.removeLayer(currentEndMarker);
+        if (currentRoutePolyline) map.removeLayer(currentRoutePolyline);
+
+        const greenIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+
+        const pickupName = document.getElementById('ride-pickup-address')?.value || 'Điểm đón';
+        const dropoffName = document.getElementById('ride-dropoff-address')?.value || 'Điểm đến';
+
+        currentStartMarker = L.marker(startPoint, {icon: greenIcon, draggable: true}).addTo(map)
+            .bindPopup(`<b>🟢 Điểm đón:</b><br>${pickupName}<br><small style="color:#0284c7;">💡 Bạn có thể kéo thả marker để đổi vị trí đón</small>`);
+        currentEndMarker = L.marker(endPoint, {icon: redIcon, draggable: true}).addTo(map)
+            .bindPopup(`<b>🔴 Điểm đến:</b><br>${dropoffName}<br><small style="color:#0284c7;">💡 Bạn có thể kéo thả marker để đổi vị trí đến</small>`);
+
+        currentStartMarker.on('dragend', function(e) {
+            let pos = e.target.getLatLng();
+            startPoint = [pos.lat, pos.lng];
+            fetchReverseGeocode(pos.lat, pos.lng, 'pickup');
+            updateRideRouteAndPricing();
+        });
+
+        currentEndMarker.on('dragend', function(e) {
+            let pos = e.target.getLatLng();
+            endPoint = [pos.lat, pos.lng];
+            fetchReverseGeocode(pos.lat, pos.lng, 'dropoff');
+            updateRideRouteAndPricing();
+        });
+
+        try {
+            // Gọi OSRM thông qua pricing-service (port 5000 cho Ô tô, port 5001 cho Xe máy)
+            let url = `${API_BASE_URL}/api/v1/pricing/route?startLatitude=${startPoint[0]}&startLongitude=${startPoint[1]}&endLatitude=${endPoint[0]}&endLongitude=${endPoint[1]}&vehicleType=${currentVehicleType}`;
+            let res = await fetchWithAuth(url);
+            if (res.ok) {
+                let route = await res.json();
+                currentRouteResult = route;
+
+                // Cập nhật thông số Lộ trình
+                const distEl = document.getElementById('route-distance-val');
+                const durEl = document.getElementById('route-duration-val');
+                const srcBadge = document.getElementById('route-source-badge');
+
+                if (distEl) distEl.innerText = route.distanceKm ? route.distanceKm.toFixed(1) : '--';
+                if (durEl) durEl.innerText = route.durationMinutes || '--';
+                if (srcBadge) srcBadge.innerText = route.source || 'OSRM Engine';
+
+                if (route.encodedPolyline) {
+                    let decodedPoints = decodePolyline(route.encodedPolyline);
+                    if (decodedPoints.length > 0) {
+                        currentRoutePolyline = L.polyline(decodedPoints, { color: '#007bff', weight: 5, opacity: 0.85 }).addTo(map);
+                        map.fitBounds(currentRoutePolyline.getBounds(), { padding: [40, 40] });
+                    }
+                } else {
+                    currentRoutePolyline = L.polyline([startPoint, endPoint], { color: '#007bff', weight: 4, dashArray: '8, 8' }).addTo(map);
+                    map.fitBounds(currentRoutePolyline.getBounds(), { padding: [40, 40] });
+                }
+            }
+        } catch (e) {
+            console.warn("Lỗi gọi OSRM Route API:", e);
+            currentRoutePolyline = L.polyline([startPoint, endPoint], { color: '#007bff', weight: 4, dashArray: '8, 8' }).addTo(map);
+            map.fitBounds(currentRoutePolyline.getBounds(), { padding: [40, 40] });
+        }
+
+        lastKnownNearbyDriversCount = -1;
+        loadNearbyDrivers();
+    }
+
+    let lastKnownNearbyDriversCount = -1;
+
     function loadNearbyDrivers() {
         fetchWithAuth(`${API_BASE_URL}/api/v1/locations/nearby?longitude=${startPoint[1]}&latitude=${startPoint[0]}&radius=5.0`)
             .then(res => res.json())
@@ -3491,8 +4193,19 @@
                         driverMarkers[d.driverId] = marker;
                     }
                 });
-                loadDynamicPricing(drivers.length);
-            }).catch(e => {});
+
+                // Chỉ tính toán lại giá khi số lượng tài xế rảnh (Cung) thay đổi hoặc lần đầu tiên
+                let count = drivers.length;
+                if (lastKnownNearbyDriversCount !== count) {
+                    lastKnownNearbyDriversCount = count;
+                    loadDynamicPricing(count);
+                }
+            }).catch(e => {
+                if (lastKnownNearbyDriversCount !== 0) {
+                    lastKnownNearbyDriversCount = 0;
+                    loadDynamicPricing(0);
+                }
+            });
     }
 
     function loadDynamicPricing(nearbyCount = 0) {
@@ -3503,7 +4216,9 @@
             startLongitude: startPoint[1],
             startLatitude: startPoint[0],
             endLongitude: endPoint[1],
-            endLatitude: endPoint[0]
+            endLatitude: endPoint[0],
+            vehicleType: currentVehicleType,
+            customerId: customerId ? parseInt(customerId) : null
         };
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/calculate?nearbyDriversCount=${nearbyCount}`, {
@@ -3515,16 +4230,270 @@
         .then(data => {
             let badge = document.getElementById('surge-badge');
             let mult = data.surgeMultiplier || 1.0;
-            if (mult > 1.0) {
-                badge.innerText = `🔥 Tăng giá: x${mult.toFixed(1)} (${data.surgeLevel || 'Nhu cầu cao'})`;
-                badge.style.color = "red";
-                badge.style.background = "#fee2e2";
-            } else {
-                badge.innerText = `⚡ Giá chuẩn (x1.0)`;
-                badge.style.color = "green";
-                badge.style.background = "#d1fae5";
+            if (badge) {
+                if (mult > 1.0) {
+                    badge.innerText = `🔥 Tăng giá: x${mult.toFixed(1)} (${data.surgeLevel || 'Nhu cầu cao'})`;
+                    badge.style.color = "#b91c1c";
+                    badge.style.background = "#fee2e2";
+                } else {
+                    badge.innerText = `⚡ Giá chuẩn (x1.0)`;
+                    badge.style.color = "#065f46";
+                    badge.style.background = "#d1fae5";
+                }
             }
-        }).catch(e => {});
+
+            currentTripBasePrice = Math.round(data.totalPrice || 25000);
+            updateRidePricingDisplay();
+
+            const btnBook = document.getElementById('btnBook');
+            if (btnBook) btnBook.disabled = false;
+        }).catch(e => {
+            console.warn("Lỗi tính giá động:", e);
+        });
+    }
+
+    function updateRidePricingDisplay() {
+        const origPriceEl = document.getElementById('ride-original-price');
+        const finalPriceEl = document.getElementById('ride-final-price');
+        const discountTag = document.getElementById('ride-discount-tag');
+
+        if (appliedRideVoucher && appliedRideVoucher.valid) {
+            let discount = appliedRideVoucher.discountAmount || 0;
+            let finalPrice = Math.max(0, currentTripBasePrice - discount);
+
+            if (origPriceEl) {
+                origPriceEl.style.display = 'inline';
+                origPriceEl.innerText = currentTripBasePrice.toLocaleString('vi-VN') + ' đ';
+            }
+            if (discountTag) {
+                discountTag.style.display = 'inline';
+                discountTag.innerText = '-' + discount.toLocaleString('vi-VN') + ' đ';
+            }
+            if (finalPriceEl) {
+                finalPriceEl.innerText = finalPrice.toLocaleString('vi-VN') + ' đ';
+            }
+        } else {
+            if (origPriceEl) origPriceEl.style.display = 'none';
+            if (discountTag) discountTag.style.display = 'none';
+            if (finalPriceEl) {
+                finalPriceEl.innerText = currentTripBasePrice.toLocaleString('vi-VN') + ' đ';
+            }
+        }
+    }
+
+    // ==========================================
+    // VOUCHER SELECTION & APPLICATION LOGIC
+    // ==========================================
+    function openVoucherModal(serviceType) {
+        currentActiveServiceForVoucher = serviceType;
+        openModal('modal-voucher-picker');
+
+        const titleEl = document.getElementById('voucher-modal-subtitle');
+        if (titleEl) {
+            titleEl.innerText = serviceType === 'RIDE_HAILING'
+                ? 'Ưu đãi dành cho chuyến đi (Gọi xe):'
+                : 'Ưu đãi dành cho món ăn & giao hàng:';
+        }
+
+        refreshVoucherModalList();
+    }
+
+    async function refreshVoucherModalList() {
+        const listEl = document.getElementById('voucher-modal-list');
+        if (!listEl) return;
+        listEl.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">Đang tải danh sách ưu đãi...</div>';
+
+        let amount = currentActiveServiceForVoucher === 'RIDE_HAILING'
+            ? currentTripBasePrice
+            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+        try {
+            let url = `${API_BASE_URL}/api/v1/pricing/vouchers/applicable?orderAmount=${amount}&serviceType=${currentActiveServiceForVoucher}&userId=${customerId || ''}`;
+            let res = await fetchWithAuth(url);
+            if (res.ok) {
+                let json = await res.json();
+                let vouchers = json.data || [];
+                renderVoucherList(vouchers, currentActiveServiceForVoucher, amount);
+            } else {
+                listEl.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 15px;">Không tải được danh sách mã khuyến mãi.</div>';
+            }
+        } catch (e) {
+            listEl.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 15px;">Lỗi: ${e.message}</div>`;
+        }
+    }
+
+    function renderVoucherList(vouchers, serviceType, currentAmount) {
+        const listEl = document.getElementById('voucher-modal-list');
+        if (!listEl) return;
+
+        if (!vouchers || vouchers.length === 0) {
+            listEl.innerHTML = `
+                <div style="text-align: center; color: #64748b; padding: 30px 10px;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🎫</div>
+                    <b>Hiện chưa có mã khuyến mãi phù hợp</b>
+                    <p style="font-size: 12px; margin-top: 4px; color: #94a3b8;">Hãy thử nhập mã voucher cá nhân hoặc quay lại sau!</p>
+                </div>
+            `;
+            return;
+        }
+
+        const isFood = (serviceType === 'FOOD_DELIVERY');
+
+        listEl.innerHTML = vouchers.map(v => {
+            const isPercent = v.discountType === 'PERCENTAGE';
+            const discountLabel = isPercent ? `-${v.discountValue}%` : `-${(v.discountValue / 1000).toFixed(0)}K`;
+            const isEligible = (currentAmount >= (v.minOrderAmount || 0));
+
+            const isAlreadyApplied = (serviceType === 'RIDE_HAILING' && appliedRideVoucher && appliedRideVoucher.voucher?.code === v.code)
+                || (serviceType === 'FOOD_DELIVERY' && appliedFoodVoucher && appliedFoodVoucher.voucher?.code === v.code);
+
+            return `
+                <div class="voucher-ticket ${isFood ? 'food-theme' : ''}" style="${!isEligible ? 'opacity: 0.65; filter: grayscale(40%);' : ''}">
+                    <div class="voucher-left-tag">
+                        <div style="font-size: 16px;">${isFood ? '🍲' : '🚕'}</div>
+                        <div style="font-weight: 800; font-size: 15px; margin-top: 4px;">${discountLabel}</div>
+                    </div>
+                    <div class="voucher-right-body">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <div>
+                                    <span style="background: #f1f5f9; border: 1px dashed #94a3b8; font-weight: 800; font-size: 12px; padding: 1px 6px; border-radius: 4px; color: #0f172a;">${v.code}</span>
+                                    <b style="font-size: 13px; color: #1e293b; margin-left: 6px;">${v.title}</b>
+                                </div>
+                                <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 10px; font-weight: 600; white-space: nowrap;">Còn ${v.remainingUsageCount ?? 'nhiều'}</span>
+                            </div>
+                            <div style="font-size: 12px; color: #475569; margin-top: 4px;">${v.description || ''}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                                • Đơn tối thiểu: <b>${(v.minOrderAmount || 0).toLocaleString('vi-VN')} đ</b>
+                                ${v.maxDiscountAmount ? ` | Giảm tối đa: <b>${v.maxDiscountAmount.toLocaleString('vi-VN')} đ</b>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                            ${isAlreadyApplied ? `
+                                <span style="font-size: 12px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 4px;">
+                                    ✓ Đang áp dụng
+                                </span>
+                            ` : `
+                                <button type="button" class="btn-action" style="padding: 4px 14px; font-size: 12px; font-weight: 700; background: ${isFood ? 'var(--food-primary)' : '#0284c7'}; color: white;" onclick="applyVoucherCode('${v.code}')" ${!isEligible ? 'disabled style="background:#94a3b8; color:white; cursor:not-allowed;"' : ''}>
+                                    ${isEligible ? 'Dùng Ngay' : 'Chưa đủ điều kiện'}
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function submitInputVoucher() {
+        const input = document.getElementById('voucher-input-code');
+        const code = (input?.value || '').trim().toUpperCase();
+        if (!code) {
+            alert("Vui lòng nhập mã voucher!");
+            return;
+        }
+        applyVoucherCode(code);
+    }
+
+    async function applyVoucherCode(code) {
+        const serviceType = currentActiveServiceForVoucher;
+        let amount = (serviceType === 'RIDE_HAILING')
+            ? currentTripBasePrice
+            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/apply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: code,
+                    orderAmount: amount,
+                    serviceType: serviceType,
+                    userId: customerId ? customerId.toString() : '1'
+                })
+            });
+
+            let json = await res.json();
+            if (res.ok && json.success && json.data?.valid) {
+                let result = json.data;
+                if (serviceType === 'RIDE_HAILING') {
+                    appliedRideVoucher = result;
+                    const titleEl = document.getElementById('ride-voucher-title');
+                    const descEl = document.getElementById('ride-voucher-desc');
+                    const actionsEl = document.getElementById('ride-voucher-actions');
+
+                    if (titleEl) titleEl.innerText = `🎉 Đã áp dụng mã: ${result.voucher?.code || code}`;
+                    if (descEl) descEl.innerHTML = `Giảm <b>${result.discountAmount.toLocaleString('vi-VN')} đ</b> (${result.voucher?.title || ''})`;
+                    if (actionsEl) {
+                        actionsEl.innerHTML = `
+                            <button type="button" class="btn-action" style="background: #ef4444; color: white; padding: 4px 10px; font-size: 12px; font-weight: 700;" onclick="removeAppliedVoucher('RIDE_HAILING')">
+                                ✕ Gỡ mã
+                            </button>
+                        `;
+                    }
+                    updateRidePricingDisplay();
+                } else if (serviceType === 'FOOD_DELIVERY') {
+                    appliedFoodVoucher = result;
+                    const titleEl = document.getElementById('food-voucher-title');
+                    const descEl = document.getElementById('food-voucher-desc');
+                    const actionsEl = document.getElementById('food-voucher-actions');
+
+                    if (titleEl) titleEl.innerText = `🎉 Đã áp dụng mã: ${result.voucher?.code || code}`;
+                    if (descEl) descEl.innerHTML = `Giảm <b>${result.discountAmount.toLocaleString('vi-VN')} đ</b> (${result.voucher?.title || ''})`;
+                    if (actionsEl) {
+                        actionsEl.innerHTML = `
+                            <button type="button" class="btn-action" style="background: #ef4444; color: white; padding: 4px 10px; font-size: 12px; font-weight: 700;" onclick="removeAppliedVoucher('FOOD_DELIVERY')">
+                                ✕ Gỡ mã
+                            </button>
+                        `;
+                    }
+                    renderCartModalItems();
+                }
+
+                closeModal('modal-voucher-picker');
+                alert(`🎉 Áp dụng mã [${code}] thành công!\nBạn được giảm ${result.discountAmount.toLocaleString('vi-VN')} đ.`);
+            } else {
+                alert(`❌ Áp dụng voucher thất bại: ${json.message || json.data?.message || 'Mã không hợp lệ hoặc không đủ điều kiện'}`);
+            }
+        } catch (e) {
+            alert(`Lỗi kết nối voucher: ${e.message}`);
+        }
+    }
+
+    function removeAppliedVoucher(serviceType) {
+        if (serviceType === 'RIDE_HAILING') {
+            appliedRideVoucher = null;
+            const titleEl = document.getElementById('ride-voucher-title');
+            const descEl = document.getElementById('ride-voucher-desc');
+            const actionsEl = document.getElementById('ride-voucher-actions');
+
+            if (titleEl) titleEl.innerText = 'Khuyến Mãi & Voucher Chuyến Đi';
+            if (descEl) descEl.innerText = 'Chưa áp dụng mã voucher';
+            if (actionsEl) {
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-action" style="background: #f59e0b; color: white; padding: 6px 14px; font-size: 12px; font-weight: 700;" onclick="openVoucherModal('RIDE_HAILING')">
+                        Chọn / Nhập Mã
+                    </button>
+                `;
+            }
+            updateRidePricingDisplay();
+        } else if (serviceType === 'FOOD_DELIVERY') {
+            appliedFoodVoucher = null;
+            const titleEl = document.getElementById('food-voucher-title');
+            const descEl = document.getElementById('food-voucher-desc');
+            const actionsEl = document.getElementById('food-voucher-actions');
+
+            if (titleEl) titleEl.innerText = 'Ưu đãi giảm giá món & ship';
+            if (descEl) descEl.innerText = 'Chưa chọn mã voucher';
+            if (actionsEl) {
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-action" style="background: var(--food-primary); color: white; padding: 6px 12px; font-size: 12px; font-weight: 700;" onclick="openVoucherModal('FOOD_DELIVERY')">
+                        Áp Dụng Voucher
+                    </button>
+                `;
+            }
+            renderCartModalItems();
+        }
     }
 
     function logSystem(bookingId, status, message) {
@@ -3583,11 +4552,27 @@
                 let event = JSON.parse(message.body);
                 handleBookingEvent(event);
             });
+
+            // Lắng nghe cập nhật trạng thái đơn đồ ăn
+            stompClient.subscribe(`/user/queue/food-order/status`, function (message) {
+                let event = JSON.parse(message.body);
+                handleFoodOrderStatusNotification(event);
+            });
         }, function(err) {
             document.getElementById('status').innerText = "Trạng thái: Mất kết nối!";
             document.getElementById('status').style.color = "red";
             document.getElementById('btnConnect').disabled = false;
         });
+    }
+
+    function handleFoodOrderStatusNotification(event) {
+        console.log("Nhận thông báo cập nhật đơn đồ ăn:", event);
+        if (!event || !event.orderId) return;
+        fetchMyFoodOrders(false);
+        if (event.status === 'CANCELLED' || event.status === 'REJECTED') {
+            if (typeof fetchCustomerWallet === 'function') fetchCustomerWallet(true);
+            alert(`📢 Thông báo đơn hàng #${event.orderId}:\nĐơn hàng đã được cập nhật sang trạng thái [${event.status}].\nNếu do nhà hàng hủy/từ chối hoặc hệ thống không tìm thấy tài xế, tiền thanh toán và mã khuyến mãi voucher (nếu có) đã được hoàn lại cho bạn!`);
+        }
     }
 
     function handleBookingEvent(event) {
@@ -3652,24 +4637,34 @@
             card.style.borderColor = "#c8e1b7";
             currentTripPrice = event.price || 0;
 
+            let effectiveTripPrice = currentTripPrice;
+            let discountInfo = '';
+            if (appliedRideVoucher && appliedRideVoucher.valid) {
+                let discount = appliedRideVoucher.discountAmount || 0;
+                effectiveTripPrice = Math.max(0, currentTripPrice - discount);
+                discountInfo = `<br><span style="font-size:12px; color:#16a34a;">(Đã áp voucher [${appliedRideVoucher.voucher?.code}]: Giảm -${discount.toLocaleString('vi-VN')} đ)</span>`;
+            }
+
             if (event.paymentMethod === 'CASH') {
                 btnMomo.style.display = "none";
                 btnVnpay.style.display = "none";
                 if (btnWallet) btnWallet.style.display = "none";
-                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế. Cảm ơn bạn!`;
-                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế.${discountInfo}<br>Cảm ơn bạn!`;
+                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
 
                 setTimeout(() => {
                     card.style.display = "none";
                     currentBookingId = null;
                     assignedDriverId = null;
+                    appliedRideVoucher = null;
+                    updateRidePricingDisplay();
                 }, 6000);
             } else {
                 btnMomo.style.display = "inline-block";
                 btnVnpay.style.display = "inline-block";
                 if (btnWallet) btnWallet.style.display = "inline-block";
-                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b> Cước phí: <b>${currentTripPrice.toLocaleString('vi-VN')} đ</b>.<br><span style="font-size:13px; color:#475569;">Vui lòng chọn phương thức thanh toán bên dưới:</span>`;
-                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${currentTripPrice.toLocaleString('vi-VN')} đ.`);
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b> Cước phí cần thanh toán: <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b>.${discountInfo}<br><span style="font-size:13px; color:#475569;">Vui lòng chọn phương thức thanh toán bên dưới:</span>`;
+                logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
             }
         } else if (event.status === 'CANCELLED' || event.status === 'NO_DRIVER_FOUND') {
             clearInterval(customerTimerInterval);
@@ -3682,11 +4677,22 @@
             card.style.borderColor = "#fca5a5";
 
             if (isClientCanceling) {
-                text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b>`;
-                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Khách hàng đã chủ động hủy chuyến đi.`);
+                text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">⚠️ Mã ưu đãi đã sử dụng sẽ không được hoàn lại do bạn chủ động tự hủy chuyến.</span>`;
+                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Khách hàng đã chủ động hủy chuyến đi (Không hoàn lại voucher).`);
             } else {
-                text.innerHTML = `🚫 <b>Không tìm thấy tài xế rảnh:</b> Hệ thống đã tự động hủy chuyến đi do tất cả tài xế trong khu vực đang bận.`;
-                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Không có tài xế nào nhận chuyến trong khu vực. Chuyến đi tự động hủy.`);
+                text.innerHTML = `🚫 <b>Không tìm thấy tài xế rảnh / Chuyến đi bị hủy:</b> Hệ thống đã tự động hủy chuyến đi do tất cả tài xế trong khu vực đang bận hoặc tài xế từ chối.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">✅ Mã khuyến mãi đã được tự động hoàn trả lại tài khoản của bạn!</span>`;
+                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Chuyến đi bị hủy bởi hệ thống/tài xế. Đã hoàn lại voucher cho khách.`);
+
+                // Tự động rollback voucher vì đây là lỗi hệ thống / tài xế hủy, không phải khách tự hủy
+                if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
+                    let vCode = appliedRideVoucher.voucher.code;
+                    let targetOrderId = event.bookingId || currentBookingId;
+                    fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/rollback?code=${encodeURIComponent(vCode)}&userId=${customerId || ''}&orderId=${targetOrderId || ''}`, {
+                        method: 'POST'
+                    }).then(r => r.json()).then(res => {
+                        logSystem(targetOrderId, 'VOUCHER_REFUNDED', `Đã hoàn lại lượt sử dụng mã ưu đãi '${vCode}'.`);
+                    }).catch(e => console.warn("Lỗi hoàn voucher:", e));
+                }
             }
 
             setTimeout(() => {
@@ -3694,6 +4700,8 @@
                 currentBookingId = null;
                 assignedDriverId = null;
                 isClientCanceling = false;
+                appliedRideVoucher = null;
+                updateRidePricingDisplay();
             }, 4000);
         }
     }
@@ -3703,11 +4711,17 @@
         hasInitiatedPayment = false;
         assignedDriverId = null;
 
+        let pickupAddr = (document.getElementById('ride-pickup-address')?.value || '').trim();
+        let dropoffAddr = (document.getElementById('ride-dropoff-address')?.value || '').trim();
+
         let payload = {
             startLatitude: startPoint[0],
             startLongitude: startPoint[1],
             endLatitude: endPoint[0],
-            endLongitude: endPoint[1]
+            endLongitude: endPoint[1],
+            pickupAddress: pickupAddr,
+            dropoffAddress: dropoffAddr,
+            vehicleType: currentVehicleType
         };
 
         const card = document.getElementById('trip-card');
@@ -3761,6 +4775,27 @@
                     btnCancel.style.display = "inline-block";
                     startCustomerTimer(30);
                     logSystem(currentBookingId, 'SEARCHING', 'Đang quét tìm tài xế rảnh trong khu vực...');
+
+                    // Cam kết (Commit) sử dụng voucher khi cuốc xe đã được tạo thành công
+                    if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
+                        fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/commit`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-User-Id': customerId.toString() },
+                            body: JSON.stringify({
+                                code: appliedRideVoucher.voucher.code,
+                                userId: customerId.toString(),
+                                orderId: currentBookingId.toString(),
+                                serviceType: 'RIDE_HAILING',
+                                originalAmount: appliedRideVoucher.originalAmount || currentTripBasePrice,
+                                discountAmount: appliedRideVoucher.discountAmount || 0,
+                                finalAmount: appliedRideVoucher.finalAmount || currentTripBasePrice
+                            })
+                        }).then(r => r.json()).then(resp => {
+                            if (resp.success) {
+                                logSystem(currentBookingId, 'VOUCHER_USED', `Đã ghi nhận sử dụng voucher '${appliedRideVoucher.voucher.code}' (Giảm ${Math.round(appliedRideVoucher.discountAmount).toLocaleString('vi-VN')} đ) cho cuốc xe #${currentBookingId}.`);
+                            }
+                        }).catch(e => console.warn("Lỗi commit voucher ride:", e));
+                    }
                     return;
                 }
             }
@@ -3788,13 +4823,23 @@
         if (isTimeout) {
             card.style.backgroundColor = "#fee2e2";
             card.style.borderColor = "#fca5a5";
-            text.innerHTML = `🚫 <b>Hết thời gian tìm kiếm:</b> Không có tài xế nào nhận chuyến. Hệ thống đã tự động hủy chuyến đi.`;
+            text.innerHTML = `🚫 <b>Hết thời gian tìm kiếm:</b> Không có tài xế nào nhận chuyến. Hệ thống đã tự động hủy chuyến đi.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">✅ Mã khuyến mãi đã được hoàn trả lại tài khoản của bạn!</span>`;
             logSystem(bId, 'TIMEOUT', 'Hết thời gian tìm kiếm tài xế (30s). Tự động hủy chuyến.');
+
+            // Tự động revert lại voucher cho khách vì đây là timeout không tìm thấy tài xế
+            if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
+                let vCode = appliedRideVoucher.voucher.code;
+                fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/rollback?code=${encodeURIComponent(vCode)}&userId=${customerId || ''}&orderId=${bId || ''}`, {
+                    method: 'POST'
+                }).then(r => r.json()).then(res => {
+                    logSystem(bId, 'VOUCHER_REFUNDED', `Đã hoàn lại lượt sử dụng mã ưu đãi '${vCode}' do không tìm thấy tài xế.`);
+                }).catch(e => console.warn("Lỗi revert voucher khi timeout:", e));
+            }
         } else {
             card.style.backgroundColor = "#fee2e2";
             card.style.borderColor = "#fca5a5";
-            text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b>`;
-            logSystem(bId, 'CANCELLED', 'Khách hàng chủ động bấm hủy chuyến.');
+            text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">⚠️ Mã ưu đãi đã sử dụng sẽ không được hoàn lại do bạn chủ động tự hủy chuyến.</span>`;
+            logSystem(bId, 'CANCELLED', 'Khách hàng chủ động bấm hủy chuyến (Mã ưu đãi không được hoàn lại).');
         }
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${bId}/cancel`, {
@@ -3809,6 +4854,8 @@
                     currentBookingId = null;
                     assignedDriverId = null;
                     isClientCanceling = false;
+                    appliedRideVoucher = null;
+                    updateRidePricingDisplay();
                 }
             }, 3500);
         });
@@ -3818,7 +4865,13 @@
         if (!currentBookingId) return alert("Không tìm thấy mã chuyến đi!");
         hasInitiatedPayment = true;
         let driverParam = assignedDriverId ? `&driverId=${assignedDriverId}` : '';
-        let url = `${API_BASE_URL}/api/v1/payments/payment/create?method=${method.toUpperCase()}&type=TRIP_PAYMENT&bookingId=${currentBookingId}&amount=${currentTripPrice}${driverParam}`;
+
+        let effectiveTripPrice = currentTripPrice;
+        if (appliedRideVoucher && appliedRideVoucher.valid) {
+            effectiveTripPrice = Math.max(0, currentTripPrice - (appliedRideVoucher.discountAmount || 0));
+        }
+
+        let url = `${API_BASE_URL}/api/v1/payments/payment/create?method=${method.toUpperCase()}&type=TRIP_PAYMENT&bookingId=${currentBookingId}&amount=${effectiveTripPrice}${driverParam}`;
 
         fetchWithAuth(url, {
             method: 'POST',
@@ -3928,6 +4981,8 @@
                 listEl.innerHTML += `
                     <li style="border-bottom: 1px solid #eee; padding: 12px 0; line-height: 1.6;">
                         <div style="font-weight: bold; color: #333;">Mã chuyến: #${b.id || b.bookingId}</div>
+                        ${b.pickupAddress ? `<div style="font-size:12px; color:#16a34a;">🟢 <b>Đón:</b> ${b.pickupAddress}</div>` : ''}
+                        ${b.dropoffAddress ? `<div style="font-size:12px; color:#dc2626;">🔴 <b>Đến:</b> ${b.dropoffAddress}</div>` : ''}
                         <div>Quãng đường: <b>${b.distanceInKm ? b.distanceInKm.toFixed(2) : '?'} km</b> - Thành tiền: <b style="color: #d32f2f;">${displayPrice} đ</b></div>
                         <div>Trạng thái: <span style="color: ${statusColor}; font-weight: bold;">${b.status}</span></div>
                     </li>

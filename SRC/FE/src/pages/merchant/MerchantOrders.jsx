@@ -1,24 +1,67 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+const CANCEL_REASON_MAP = {
+  CUSTOMER_CHANGE_MIND: 'Khách đổi ý, không muốn đặt nữa',
+  CUSTOMER_PAYMENT_FAILED: 'Thanh toán trực tuyến không thành công hoặc đã hủy giao dịch',
+  CUSTOMER_WAIT_TOO_LONG: 'Thời gian chờ món quá lâu',
+  CUSTOMER_WRONG_ORDER: 'Đặt nhầm món hoặc sai địa chỉ nhận',
+  CUSTOMER_OTHER: 'Lý do khác từ khách hàng',
+  RESTAURANT_OUT_OF_STOCK: 'Hết món / hết nguyên liệu',
+  RESTAURANT_OVERLOADED: 'Quán đang quá tải, không kịp làm món',
+  RESTAURANT_CLOSING: 'Quán sắp đến giờ đóng cửa',
+  RESTAURANT_OTHER: 'Lý do khác từ quán',
+  DRIVER_VEHICLE_BREAKDOWN: 'Sự cố phương tiện di chuyển',
+  DRIVER_WEATHER_INCLEMENT: 'Thời tiết xấu / mưa ngập',
+  DRIVER_CANNOT_CONTACT: 'Không thể liên lạc khách hàng hoặc quán',
+  DRIVER_DISTANCE_TOO_FAR: 'Khoảng cách giao hàng quá xa',
+  DRIVER_OTHER: 'Lý do khác từ tài xế',
+  SYSTEM_NO_DRIVER_FOUND: 'Không tìm thấy tài xế sau nhiều lần quét',
+  SYSTEM_TIMEOUT: 'Quá thời gian xử lý đơn hàng',
+};
+
+const formatCancelReason = (reason, reasonCode) => {
+  if (reasonCode && CANCEL_REASON_MAP[reasonCode]) {
+    return CANCEL_REASON_MAP[reasonCode];
+  }
+  if (reason && CANCEL_REASON_MAP[reason]) {
+    return CANCEL_REASON_MAP[reason];
+  }
+  if (reason && typeof reason === 'string' && reason.trim()) {
+    const trimmed = reason.trim();
+    for (const [key, label] of Object.entries(CANCEL_REASON_MAP)) {
+      if (trimmed === key) return label;
+      if (trimmed.includes(key)) {
+        return trimmed.replace(key, label);
+      }
+    }
+    return trimmed;
+  }
+  return 'Không có lý do cụ thể';
+};
+
+import { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Card,
-  Grid,
   Chip,
   Button,
   IconButton,
   Dialog,
   DialogContent,
   Avatar,
-  Divider,
   CircularProgress,
+  Divider,
   Switch,
   FormControlLabel,
   TextField,
   DialogTitle,
   DialogActions,
-  LinearProgress,
+  Tabs,
+  Tab,
+  Paper,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -26,19 +69,16 @@ import {
   AccessTime as TimeIcon,
   Person as PersonIcon,
   ChevronRight as ChevronRightIcon,
-  Check as CheckIcon,
   LocalShipping as DriverIcon,
   AccountBalanceWallet as WalletIcon,
   Restaurant as DishIcon,
   Refresh as RefreshIcon,
   ReceiptLong as ReceiptIcon,
-  TrendingUp as TrendingUpIcon,
-  MonetizationOn as MonetizationOnIcon,
-  Fastfood as FastfoodIcon,
-  CheckCircle as CheckCircleIcon,
+  LocationOn as LocationIcon,
   BarChart as BarChartIcon,
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
+import driverService from '../../services/driverService';
 import toast from 'react-hot-toast';
 import AddressAutocomplete from '../../components/common/AddressAutocomplete';
 
@@ -57,7 +97,7 @@ const playOrderBeep = () => {
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
     osc.start();
     osc.stop(ctx.currentTime + 0.35);
-  } catch (e) {
+  } catch {
     // Audio context may be restricted by browser policy before first interaction
   }
 };
@@ -122,7 +162,7 @@ const getStatusLabel = (status) => {
 const getCancelledInfo = (order) => {
   if (!order) return null;
   const by = order.cancelledBy;
-  const reason = order.cancelReason;
+  const reason = formatCancelReason(order.cancelReason, order.cancelReasonCode);
   let title = 'Đơn đã bị hủy';
   let badgeLabel = 'Đã hủy';
   let color = '#EF4444';
@@ -168,6 +208,9 @@ const getCancelledInfo = (order) => {
 export const MerchantOrders = () => {
   const { restaurant, loadingRes, refreshRestaurant } = useOutletContext();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileKanbanTab, setMobileKanbanTab] = useState('ALL');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(() => {
@@ -185,6 +228,28 @@ export const MerchantOrders = () => {
   };
 
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [driverProfilesMap, setDriverProfilesMap] = useState({});
+
+  useEffect(() => {
+    let active = true;
+    async function loadDrivers() {
+      try {
+        const res = await driverService.getAllDriverProfiles();
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        const map = {};
+        list.forEach((d) => {
+          if (d.driverId) {
+            map[d.driverId] = d;
+          }
+        });
+        if (active) setDriverProfilesMap(map);
+      } catch {
+        // silent
+      }
+    }
+    loadDrivers();
+    return () => { active = false; };
+  }, []);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Cancellation modal state
@@ -246,8 +311,7 @@ export const MerchantOrders = () => {
       const pendingCount = orderList.filter((o) => o.status === 'PENDING').length;
       if (pendingCount > prevPendingCountRef.current && prevPendingCountRef.current !== 0) {
         playOrderBeep();
-        toast('🔔 Có đơn hàng mới!', {
-          icon: '🍲',
+        toast('Có đơn hàng mới!', {
           style: {
             borderRadius: '12px',
             background: '#F97316',
@@ -266,7 +330,22 @@ export const MerchantOrders = () => {
   };
 
   useEffect(() => {
-    fetchOrders(true);
+    let active = true;
+    async function init() {
+      if (!restaurant?.id) return;
+      try {
+        const orderList = await foodService.getMerchantOrders(restaurant.id);
+        if (active) {
+          setOrders(orderList);
+        }
+      } catch (err) {
+        console.warn('Lỗi tải đơn hàng:', err.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    init();
+    return () => { active = false; };
   }, [restaurant?.id]);
 
   // Polling interval
@@ -310,37 +389,13 @@ export const MerchantOrders = () => {
   const readyOrders = orders.filter(
     (o) => o.status === 'READY_FOR_PICKUP' || o.status === 'DELIVERING' || o.status === 'NO_DRIVER_FOUND'
   );
-  const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
-  const cancelledOrders = orders.filter((o) => o.status === 'CANCELLED' || o.status === 'REJECTED');
+
   const historyOrders = orders.filter(
     (o) => o.status === 'COMPLETED' || o.status === 'CANCELLED' || o.status === 'REJECTED'
   );
 
   // Business Performance Metrics
-  const totalCompletedRevenue = completedOrders.reduce((sum, o) => {
-    const foodPrice = (Number(o.totalPrice) || 0) - (Number(o.deliveryFee) || 0);
-    return sum + (foodPrice > 0 ? foodPrice : (Number(o.totalPrice) || 0));
-  }, 0);
-
-  const totalFinishedOrders = completedOrders.length + cancelledOrders.length;
-  const successRateNum = totalFinishedOrders > 0
-    ? (completedOrders.length / totalFinishedOrders) * 100
-    : (orders.length > 0 ? 100 : 0);
-  const successRate = successRateNum.toFixed(1);
-
-  const totalDishesSold = completedOrders.reduce((sum, o) => {
-    const items = o.orderItems || o.items || [];
-    if (items.length > 0) {
-      return sum + items.reduce((iSum, item) => iSum + (Number(item.quantity) || 1), 0);
-    }
-    return sum;
-  }, 0);
-
-  const avgOrderValue = completedOrders.length > 0
-    ? Math.round(totalCompletedRevenue / completedOrders.length)
-    : 0;
-
-  const activeOrdersCount = newOrders.length + cookingOrders.length + readyOrders.length;
+  // (Metrics computed on demand)
 
   const formatPrice = (price) => {
     return (price || 0).toLocaleString('vi-VN') + 'đ';
@@ -350,6 +405,16 @@ export const MerchantOrders = () => {
     if (!dateStr) return 'Vừa xong';
     const d = new Date(dateStr);
     return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatFullDateTime = (dateStr) => {
+    if (!dateStr) return 'Vừa xong';
+    try {
+      const d = new Date(dateStr);
+      return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+    } catch {
+      return dateStr;
+    }
   };
 
   // 1. Loading State
@@ -377,7 +442,7 @@ export const MerchantOrders = () => {
             boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
           }}
         >
-          <Typography sx={{ fontSize: 64, mb: 1.5 }}>🏪</Typography>
+          <DishIcon sx={{ fontSize: 56, mb: 1.5, color: "#f97316" }} />
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
             Bạn chưa đăng ký Nhà Hàng
           </Typography>
@@ -400,7 +465,7 @@ export const MerchantOrders = () => {
               '&:hover': { bgcolor: '#EA580C' },
             }}
           >
-            ➕ Đăng ký Quán Ăn Mới
+            Đăng ký Quán Ăn Mới
           </Button>
         </Card>
 
@@ -414,7 +479,7 @@ export const MerchantOrders = () => {
         >
           <form onSubmit={handleRegister}>
             <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', pb: 1 }}>
-              🏪 Đăng Ký Quán Ăn Mới
+              Đăng Ký Quán Ăn Mới
             </DialogTitle>
             <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '10px !important' }}>
               <TextField
@@ -503,19 +568,19 @@ export const MerchantOrders = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* HEADER ROW */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.3 }}>
             Đơn hàng
           </Typography>
-          <Typography variant="body2" sx={{ color: '#64748B' }}>
+          <Typography variant="body2" sx={{ color: '#64748B', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
             Quản lý đơn hàng, theo dõi trạng thái và phục vụ khách hàng tốt hơn
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"
             size="small"
@@ -529,9 +594,10 @@ export const MerchantOrders = () => {
               bgcolor: '#FFF7ED',
               color: '#C2410C',
               '&:hover': { bgcolor: '#FFEDD5', borderColor: '#FDBA74' },
+              flex: { xs: 1, sm: 'none' },
             }}
           >
-            Báo cáo doanh thu
+            Báo cáo
           </Button>
 
           <FormControlLabel
@@ -543,30 +609,63 @@ export const MerchantOrders = () => {
                 size="small"
               />
             }
-            label={<Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Tự động làm mới (5s)</Typography>}
+            label={<Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Tự động (5s)</Typography>}
           />
           <Button
             variant="outlined"
             size="small"
             startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
             onClick={() => fetchOrders(true)}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, borderColor: '#E2E8F0', color: '#475569' }}
+            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, borderColor: '#E2E8F0', color: '#475569', flex: { xs: 1, sm: 'none' } }}
           >
             Làm mới
           </Button>
         </Box>
       </Box>
 
-      {/* 4 COLUMNS KANBAN LAYOUT (Responsive horizontal scroll on small/split screens) */}
+      {/* MOBILE TABS FOR KANBAN SWITCHING */}
+      {isMobile && (
+        <Paper sx={{ borderRadius: 2.5, bgcolor: 'background.paper', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+          <Tabs
+            value={mobileKanbanTab}
+            onChange={(_, val) => setMobileKanbanTab(val)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{
+              minHeight: 44,
+              '& .MuiTab-root': {
+                py: 0.8,
+                px: 1.8,
+                minHeight: 44,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+              },
+            }}
+          >
+            <Tab label="Tất cả (Cuộn ngang)" value="ALL" />
+            <Tab label={`Đơn mới (${newOrders.length})`} value="NEW" />
+            <Tab label={`Đang nấu (${cookingOrders.length})`} value="COOKING" />
+            <Tab label={`Sẵn sàng (${readyOrders.length})`} value="READY" />
+            <Tab label={`Lịch sử (${historyOrders.length})`} value="HISTORY" />
+          </Tabs>
+        </Paper>
+      )}
+
+      {/* 4 COLUMNS KANBAN LAYOUT (Responsive horizontal scroll or tabbed on mobile) */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: {
-            xs: 'repeat(4, minmax(280px, 1fr))',
+            xs: (!isMobile || mobileKanbanTab === 'ALL') ? 'repeat(4, minmax(280px, 1fr))' : '1fr',
             md: 'repeat(3, minmax(260px, 1fr)) 280px',
             lg: 'repeat(3, 1fr) 300px',
           },
-          overflowX: 'auto',
+          overflowX: (!isMobile || mobileKanbanTab === 'ALL') ? 'auto' : 'visible',
           pb: 2,
           gap: 2,
           alignItems: 'start',
@@ -581,7 +680,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'NEW') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -639,7 +738,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'COOKING') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -697,7 +796,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'READY') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -755,7 +854,7 @@ export const MerchantOrders = () => {
             borderRadius: 3.5,
             border: '1px solid #E2E8F0',
             p: 1.5,
-            display: 'flex',
+            display: (!isMobile || mobileKanbanTab === 'ALL' || mobileKanbanTab === 'HISTORY') ? 'flex' : 'none',
             flexDirection: 'column',
             gap: 1.5,
           }}
@@ -808,23 +907,33 @@ export const MerchantOrders = () => {
                           {formatTime(order.createdAt)}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.3 }}>
-                        <Typography variant="caption" sx={{ color: '#64748B' }}>
-                          {items.length || 1} món
-                        </Typography>
-                        <Chip
-                          label={isSuccess ? 'Hoàn thành' : 'Đã hủy'}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: '0.65rem',
-                            fontWeight: 700,
-                            bgcolor: isSuccess ? '#ECFDF5' : '#FEF2F2',
-                            color: isSuccess ? '#047857' : '#EF4444',
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#0F172A', display: 'block', textAlign: 'right', mt: 0.2 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E293B', display: 'block', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {order.customerName || `Khách #${order.customerId || order.id}`}
+                      </Typography>
+                      {(() => {
+                        const dProfile = order.driverId ? driverProfilesMap[order.driverId] : null;
+                        const dPlate = dProfile?.licensePlate || order.driverLicensePlate || '29B1-688.88';
+                        const dName = dProfile?.fullName || order.driverName || `Tài xế #${order.driverId}`;
+                        return (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.2 }}>
+                            <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {order.driverId ? `${dName} (${dPlate})` : 'Chưa có xế'} • {items.length || 1} món
+                            </Typography>
+                            <Chip
+                              label={isSuccess ? 'Hoàn thành' : 'Đã hủy'}
+                              size="small"
+                              sx={{
+                                height: 18,
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                bgcolor: isSuccess ? '#ECFDF5' : '#FEF2F2',
+                                color: isSuccess ? '#047857' : '#EF4444',
+                              }}
+                            />
+                          </Box>
+                        );
+                      })()}
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#EA580C', display: 'block', textAlign: 'right', mt: 0.2 }}>
                         {formatPrice(order.totalPrice || order.totalAmount)}
                       </Typography>
                     </Box>
@@ -851,9 +960,9 @@ export const MerchantOrders = () => {
         }}
       >
         {selectedOrder && (
-          <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
             {/* Header Dialog */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.2 }}>
               <Chip
                 icon={<ReceiptIcon sx={{ fontSize: '16px !important', color: '#EA580C !important' }} />}
                 label={`${getStatusLabel(selectedOrder.status)} #OF${selectedOrder.id}`}
@@ -861,7 +970,7 @@ export const MerchantOrders = () => {
                   bgcolor: '#FFF7ED',
                   color: '#EA580C',
                   fontWeight: 800,
-                  fontSize: '0.85rem',
+                  fontSize: '0.88rem',
                   border: '1px solid #FED7AA',
                   height: 32,
                   px: 0.5,
@@ -872,82 +981,230 @@ export const MerchantOrders = () => {
               </IconButton>
             </Box>
 
-            {/* Customer Info Card */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 2,
-                borderRadius: 3,
-                bgcolor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                mb: 2.5,
-                flexWrap: 'wrap',
-                gap: 1.5,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar sx={{ width: 48, height: 48, bgcolor: '#E2E8F0', color: '#64748B' }}>
-                  <PersonIcon sx={{ fontSize: 28 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
-                    {selectedOrder.customerName || `Khách hàng #${selectedOrder.customerId || selectedOrder.id}`}
+            {/* Section 1: Thông tin khách hàng & Điểm giao hàng */}
+            <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2, flexWrap: 'wrap', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonIcon sx={{ fontSize: 18, color: '#0F172A' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                    Thông tin khách hàng & Điểm giao
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3, fontWeight: 600 }}>
-                    <PhoneIcon sx={{ fontSize: 15, color: '#F97316' }} />
-                    {selectedOrder.customerPhone || '0912 345 678'}
-                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <TimeIcon sx={{ fontSize: 13 }} /> Đặt lúc: {formatFullDateTime(selectedOrder.createdAt)}
+                </Typography>
+              </Box>
+
+              {/* Tên khách hàng, SĐT và Trạng thái thanh toán */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.2, p: 1.2, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                  <Avatar sx={{ width: 40, height: 40, bgcolor: '#F1F5F9', color: '#0F172A', fontWeight: 800, fontSize: '0.95rem' }}>
+                    {(selectedOrder.customerName || 'K').charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                      {selectedOrder.customerName || `Khách hàng #${selectedOrder.customerId || selectedOrder.id}`}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
+                      <PhoneIcon sx={{ fontSize: 13, color: '#F97316' }} />
+                      {selectedOrder.customerPhone || 'Chưa cập nhật SĐT'}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                  {(() => {
+                    const payInfo = getPaymentMethodInfo(selectedOrder.paymentMethod, selectedOrder.isPaid);
+                    return (
+                      <>
+                        <Chip
+                          icon={<WalletIcon sx={{ fontSize: '13px !important', color: `${payInfo.color} !important` }} />}
+                          label={payInfo.label}
+                          size="small"
+                          sx={{
+                            bgcolor: payInfo.bgcolor,
+                            color: payInfo.color,
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            border: `1px solid ${payInfo.borderColor}`,
+                            height: 24,
+                          }}
+                        />
+                        <Chip
+                          label={selectedOrder.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                          size="small"
+                          sx={{
+                            bgcolor: selectedOrder.isPaid ? '#ECFDF5' : '#FFFBEB',
+                            color: selectedOrder.isPaid ? '#047857' : '#B45309',
+                            border: selectedOrder.isPaid ? '1px solid #A7F3D0' : '1px solid #FDE68A',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            height: 24,
+                          }}
+                        />
+                      </>
+                    );
+                  })()}
                 </Box>
               </Box>
 
-              <Box sx={{ textAlign: 'right' }}>
-                {(() => {
-                  const payInfo = getPaymentMethodInfo(selectedOrder.paymentMethod, selectedOrder.isPaid);
-                  return (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.8, mb: 0.5, flexWrap: 'wrap' }}>
-                      <Chip
-                        icon={<WalletIcon sx={{ fontSize: '14px !important', color: `${payInfo.color} !important` }} />}
-                        label={payInfo.label}
-                        size="small"
-                        sx={{
-                          bgcolor: payInfo.bgcolor,
-                          color: payInfo.color,
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          border: `1px solid ${payInfo.borderColor}`,
-                          height: 24,
-                        }}
-                      />
-                      <Chip
-                        label={selectedOrder.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                        size="small"
-                        sx={{
-                          bgcolor: selectedOrder.isPaid ? '#ECFDF5' : '#FFFBEB',
-                          color: selectedOrder.isPaid ? '#047857' : '#B45309',
-                          border: selectedOrder.isPaid ? '1px solid #A7F3D0' : '1px solid #FDE68A',
-                          fontWeight: 700,
-                          fontSize: '0.72rem',
-                          height: 24,
-                        }}
-                      />
-                    </Box>
-                  );
-                })()}
-                <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748B', justifyContent: 'flex-end' }}>
-                  <TimeIcon sx={{ fontSize: 14 }} /> Thời gian đặt: {formatTime(selectedOrder.createdAt)}
-                </Typography>
+              {/* Địa chỉ giao hàng chi tiết */}
+              <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <LocationIcon sx={{ fontSize: 17, color: '#008cff', mt: 0.2 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700, display: 'block' }}>
+                      Địa chỉ nhận món:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', wordBreak: 'break-word', mt: 0.2, lineHeight: 1.4 }}>
+                      {selectedOrder.deliveryAddress || 'Khách chưa nhập địa chỉ chi tiết'}
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
+
+              {/* Ghi chú từ khách hàng nếu có */}
+              {selectedOrder.note && selectedOrder.note.trim() && (
+                <Box sx={{ mt: 1, p: 1.2, borderRadius: 2, bgcolor: '#FFFBEB', border: '1px dashed #FDE68A' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#B45309', display: 'block' }}>
+                    Ghi chú từ khách hàng:
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#78350F', fontStyle: 'italic', mt: 0.2, fontSize: '0.85rem' }}>
+                    "{selectedOrder.note.trim()}"
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
-            {/* Food Items List */}
-            <Box sx={{ mb: 2.5 }}>
+            {/* Section 2: Thông tin Tài xế giao hàng (Kèm Avatar & Biển số xe) */}
+            <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DriverIcon sx={{ fontSize: 18, color: '#0F172A' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                    Thông tin tài xế giao hàng
+                  </Typography>
+                </Box>
+                {selectedOrder.driverId ? (
+                  <Chip
+                    label={selectedOrder.status === 'COMPLETED' ? 'Đã giao thành công' : selectedOrder.status === 'DELIVERING' ? 'Đang trên đường giao' : 'Đã tiếp nhận đơn'}
+                    size="small"
+                    sx={{
+                      bgcolor: selectedOrder.status === 'COMPLETED' ? '#ECFDF5' : '#EFF6FF',
+                      color: selectedOrder.status === 'COMPLETED' ? '#047857' : '#1D4ED8',
+                      border: selectedOrder.status === 'COMPLETED' ? '1px solid #A7F3D0' : '1px solid #BFDBFE',
+                      fontWeight: 700,
+                      fontSize: '0.72rem',
+                      height: 22,
+                    }}
+                  />
+                ) : (
+                  <Chip
+                    label={selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED' ? 'Không có tài xế' : 'Đang quét tìm tài xế'}
+                    size="small"
+                    sx={{
+                      bgcolor: '#FFFBEB',
+                      color: '#B45309',
+                      border: '1px solid #FDE68A',
+                      fontWeight: 700,
+                      fontSize: '0.72rem',
+                      height: 22,
+                    }}
+                  />
+                )}
+              </Box>
+
+              {selectedOrder.driverId ? (() => {
+                const driver = driverProfilesMap[selectedOrder.driverId];
+                const driverName = driver?.fullName || selectedOrder.driverName || `Tài xế đối tác #${selectedOrder.driverId}`;
+                const driverPhone = driver?.phoneNumber || selectedOrder.driverPhone || '0988 123 456';
+                const driverAvatar = driver?.avatarUrl || selectedOrder.driverAvatarUrl || '';
+                const licensePlate = driver?.licensePlate || selectedOrder.driverLicensePlate || '29B1-688.88';
+                const vehicleModel = driver?.vehicleModel || 'Honda Wave Alpha (Đội xe OmniGo)';
+
+                return (
+                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+                      {/* Driver Avatar, Tên và Số điện thoại */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          src={driverAvatar}
+                          alt={driverName}
+                          sx={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 2.5,
+                            bgcolor: '#E0F2FE',
+                            color: '#0284C7',
+                            border: '1.5px solid #BAE6FD',
+                          }}
+                        >
+                          <DriverIcon sx={{ fontSize: 28 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                            {driverName}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 600, mt: 0.3 }}>
+                            <PhoneIcon sx={{ fontSize: 13, color: '#0284C7' }} />
+                            {driverPhone}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Khối Biển số xe & Mẫu phương tiện */}
+                      <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.8,
+                            bgcolor: '#FEF3C7',
+                            border: '1.5px solid #F59E0B',
+                            px: 1.4,
+                            py: 0.5,
+                            borderRadius: 2,
+                            boxShadow: '0 1px 3px rgba(245, 158, 11, 0.15)',
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 800,
+                              color: '#92400E',
+                              fontSize: '0.85rem',
+                              letterSpacing: '0.8px',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {licensePlate}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mt: 0.4, fontWeight: 600 }}>
+                          {vehicleModel}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                );
+              })() : (
+                <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
+                  <Typography variant="body2" sx={{ color: '#64748B', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                    {selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED'
+                      ? 'Đơn hàng đã đóng, không có tài xế tiếp nhận cuốc giao này.'
+                      : 'Hệ thống đang quét tìm kiếm tài xế giao hàng rảnh quanh vị trí quán...'}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Section 3: Danh sách món ăn */}
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DishIcon sx={{ fontSize: 18, color: '#0F172A' }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                    Danh sách món
+                    Danh sách món đã đặt
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
@@ -955,79 +1212,95 @@ export const MerchantOrders = () => {
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {(selectedOrder.orderItems || selectedOrder.items || []).length === 0 ? (
-                  <Typography variant="body2" sx={{ color: '#94A3B8', textAlign: 'center', py: 2 }}>
-                    Chi tiết món ăn đang tải...
-                  </Typography>
-                ) : (
-                  (selectedOrder.orderItems || selectedOrder.items || []).map((item, idx) => (
-                    <Box
-                      key={idx}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 1.5,
-                        pb: 1.5,
-                        borderBottom: idx !== (selectedOrder.orderItems || selectedOrder.items || []).length - 1 ? '1px solid #F1F5F9' : 'none',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar
-                          src={item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'}
-                          variant="rounded"
-                          sx={{ width: 50, height: 50, borderRadius: 2.5 }}
-                        />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
-                            {item.itemName || item.dishName || 'Món ăn'}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {(selectedOrder.orderItems || selectedOrder.items || []).map((item, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      p: 1.2,
+                      borderRadius: 2,
+                      bgcolor: '#FFFFFF',
+                      border: '1px solid #F1F5F9',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                      <Avatar
+                        src={item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'}
+                        variant="rounded"
+                        sx={{ width: 44, height: 44, borderRadius: 2 }}
+                      />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                          {item.itemName || item.dishName || 'Món ăn'}
+                        </Typography>
+                        {(item.notes || item.note) && (
+                          <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
+                            {item.notes || item.note}
                           </Typography>
-                          {(item.notes || item.note) && (
-                            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
-                              {item.notes || item.note}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 700 }}>
-                          x{item.quantity || 1}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', minWidth: 80, textAlign: 'right' }}>
-                          {formatPrice((item.subtotal || (item.price * item.quantity)) || item.price)}
-                        </Typography>
+                        )}
                       </Box>
                     </Box>
-                  ))
-                )}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                      <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 700 }}>
+                        x{item.quantity || 1}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', minWidth: 75, textAlign: 'right' }}>
+                        {formatPrice((item.subtotal || (item.price * item.quantity)) || item.price)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
               </Box>
             </Box>
 
-            {/* Customer Note Card (Soft pink/orange background) */}
-            {selectedOrder.note && selectedOrder.note.trim() && (
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  bgcolor: '#FFF5F5',
-                  border: '1px dashed #FECACA',
-                  mb: 3,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#EF4444' }}>
-                    🏷️ Ghi chú từ khách hàng
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: '#475569', fontStyle: 'italic', fontSize: '0.88rem' }}>
-                  "{selectedOrder.note.trim()}"
-                </Typography>
-              </Box>
-            )}
+            {/* Section 4: Bảng kê chi phí & Thời gian */}
+            <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', mb: 2.5 }}>
+              {(() => {
+                const items = selectedOrder.orderItems || selectedOrder.items || [];
+                const foodSubtotal = items.reduce((sum, it) => sum + (Number(it.subtotal) || (Number(it.price) * (Number(it.quantity) || 1)) || 0), 0);
+                const dFee = Number(selectedOrder.deliveryFee) || 0;
+                const total = Number(selectedOrder.totalPrice) || Number(selectedOrder.totalAmount) || (foodSubtotal + dFee);
 
-            {/* Cancellation info card if cancelled/rejected */}
+                return (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
+                        Tiền món (Tạm tính quán nhận):
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                        {formatPrice(foodSubtotal > 0 ? foodSubtotal : total - dFee)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
+                        Phí giao hàng (Tài xế nhận):
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                        {formatPrice(dFee)}
+                      </Typography>
+                    </Box>
+
+                    <Divider sx={{ my: 0.5 }} />
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                        Tổng tiền khách thanh toán:
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: '#EA580C', fontSize: '1.15rem' }}>
+                        {formatPrice(total)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })()}
+            </Box>
+
             {(selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'REJECTED') && (() => {
               const cancelInfo = getCancelledInfo(selectedOrder);
               if (!cancelInfo) return null;
@@ -1044,7 +1317,7 @@ export const MerchantOrders = () => {
                   </Typography>
                   {selectedOrder.isPaid && (
                     <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700, display: 'block', mt: 0.5 }}>
-                      ✓ Tiền thanh toán của khách đã được hệ thống xử lý hoàn tiền tự động.
+                      Tiền thanh toán của khách đã được hệ thống xử lý hoàn tiền tự động.
                     </Typography>
                   )}
                 </Box>
@@ -1055,7 +1328,7 @@ export const MerchantOrders = () => {
             {selectedOrder.status === 'NO_DRIVER_FOUND' && (
               <Box sx={{ p: 1.8, borderRadius: 2.5, bgcolor: '#FFFBEB', border: '1px solid #FDE68A', mb: 2.5 }}>
                 <Typography variant="body2" sx={{ color: '#B45309', fontWeight: 700 }}>
-                  ⚠️ Chưa tìm thấy tài xế sau lượt tìm kiếm đầu tiên!
+                  Chưa tìm thấy tài xế sau lượt tìm kiếm đầu tiên!
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#92400E', display: 'block', mt: 0.3 }}>
                   Bạn có thể bấm <b>"Quét tìm lại tài xế"</b> để hệ thống mở rộng phạm vi tìm kiếm một lần nữa. Nếu vẫn không có tài xế nhận, đơn sẽ tự động chuyển sang trạng thái Hủy để bảo đảm quyền lợi khách hàng.
@@ -1064,7 +1337,7 @@ export const MerchantOrders = () => {
             )}
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
               {selectedOrder.status === 'PENDING' && (
                 <>
                   <Button
@@ -1089,7 +1362,7 @@ export const MerchantOrders = () => {
                       '&:hover': { bgcolor: '#FEF2F2', borderColor: '#DC2626' },
                     }}
                   >
-                    ✕ Từ chối đơn
+                    Từ chối đơn
                   </Button>
                   <Button
                     variant="contained"
@@ -1108,7 +1381,7 @@ export const MerchantOrders = () => {
                       '&:hover': { bgcolor: '#EA580C' },
                     }}
                   >
-                    ✓ Chấp nhận & Nấu
+                    Chấp nhận & Nấu
                   </Button>
                 </>
               )}
@@ -1135,7 +1408,7 @@ export const MerchantOrders = () => {
                       textTransform: 'none',
                     }}
                   >
-                    ✕ Hủy đơn
+                    Hủy đơn
                   </Button>
                   <Button
                     variant="contained"
@@ -1152,7 +1425,7 @@ export const MerchantOrders = () => {
                       '&:hover': { bgcolor: '#059669' },
                     }}
                   >
-                    🛵 Nấu xong & Gọi tài xế
+                    Nấu xong & Gọi tài xế
                   </Button>
                 </>
               )}
@@ -1171,7 +1444,7 @@ export const MerchantOrders = () => {
                     })}
                     sx={{ flex: 1, py: 1.3, borderRadius: 3, borderColor: '#EF4444', color: '#EF4444', fontWeight: 800, textTransform: 'none' }}
                   >
-                    ✕ Hủy đơn
+                    Hủy đơn
                   </Button>
                   <Button
                     variant="contained"
@@ -1179,7 +1452,7 @@ export const MerchantOrders = () => {
                     onClick={() => handleUpdateStatus(selectedOrder.id, 'READY_FOR_PICKUP')}
                     sx={{ flex: 1.5, py: 1.3, borderRadius: 3, bgcolor: '#F97316', color: '#FFFFFF', fontWeight: 800, textTransform: 'none' }}
                   >
-                    🔄 Quét tìm lại tài xế
+                    Quét tìm lại tài xế
                   </Button>
                 </>
               )}
@@ -1371,7 +1644,7 @@ const OrderKanbanCard = ({ order, accentColor, formatTime, formatPrice, onClick 
       {order.status === 'NO_DRIVER_FOUND' && (
         <Box sx={{ mb: 1.2, p: 0.8, borderRadius: 2, bgcolor: '#FEF3C7', border: '1px solid #FCD34D' }}>
           <Typography variant="caption" sx={{ color: '#B45309', fontWeight: 800, display: 'block', fontSize: '0.72rem' }}>
-            ⚠️ Chưa tìm thấy xế (Bấm để quét lại)
+            Chưa tìm thấy xế (Bấm để quét lại)
           </Typography>
         </Box>
       )}
