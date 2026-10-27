@@ -250,33 +250,45 @@ class DefaultLocationTracker @Inject constructor(
         val trimmed = query.trim()
         if (trimmed.length < 2) return emptyList()
 
-        // 1. Priority: Google Places SDK for real POIs (universities, hospitals, cafes, malls)
-        val placesResults = placesSearchService.searchPlaces(trimmed)
-        if (placesResults.isNotEmpty()) {
-            return placesResults
+        // 1. Priority: Android Geocoder (backed by Google Maps backend)
+        val geocoderResults = searchPlacesWithGeocoder(trimmed)
+        if (geocoderResults.isNotEmpty()) {
+            return geocoderResults
         }
 
-        // 2. Fallback: Android Geocoder restricted to Vietnam Bounding Box
-        return searchPlacesWithGeocoder(trimmed)
+        // 2. Fallback: Photon Komoot OSM API
+        return placesSearchService.searchPlaces(trimmed)
     }
 
     private suspend fun searchPlacesWithGeocoder(query: String): List<UserLocation> = withContext(Dispatchers.IO) {
         try {
             val geocoder = Geocoder(context, Locale.forLanguageTag("vi-VN"))
-            // Vietnam Bounding Box: 8.18 Lat (South) to 23.40 Lat (North), 102.14 Lng (West) to 109.50 Lng (East)
             val searchTarget = if (!query.contains("Việt Nam", true) && !query.contains("Vietnam", true)) {
                 "$query, Việt Nam"
             } else query
 
-            val addresses: List<android.location.Address> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            var addresses: List<android.location.Address> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 suspendCancellableCoroutine { cont ->
-                    geocoder.getFromLocationName(searchTarget, 6, 8.18, 102.14, 23.40, 109.50) { results ->
+                    geocoder.getFromLocationName(searchTarget, 8, 8.18, 102.14, 23.40, 109.50) { results ->
                         cont.resume(results ?: emptyList())
                     }
                 }
             } else {
                 @Suppress("DEPRECATION")
-                geocoder.getFromLocationName(searchTarget, 6, 8.18, 102.14, 23.40, 109.50) ?: emptyList()
+                geocoder.getFromLocationName(searchTarget, 8, 8.18, 102.14, 23.40, 109.50) ?: emptyList()
+            }
+
+            if (addresses.isEmpty()) {
+                addresses = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    suspendCancellableCoroutine { cont ->
+                        geocoder.getFromLocationName(query, 8) { results ->
+                            cont.resume(results ?: emptyList())
+                        }
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    geocoder.getFromLocationName(query, 8) ?: emptyList()
+                }
             }
 
             addresses.mapNotNull { address ->

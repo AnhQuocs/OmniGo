@@ -35,6 +35,7 @@ class RideBookingStatusCoordinatorTest {
     private lateinit var getBookingDriverUseCase: GetBookingDriverUseCase
     private lateinit var observeDriverLiveLocationUseCase: ObserveDriverLiveLocationUseCase
     private lateinit var rideSessionManager: RideSessionManager
+    private lateinit var activeTripRouteTracker: ActiveTripRouteTracker
     private lateinit var coordinator: RideBookingStatusCoordinator
 
     private var uiState = RideBookingUiState()
@@ -71,12 +72,14 @@ class RideBookingStatusCoordinatorTest {
         getBookingDriverUseCase = mockk(relaxed = true)
         observeDriverLiveLocationUseCase = mockk(relaxed = true)
         rideSessionManager = mockk(relaxed = true)
+        activeTripRouteTracker = mockk(relaxed = true)
 
         coordinator = RideBookingStatusCoordinator(
             observeRideBookingStatusUseCase = observeRideBookingStatusUseCase,
             getBookingDriverUseCase = getBookingDriverUseCase,
             observeDriverLiveLocationUseCase = observeDriverLiveLocationUseCase,
-            rideSessionManager = rideSessionManager
+            rideSessionManager = rideSessionManager,
+            activeTripRouteTracker = activeTripRouteTracker
         )
         uiState = RideBookingUiState(currentBooking = sampleBooking, isSearchingDriver = true)
     }
@@ -104,7 +107,7 @@ class RideBookingStatusCoordinatorTest {
             driverId = 200L
         )
 
-        coordinator.handleStatusEvent(this, acceptedEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, acceptedEvent, ::updateState, { uiState })
         advanceUntilIdle()
 
         assertFalse(uiState.isSearchingDriver)
@@ -118,6 +121,11 @@ class RideBookingStatusCoordinatorTest {
         assertNotNull(uiState.liveEtaMinutes)
         coVerify(exactly = 1) { getBookingDriverUseCase(100L) }
         verify(atLeast = 1) { observeDriverLiveLocationUseCase(200L) }
+        verify(exactly = 1) {
+            activeTripRouteTracker.onDriverLocation(
+                any(), 21.018, 105.848, TripRoutePhase.TO_PICKUP, 21.02, 105.85, any(), any()
+            )
+        }
     }
 
     @Test
@@ -129,23 +137,27 @@ class RideBookingStatusCoordinatorTest {
             status = BookingStatus.ARRIVED
         )
 
-        coordinator.handleStatusEvent(this, arrivedEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, arrivedEvent, ::updateState, { uiState })
 
         assertEquals(BookingStatus.ARRIVED, uiState.currentBooking?.status)
     }
 
     @Test
-    fun `handleStatusEvent with IN_PROGRESS updates trip status to IN_PROGRESS`() = runTest {
-        uiState = uiState.copy(currentBooking = sampleBooking.copy(status = BookingStatus.ARRIVED))
+    fun `handleStatusEvent with IN_PROGRESS updates trip status and drops the stale pickup route`() = runTest {
+        uiState = uiState.copy(
+            currentBooking = sampleBooking.copy(status = BookingStatus.ARRIVED),
+            activeTripRouteCoordinates = listOf(21.0 to 105.0, 21.1 to 105.1)
+        )
 
         val inProgressEvent = RideStatusEvent(
             bookingId = 100L,
             status = BookingStatus.IN_PROGRESS
         )
 
-        coordinator.handleStatusEvent(this, inProgressEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, inProgressEvent, ::updateState, { uiState })
 
         assertEquals(BookingStatus.IN_PROGRESS, uiState.currentBooking?.status)
+        assertTrue(uiState.activeTripRouteCoordinates.isEmpty())
     }
 
     @Test
@@ -161,7 +173,7 @@ class RideBookingStatusCoordinatorTest {
             price = 32000.0
         )
 
-        coordinator.handleStatusEvent(this, completedEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, completedEvent, ::updateState, { uiState })
         advanceUntilIdle()
 
         assertEquals(BookingStatus.COMPLETED, uiState.currentBooking?.status)
@@ -185,7 +197,7 @@ class RideBookingStatusCoordinatorTest {
             status = BookingStatus.CANCELLED
         )
 
-        coordinator.handleStatusEvent(this, cancelledEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, cancelledEvent, ::updateState, { uiState })
         advanceUntilIdle()
 
         assertNull(uiState.currentBooking)
@@ -203,7 +215,7 @@ class RideBookingStatusCoordinatorTest {
             driverId = 300L
         )
 
-        coordinator.handleStatusEvent(this, foreignEvent, ::updateState) { uiState }
+        coordinator.handleStatusEvent(this, foreignEvent, ::updateState, { uiState })
 
         assertEquals(BookingStatus.PENDING, uiState.currentBooking?.status)
         assertNull(uiState.assignedDriver)

@@ -15,21 +15,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MyLocation
@@ -37,23 +30,20 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -61,32 +51,29 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
-import com.example.omnigo.features.customer.ride.presentation.ui.components.CustomerActiveTripContent
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideActiveTripSheet
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideFloatingHeader
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapCanvas
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapPinPicker
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RidePlaceSearchOverlay
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSearchingRadarDialog
-import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSurgeBanner
-import com.example.omnigo.features.customer.ride.presentation.ui.components.RideVehicleTypeSelector
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideTripReceiptDialog
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideVehicleSelectionSheet
 import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideBookingEvent
 import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideBookingViewModel
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.OutlineLight
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.TextPrimary
-import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
 import com.example.omnigo.utils.semiBold
-import java.text.DecimalFormat
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RideBookingScreen(
     onBackClick: () -> Unit,
@@ -170,7 +157,7 @@ fun RideBookingScreen(
         }
     }
 
-    // 1. Interactive Center-Pin Map Mode
+    // 1. Center-Pin Map Mode
     if (uiState.isMapPinPicking) {
         val target = uiState.pinPickingTarget ?: LocationTarget.PICKUP
         val initialPoint = uiState.pinPickedLocation
@@ -185,75 +172,87 @@ fun RideBookingScreen(
         return
     }
 
-    // 2. Active Trip Progress View
-    if (uiState.isTripActive) {
-        Scaffold(
-            modifier = modifier.fillMaxSize(),
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(id = R.string.ride_active_trip_title),
-                            style = MaterialTheme.typography.s18.bold(),
-                            color = TextPrimary
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = TextPrimary)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
-            }
-        ) { innerPadding ->
-            CustomerActiveTripContent(
-                uiState = uiState,
-                onCancelTrip = viewModel::cancelBooking,
-                onDismissCompleted = viewModel::dismissCompletedTrip,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
-                    .verticalScroll(rememberScrollState())
-            )
-        }
-        return
-    }
-
-    // 3. Map-First Booking Canvas & Controls
+    // 2. Map-First Root Canvas & Layer Controls
     Box(modifier = modifier.fillMaxSize()) {
-        // Layer 0: Map-First Canvas
+        // Layer 0: Full Screen Interactive Map Canvas
+        val isTripFinished = uiState.showTripCompletedReceipt || uiState.currentBooking?.status == BookingStatus.COMPLETED
+        val activeRoute = when {
+            isTripFinished -> emptyList()
+            uiState.isTripActive -> uiState.activeTripRouteCoordinates.ifEmpty { uiState.routeCoordinates }
+            else -> uiState.routeCoordinates
+        }
+
+        val coroutineScope = rememberCoroutineScope()
+        val initialLat = uiState.pickupLocation?.latitude ?: 21.0285
+        val initialLng = uiState.pickupLocation?.longitude ?: 105.8542
+        val cameraPositionState = com.google.maps.android.compose.rememberCameraPositionState {
+            position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(com.google.android.gms.maps.model.LatLng(initialLat, initialLng), 15f)
+        }
+
         RideMapCanvas(
             pickupLocation = uiState.pickupLocation,
             dropoffLocation = uiState.dropoffLocation,
             nearbyDrivers = uiState.nearbyDrivers,
             selectedVehicleType = uiState.selectedVehicleType,
-            routeCoordinates = uiState.routeCoordinates,
+            routeCoordinates = activeRoute,
+            driverLiveLocation = uiState.driverLiveLocation,
+            tripStatus = uiState.currentBooking?.status,
+            cameraPositionState = cameraPositionState,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Layer 1: Floating Trip Header (Pickup & Dropoff)
-        RideFloatingHeader(
-            pickupLocation = uiState.pickupLocation,
-            dropoffLocation = uiState.dropoffLocation,
-            isLocatingPickup = uiState.isLocatingCurrentPosition,
-            onPickupClick = { viewModel.openPlaceSearch(LocationTarget.PICKUP) },
-            onDropoffClick = { viewModel.openPlaceSearch(LocationTarget.DROPOFF) },
-            onSwapClick = viewModel::swapLocations,
-            onBackClick = onBackClick,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
+        // Layer 1: Floating Header or In-trip Back button
+        if (!uiState.isTripActive) {
+            RideFloatingHeader(
+                pickupLocation = uiState.pickupLocation,
+                dropoffLocation = uiState.dropoffLocation,
+                isLocatingPickup = uiState.isLocatingCurrentPosition,
+                onPickupClick = { viewModel.openPlaceSearch(LocationTarget.PICKUP) },
+                onDropoffClick = { viewModel.openPlaceSearch(LocationTarget.DROPOFF) },
+                onSwapClick = viewModel::swapLocations,
+                onBackClick = onBackClick,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        } else {
+            // Minimal back button when in-trip
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = Dimen.PaddingS,
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(start = Dimen.PaddingM, top = Dimen.PaddingS)
+                    .size(Dimen.SizeXLPlus)
+                    .align(Alignment.TopStart)
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = TextPrimary
+                    )
+                }
+            }
+        }
 
         // Layer 2: Floating MyLocation FAB
-        val fabBottomPadding = if (uiState.isDualLocationReady) {
+        val fabBottomPadding = if (uiState.isTripActive || uiState.isDualLocationReady) {
             Dimen.HeightRideBottomSheetOffset
         } else {
             Dimen.PaddingXL
         }
 
         FloatingActionButton(
-            onClick = viewModel::autoDetectPickupLocation,
+            onClick = {
+                if (uiState.isTripActive) {
+                    coroutineScope.launch {
+                        com.example.omnigo.features.customer.ride.presentation.ui.components.recenterMapCamera(
+                            cameraPositionState, uiState.driverLiveLocation, uiState.pickupLocation, uiState.dropoffLocation,
+                            uiState.currentBooking?.status == BookingStatus.IN_PROGRESS
+                        )
+                    }
+                } else viewModel.autoDetectPickupLocation()
+            },
             shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = PrimaryColor,
@@ -269,23 +268,51 @@ fun RideBookingScreen(
             }
         }
 
-        // Layer 3: Minimal & Clean Bottom Sheet (Only visible when pickup & dropoff are selected)
+        // Layer 3: Modern Xanh SM Vehicle Selection Bottom Sheet (Before Booking)
         AnimatedVisibility(
-            visible = uiState.isDualLocationReady,
+            visible = !uiState.isTripActive && !isTripFinished && uiState.isDualLocationReady && !uiState.isSearchingDriver,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         ) {
-            com.example.omnigo.features.customer.ride.presentation.ui.components.RideBookingBottomSheet(
-                uiState = uiState,
-                onSelectVehicleType = viewModel::selectVehicleType,
-                onCreateBooking = viewModel::createBooking
+            RideVehicleSelectionSheet(
+                selectedType = uiState.selectedVehicleType,
+                estimates = uiState.vehicleEstimates,
+                isCalculating = uiState.isCalculatingPrice,
+                onSelectVehicle = viewModel::selectVehicleType,
+                onConfirmBooking = viewModel::createBooking,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
-        // Layer 4: Autocomplete Place Search Fullscreen Overlay (no map teardown, no black flicker)
+        // Layer 4: Modern Xanh SM Active Trip Sheet (In-Trip Tracking)
+        if (uiState.isTripActive && uiState.currentBooking != null) {
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            ) {
+                RideActiveTripSheet(
+                    booking = uiState.currentBooking!!,
+                    driver = uiState.assignedDriver,
+                    pickupLocation = uiState.pickupLocation,
+                    dropoffLocation = uiState.dropoffLocation,
+                    vehicleType = uiState.selectedVehicleType,
+                    liveDistanceKm = uiState.liveDistanceKm,
+                    liveEtaMinutes = uiState.liveEtaMinutes,
+                    isCancelling = uiState.isCancellingBooking,
+                    onCancelTrip = viewModel::cancelBooking,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Layer 5: Place Search Overlay
         AnimatedVisibility(
             visible = uiState.isSearchingPlaces,
             enter = fadeIn() + slideInVertically { it / 6 },
@@ -310,7 +337,7 @@ fun RideBookingScreen(
         }
     }
 
-    // 5. Radar & Timeout Dialogs
+    // 3. Radar Pulse Searching Dialog
     if (uiState.isSearchingDriver && !uiState.showSearchTimeoutDialog) {
         RideSearchingRadarDialog(
             countdownSeconds = uiState.searchCountdownSeconds,
@@ -319,6 +346,7 @@ fun RideBookingScreen(
         )
     }
 
+    // 4. Timeout Retry Dialog
     if (uiState.showSearchTimeoutDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissSearchTimeoutDialog() },
@@ -353,12 +381,14 @@ fun RideBookingScreen(
                     onClick = { viewModel.dismissSearchTimeoutDialog() },
                     shape = RoundedCornerShape(AppShape.ShapeM)
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.ride_search_timeout_btn_cancel),
-                        style = MaterialTheme.typography.s14.normal()
-                    )
+                    Text(text = stringResource(id = R.string.ride_search_timeout_btn_cancel), style = MaterialTheme.typography.s14.normal())
                 }
             }
         )
+    }
+
+    // 5. Trip Completed Receipt & 5-Star Rating Dialog
+    if (uiState.showTripCompletedReceipt && uiState.completedBooking != null) {
+        RideTripReceiptDialog(booking = uiState.completedBooking!!, onDismiss = viewModel::dismissCompletedTrip)
     }
 }

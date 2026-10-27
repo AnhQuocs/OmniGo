@@ -17,7 +17,8 @@ data class ActiveRideState(
     val liveEtaMinutes: Int? = null,
     val isSearchingDriver: Boolean = false,
     val isDriverProfileLoading: Boolean = false,
-    val statusMessage: String? = null
+    val statusMessage: String? = null,
+    val routeCoordinates: List<Pair<Double, Double>> = emptyList()
 ) {
     val isTripActive: Boolean
         get() = status == BookingStatus.ACCEPTED ||

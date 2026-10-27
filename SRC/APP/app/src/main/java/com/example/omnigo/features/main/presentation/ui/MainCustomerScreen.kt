@@ -47,6 +47,20 @@ fun MainCustomerScreen(
 
     val visibilityState = remember { BottomNavVisibilityState() }
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val hasActiveTrip = homeUiState.activeRideState?.let { it.isTripActive || it.isPending } == true
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                homeViewModel.onResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: BottomNavDestination.Home.route
@@ -126,7 +140,8 @@ fun MainCustomerScreen(
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    hasActiveTrip = hasActiveTrip
                 )
             }
 

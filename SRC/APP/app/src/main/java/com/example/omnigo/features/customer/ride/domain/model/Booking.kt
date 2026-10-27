@@ -13,5 +13,8 @@ data class Booking(
     val status: BookingStatus = BookingStatus.PENDING,
     val distanceInKm: Double = 0.0,
     val price: Double = 0.0,
-    val paymentMethod: String? = null
+    val paymentMethod: String? = null,
+    val pickupAddress: String = "",
+    val dropoffAddress: String = "",
+    val vehicleType: String? = null
 )

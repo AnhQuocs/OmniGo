@@ -1,10 +1,5 @@
 package com.example.omnigo.features.customer.ride.presentation.ui
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,336 +9,241 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
 import com.example.omnigo.R
+import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
-import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
-import com.example.omnigo.features.customer.ride.presentation.ui.components.RideLiveTrackingCard
+import com.example.omnigo.features.customer.ride.domain.model.Booking
+import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideActiveTripSheet
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapCanvas
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.BackgroundLight
-import com.example.omnigo.ui.theme.ErrorColor
 import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
-import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
-import com.example.omnigo.utils.s18
 import com.example.omnigo.utils.semiBold
-import java.text.DecimalFormat
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripMapScreen(
     activeRideState: ActiveRideState?,
     onBackClick: () -> Unit,
+    onCancelTrip: () -> Unit = {},
+    isCancelling: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = BackgroundLight,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = if (activeRideState != null && activeRideState.bookingId > 0) {
-                            stringResource(id = R.string.trip_map_trip_id_format, activeRideState.bookingId)
-                        } else {
-                            stringResource(id = R.string.trip_map_title)
-                        },
-                        style = MaterialTheme.typography.s18.bold(),
-                        color = TextPrimary
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight
-                )
-            )
-        }
-    ) { innerPadding ->
-        if (activeRideState == null || activeRideState.isFinished) {
-            TripMapEmptyState(
-                onBackClick = onBackClick,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            )
-        } else {
-            TripMapContent(
-                activeRideState = activeRideState,
-                onCallDriver = { phone ->
-                    launchDialer(context, phone)
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            )
-        }
+    if (activeRideState == null || activeRideState.isFinished) {
+        TripMapEmptyState(
+            onBackClick = onBackClick,
+            modifier = modifier.fillMaxSize()
+        )
+    } else {
+        TripMapContent(
+            activeRideState = activeRideState,
+            onBackClick = onBackClick,
+            onCancelTrip = onCancelTrip,
+            isCancelling = isCancelling,
+            modifier = modifier.fillMaxSize()
+        )
     }
 }
 
 @Composable
 private fun TripMapContent(
     activeRideState: ActiveRideState,
-    onCallDriver: (String) -> Unit,
+    onBackClick: () -> Unit,
+    onCancelTrip: () -> Unit,
+    isCancelling: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val targetLat = if (activeRideState.status == BookingStatus.IN_PROGRESS) {
-        activeRideState.endLatitude
-    } else {
-        activeRideState.startLatitude
-    }
-
-    val targetLng = if (activeRideState.status == BookingStatus.IN_PROGRESS) {
-        activeRideState.endLongitude
-    } else {
-        activeRideState.startLongitude
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingS)
+    val pickupLocation = remember(
+        activeRideState.startLatitude,
+        activeRideState.startLongitude,
+        activeRideState.pickupAddress
     ) {
-        // Live GPS Telemetry Card
-        RideLiveTrackingCard(
+        if (activeRideState.startLatitude != 0.0 && activeRideState.startLongitude != 0.0) {
+            LocationPoint(
+                name = activeRideState.pickupAddress.ifBlank { "Điểm đón" },
+                address = activeRideState.pickupAddress,
+                latitude = activeRideState.startLatitude,
+                longitude = activeRideState.startLongitude
+            )
+        } else null
+    }
+
+    val dropoffLocation = remember(
+        activeRideState.endLatitude,
+        activeRideState.endLongitude,
+        activeRideState.dropoffAddress
+    ) {
+        if (activeRideState.endLatitude != 0.0 && activeRideState.endLongitude != 0.0) {
+            LocationPoint(
+                name = activeRideState.dropoffAddress.ifBlank { "Điểm đến" },
+                address = activeRideState.dropoffAddress,
+                latitude = activeRideState.endLatitude,
+                longitude = activeRideState.endLongitude
+            )
+        } else null
+    }
+
+    val vehicleType = remember(activeRideState.driverProfile?.vehicleType) {
+        when (activeRideState.driverProfile?.vehicleType?.uppercase()) {
+            "CAR_4_SEAT" -> VehicleType.CAR_4_SEAT
+            "CAR_7_SEAT" -> VehicleType.CAR_7_SEAT
+            else -> VehicleType.BIKE
+        }
+    }
+
+    val booking = remember(activeRideState) {
+        Booking(
+            bookingId = activeRideState.bookingId,
             status = activeRideState.status,
-            driverLocation = activeRideState.driverLiveLocation,
-            targetLatitude = targetLat,
-            targetLongitude = targetLng,
-            distanceKm = activeRideState.liveDistanceKm,
-            etaMinutes = activeRideState.liveEtaMinutes
+            price = activeRideState.price,
+            paymentMethod = activeRideState.paymentMethod,
+            startLatitude = activeRideState.startLatitude,
+            startLongitude = activeRideState.startLongitude,
+            endLatitude = activeRideState.endLatitude,
+            endLongitude = activeRideState.endLongitude,
+            pickupAddress = activeRideState.pickupAddress,
+            dropoffAddress = activeRideState.dropoffAddress
+        )
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        val initialLat = pickupLocation?.latitude ?: 10.776889
+        val initialLng = pickupLocation?.longitude ?: 106.700806
+        val cameraPositionState = rememberCameraPositionState {
+            position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLng), 15f)
+        }
+        val coroutineScope = rememberCoroutineScope()
+
+        // Layer 0: Full Screen Realtime Map
+        RideMapCanvas(
+            pickupLocation = pickupLocation,
+            dropoffLocation = dropoffLocation,
+            nearbyDrivers = emptyList(),
+            selectedVehicleType = vehicleType,
+            routeCoordinates = activeRideState.routeCoordinates,
+            driverLiveLocation = activeRideState.driverLiveLocation,
+            tripStatus = activeRideState.status,
+            cameraPositionState = cameraPositionState,
+            modifier = Modifier.fillMaxSize()
         )
 
-        Spacer(modifier = Modifier.height(AppSpacing.M))
-
-        // Driver Profile Card
-        if (activeRideState.driverProfile != null) {
-            TripMapDriverCard(
-                activeRideState = activeRideState,
-                onCallDriver = onCallDriver
-            )
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-        }
-
-        // Route & Fare Card
-        TripMapRouteCard(activeRideState = activeRideState)
-
-        Spacer(modifier = Modifier.height(AppSpacing.XL))
-    }
-}
-
-@Composable
-private fun TripMapDriverCard(
-    activeRideState: ActiveRideState,
-    onCallDriver: (String) -> Unit
-) {
-    val driver = activeRideState.driverProfile ?: return
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
-        color = SurfaceLight
-    ) {
+        // Layer 1: Floating Header Bar (Back button + Trip badge)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingM),
+                .statusBarsPadding()
+                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(Dimen.SizeXXL)
-                    .clip(CircleShape)
-                    .background(PrimaryColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = Dimen.PaddingS,
+                modifier = Modifier.size(Dimen.SizeXLPlus)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = PrimaryColor,
-                    modifier = Modifier.size(Dimen.SizeL)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(AppSpacing.M))
-
-            Column(modifier = Modifier.weight(1f)) {
-                val driverName = driver.driverName ?: stringResource(id = R.string.ride_driver_name_fallback)
-                Text(
-                    text = driverName,
-                    style = MaterialTheme.typography.s16.bold(),
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                val model = driver.vehicleModel ?: ""
-                val plate = driver.vehiclePlate ?: stringResource(id = R.string.ride_vehicle_plate_fallback)
-                val vehicleDesc = if (model.isNotBlank()) "$model • $plate" else plate
-                Text(
-                    text = vehicleDesc,
-                    style = MaterialTheme.typography.s14.medium(),
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            val phone = driver.driverPhone
-            if (!phone.isNullOrBlank()) {
-                IconButton(
-                    onClick = { onCallDriver(phone) },
-                    modifier = Modifier
-                        .size(Dimen.SizeXLPlus)
-                        .clip(CircleShape)
-                        .background(PrimaryColor)
-                ) {
+                IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = stringResource(id = R.string.active_trip_sheet_call_driver),
-                        tint = BackgroundLight,
-                        modifier = Modifier.size(Dimen.SizeSM)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TripMapRouteCard(activeRideState: ActiveRideState) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
-        color = SurfaceLight
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimen.PaddingM)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Place,
-                    contentDescription = null,
-                    tint = PrimaryColor,
-                    modifier = Modifier.size(Dimen.SizeSM)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.S))
-                Column {
-                    Text(
-                        text = stringResource(id = R.string.active_trip_sheet_pickup_label),
-                        style = MaterialTheme.typography.s12.medium(),
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = activeRideState.pickupAddress.ifBlank { "—" },
-                        style = MaterialTheme.typography.s14.semiBold(),
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = TextPrimary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(AppSpacing.M))
+            Spacer(modifier = Modifier.width(AppSpacing.S))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.NearMe,
-                    contentDescription = null,
-                    tint = ErrorColor,
-                    modifier = Modifier.size(Dimen.SizeSM)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.S))
-                Column {
-                    Text(
-                        text = stringResource(id = R.string.active_trip_sheet_dropoff_label),
-                        style = MaterialTheme.typography.s12.medium(),
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = activeRideState.dropoffAddress.ifBlank { "—" },
-                        style = MaterialTheme.typography.s14.semiBold(),
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            val formatter = DecimalFormat("#,###")
-            val priceStr = "${formatter.format(activeRideState.price)} đ"
-            val paymentMethodText = if (activeRideState.paymentMethod == "CASH") {
-                stringResource(id = R.string.active_trip_sheet_payment_cash)
-            } else {
-                stringResource(id = R.string.active_trip_sheet_payment_app)
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                shape = RoundedCornerShape(AppShape.PillShape),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = Dimen.PaddingS
             ) {
                 Text(
-                    text = "${stringResource(id = R.string.active_trip_sheet_fare_label)}: $priceStr",
+                    text = if (activeRideState.bookingId > 0) {
+                        stringResource(id = R.string.trip_map_trip_id_format, activeRideState.bookingId)
+                    } else {
+                        stringResource(id = R.string.trip_map_title)
+                    },
                     style = MaterialTheme.typography.s14.bold(),
-                    color = TextPrimary
-                )
-                Text(
-                    text = paymentMethodText,
-                    style = MaterialTheme.typography.s12.medium(),
-                    color = TextSecondary
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS)
                 )
             }
         }
+
+        // Layer 2: Floating Re-center FAB
+        FloatingActionButton(
+            onClick = {
+                coroutineScope.launch {
+                    com.example.omnigo.features.customer.ride.presentation.ui.components.recenterMapCamera(
+                        cameraPositionState = cameraPositionState,
+                        driverLocation = activeRideState.driverLiveLocation,
+                        pickupLocation = pickupLocation,
+                        dropoffLocation = dropoffLocation,
+                        isInProgress = activeRideState.status == com.example.omnigo.features.customer.ride.domain.model.BookingStatus.IN_PROGRESS
+                    )
+                }
+            },
+            shape = CircleShape,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = PrimaryColor,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = Dimen.PaddingM, bottom = Dimen.HeightRideBottomSheetOffset)
+                .shadow(Dimen.PaddingS, CircleShape)
+        ) {
+            Icon(imageVector = Icons.Default.MyLocation, contentDescription = null)
+        }
+
+        // Layer 3: In-Trip Bottom Tracking Sheet
+        RideActiveTripSheet(
+            booking = booking,
+            driver = activeRideState.driverProfile,
+            pickupLocation = pickupLocation,
+            dropoffLocation = dropoffLocation,
+            vehicleType = vehicleType,
+            liveDistanceKm = activeRideState.liveDistanceKm,
+            liveEtaMinutes = activeRideState.liveEtaMinutes,
+            isCancelling = isCancelling,
+            onCancelTrip = onCancelTrip,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        )
     }
 }
 
@@ -357,7 +257,7 @@ private fun TripMapEmptyState(
             .fillMaxSize()
             .padding(Dimen.PaddingXL),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
     ) {
         Text(
             text = stringResource(id = R.string.trip_map_no_active_trip),
@@ -375,15 +275,5 @@ private fun TripMapEmptyState(
                 style = MaterialTheme.typography.s14.semiBold()
             )
         }
-    }
-}
-
-private fun launchDialer(context: Context, phone: String) {
-    try {
-        val intent = Intent(Intent.ACTION_DIAL).apply {
-            data = Uri.parse("tel:$phone")
-        }
-        context.startActivity(intent)
-    } catch (_: Exception) {
     }
 }

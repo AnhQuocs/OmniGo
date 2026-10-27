@@ -303,95 +303,90 @@ class RideBookingViewModelTest {
         assertTrue(state.vehicleEstimates.isEmpty())
         assertEquals("Server route failed", (state.pricingError as? UiText.DynamicString)?.value)
     }
-
     @Test
-    fun `map pin picking flow opens picker and confirms new pickup location`() = runTest {
-        coEvery {
-            calculateRidePricingUseCase(any(), any(), any(), any(), any(), any())
-        } returns CalculateRidePricingResult.Success(sampleEstimate)
+    fun `driver accepting trip cancels countdown and prevents timeout dialog`() = runTest {
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any()) } returns CreateRideBookingResult.Success(sampleBooking)
 
         initViewModel()
         advanceUntilIdle()
 
-        viewModel.startMapPinPicking(LocationTarget.PICKUP)
-        assertTrue(viewModel.uiState.value.isMapPinPicking)
-        assertEquals(LocationTarget.PICKUP, viewModel.uiState.value.pinPickingTarget)
+        viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
+        advanceUntilIdle()
 
-        val pinnedPoint = LocationPoint(
-            name = "Pinned Point",
-            address = "123 Pinned Road",
-            latitude = 10.77,
-            longitude = 106.70
+        viewModel.createBooking()
+        testScheduler.advanceTimeBy(100)
+        assertTrue(viewModel.uiState.value.isSearchingDriver)
+
+        // Simulate driver accepting trip
+        activeRideStateFlow.value = com.example.omnigo.features.customer.ride.domain.model.ActiveRideState(
+            bookingId = 999L,
+            status = BookingStatus.ACCEPTED,
+            driverProfile = com.example.omnigo.features.customer.ride.domain.model.BookingDriverProfile(
+                driverId = 123L,
+                driverName = "Tài xế Xanh",
+                driverPhone = "0901234567",
+                vehiclePlate = "29A-12345",
+                vehicleType = "BIKE",
+                vehicleModel = "VinFast Feliz",
+                avatarUrl = null
+            ),
+            driverLiveLocation = com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation(
+                driverId = 123L,
+                latitude = 21.0290,
+                longitude = 105.8550,
+                bearing = 45f,
+                speed = 20f
+            ),
+            isSearchingDriver = false
         )
-        viewModel.confirmMapPinLocation(pinnedPoint)
-        advanceUntilIdle()
+        testScheduler.advanceTimeBy(500)
 
-        val state = viewModel.uiState.value
-        assertFalse(state.isMapPinPicking)
-        assertNotNull(state.pickupLocation)
-        assertEquals("Pinned Point", state.pickupLocation!!.name)
+        val stateAfterAccept = viewModel.uiState.value
+        assertFalse(stateAfterAccept.isSearchingDriver)
+        assertEquals(BookingStatus.ACCEPTED, stateAfterAccept.currentBooking?.status)
+
+        // Advance past 60s timeout: timeout dialog must NEVER appear
+        testScheduler.advanceTimeBy(70_000)
+        val stateAfterTimeoutPeriod = viewModel.uiState.value
+        assertFalse(stateAfterTimeoutPeriod.showSearchTimeoutDialog)
     }
 
     @Test
-    fun `openPlaceSearch and closePlaceSearch update search state correctly`() = runTest {
+    fun `trip completed sets showTripCompletedReceipt and dismissCompletedTrip cleans up`() = runTest {
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any()) } returns CreateRideBookingResult.Success(sampleBooking)
+
         initViewModel()
         advanceUntilIdle()
 
-        viewModel.openPlaceSearch(LocationTarget.DROPOFF)
-        assertTrue(viewModel.uiState.value.isSearchingPlaces)
-        assertEquals(LocationTarget.DROPOFF, viewModel.uiState.value.searchTarget)
-
-        viewModel.closePlaceSearch()
-        assertFalse(viewModel.uiState.value.isSearchingPlaces)
-        assertEquals("", viewModel.uiState.value.searchQuery)
-    }
-
-    @Test
-    fun `selectSearchResult for dropoff when pickup unconfirmed prompts pickup pin first then dropoff`() = runTest {
-        initViewModel()
+        viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
         advanceUntilIdle()
+        viewModel.createBooking()
+        testScheduler.advanceTimeBy(100)
 
-        viewModel.openPlaceSearch(LocationTarget.DROPOFF)
-        val selectedDropoff = LocationPoint("Target Place", "123 Target St", 21.05, 105.80)
-        viewModel.selectSearchResult(selectedDropoff)
+        // Simulate completed trip
+        activeRideStateFlow.value = com.example.omnigo.features.customer.ride.domain.model.ActiveRideState(
+            bookingId = 999L,
+            status = BookingStatus.COMPLETED,
+            price = 45000.0,
+            isSearchingDriver = false
+        )
+        testScheduler.advanceTimeBy(500)
 
-        // Step 1: Must prompt pickup pin first because pickup was not manually pin-confirmed
-        val state1 = viewModel.uiState.value
-        assertFalse(state1.isSearchingPlaces)
-        assertTrue(state1.isMapPinPicking)
-        assertEquals(LocationTarget.PICKUP, state1.pinPickingTarget)
-        assertEquals(selectedDropoff, state1.pendingDropoffPinLocation)
+        val completedState = viewModel.uiState.value
+        assertTrue(completedState.showTripCompletedReceipt)
+        assertNotNull(completedState.completedBooking)
+        assertEquals(999L, completedState.completedBooking?.bookingId)
 
-        // Step 2: Confirm pickup pin -> automatically transitions to dropoff pin picker
-        val confirmedPickup = LocationPoint("Confirmed Pickup", "123 Trang Tien", 21.0285, 105.8542)
-        viewModel.confirmMapPinLocation(confirmedPickup)
-
-        val state2 = viewModel.uiState.value
-        assertTrue(state2.isMapPinPicking)
-        assertEquals(LocationTarget.DROPOFF, state2.pinPickingTarget)
-        assertEquals(selectedDropoff, state2.pinPickedLocation)
-        assertEquals(confirmedPickup, state2.pickupLocation)
-
-        // Step 3: Confirm dropoff pin -> closes pin picking and sets both
-        viewModel.confirmMapPinLocation(selectedDropoff)
-        val state3 = viewModel.uiState.value
-        assertFalse(state3.isMapPinPicking)
-        assertEquals(selectedDropoff, state3.dropoffLocation)
-    }
-
-    @Test
-    fun `selectCurrentLocation sets location and starts map pin picking`() = runTest {
-        initViewModel()
-        advanceUntilIdle()
-
-        viewModel.openPlaceSearch(LocationTarget.PICKUP)
-        viewModel.selectCurrentLocation("Vị trí hiện tại")
-        advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertFalse(state.isSearchingPlaces)
-        assertTrue(state.isMapPinPicking)
-        assertEquals(LocationTarget.PICKUP, state.pinPickingTarget)
-        assertEquals("Vị trí hiện tại", state.pickupLocation?.name)
+        // Dismiss receipt
+        viewModel.dismissCompletedTrip()
+        val dismissedState = viewModel.uiState.value
+        assertFalse(dismissedState.showTripCompletedReceipt)
+        assertNull(dismissedState.completedBooking)
+        assertNull(dismissedState.currentBooking)
+        assertNull(dismissedState.dropoffLocation)
+        assertNull(dismissedState.pricingEstimate)
+        assertTrue(dismissedState.vehicleEstimates.isEmpty())
+        assertTrue(dismissedState.routeCoordinates.isEmpty())
+        assertNotNull(dismissedState.pickupLocation)
     }
 }

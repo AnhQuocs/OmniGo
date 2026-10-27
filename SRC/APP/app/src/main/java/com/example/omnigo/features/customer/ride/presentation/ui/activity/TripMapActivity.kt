@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.example.omnigo.BaseComponentActivity
@@ -20,6 +22,9 @@ class TripMapActivity : BaseComponentActivity() {
     @Inject
     lateinit var rideTrackingSessionManager: RideTrackingSessionManager
 
+    @Inject
+    lateinit var cancelRideBookingUseCase: com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
@@ -30,7 +35,7 @@ class TripMapActivity : BaseComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val bookingId = intent.getLongExtra(EXTRA_BOOKING_ID, -1L)
-        if (bookingId > 0L && rideTrackingSessionManager.activeRideState.value == null) {
+        if (bookingId > 0L && (rideTrackingSessionManager.activeRideState.value == null || rideTrackingSessionManager.activeRideState.value?.bookingId != bookingId)) {
             lifecycleScope.launch {
                 rideTrackingSessionManager.restoreSessionIfAvailable()
             }
@@ -38,10 +43,24 @@ class TripMapActivity : BaseComponentActivity() {
 
         setOmniGoContent {
             val activeRideState = rideTrackingSessionManager.activeRideState.collectAsStateWithLifecycle().value
+            var isCancelling by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
             TripMapScreen(
                 activeRideState = activeRideState,
-                onBackClick = { finish() }
+                onBackClick = { finish() },
+                isCancelling = isCancelling,
+                onCancelTrip = {
+                    val currentId = activeRideState?.bookingId ?: bookingId
+                    if (currentId > 0L) {
+                        isCancelling = true
+                        lifecycleScope.launch {
+                            cancelRideBookingUseCase(currentId)
+                            rideTrackingSessionManager.clearSession()
+                            isCancelling = false
+                            finish()
+                        }
+                    }
+                }
             )
         }
     }
@@ -50,7 +69,7 @@ class TripMapActivity : BaseComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         val bookingId = intent.getLongExtra(EXTRA_BOOKING_ID, -1L)
-        if (bookingId > 0L && rideTrackingSessionManager.activeRideState.value == null) {
+        if (bookingId > 0L && (rideTrackingSessionManager.activeRideState.value == null || rideTrackingSessionManager.activeRideState.value?.bookingId != bookingId)) {
             lifecycleScope.launch {
                 rideTrackingSessionManager.restoreSessionIfAvailable()
             }

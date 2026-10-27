@@ -83,7 +83,10 @@ data class RideBookingUiState(
     val searchQuery: String = "",
     val searchResults: List<LocationPoint> = emptyList(),
     val isSearchingPlacesLoading: Boolean = false,
-    val routeCoordinates: List<Pair<Double, Double>> = emptyList()
+    val routeCoordinates: List<Pair<Double, Double>> = emptyList(),
+    val showTripCompletedReceipt: Boolean = false,
+    val completedBooking: Booking? = null,
+    val activeTripRouteCoordinates: List<Pair<Double, Double>> = emptyList()
 ) {
     val isDualLocationReady: Boolean
         get() = pickupLocation != null && dropoffLocation != null

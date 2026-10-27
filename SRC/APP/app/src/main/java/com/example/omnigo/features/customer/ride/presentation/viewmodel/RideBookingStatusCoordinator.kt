@@ -22,7 +22,8 @@ class RideBookingStatusCoordinator @Inject constructor(
     private val observeRideBookingStatusUseCase: ObserveRideBookingStatusUseCase,
     private val getBookingDriverUseCase: GetBookingDriverUseCase,
     private val observeDriverLiveLocationUseCase: ObserveDriverLiveLocationUseCase,
-    private val rideSessionManager: RideSessionManager
+    private val rideSessionManager: RideSessionManager,
+    private val activeTripRouteTracker: ActiveTripRouteTracker
 ) {
     private var statusJob: Job? = null
     private var locationJob: Job? = null
@@ -31,7 +32,8 @@ class RideBookingStatusCoordinator @Inject constructor(
         scope: CoroutineScope,
         bookingId: Long,
         updateState: ((RideBookingUiState) -> RideBookingUiState) -> Unit,
-        getState: () -> RideBookingUiState
+        getState: () -> RideBookingUiState,
+        onCancelCountdown: () -> Unit = {}
     ) {
         if (bookingId <= 0L) return
         statusJob?.cancel()
@@ -42,7 +44,7 @@ class RideBookingStatusCoordinator @Inject constructor(
 
         statusJob = scope.launch {
             observeRideBookingStatusUseCase(bookingId).collect { event ->
-                handleStatusEvent(scope, event, updateState, getState)
+                handleStatusEvent(scope, event, updateState, getState, onCancelCountdown)
             }
         }
     }
@@ -51,7 +53,8 @@ class RideBookingStatusCoordinator @Inject constructor(
         scope: CoroutineScope,
         event: RideStatusEvent,
         updateState: ((RideBookingUiState) -> RideBookingUiState) -> Unit,
-        getState: () -> RideBookingUiState
+        getState: () -> RideBookingUiState,
+        onCancelCountdown: () -> Unit = {}
     ) {
         val currentState = getState()
         val currentBookingId = currentState.currentBooking?.bookingId ?: event.bookingId
@@ -59,10 +62,12 @@ class RideBookingStatusCoordinator @Inject constructor(
 
         when (event.status) {
             BookingStatus.ACCEPTED -> {
+                onCancelCountdown()
                 val assignedDriverId = event.driverId ?: currentState.currentBooking?.driverId
                 updateState {
                     it.copy(
                         isSearchingDriver = false,
+                        showSearchTimeoutDialog = false,
                         currentBooking = it.currentBooking?.copy(
                             status = BookingStatus.ACCEPTED,
                             driverId = assignedDriverId ?: it.currentBooking.driverId
@@ -87,19 +92,25 @@ class RideBookingStatusCoordinator @Inject constructor(
                 updateState {
                     it.copy(
                         currentBooking = it.currentBooking?.copy(status = BookingStatus.IN_PROGRESS),
+                        activeTripRouteCoordinates = emptyList(),
                         tripStatusMessage = STATUS_IN_PROGRESS_MSG
                     )
                 }
             }
             BookingStatus.COMPLETED -> {
+                onCancelCountdown()
                 stopObservingDriverLocation(updateState)
                 updateState {
+                    val completed = it.currentBooking?.copy(
+                        status = BookingStatus.COMPLETED,
+                        price = event.price ?: it.currentBooking.price
+                    )
                     it.copy(
                         isSearchingDriver = false,
-                        currentBooking = it.currentBooking?.copy(
-                            status = BookingStatus.COMPLETED,
-                            price = event.price ?: it.currentBooking.price
-                        ),
+                        showSearchTimeoutDialog = false,
+                        currentBooking = completed,
+                        completedBooking = completed,
+                        showTripCompletedReceipt = true,
                         tripStatusMessage = STATUS_COMPLETED_MSG
                     )
                 }
@@ -108,10 +119,12 @@ class RideBookingStatusCoordinator @Inject constructor(
                 }
             }
             BookingStatus.CANCELLED -> {
+                onCancelCountdown()
                 stopObservingDriverLocation(updateState)
                 updateState {
                     it.copy(
                         isSearchingDriver = false,
+                        showSearchTimeoutDialog = false,
                         currentBooking = null,
                         assignedDriver = null,
                         infoMessage = UiText.StringResource(R.string.ride_booking_cancelled_success),
@@ -145,15 +158,16 @@ class RideBookingStatusCoordinator @Inject constructor(
             observeDriverLiveLocationUseCase(driverId).collect { liveLocation ->
                 val state = getState()
                 val booking = state.currentBooking
-                val targetLat = if (booking?.status == BookingStatus.IN_PROGRESS) {
-                    booking.endLatitude
+                val inProgress = booking?.status == BookingStatus.IN_PROGRESS
+                val targetLat = if (inProgress) {
+                    booking?.endLatitude?.takeIf { it != 0.0 } ?: state.dropoffLocation?.latitude
                 } else {
-                    booking?.startLatitude
+                    booking?.startLatitude?.takeIf { it != 0.0 } ?: state.pickupLocation?.latitude
                 }
-                val targetLng = if (booking?.status == BookingStatus.IN_PROGRESS) {
-                    booking.endLongitude
+                val targetLng = if (inProgress) {
+                    booking?.endLongitude?.takeIf { it != 0.0 } ?: state.dropoffLocation?.longitude
                 } else {
-                    booking?.startLongitude
+                    booking?.startLongitude?.takeIf { it != 0.0 } ?: state.pickupLocation?.longitude
                 }
 
                 val (distKm, etaMins) = if (targetLat != null && targetLng != null && targetLat != 0.0 && targetLng != 0.0) {
@@ -187,6 +201,24 @@ class RideBookingStatusCoordinator @Inject constructor(
                         liveEtaMinutes = etaMins
                     )
                 }
+
+                val phase = when (booking?.status) {
+                    BookingStatus.ACCEPTED, BookingStatus.ARRIVED -> TripRoutePhase.TO_PICKUP
+                    BookingStatus.IN_PROGRESS -> TripRoutePhase.TO_DROPOFF
+                    else -> null
+                }
+                if (phase != null && targetLat != null && targetLng != null && targetLat != 0.0 && targetLng != 0.0) {
+                    activeTripRouteTracker.onDriverLocation(
+                        scope = scope,
+                        driverLat = liveLocation.latitude,
+                        driverLng = liveLocation.longitude,
+                        phase = phase,
+                        targetLat = targetLat,
+                        targetLng = targetLng,
+                        vehicleType = state.selectedVehicleType.name,
+                        updateState = updateState
+                    )
+                }
             }
         }
     }
@@ -196,11 +228,13 @@ class RideBookingStatusCoordinator @Inject constructor(
     ) {
         locationJob?.cancel()
         locationJob = null
+        activeTripRouteTracker.reset()
         updateState?.invoke {
             it.copy(
                 driverLiveLocation = null,
                 liveDistanceKm = null,
-                liveEtaMinutes = null
+                liveEtaMinutes = null,
+                activeTripRouteCoordinates = emptyList()
             )
         }
     }
@@ -252,6 +286,7 @@ class RideBookingStatusCoordinator @Inject constructor(
         statusJob = null
         locationJob?.cancel()
         locationJob = null
+        activeTripRouteTracker.reset()
     }
 
     suspend fun clearSession() {

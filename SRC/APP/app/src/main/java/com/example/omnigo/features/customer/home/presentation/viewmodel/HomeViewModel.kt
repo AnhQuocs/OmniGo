@@ -84,6 +84,17 @@ class HomeViewModel @Inject constructor(
         fetchPopularPlaces()
         loadProvinces()
         observeActiveRideSession()
+        restoreActiveRideSession()
+    }
+
+    fun onResume() {
+        restoreActiveRideSession()
+    }
+
+    private fun restoreActiveRideSession() {
+        viewModelScope.launch {
+            rideTrackingSessionManager.restoreSessionIfAvailable()
+        }
     }
 
     private fun observeActiveRideSession() {
@@ -139,9 +150,7 @@ class HomeViewModel @Inject constructor(
         if (_uiState.value.userLocation == null) {
             detectLocation()
         }
-        viewModelScope.launch {
-            rideTrackingSessionManager.restoreSessionIfAvailable()
-        }
+        restoreActiveRideSession()
     }
 
     private fun fetchPopularPlaces() {

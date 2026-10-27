@@ -41,6 +41,8 @@ class RideTrackingSessionManagerTest {
     private lateinit var observeDriverLiveLocationUseCase: ObserveDriverLiveLocationUseCase
     private lateinit var getBookingDriverUseCase: GetBookingDriverUseCase
     private lateinit var getCustomerBookingsUseCase: GetCustomerBookingsUseCase
+    private lateinit var getNearbyDriversUseCase: com.example.omnigo.features.customer.ride.domain.usecase.GetNearbyDriversUseCase
+    private lateinit var osrmRoutingService: com.example.omnigo.core.location.tracker.OsrmRoutingService
     private lateinit var rideSessionManager: RideSessionManager
 
     private lateinit var sessionManager: RideTrackingSessionManager
@@ -76,20 +78,28 @@ class RideTrackingSessionManagerTest {
         observeDriverLiveLocationUseCase = mockk()
         getBookingDriverUseCase = mockk()
         getCustomerBookingsUseCase = mockk()
+        getNearbyDriversUseCase = mockk()
+        osrmRoutingService = mockk()
         rideSessionManager = mockk(relaxed = true)
 
         every { observeRideBookingStatusUseCase(any()) } returns statusFlow
         every { observeDriverLiveLocationUseCase(any()) } returns driverLocationFlow
         coEvery { getBookingDriverUseCase(any()) } returns GetBookingDriverResult.Success(sampleDriverProfile)
+        coEvery { getNearbyDriversUseCase(any(), any(), any()) } returns emptyList()
+        coEvery { osrmRoutingService.getRouteCoordinates(any(), any(), any(), any(), any()) } returns emptyList()
 
         sessionManager = RideTrackingSessionManager(
             observeRideBookingStatusUseCase = observeRideBookingStatusUseCase,
             observeDriverLiveLocationUseCase = observeDriverLiveLocationUseCase,
             getBookingDriverUseCase = getBookingDriverUseCase,
             getCustomerBookingsUseCase = getCustomerBookingsUseCase,
-            rideSessionManager = rideSessionManager,
-            scope = testScope
-        )
+            getNearbyDriversUseCase = getNearbyDriversUseCase,
+            osrmRoutingService = osrmRoutingService,
+            rideSessionManager = rideSessionManager
+        ).apply {
+            this.scope = testScope
+            this.pollingIntervalMs = 0L
+        }
     }
 
     @After
@@ -230,6 +240,61 @@ class RideTrackingSessionManagerTest {
     }
 
     @Test
+    fun `handleDriverLocation in ACCEPTED status fetches and updates route to pickup`() = testScope.runTest {
+        val expectedRoute = listOf(21.0290 to 105.8550, 21.0285 to 105.8542)
+        coEvery {
+            osrmRoutingService.getRouteCoordinates(
+                startLat = 21.0290,
+                startLng = 105.8550,
+                endLat = 21.0285,
+                endLng = 105.8542,
+                vehicleType = "BIKE"
+            )
+        } returns expectedRoute
+
+        sessionManager.startSession(sampleBooking)
+        sessionManager.handleStatusEvent(
+            RideStatusEvent(bookingId = 100L, status = BookingStatus.ACCEPTED, driverId = 77L)
+        )
+        advanceUntilIdle()
+
+        val location = DriverLiveLocation(
+            driverId = 77L,
+            latitude = 21.0290,
+            longitude = 105.8550,
+            speed = 30.0f,
+            bearing = 45.0f
+        )
+        sessionManager.handleDriverLocation(location)
+        advanceUntilIdle()
+
+        val state = sessionManager.activeRideState.value
+        assertEquals(expectedRoute, state?.routeCoordinates)
+        sessionManager.stopTrackingRealtime()
+    }
+
+    @Test
+    fun `subscribeDriverLocation falls back to getNearbyDrivers when websocket has no messages`() = testScope.runTest {
+        val expectedNearbyDriver = com.example.omnigo.features.customer.ride.domain.model.NearbyDriver(
+            driverId = 77L,
+            latitude = 21.0270,
+            longitude = 105.7740,
+            distanceInKm = 5.0,
+            vehicleType = com.example.omnigo.features.auth.domain.model.VehicleType.BIKE
+        )
+        coEvery { getNearbyDriversUseCase(any(), any(), any()) } returns listOf(expectedNearbyDriver)
+
+        sessionManager.startSession(sampleBooking.copy(status = BookingStatus.ACCEPTED, driverId = 77L))
+        advanceUntilIdle()
+
+        val state = sessionManager.activeRideState.value
+        assertNotNull(state?.driverLiveLocation)
+        assertEquals(77L, state?.driverLiveLocation?.driverId)
+        assertEquals(21.0270, state?.driverLiveLocation?.latitude ?: 0.0, 0.0001)
+        sessionManager.stopTrackingRealtime()
+    }
+
+    @Test
     fun `restoreSessionIfAvailable restores active session when saved booking exists in backend`() = testScope.runTest {
         every { rideSessionManager.activeBookingIdFlow } returns flowOf(100L)
         coEvery { getCustomerBookingsUseCase() } returns GetCustomerBookingsResult.Success(
@@ -262,6 +327,41 @@ class RideTrackingSessionManagerTest {
 
         assertNull(sessionManager.activeRideState.value)
         coVerify(atLeast = 1) { rideSessionManager.clearActiveBookingId() }
+        sessionManager.stopTrackingRealtime()
+    }
+
+    @Test
+    fun `restoreSessionIfAvailable restores active session when saved booking ID is null but backend has active trip`() = testScope.runTest {
+        every { rideSessionManager.activeBookingIdFlow } returns flowOf(null)
+        coEvery { getCustomerBookingsUseCase() } returns GetCustomerBookingsResult.Success(
+            listOf(
+                sampleBooking.copy(bookingId = 999L, status = BookingStatus.IN_PROGRESS, driverId = 77L)
+            )
+        )
+
+        sessionManager.restoreSessionIfAvailable()
+        advanceUntilIdle()
+
+        val state = sessionManager.activeRideState.value
+        assertNotNull(state)
+        assertEquals(999L, state?.bookingId)
+        assertEquals(BookingStatus.IN_PROGRESS, state?.status)
+        sessionManager.stopTrackingRealtime()
+    }
+
+    @Test
+    fun `restoreSessionIfAvailable clears session when saved booking is null and backend has only completed trips`() = testScope.runTest {
+        every { rideSessionManager.activeBookingIdFlow } returns flowOf(null)
+        coEvery { getCustomerBookingsUseCase() } returns GetCustomerBookingsResult.Success(
+            listOf(
+                sampleBooking.copy(bookingId = 555L, status = BookingStatus.COMPLETED)
+            )
+        )
+
+        sessionManager.restoreSessionIfAvailable()
+        advanceUntilIdle()
+
+        assertNull(sessionManager.activeRideState.value)
         sessionManager.stopTrackingRealtime()
     }
 

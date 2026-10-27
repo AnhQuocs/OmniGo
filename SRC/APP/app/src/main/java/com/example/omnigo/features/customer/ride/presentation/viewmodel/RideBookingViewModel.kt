@@ -77,19 +77,27 @@ class RideBookingViewModel @Inject constructor(
         viewModelScope.launch {
             rideTrackingSessionManager.activeRideState.collect { active ->
                 if (active != null) {
+                    if (active.status == BookingStatus.ACCEPTED || active.status == BookingStatus.COMPLETED) {
+                        cancelSearchCountdown()
+                    }
                     _uiState.update { curr ->
+                        val updatedBooking = curr.currentBooking?.copy(
+                            status = active.status,
+                            driverId = active.driverProfile?.driverId ?: curr.currentBooking?.driverId,
+                            price = if (active.price > 0.0) active.price else curr.currentBooking?.price ?: 0.0
+                        ) ?: if (active.bookingId > 0L) Booking(bookingId = active.bookingId, status = active.status, price = active.price, driverId = active.driverProfile?.driverId) else null
+                        val isDone = active.status == BookingStatus.COMPLETED
                         curr.copy(
-                            currentBooking = curr.currentBooking?.copy(
-                                status = active.status,
-                                driverId = active.driverProfile?.driverId ?: curr.currentBooking?.driverId,
-                                price = if (active.price > 0.0) active.price else curr.currentBooking?.price ?: 0.0
-                            ),
+                            currentBooking = updatedBooking,
+                            completedBooking = if (isDone) (updatedBooking ?: curr.completedBooking) else curr.completedBooking,
+                            showTripCompletedReceipt = if (isDone) true else curr.showTripCompletedReceipt,
                             assignedDriver = active.driverProfile ?: curr.assignedDriver,
                             driverLiveLocation = active.driverLiveLocation ?: curr.driverLiveLocation,
                             liveDistanceKm = active.liveDistanceKm ?: curr.liveDistanceKm,
                             liveEtaMinutes = active.liveEtaMinutes ?: curr.liveEtaMinutes,
                             isSearchingDriver = active.isSearchingDriver,
-                            tripStatusMessage = active.statusMessage ?: curr.tripStatusMessage
+                            tripStatusMessage = active.statusMessage ?: curr.tripStatusMessage,
+                            activeTripRouteCoordinates = if (active.routeCoordinates.isNotEmpty()) active.routeCoordinates else curr.activeTripRouteCoordinates
                         )
                     }
                 }
@@ -122,8 +130,7 @@ class RideBookingViewModel @Inject constructor(
 
     fun setPickupLocation(location: LocationPoint) {
         _uiState.update { it.copy(pickupLocation = location, isPickupPinConfirmed = true, errorMessage = null) }
-        loadNearbyDrivers(location.latitude, location.longitude)
-        recalculatePricingIfNeeded()
+        loadNearbyDrivers(location.latitude, location.longitude); recalculatePricingIfNeeded()
     }
 
     fun setDropoffLocation(location: LocationPoint) {
@@ -160,11 +167,13 @@ class RideBookingViewModel @Inject constructor(
     fun selectSearchResult(point: LocationPoint) {
         val target = _uiState.value.searchTarget
         ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
-        if (target == LocationTarget.DROPOFF && !_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) {
-            _uiState.update { it.copy(pendingDropoffPinLocation = point) }
-            startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation)
+        if (target == LocationTarget.DROPOFF) {
+            _uiState.update { it.copy(dropoffLocation = point, pendingDropoffPinLocation = null) }
+            if (!_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) {
+                startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation)
+            } else { recalculatePricingIfNeeded() }
         } else {
-            startMapPinPicking(target, point)
+            startMapPinPicking(LocationTarget.PICKUP, point)
         }
     }
 
@@ -180,11 +189,9 @@ class RideBookingViewModel @Inject constructor(
                     if (target == LocationTarget.PICKUP) {
                         _uiState.update { it.copy(pickupLocation = point, isPickupPinConfirmed = false) }
                         startMapPinPicking(LocationTarget.PICKUP, point)
-                    } else if (!_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) {
-                        _uiState.update { it.copy(pendingDropoffPinLocation = point) }
-                        startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation)
                     } else {
-                        startMapPinPicking(LocationTarget.DROPOFF, point)
+                        _uiState.update { it.copy(dropoffLocation = point, pendingDropoffPinLocation = null) }
+                        if (!_uiState.value.isPickupPinConfirmed && _uiState.value.pickupLocation != null) startMapPinPicking(LocationTarget.PICKUP, _uiState.value.pickupLocation) else recalculatePricingIfNeeded()
                     }
                 }
                 else -> _uiState.update { it.copy(isLocatingCurrentPosition = false, errorMessage = UiText.StringResource(R.string.ride_gps_required_msg)) }
@@ -193,22 +200,17 @@ class RideBookingViewModel @Inject constructor(
     }
 
     fun startMapPinPicking(target: LocationTarget, initialPoint: LocationPoint? = null) {
+        closePlaceSearch()
         _uiState.update { it.copy(isMapPinPicking = true, pinPickingTarget = target, pinPickedLocation = initialPoint) }
     }
 
     fun confirmMapPinLocation(point: LocationPoint) {
-        val target = _uiState.value.pinPickingTarget
-        if (target == LocationTarget.PICKUP) {
+        if (_uiState.value.pinPickingTarget == LocationTarget.PICKUP) {
             loadNearbyDrivers(point.latitude, point.longitude)
-            val pendingDropoff = _uiState.value.pendingDropoffPinLocation
-            if (pendingDropoff != null) {
-                _uiState.update { it.copy(pickupLocation = point, isPickupPinConfirmed = true, pendingDropoffPinLocation = null, pinPickingTarget = LocationTarget.DROPOFF, pinPickedLocation = pendingDropoff) }
-            } else {
-                val currentDropoff = _uiState.value.dropoffLocation
-                val info = if (currentDropoff == null) UiText.StringResource(R.string.ride_pickup_confirmed_hint) else null
-                _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, pickupLocation = point, isPickupPinConfirmed = true, infoMessage = info) }
-                if (currentDropoff == null) openPlaceSearch(LocationTarget.DROPOFF) else recalculatePricingIfNeeded()
-            }
+            val currentDropoff = _uiState.value.dropoffLocation
+            val info = if (currentDropoff == null) UiText.StringResource(R.string.ride_pickup_confirmed_hint) else null
+            _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, pickupLocation = point, isPickupPinConfirmed = true, pendingDropoffPinLocation = null, infoMessage = info) }
+            if (currentDropoff == null) openPlaceSearch(LocationTarget.DROPOFF) else recalculatePricingIfNeeded()
         } else {
             _uiState.update { it.copy(isMapPinPicking = false, pinPickingTarget = null, pinPickedLocation = null, dropoffLocation = point, pendingDropoffPinLocation = null) }
             recalculatePricingIfNeeded()
@@ -314,12 +316,12 @@ class RideBookingViewModel @Inject constructor(
                         _uiState.update { it.copy(isCreatingBooking = false, currentBooking = booking, isSearchingDriver = booking.status == BookingStatus.PENDING, searchCountdownSeconds = 60) }
                         _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
                         rideTrackingSessionManager.startSession(booking, pickup.name.ifBlank { pickup.address }, dropoff.name.ifBlank { dropoff.address })
-                        rideBookingStatusCoordinator.startObserving(viewModelScope, booking.bookingId, { _uiState.update(it) }, { _uiState.value })
+                        rideBookingStatusCoordinator.startObserving(viewModelScope, booking.bookingId, { _uiState.update(it) }, { _uiState.value }, { cancelSearchCountdown() })
                         if (booking.status == BookingStatus.PENDING) startSearchCountdown()
                     }
                 }
                 is CreateRideBookingResult.Error -> {
-                    val errorUi = result.message?.let { UiText.DynamicString(it) } ?: UiText.StringResource(R.string.ride_error_create_failed)
+                    val errorUi = result.message?.takeIf { it.isNotBlank() }?.let { UiText.DynamicString(it) } ?: UiText.StringResource(R.string.ride_error_create_failed)
                     _uiState.update { it.copy(isCreatingBooking = false, errorMessage = errorUi) }
                 }
             }
@@ -337,12 +339,14 @@ class RideBookingViewModel @Inject constructor(
         }
     }
 
+    fun cancelSearchCountdown() { countdownJob?.cancel(); _uiState.update { it.copy(showSearchTimeoutDialog = false) } }
+
     fun retrySearchDriver() {
         _uiState.update { it.copy(showSearchTimeoutDialog = false, isSearchingDriver = true, searchCountdownSeconds = 60) }
         startSearchCountdown()
     }
 
-    fun dismissSearchTimeoutDialog() { _uiState.update { it.copy(showSearchTimeoutDialog = false) }; cancelBooking() }
+    fun dismissSearchTimeoutDialog() { cancelSearchCountdown(); cancelBooking() }
 
     fun cancelBooking() {
         val booking = _uiState.value.currentBooking ?: run { resetBookingState(); return }
@@ -356,29 +360,29 @@ class RideBookingViewModel @Inject constructor(
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
                 }
                 is CancelRideBookingResult.Error -> {
-                    val errorUi = result.message?.let { UiText.DynamicString(it) }
-                        ?: UiText.StringResource(R.string.ride_error_cancel_failed)
+                    val errorUi = result.message?.takeIf { it.isNotBlank() }?.let { UiText.DynamicString(it) } ?: UiText.StringResource(R.string.ride_error_cancel_failed)
                     _uiState.update { it.copy(isCancellingBooking = false, errorMessage = errorUi) }
                 }
             }
         }
     }
 
-    fun dismissRadar() { countdownJob?.cancel(); _uiState.update { it.copy(isSearchingDriver = false) } }
-
-    fun dismissCompletedTrip() = resetBookingState()
+    fun dismissRadar() { cancelSearchCountdown(); _uiState.update { it.copy(isSearchingDriver = false) } }
+    fun dismissCompletedTrip() {
+        resetBookingState()
+        _uiState.update { it.copy(dropoffLocation = null, pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null, routeCoordinates = emptyList()) }
+        _uiState.value.pickupLocation?.let { loadNearbyDrivers(it.latitude, it.longitude) }
+    }
 
     private fun resetBookingState(infoMsg: UiText? = null) {
-        countdownJob?.cancel()
+        cancelSearchCountdown()
         rideBookingStatusCoordinator.stopObserving()
         viewModelScope.launch { rideBookingStatusCoordinator.clearSession() }
         rideTrackingSessionManager.clearSession()
         _uiState.update {
-            it.copy(
-                isCancellingBooking = false, isSearchingDriver = false, currentBooking = null, assignedDriver = null,
+            it.copy(isCancellingBooking = false, isSearchingDriver = false, currentBooking = null, assignedDriver = null,
                 tripStatusMessage = null, driverLiveLocation = null, liveDistanceKm = null, liveEtaMinutes = null,
-                infoMessage = infoMsg ?: it.infoMessage
-            )
+                showTripCompletedReceipt = false, completedBooking = null, activeTripRouteCoordinates = emptyList(), infoMessage = infoMsg ?: it.infoMessage)
         }
     }
 
@@ -386,9 +390,7 @@ class RideBookingViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        countdownJob?.cancel()
-        priceCalculationJob?.cancel()
-        rideBookingStatusCoordinator.stopObserving()
-        ridePlaceSearchCoordinator.cancel()
+        countdownJob?.cancel(); priceCalculationJob?.cancel()
+        rideBookingStatusCoordinator.stopObserving(); ridePlaceSearchCoordinator.cancel()
     }
 }

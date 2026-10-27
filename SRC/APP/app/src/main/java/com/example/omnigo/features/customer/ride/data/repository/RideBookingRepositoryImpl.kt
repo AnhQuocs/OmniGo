@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.data.repository
 
+import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.customer.ride.data.mapper.toDomain
 import com.example.omnigo.features.customer.ride.data.mapper.toRideOfferEvent
 import com.example.omnigo.features.customer.ride.data.mapper.toRideStatusEvent
@@ -16,6 +17,8 @@ import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
+import com.example.omnigo.features.auth.domain.model.VehicleType
+import com.example.omnigo.features.customer.ride.domain.model.NearbyDriver
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.customer.ride.domain.model.StartRideBookingResult
@@ -62,7 +65,7 @@ class RideBookingRepositoryImpl @Inject constructor(
         } catch (e: HttpException) {
             CreateRideBookingResult.Error(
                 error = RideError.SERVER_ERROR,
-                message = e.message()
+                message = e.toBackendMessage()
             )
         } catch (e: Exception) {
             CreateRideBookingResult.Error(
@@ -85,7 +88,7 @@ class RideBookingRepositoryImpl @Inject constructor(
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
             CancelRideBookingResult.Error(
                 error = error,
-                message = e.message()
+                message = e.toBackendMessage()
             )
         } catch (e: Exception) {
             CancelRideBookingResult.Error(
@@ -320,7 +323,7 @@ class RideBookingRepositoryImpl @Inject constructor(
         latitude: Double,
         longitude: Double,
         radius: Double
-    ): List<com.example.omnigo.features.customer.ride.domain.model.NearbyDriver> {
+    ): List<NearbyDriver> {
         return try {
             val response = rideBookingApi.getNearbyDrivers(
                 longitude = longitude,
@@ -328,7 +331,7 @@ class RideBookingRepositoryImpl @Inject constructor(
                 radius = radius
             )
             response.toDomain()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }

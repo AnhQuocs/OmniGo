@@ -33,7 +33,7 @@ import com.example.omnigo.features.customer.activity.presentation.ui.components.
 import com.example.omnigo.features.customer.activity.presentation.ui.components.ActivityTabsSection
 import com.example.omnigo.features.customer.activity.presentation.viewmodel.ActivityViewModel
 import com.example.omnigo.features.customer.ride.domain.model.Booking
-import com.example.omnigo.features.customer.ride.presentation.ui.activity.RideActivity
+import com.example.omnigo.features.customer.ride.presentation.ui.activity.TripMapActivity
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.PrimaryColor
 
@@ -105,9 +105,7 @@ fun ActivityScreen(
                         isHistory = isHistory,
                         onBookingClick = { booking: Booking ->
                             if (!isHistory) {
-                                val intent = Intent(context, RideActivity::class.java).apply {
-                                    putExtra("EXTRA_BOOKING_ID", booking.bookingId)
-                                }
+                                val intent = TripMapActivity.createIntent(context, booking.bookingId)
                                 context.startActivity(intent)
                             }
                         }

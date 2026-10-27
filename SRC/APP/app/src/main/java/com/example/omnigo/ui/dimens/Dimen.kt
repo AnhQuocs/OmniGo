@@ -32,6 +32,9 @@ object Dimen {
 
     val HeightDefault = 48.dp
 
+    val SizeVehicleMarkerWidth = 28.dp
+    val SizeVehicleMarkerHeight = 42.dp
+
     val ShimmerTextHeightXS = 8.dp
     val ShimmerTextHeightS = 10.dp
     val ShimmerTextHeightM = 14.dp

@@ -50,7 +50,8 @@ fun OmniBottomNavBar(
     currentRoute: String?,
     onNavigateToDestination: (BottomNavDestination) -> Unit,
     modifier: Modifier = Modifier,
-    promosCount: Int = 0
+    promosCount: Int = 0,
+    hasActiveTrip: Boolean = false
 ) {
 
     val pillShape = remember { RoundedCornerShape(AppShape.PillShape) }
@@ -116,6 +117,28 @@ fun OmniBottomNavBar(
                         textAlign = TextAlign.Center,
                         color = if (isSelected) PrimaryColor else inactiveColor
                     )
+                }
+
+                if (destination.route == BottomNavDestination.Activity.route && hasActiveTrip) {
+                    Box(
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = Dimen.SizeS)
+                            .align(Alignment.TopEnd)
+                            .background(
+                                color = PrimaryColor,
+                                shape = RoundedCornerShape(AppShape.PillShape)
+                            )
+                            .padding(horizontal = Dimen.PaddingXS, vertical = Dimen.PaddingXXS),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "1",
+                            style = MaterialTheme.typography.s10.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
 
                 if (destination.route == BottomNavDestination.Promos.route && promosCount > 0) {

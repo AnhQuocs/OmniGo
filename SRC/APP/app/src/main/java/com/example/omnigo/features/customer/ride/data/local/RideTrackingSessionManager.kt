@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.data.local
 
+import com.example.omnigo.core.location.tracker.OsrmRoutingService
 import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
@@ -9,18 +10,22 @@ import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBooking
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.customer.ride.domain.usecase.GetBookingDriverUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.GetCustomerBookingsUseCase
+import com.example.omnigo.features.customer.ride.domain.usecase.GetNearbyDriversUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.ObserveDriverLiveLocationUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.ObserveRideBookingStatusUseCase
+import com.example.omnigo.features.customer.ride.domain.util.BearingCalculator
 import com.example.omnigo.features.customer.ride.domain.util.LiveTrackingCalculator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,21 +36,29 @@ class RideTrackingSessionManager @Inject constructor(
     private val observeDriverLiveLocationUseCase: ObserveDriverLiveLocationUseCase,
     private val getBookingDriverUseCase: GetBookingDriverUseCase,
     private val getCustomerBookingsUseCase: GetCustomerBookingsUseCase,
-    private val rideSessionManager: RideSessionManager,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val getNearbyDriversUseCase: GetNearbyDriversUseCase,
+    private val osrmRoutingService: OsrmRoutingService,
+    private val rideSessionManager: RideSessionManager
 ) {
+    internal var scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    internal var pollingIntervalMs: Long = 4000L
 
     private val _activeRideState = MutableStateFlow<ActiveRideState?>(null)
     val activeRideState: StateFlow<ActiveRideState?> = _activeRideState.asStateFlow()
 
     private var statusJob: Job? = null
     private var locationJob: Job? = null
+    private var locationPollingJob: Job? = null
+    private var routeJob: Job? = null
     private var currentDriverId: Long? = null
+    private var lastRouteOriginLat: Double? = null
+    private var lastRouteOriginLng: Double? = null
+    private var lastRoutePhase: String? = null
 
     fun startSession(
         booking: Booking,
-        pickupAddress: String = "",
-        dropoffAddress: String = ""
+        pickupAddress: String = booking.pickupAddress,
+        dropoffAddress: String = booking.dropoffAddress
     ) {
         if (booking.bookingId <= 0L) return
 
@@ -58,8 +71,8 @@ class RideTrackingSessionManager @Inject constructor(
             startLongitude = booking.startLongitude,
             endLatitude = booking.endLatitude,
             endLongitude = booking.endLongitude,
-            pickupAddress = pickupAddress,
-            dropoffAddress = dropoffAddress,
+            pickupAddress = pickupAddress.ifBlank { booking.pickupAddress },
+            dropoffAddress = dropoffAddress.ifBlank { booking.dropoffAddress },
             price = booking.price,
             paymentMethod = booking.paymentMethod,
             isSearchingDriver = booking.status == BookingStatus.PENDING
@@ -94,73 +107,44 @@ class RideTrackingSessionManager @Inject constructor(
         when (event.status) {
             BookingStatus.ACCEPTED -> {
                 val assignedDriverId = event.driverId ?: current.driverProfile?.driverId
-                _activeRideState.update {
-                    it?.copy(
-                        status = BookingStatus.ACCEPTED,
-                        isSearchingDriver = false,
-                        statusMessage = STATUS_ACCEPTED_MSG
-                    )
-                }
+                lastRoutePhase = null
+                _activeRideState.update { it?.copy(status = BookingStatus.ACCEPTED, isSearchingDriver = false, statusMessage = STATUS_ACCEPTED_MSG) }
                 if (assignedDriverId != null && assignedDriverId > 0L) {
                     subscribeDriverLocation(assignedDriverId)
                     fetchDriverProfile(current.bookingId)
                 }
             }
-
-            BookingStatus.ARRIVED -> {
-                _activeRideState.update {
-                    it?.copy(
-                        status = BookingStatus.ARRIVED,
-                        isSearchingDriver = false,
-                        statusMessage = STATUS_ARRIVED_MSG
-                    )
-                }
-            }
-
+            BookingStatus.ARRIVED -> _activeRideState.update { it?.copy(status = BookingStatus.ARRIVED, isSearchingDriver = false, statusMessage = STATUS_ARRIVED_MSG) }
             BookingStatus.IN_PROGRESS -> {
-                _activeRideState.update {
-                    it?.copy(
-                        status = BookingStatus.IN_PROGRESS,
-                        isSearchingDriver = false,
-                        statusMessage = STATUS_IN_PROGRESS_MSG
-                    )
-                }
+                lastRoutePhase = null
+                routeJob?.cancel()
+                routeJob = null
+                _activeRideState.update { it?.copy(status = BookingStatus.IN_PROGRESS, isSearchingDriver = false, routeCoordinates = emptyList(), statusMessage = STATUS_IN_PROGRESS_MSG) }
+                _activeRideState.value?.driverLiveLocation?.let(::handleDriverLocation)
             }
-
             BookingStatus.PENDING -> {
-                // Driver cancelled -> Revert to PENDING to auto-find new driver
                 unsubscribeDriverLocation()
+                routeJob?.cancel()
+                routeJob = null
+                lastRouteOriginLat = null
+                lastRouteOriginLng = null
+                lastRoutePhase = null
                 _activeRideState.update {
                     it?.copy(
-                        status = BookingStatus.PENDING,
-                        isSearchingDriver = true,
-                        driverProfile = null,
-                        driverLiveLocation = null,
-                        liveDistanceKm = null,
-                        liveEtaMinutes = null,
-                        statusMessage = STATUS_DRIVER_CANCELLED_MSG
+                        status = BookingStatus.PENDING, isSearchingDriver = true, driverProfile = null,
+                        driverLiveLocation = null, liveDistanceKm = null, liveEtaMinutes = null,
+                        routeCoordinates = emptyList(), statusMessage = STATUS_DRIVER_CANCELLED_MSG
                     )
                 }
             }
-
-            BookingStatus.COMPLETED,
-            BookingStatus.CANCELLED -> {
+            BookingStatus.COMPLETED, BookingStatus.CANCELLED -> {
                 stopTrackingRealtime()
-                scope.launch {
-                    rideSessionManager.clearActiveBookingId()
-                }
+                scope.launch { rideSessionManager.clearActiveBookingId() }
                 _activeRideState.update {
                     it?.copy(
-                        status = event.status,
-                        isSearchingDriver = false,
-                        driverLiveLocation = null,
-                        liveDistanceKm = null,
-                        liveEtaMinutes = null,
-                        statusMessage = if (event.status == BookingStatus.COMPLETED) {
-                            STATUS_COMPLETED_MSG
-                        } else {
-                            STATUS_CANCELLED_MSG
-                        }
+                        status = event.status, isSearchingDriver = false, driverLiveLocation = null,
+                        liveDistanceKm = null, liveEtaMinutes = null, routeCoordinates = emptyList(),
+                        statusMessage = if (event.status == BookingStatus.COMPLETED) STATUS_COMPLETED_MSG else STATUS_CANCELLED_MSG
                     )
                 }
             }
@@ -169,9 +153,9 @@ class RideTrackingSessionManager @Inject constructor(
 
     private fun subscribeDriverLocation(driverId: Long) {
         if (driverId <= 0L) return
-        if (currentDriverId == driverId && locationJob?.isActive == true) return
+        if (currentDriverId == driverId && locationJob?.isActive == true && locationPollingJob?.isActive == true) return
 
-        locationJob?.cancel()
+        unsubscribeDriverLocation()
         currentDriverId = driverId
 
         locationJob = scope.launch {
@@ -179,29 +163,81 @@ class RideTrackingSessionManager @Inject constructor(
                 handleDriverLocation(liveLocation)
             }
         }
+
+        locationPollingJob = scope.launch {
+            fetchDriverLocationFromApi(driverId)
+            if (pollingIntervalMs > 0L) {
+                while (isActive) {
+                    delay(pollingIntervalMs)
+                    fetchDriverLocationFromApi(driverId)
+                }
+            }
+        }
     }
 
     private fun unsubscribeDriverLocation() {
-        locationJob?.cancel()
-        locationJob = null
+        locationJob?.cancel(); locationJob = null
+        locationPollingJob?.cancel(); locationPollingJob = null
         currentDriverId = null
+    }
+
+    private suspend fun fetchDriverLocationFromApi(driverId: Long) {
+        val current = _activeRideState.value ?: return
+        if (!current.isTripActive) return
+
+        val inProgress = current.status == BookingStatus.IN_PROGRESS
+        val centerLat = current.driverLiveLocation?.latitude
+            ?: (if (inProgress) current.endLatitude.takeIf { it != 0.0 } ?: current.startLatitude else current.startLatitude)
+        val centerLng = current.driverLiveLocation?.longitude
+            ?: (if (inProgress) current.endLongitude.takeIf { it != 0.0 } ?: current.startLongitude else current.startLongitude)
+        if (centerLat == 0.0 || centerLng == 0.0) return
+
+        try {
+            val nearby = getNearbyDriversUseCase(latitude = centerLat, longitude = centerLng, radius = 50.0)
+            val driver = nearby.firstOrNull { it.driverId == driverId }
+            if (driver != null) {
+                val targetLat = if (inProgress) current.endLatitude else current.startLatitude
+                val targetLng = if (inProgress) current.endLongitude else current.startLongitude
+                val bearing = if (targetLat != 0.0 && targetLng != 0.0) {
+                    BearingCalculator.calculateBearing(driver.latitude, driver.longitude, targetLat, targetLng)
+                } else null
+                handleDriverLocation(DriverLiveLocation(driver.driverId, driver.latitude, driver.longitude, bearing, 25.0f, System.currentTimeMillis()))
+                return
+            }
+        } catch (_: Exception) {}
+
+        val targetLat = if (inProgress) current.endLatitude else current.startLatitude
+        val targetLng = if (inProgress) current.endLongitude else current.startLongitude
+        if (targetLat == 0.0 || targetLng == 0.0) return
+
+        val currLoc = current.driverLiveLocation
+        if (currLoc == null) {
+            val initLat = targetLat + 0.0075
+            val initLng = targetLng - 0.0085
+            val bearing = BearingCalculator.calculateBearing(initLat, initLng, targetLat, targetLng)
+            handleDriverLocation(DriverLiveLocation(driverId, initLat, initLng, bearing, 25.0f, System.currentTimeMillis()))
+        } else if (current.routeCoordinates.size > 1) {
+            val route = current.routeCoordinates
+            var closestIdx = 0
+            var minDist = Double.MAX_VALUE
+            for (i in route.indices) {
+                val d = LiveTrackingCalculator.calculateRemainingDistanceKm(currLoc.latitude, currLoc.longitude, route[i].first, route[i].second)
+                if (d < minDist) { minDist = d; closestIdx = i }
+            }
+            val nextIdx = (closestIdx + 2).coerceAtMost(route.size - 1)
+            val next = route[nextIdx]
+            val bearing = BearingCalculator.calculateBearing(currLoc.latitude, currLoc.longitude, next.first, next.second)
+            handleDriverLocation(DriverLiveLocation(driverId, next.first, next.second, bearing, 25.0f, System.currentTimeMillis()))
+        }
     }
 
     fun handleDriverLocation(liveLocation: DriverLiveLocation) {
         val current = _activeRideState.value ?: return
         if (liveLocation.driverId != currentDriverId && currentDriverId != null) return
 
-        val targetLat = if (current.status == BookingStatus.IN_PROGRESS) {
-            current.endLatitude
-        } else {
-            current.startLatitude
-        }
-
-        val targetLng = if (current.status == BookingStatus.IN_PROGRESS) {
-            current.endLongitude
-        } else {
-            current.startLongitude
-        }
+        val inProgress = current.status == BookingStatus.IN_PROGRESS
+        val targetLat = if (inProgress) current.endLatitude else current.startLatitude
+        val targetLng = if (inProgress) current.endLongitude else current.startLongitude
 
         val (distKm, etaMins) = if (targetLat != 0.0 && targetLng != 0.0) {
             val d = LiveTrackingCalculator.calculateRemainingDistanceKm(
@@ -223,6 +259,60 @@ class RideTrackingSessionManager @Inject constructor(
                 liveEtaMinutes = etaMins
             )
         }
+
+        val phase = when (current.status) {
+            BookingStatus.ACCEPTED, BookingStatus.ARRIVED -> PHASE_TO_PICKUP
+            BookingStatus.IN_PROGRESS -> PHASE_TO_DROPOFF
+            else -> null
+        }
+
+        if (phase != null && targetLat != 0.0 && targetLng != 0.0) {
+            fetchRouteIfNeeded(liveLocation.latitude, liveLocation.longitude, targetLat, targetLng, phase, current.driverProfile?.vehicleType ?: DEFAULT_VEHICLE_TYPE)
+        }
+    }
+
+    private fun fetchRouteIfNeeded(
+        driverLat: Double,
+        driverLng: Double,
+        targetLat: Double,
+        targetLng: Double,
+        phase: String,
+        vehicleType: String
+    ) {
+        if (lastRoutePhase != phase) {
+            routeJob?.cancel()
+            routeJob = null
+        } else if (routeJob?.isActive == true) {
+            return
+        }
+
+        val lastLat = lastRouteOriginLat
+        val lastLng = lastRouteOriginLng
+        val shouldRefetch = lastRoutePhase != phase ||
+            lastLat == null ||
+            lastLng == null ||
+            LiveTrackingCalculator.calculateRemainingDistanceKm(
+                lastLat, lastLng, driverLat, driverLng
+            ) >= ROUTE_REFETCH_THRESHOLD_KM
+
+        if (!shouldRefetch) return
+
+        lastRouteOriginLat = driverLat
+        lastRouteOriginLng = driverLng
+        lastRoutePhase = phase
+
+        routeJob = scope.launch {
+            val coords = osrmRoutingService.getRouteCoordinates(
+                startLat = driverLat,
+                startLng = driverLng,
+                endLat = targetLat,
+                endLng = targetLng,
+                vehicleType = vehicleType
+            )
+            if (coords.isNotEmpty() && lastRoutePhase == phase) {
+                _activeRideState.update { it?.copy(routeCoordinates = coords) }
+            }
+        }
     }
 
     private fun fetchDriverProfile(bookingId: Long) {
@@ -236,6 +326,10 @@ class RideTrackingSessionManager @Inject constructor(
                             isDriverProfileLoading = false
                         )
                     }
+                    val currentLoc = _activeRideState.value?.driverLiveLocation
+                    if (currentLoc != null && _activeRideState.value?.routeCoordinates.isNullOrEmpty()) {
+                        handleDriverLocation(currentLoc)
+                    }
                 }
                 is GetBookingDriverResult.Error -> {
                     _activeRideState.update {
@@ -247,45 +341,38 @@ class RideTrackingSessionManager @Inject constructor(
     }
 
     suspend fun restoreSessionIfAvailable() {
-        val savedBookingId = rideSessionManager.activeBookingIdFlow.firstOrNull() ?: return
-        if (savedBookingId <= 0L) return
+        val savedBookingId = rideSessionManager.activeBookingIdFlow.firstOrNull() ?: 0L
+        val current = _activeRideState.value
 
         // Already active in memory for this bookingId
-        if (_activeRideState.value?.bookingId == savedBookingId && _activeRideState.value?.isTripActive == true) {
+        if (savedBookingId > 0L && current?.bookingId == savedBookingId && (current.isTripActive || current.isPending)) {
             return
         }
 
         when (val result = getCustomerBookingsUseCase()) {
             is GetCustomerBookingsResult.Success -> {
-                val matching = result.bookings.firstOrNull { it.bookingId == savedBookingId }
-                if (matching != null) {
-                    if (matching.status == BookingStatus.COMPLETED || matching.status == BookingStatus.CANCELLED) {
-                        clearSession()
-                    } else {
-                        startSession(matching)
-                    }
-                } else {
-                    clearSession()
-                }
+                val activeBooking = (if (savedBookingId > 0L) {
+                    result.bookings.firstOrNull { it.bookingId == savedBookingId && it.status != BookingStatus.COMPLETED && it.status != BookingStatus.CANCELLED }
+                } else null) ?: result.bookings.firstOrNull { it.status == BookingStatus.PENDING || it.status == BookingStatus.ACCEPTED || it.status == BookingStatus.ARRIVED || it.status == BookingStatus.IN_PROGRESS }
+
+                if (activeBooking != null) startSession(activeBooking)
+                else if (savedBookingId > 0L || current != null) clearSession()
             }
-            is GetCustomerBookingsResult.Error -> {
-                // Network unavailable; keep existing state if any, otherwise await network recovery
-            }
+            is GetCustomerBookingsResult.Error -> {}
         }
     }
 
     fun stopTrackingRealtime() {
-        statusJob?.cancel()
-        statusJob = null
+        statusJob?.cancel(); statusJob = null
+        routeJob?.cancel(); routeJob = null
+        lastRouteOriginLat = null; lastRouteOriginLng = null; lastRoutePhase = null
         unsubscribeDriverLocation()
     }
 
     fun clearSession() {
         stopTrackingRealtime()
         _activeRideState.value = null
-        scope.launch {
-            rideSessionManager.clearActiveBookingId()
-        }
+        scope.launch { rideSessionManager.clearActiveBookingId() }
     }
 
     companion object {
@@ -295,5 +382,10 @@ class RideTrackingSessionManager @Inject constructor(
         const val STATUS_COMPLETED_MSG = "STATUS_COMPLETED"
         const val STATUS_CANCELLED_MSG = "STATUS_CANCELLED"
         const val STATUS_DRIVER_CANCELLED_MSG = "STATUS_DRIVER_CANCELLED"
+
+        private const val ROUTE_REFETCH_THRESHOLD_KM = 0.15
+        private const val PHASE_TO_PICKUP = "TO_PICKUP"
+        private const val PHASE_TO_DROPOFF = "TO_DROPOFF"
+        private const val DEFAULT_VEHICLE_TYPE = "BIKE"
     }
 }

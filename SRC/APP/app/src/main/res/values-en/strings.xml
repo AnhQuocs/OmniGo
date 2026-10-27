@@ -103,6 +103,7 @@
     <string name="nav_activity">Activity</string>
     <string name="nav_promos">Offers</string>
     <string name="nav_account">Account</string>
+    <string name="nav_activity_badge_active_trip">Active trip ongoing</string>
 
     <!-- HOME DASHBOARD SCREEN -->
     <string name="home_location_label">Current Location</string>
@@ -615,6 +616,28 @@
     <string name="ride_current_location">Current Location</string>
     <string name="ride_search_step_dropoff_guide">Pickup confirmed. Please choose your drop-off destination.</string>
     <string name="ride_pickup_confirmed_hint">Pickup confirmed. Please choose your destination.</string>
+    <string name="ride_seats_format">%1$d seats</string>
+    <string name="ride_eta_pickup_format">Pickup in ~%1$d mins</string>
+    <string name="ride_btn_book_vehicle_format">Book %1$s • %2$s</string>
+    <string name="ride_payment_cash_label">Cash</string>
+    <string name="ride_voucher_label">Discounts</string>
+    <string name="ride_trip_enroute_badge">DRIVER EN ROUTE</string>
+    <string name="ride_trip_arrived_badge">DRIVER ARRIVED</string>
+    <string name="ride_trip_in_progress_badge">EN ROUTE TO DESTINATION</string>
+    <string name="ride_trip_completed_title">Trip Completed!</string>
+    <string name="ride_trip_completed_fare_label">Total Fare</string>
+    <string name="ride_trip_rating_prompt">How was your ride?</string>
+    <string name="ride_trip_rating_tag_safe">Safe Driving</string>
+    <string name="ride_trip_rating_tag_clean">Clean Vehicle</string>
+    <string name="ride_trip_rating_tag_polite">Polite Driver</string>
+    <string name="ride_trip_rating_tag_ontime">On Time</string>
+    <string name="ride_trip_btn_finish">Finish &amp; Return</string>
+    <string name="ride_btn_call_driver">Call</string>
+    <string name="ride_btn_cancel_trip_short">Cancel Ride</string>
+    <string name="ride_trip_eta_minutes_format">%1$d min</string>
+    <string name="ride_trip_distance_format">%1$.1f km</string>
+    <string name="ride_trip_fare_total_label">Total fare</string>
+    <string name="ride_trip_driver_rating_default">5.0</string>
 
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">New Ride Request</string>
@@ -743,4 +766,6 @@
     <string name="trip_map_trip_id_format">Trip #%1$d</string>
     <string name="trip_map_no_active_trip">No active trip found</string>
     <string name="trip_map_close_button">Close Map</string>
+
+    <string name="ride_confirm_booking">Confirm Booking</string>
 </resources>

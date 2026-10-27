@@ -10,5 +10,7 @@ data class DriverLocationResponse(
     @SerializedName("latitude")
     val latitude: Double? = null,
     @SerializedName("distanceInKm")
-    val distanceInKm: Double? = null
+    val distanceInKm: Double? = null,
+    @SerializedName("vehicleType")
+    val vehicleType: String? = null
 )

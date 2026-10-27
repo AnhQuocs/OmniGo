@@ -3,7 +3,7 @@ package com.example.omnigo.features.customer.ride.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class BookingResponse(
-    @SerializedName("bookingId")
+    @SerializedName(value = "bookingId", alternate = ["id"])
     val bookingId: Long? = null,
     @SerializedName("customerId")
     val customerId: Long? = null,
@@ -13,6 +13,10 @@ data class BookingResponse(
     val customerAvatarUrl: String? = null,
     @SerializedName("driverAvatarUrl")
     val driverAvatarUrl: String? = null,
+    @SerializedName("pickupAddress")
+    val pickupAddress: String? = null,
+    @SerializedName("dropoffAddress")
+    val dropoffAddress: String? = null,
     @SerializedName("startLongitude")
     val startLongitude: Double? = null,
     @SerializedName("startLatitude")
@@ -27,6 +31,8 @@ data class BookingResponse(
     val distanceInKm: Double? = null,
     @SerializedName("price")
     val price: Double? = null,
+    @SerializedName("vehicleType")
+    val vehicleType: String? = null,
     @SerializedName("paymentMethod")
     val paymentMethod: String? = null
 )

@@ -17,6 +17,8 @@ fun BookingResponse.toDomain(): Booking {
         driverId = driverId,
         customerAvatarUrl = customerAvatarUrl,
         driverAvatarUrl = driverAvatarUrl,
+        pickupAddress = pickupAddress.orEmpty(),
+        dropoffAddress = dropoffAddress.orEmpty(),
         startLongitude = startLongitude ?: 0.0,
         startLatitude = startLatitude ?: 0.0,
         endLongitude = endLongitude ?: 0.0,
@@ -24,6 +26,7 @@ fun BookingResponse.toDomain(): Booking {
         status = bookingStatus,
         distanceInKm = distanceInKm ?: 0.0,
         price = price ?: 0.0,
+        vehicleType = vehicleType,
         paymentMethod = paymentMethod
     )
 }

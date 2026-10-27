@@ -103,6 +103,7 @@
     <string name="nav_activity">Hoạt động</string>
     <string name="nav_promos">Ưu đãi</string>
     <string name="nav_account">Tài khoản</string>
+    <string name="nav_activity_badge_active_trip">Chuyến đi đang diễn ra</string>
 
     <!-- HOME DASHBOARD SCREEN -->
     <string name="home_location_label">Vị trí hiện tại</string>
@@ -615,6 +616,28 @@
     <string name="ride_current_location">Vị trí hiện tại</string>
     <string name="ride_search_step_dropoff_guide">Đã xác nhận điểm đón. Vui lòng chọn điểm đến của bạn.</string>
     <string name="ride_pickup_confirmed_hint">Đã xác nhận điểm đón. Vui lòng chọn điểm đến.</string>
+    <string name="ride_seats_format">%1$d chỗ</string>
+    <string name="ride_eta_pickup_format">Đón trong ~%1$d phút</string>
+    <string name="ride_btn_book_vehicle_format">Đặt xe %1$s • %2$s</string>
+    <string name="ride_payment_cash_label">Tiền mặt</string>
+    <string name="ride_voucher_label">Ưu đãi</string>
+    <string name="ride_trip_enroute_badge">TÀI XẾ ĐANG ĐẾN</string>
+    <string name="ride_trip_arrived_badge">TÀI XẾ ĐÃ ĐẾN NƠI</string>
+    <string name="ride_trip_in_progress_badge">ĐANG DI CHUYỂN ĐẾN ĐÍCH</string>
+    <string name="ride_trip_completed_title">Chuyến đi đã hoàn tất!</string>
+    <string name="ride_trip_completed_fare_label">Tổng cước thanh toán</string>
+    <string name="ride_trip_rating_prompt">Bạn thấy chuyến đi thế nào?</string>
+    <string name="ride_trip_rating_tag_safe">Lái xe an toàn</string>
+    <string name="ride_trip_rating_tag_clean">Xe sạch sẽ</string>
+    <string name="ride_trip_rating_tag_polite">Tài xế lịch sự</string>
+    <string name="ride_trip_rating_tag_ontime">Đón đúng giờ</string>
+    <string name="ride_trip_btn_finish">Hoàn tất &amp; Trở về</string>
+    <string name="ride_btn_call_driver">Gọi điện</string>
+    <string name="ride_btn_cancel_trip_short">Hủy chuyến</string>
+    <string name="ride_trip_eta_minutes_format">%1$d phút</string>
+    <string name="ride_trip_distance_format">%1$.1f km</string>
+    <string name="ride_trip_fare_total_label">Tổng cước</string>
+    <string name="ride_trip_driver_rating_default">5.0</string>
 
     <!-- FLOW 2 — PART 3 Driver Ride Offers -->
     <string name="driver_ride_offer_title">Chuyến xe chở khách mới</string>
@@ -743,4 +766,6 @@
     <string name="trip_map_trip_id_format">Chuyến #%1$d</string>
     <string name="trip_map_no_active_trip">Không tìm thấy chuyến đi đang hoạt động</string>
     <string name="trip_map_close_button">Đóng bản đồ</string>
+
+    <string name="ride_confirm_booking">Xác nhận đặt xe</string>
 </resources>

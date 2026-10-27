@@ -298,4 +298,12 @@ class HomeViewModelTest {
         coVerify { cancelRideBookingUseCase(202L) }
         io.mockk.verify { rideTrackingSessionManager.clearSession() }
     }
+
+    @Test
+    fun `init and onResume invoke restoreSessionIfAvailable`() = runTest {
+        coVerify(atLeast = 1) { rideTrackingSessionManager.restoreSessionIfAvailable() }
+
+        viewModel.onResume()
+        coVerify(atLeast = 2) { rideTrackingSessionManager.restoreSessionIfAvailable() }
+    }
 }
