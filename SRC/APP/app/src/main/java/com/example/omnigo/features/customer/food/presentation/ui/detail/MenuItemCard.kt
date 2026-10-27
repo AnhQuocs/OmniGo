@@ -1,12 +1,13 @@
 package com.example.omnigo.features.customer.food.presentation.ui.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,20 +28,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
+import com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.ErrorColor
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
@@ -51,17 +50,19 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
-import java.text.DecimalFormat
 
 @Composable
 fun MenuItemCard(
     menuItem: MenuItem,
     quantityInCart: Int,
+    canOrder: Boolean,
+    onItemClick: (MenuItem) -> Unit,
     onAddToCart: (MenuItem) -> Unit,
     onRemoveFromCart: (MenuItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
+        onClick = { onItemClick(menuItem) },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppShape.ShapeM),
         colors = CardDefaults.elevatedCardColors(containerColor = SurfaceLight),
@@ -96,7 +97,7 @@ fun MenuItemCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.6f)),
+                            .background(TextPrimary.copy(alpha = 0.65f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -110,10 +111,8 @@ fun MenuItemCard(
 
             Spacer(modifier = Modifier.width(AppSpacing.M))
 
-            // Thông tin chi tiết
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            // Thông tin chi tiết món
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = menuItem.name,
                     style = MaterialTheme.typography.s14.bold(),
@@ -121,7 +120,7 @@ fun MenuItemCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 if (menuItem.description.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(AppSpacing.XXS))
                     Text(
@@ -135,24 +134,23 @@ fun MenuItemCard(
 
                 Spacer(modifier = Modifier.height(AppSpacing.S))
 
-                val formatter = DecimalFormat("#,###")
                 Text(
-                    text = "${formatter.format(menuItem.price)} đ",
+                    text = formatFoodPrice(menuItem.price),
                     style = MaterialTheme.typography.s14.bold(),
                     color = PrimaryColor
                 )
             }
 
-            // Nút Thêm / Bớt số lượng
-            if (menuItem.isAvailable) {
+            // Nút Thêm / Bớt số lượng khi nhà hàng nhận đơn và món còn hàng
+            if (canOrder && menuItem.isAvailable) {
                 Spacer(modifier = Modifier.width(AppSpacing.S))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (quantityInCart > 0) {
                         Surface(
                             shape = RoundedCornerShape(AppShape.ShapeXXS),
                             color = SurfaceLight,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryColor)
+                            border = BorderStroke(Dimen.PaddingXXS, PrimaryColor)
                         ) {
                             IconButton(
                                 onClick = { onRemoveFromCart(menuItem) },
@@ -160,7 +158,10 @@ fun MenuItemCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Remove,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(
+                                        id = R.string.food_cd_remove_item,
+                                        menuItem.name
+                                    ),
                                     tint = PrimaryColor,
                                     modifier = Modifier.size(Dimen.SizeS)
                                 )
@@ -182,7 +183,10 @@ fun MenuItemCard(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = "Add",
+                            contentDescription = stringResource(
+                                id = R.string.food_cd_add_item,
+                                menuItem.name
+                            ),
                             tint = TextWhite,
                             modifier = Modifier.size(Dimen.SizeS)
                         )

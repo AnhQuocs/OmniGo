@@ -31,15 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SurfaceLight
-import com.example.omnigo.ui.theme.TextPrimary
+import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
@@ -47,7 +47,6 @@ import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
-import java.util.Locale
 
 @Composable
 fun CartBottomBar(
@@ -89,7 +88,7 @@ fun CartBottomBar(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.ShoppingBag,
-                            contentDescription = "Cart",
+                            contentDescription = stringResource(id = R.string.food_cd_cart),
                             tint = PrimaryColor,
                             modifier = Modifier.size(Dimen.SizeSM)
                         )
@@ -115,18 +114,14 @@ fun CartBottomBar(
 
                     Column {
                         Text(
-                            text = String.format(Locale.US, "%,.0f ₫", totalAmount),
+                            text = formatFoodPrice(totalAmount),
                             style = MaterialTheme.typography.s16.bold(),
                             color = PrimaryColor
                         )
                         Text(
-                            text = stringResource(
-                                id = R.string.restaurant_detail_cart_summary,
-                                totalQuantity,
-                                String.format(Locale.US, "%,.0f ₫", totalAmount)
-                            ),
+                            text = stringResource(id = R.string.food_cart_bar_count, totalQuantity),
                             style = MaterialTheme.typography.s12.medium(),
-                            color = TextPrimary
+                            color = TextSecondary
                         )
                     }
                 }

@@ -42,6 +42,8 @@ class FoodOrderDetailViewModelRealtimeTest {
     private lateinit var switchToCashUseCase: SwitchToCashUseCase
     private lateinit var retryDriverUseCase: RetryDriverUseCase
     private lateinit var activeTrackingRepository: ActiveFoodOrderTrackingRepository
+    private lateinit var getRestaurantDetailUseCase: com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+    private lateinit var getRestaurantItemsUseCase: com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 
     private val trackingStateFlow = MutableStateFlow<FoodOrderTrackingState?>(null)
 
@@ -79,6 +81,8 @@ class FoodOrderDetailViewModelRealtimeTest {
         cancelFoodOrderUseCase = mockk()
         switchToCashUseCase = mockk()
         retryDriverUseCase = mockk()
+        getRestaurantDetailUseCase = mockk(relaxed = true)
+        getRestaurantItemsUseCase = mockk(relaxed = true)
         activeTrackingRepository = mockk(relaxed = true)
 
         every { activeTrackingRepository.activeTrackingState } returns trackingStateFlow
@@ -93,7 +97,9 @@ class FoodOrderDetailViewModelRealtimeTest {
             switchToCashUseCase = switchToCashUseCase,
             retryDriverUseCase = retryDriverUseCase,
             activeTrackingRepository = activeTrackingRepository,
-            savedStateHandle = SavedStateHandle(mapOf("orderId" to orderId))
+            savedStateHandle = SavedStateHandle(mapOf("orderId" to orderId)),
+            getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+            getRestaurantItemsUseCase = getRestaurantItemsUseCase
         )
     }
 

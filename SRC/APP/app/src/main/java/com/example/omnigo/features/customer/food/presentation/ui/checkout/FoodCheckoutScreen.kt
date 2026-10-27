@@ -139,7 +139,7 @@ fun FoodCheckoutScreen(
                             color = TextSecondary
                         )
                         Text(
-                            text = String.format(Locale.US, "%,.0f ₫", uiState.totalAmount),
+                            text = com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice(uiState.totalAmount),
                             style = MaterialTheme.typography.s18.bold(),
                             color = PrimaryColor
                         )

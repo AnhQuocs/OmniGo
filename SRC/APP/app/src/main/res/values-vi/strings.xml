@@ -553,6 +553,49 @@
     <string name="restaurant_reviews_filter_all">Tất cả</string>
     <string name="restaurant_reviews_empty">Chưa có đánh giá nào cho quán này.</string>
 
+    <!-- Food redesign -->
+    <string name="food_sort_recommended">Đề xuất</string>
+    <string name="food_sort_top_rated">Đánh giá cao</string>
+    <string name="food_sort_nearest">Gần nhất</string>
+    <string name="food_section_featured">Được đánh giá cao</string>
+    <string name="food_section_all_restaurants">Tất cả nhà hàng</string>
+    <string name="food_restaurant_count">%1$d nhà hàng</string>
+    <string name="food_rating_compact">%1$.1f (%2$d)</string>
+    <string name="food_no_reviews">Chưa có đánh giá</string>
+    <string name="food_distance_km">%1$.1f km</string>
+    <string name="food_status_open_hours">Đang mở · %1$s – %2$s</string>
+    <string name="food_status_locked">Tạm ngừng nhận đơn</string>
+    <string name="food_error_title">Không tải được danh sách nhà hàng</string>
+    <string name="food_error_retry">Thử lại</string>
+    <string name="food_empty_message">Thử từ khóa khác hoặc bỏ bộ lọc.</string>
+    <string name="food_empty_clear_filters">Bỏ bộ lọc</string>
+    <string name="food_cd_back">Quay lại</string>
+    <string name="food_cd_cart">Giỏ hàng</string>
+    <string name="food_cd_close">Đóng</string>
+    <string name="food_cd_clear_search">Xóa tìm kiếm</string>
+    <string name="food_cd_add_item">Thêm %1$s</string>
+    <string name="food_cd_remove_item">Bớt một %1$s</string>
+    <string name="food_cd_increase_quantity">Tăng số lượng</string>
+    <string name="food_cd_decrease_quantity">Giảm số lượng</string>
+    <string name="food_cd_restaurant_image">Ảnh %1$s</string>
+    <string name="food_cart_bar_count">%1$d món</string>
+    <string name="restaurant_menu_search_hint">Tìm món trong thực đơn</string>
+    <string name="restaurant_menu_search_empty">Không có món nào khớp \"%1$s\"</string>
+    <string name="restaurant_menu_uncategorized">Món khác</string>
+    <string name="restaurant_menu_banner_closed">Nhà hàng hiện đã đóng cửa. Bạn vẫn xem được thực đơn nhưng chưa thể đặt món.</string>
+    <string name="restaurant_menu_banner_locked">Nhà hàng đang tạm ngừng nhận đơn.</string>
+    <string name="restaurant_menu_banner_locked_reason">Nhà hàng đang tạm ngừng nhận đơn: %1$s</string>
+    <string name="restaurant_menu_hours">Giờ mở cửa %1$s – %2$s</string>
+    <string name="restaurant_menu_distance">Cách bạn %1$.1f km</string>
+    <string name="restaurant_menu_error">Không tải được thực đơn</string>
+    <string name="menu_item_sheet_add">Thêm vào giỏ · %1$s</string>
+    <string name="menu_item_sheet_blocked">Nhà hàng chưa nhận đơn</string>
+    <string name="menu_item_sheet_quantity">Số lượng</string>
+    <string name="checkout_fee_estimated_note">Phí giao hàng là ước tính. Phí chính thức được xác nhận khi đặt đơn.</string>
+    <string name="checkout_error_restaurant_closed">Nhà hàng đang đóng cửa nên chưa thể đặt đơn.</string>
+    <string name="checkout_error_restaurant_locked">Nhà hàng đang tạm ngừng nhận đơn.</string>
+    <string name="checkout_error_no_restaurant_location">Thiếu vị trí nhà hàng nên chưa thể ước tính phí giao hàng.</string>
+
     <!-- FLOW 2 — OmniRide Booking & Radar -->
     <string name="ride_booking_title">Đặt chuyến xe</string>
     <string name="ride_pickup_label">Điểm đón</string>

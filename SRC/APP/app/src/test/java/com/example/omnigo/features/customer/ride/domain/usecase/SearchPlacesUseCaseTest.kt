@@ -79,4 +79,18 @@ class SearchPlacesUseCaseTest {
         assertTrue(result.isEmpty())
         coVerify(exactly = 1) { locationTracker.searchPlaces("UnknownPlace") }
     }
+
+    @Test
+    fun `invoke with proximity coordinates passes proximity to tracker`() = runTest {
+        val mockLocations = listOf(
+            UserLocation(20.9626, 105.7485, "Phenikaa", "Yen Nghia, Ha Dong")
+        )
+        coEvery { locationTracker.searchPlaces("Phenikaa", 20.96, 105.74) } returns mockLocations
+
+        val result = useCase("Phenikaa", 20.96, 105.74)
+
+        assertEquals(1, result.size)
+        assertEquals("Phenikaa", result[0].name)
+        coVerify(exactly = 1) { locationTracker.searchPlaces("Phenikaa", 20.96, 105.74) }
+    }
 }

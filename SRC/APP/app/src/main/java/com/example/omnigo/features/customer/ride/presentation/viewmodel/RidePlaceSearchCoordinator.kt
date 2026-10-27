@@ -48,6 +48,8 @@ class RidePlaceSearchCoordinator @Inject constructor(
     fun updateSearchQuery(
         scope: CoroutineScope,
         query: String,
+        proximityLat: Double? = null,
+        proximityLng: Double? = null,
         updateState: ((RideBookingUiState) -> RideBookingUiState) -> Unit
     ) {
         updateState { it.copy(searchQuery = query) }
@@ -59,7 +61,7 @@ class RidePlaceSearchCoordinator @Inject constructor(
         searchJob = scope.launch {
             delay(300)
             updateState { it.copy(isSearchingPlacesLoading = true) }
-            val results = searchPlacesUseCase(query)
+            val results = searchPlacesUseCase(query, proximityLat, proximityLng)
             updateState { it.copy(searchResults = results, isSearchingPlacesLoading = false) }
         }
     }

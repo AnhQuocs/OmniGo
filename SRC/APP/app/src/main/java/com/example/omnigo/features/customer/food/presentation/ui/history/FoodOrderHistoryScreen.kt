@@ -56,8 +56,14 @@ import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextWhite
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.utils.bold
+import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
+import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
 import java.util.Locale
@@ -205,7 +211,10 @@ fun FoodOrderHistoryScreen(
                             ) { order ->
                                 FoodOrderHistoryCard(
                                     order = order,
-                                    onClick = { onOrderClick(order.id) }
+                                    onClick = { onOrderClick(order.id) },
+                                    onReorderClick = onReorderClick,
+                                    onReviewClick = onReviewClick,
+                                    onTrackClick = { onOrderClick(it.id) }
                                 )
                             }
                         }
@@ -223,41 +232,43 @@ private fun FilterSection(
     onFilterSelected: (HistoryFilter) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceLight)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = Dimen.PaddingML, vertical = Dimen.PaddingS),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
+            .padding(horizontal = Dimen.PaddingML, vertical = Dimen.PaddingS)
     ) {
-        HistoryFilter.entries.forEach { filter ->
-            val label = when (filter) {
-                HistoryFilter.ALL -> stringResource(R.string.food_history_filter_all)
-                HistoryFilter.ONGOING -> stringResource(R.string.food_history_filter_ongoing)
-                HistoryFilter.DELIVERED -> stringResource(R.string.food_history_filter_delivered)
-                HistoryFilter.CANCELLED -> stringResource(R.string.food_history_filter_cancelled)
-            }
-            val isSelected = selectedFilter == filter
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.XS)
+        ) {
+            HistoryFilter.entries.forEach { filter ->
+                val label = when (filter) {
+                    HistoryFilter.ALL -> stringResource(R.string.food_history_filter_all)
+                    HistoryFilter.ONGOING -> stringResource(R.string.food_history_filter_ongoing)
+                    HistoryFilter.DELIVERED -> stringResource(R.string.food_history_filter_delivered)
+                    HistoryFilter.CANCELLED -> stringResource(R.string.food_history_filter_cancelled)
+                }
+                val isSelected = selectedFilter == filter
 
-            FilterChip(
-                selected = isSelected,
-                onClick = { onFilterSelected(filter) },
-                label = {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(AppShape.ShapeXL))
+                        .background(if (isSelected) PrimaryContainer else BackgroundLight)
+                        .clickable { onFilterSelected(filter) }
+                        .padding(vertical = Dimen.PaddingS, horizontal = Dimen.PaddingXXS),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = label,
-                        style = if (isSelected) MaterialTheme.typography.s14.bold() else MaterialTheme.typography.s14.normal()
+                        style = if (isSelected) MaterialTheme.typography.s12.bold() else MaterialTheme.typography.s12.medium(),
+                        color = if (isSelected) PrimaryColor else TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryColor.copy(alpha = 0.12f),
-                    selectedLabelColor = PrimaryColor,
-                    containerColor = BackgroundLight,
-                    labelColor = TextSecondary
-                ),
-                border = null,
-                shape = RoundedCornerShape(AppShape.ShapeXL2)
-            )
+                }
+            }
         }
     }
 }

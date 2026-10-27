@@ -34,7 +34,7 @@ data class FoodOrderItemResponse(
     @SerializedName("note")
     val note: String? = null,
 
-    @SerializedName(value = "imageUrl", alternate = ["itemImageUrl", "image", "dishImageUrl"])
+    @SerializedName(value = "imageUrl", alternate = ["itemImageUrl", "image", "dishImageUrl", "menuItemImageUrl", "item_image_url", "photoUrl", "picture"])
     val imageUrl: String? = null
 )
 
@@ -89,7 +89,7 @@ data class FoodOrderResponse(
     @SerializedName(value = "restaurantLongitude", alternate = ["longitude", "restaurantLng"])
     val restaurantLongitude: Double? = null,
 
-    @SerializedName(value = "restaurantImageUrl", alternate = ["restaurantImage", "imageUrl"])
+    @SerializedName(value = "restaurantImageUrl", alternate = ["restaurantImage", "imageUrl", "restaurant_image_url", "restaurant_image", "restaurantPhoto", "coverUrl", "logoUrl", "restaurantLogo"])
     val restaurantImageUrl: String? = null,
 
     @SerializedName("status")

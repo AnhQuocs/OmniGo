@@ -11,6 +11,9 @@ import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantReviewsUseCase
+import com.example.omnigo.features.customer.food.domain.util.GeoDistance
+import com.example.omnigo.features.customer.food.domain.util.MenuSectionBuilder
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,11 +22,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantReviewsUseCase
-import kotlin.math.sqrt
 
 @HiltViewModel
 class RestaurantDetailViewModel @Inject constructor(
@@ -58,34 +56,37 @@ class RestaurantDetailViewModel @Inject constructor(
     fun loadRestaurant(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isRestaurantLoading = true, isMenuLoading = true, errorMessage = null) }
-            
-            // 1. Lấy thông tin nhà hàng trước
+
+            // 1. Lấy thông tin nhà hàng
             when (val result = getRestaurantDetailUseCase(id)) {
                 is GetRestaurantDetailResult.Success -> {
                     val restaurant = result.restaurant
-                    val (distance, minutes) = calculateDistanceAndMinutes(restaurant)
+                    val distance = calculateDistanceKm(restaurant)
 
                     _uiState.update {
                         it.copy(
                             isRestaurantLoading = false,
                             restaurant = restaurant,
-                            distanceKm = distance,
-                            estimatedDeliveryMinutes = minutes
+                            distanceKm = distance
                         )
                     }
-                    
-                    // 2. Lấy thông tin Menu Items
+
+                    // 2. Lấy thông tin Menu Items (lấy cả món hết hàng để thông tin đầy đủ, rõ ràng)
                     when (val menuResult = getRestaurantItemsUseCase(id, availableOnly = false)) {
                         is GetMenuItemsResult.Success -> {
                             val items = menuResult.items
-                            val categories = extractCategories(items)
-                            val groupedMenu = items.groupBy { it.category.trim() }.filterKeys { it.isNotBlank() }
-                            
+                            val categories = items
+                                .map { it.category.trim() }
+                                .filter { it.isNotBlank() }
+                                .distinct()
+                            val sections = MenuSectionBuilder.build(items, _uiState.value.menuSearchQuery)
+
                             _uiState.update {
                                 it.copy(
                                     isMenuLoading = false,
+                                    rawMenuItems = items,
                                     categories = categories,
-                                    menuItems = groupedMenu
+                                    menuSections = sections
                                 )
                             }
                         }
@@ -113,6 +114,16 @@ class RestaurantDetailViewModel @Inject constructor(
         }
     }
 
+    fun onMenuSearchQueryChanged(query: String) {
+        _uiState.update { current ->
+            val sections = MenuSectionBuilder.build(current.rawMenuItems, query)
+            current.copy(
+                menuSearchQuery = query,
+                menuSections = sections
+            )
+        }
+    }
+
     fun loadReviews(restaurantId: Long, rating: Int? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isReviewsLoading = true, selectedRatingFilter = rating) }
@@ -137,8 +148,57 @@ class RestaurantDetailViewModel @Inject constructor(
         _uiState.update { it.copy(selectedCategory = category) }
     }
 
+    fun onMenuItemClick(menuItem: MenuItem) {
+        val existingNote = cartManager.cartState.value.items[menuItem.id]?.note.orEmpty()
+        _uiState.update {
+            it.copy(
+                selectedMenuItemForDetail = menuItem,
+                itemDetailQuantity = 1,
+                itemDetailNote = existingNote
+            )
+        }
+    }
+
+    fun onDismissMenuItemDetail() {
+        _uiState.update { it.copy(selectedMenuItemForDetail = null) }
+    }
+
+    fun onDetailQuantityChanged(delta: Int) {
+        _uiState.update { current ->
+            val newQty = (current.itemDetailQuantity + delta).coerceIn(1, 99)
+            current.copy(itemDetailQuantity = newQty)
+        }
+    }
+
+    fun onDetailNoteChanged(note: String) {
+        _uiState.update { it.copy(itemDetailNote = note) }
+    }
+
+    fun onConfirmAddFromDetail() {
+        val current = _uiState.value
+        val menuItem = current.selectedMenuItemForDetail ?: return
+        if (current.restaurant?.canOrder == false || !menuItem.isAvailable) return
+
+        val restaurantName = current.restaurant?.name.orEmpty()
+        val result = cartManager.addItem(
+            menuItem = menuItem,
+            quantity = current.itemDetailQuantity,
+            note = current.itemDetailNote.trim(),
+            restaurantName = restaurantName
+        )
+        if (result is CartAddResult.RestaurantConflict) {
+            _uiState.update { it.copy(pendingConflict = result, selectedMenuItemForDetail = null) }
+        } else {
+            _uiState.update { it.copy(selectedMenuItemForDetail = null) }
+        }
+    }
+
     fun onAddToCart(menuItem: MenuItem) {
-        val restaurantName = _uiState.value.restaurant?.name.orEmpty()
+        val restaurant = _uiState.value.restaurant
+        if (restaurant != null && !restaurant.canOrder) return
+        if (!menuItem.isAvailable) return
+
+        val restaurantName = restaurant?.name.orEmpty()
         val result = cartManager.addItem(
             menuItem = menuItem,
             quantity = 1,
@@ -181,27 +241,15 @@ class RestaurantDetailViewModel @Inject constructor(
         cartManager.clearCart()
     }
 
-    private fun extractCategories(items: List<MenuItem>): List<String> {
-        return items
-            .map { it.category.trim() }
-            .filter { it.isNotBlank() }
-            .distinct()
-    }
-
-    private fun calculateDistanceAndMinutes(restaurant: Restaurant): Pair<Double?, Int?> {
-        val userLoc = userLocationManager.currentLocation.value ?: return Pair(null, null)
-        if (restaurant.latitude == 0.0 && restaurant.longitude == 0.0) return Pair(null, null)
-
-        val r = 6371.0 // Earth radius in km
-        val dLat = Math.toRadians(restaurant.latitude - userLoc.latitude)
-        val dLon = Math.toRadians(restaurant.longitude - userLoc.longitude)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(userLoc.latitude)) * cos(Math.toRadians(restaurant.latitude)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        val distance = (r * c * 10).toInt() / 10.0 // 1 decimal place
-
-        val minutes = (15 + (distance * 3.5)).toInt().coerceAtLeast(15)
-        return Pair(distance, minutes)
+    private fun calculateDistanceKm(restaurant: Restaurant): Double? {
+        val userLoc = userLocationManager.currentLocation.value ?: return null
+        if (!restaurant.hasCoordinates) return null
+        val distance = GeoDistance.haversineKm(
+            userLoc.latitude,
+            userLoc.longitude,
+            restaurant.latitude,
+            restaurant.longitude
+        )
+        return (distance * 10).toInt() / 10.0
     }
 }

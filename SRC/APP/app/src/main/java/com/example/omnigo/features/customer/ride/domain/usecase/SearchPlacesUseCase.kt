@@ -7,11 +7,19 @@ import javax.inject.Inject
 class SearchPlacesUseCase @Inject constructor(
     private val locationTracker: LocationTracker
 ) {
-    suspend operator fun invoke(query: String): List<LocationPoint> {
+    suspend operator fun invoke(
+        query: String,
+        proximityLat: Double? = null,
+        proximityLng: Double? = null
+    ): List<LocationPoint> {
         val trimmed = query.trim()
         if (trimmed.length < 2) return emptyList()
 
-        val results = locationTracker.searchPlaces(trimmed)
+        val results = if (proximityLat != null && proximityLng != null) {
+            locationTracker.searchPlaces(trimmed, proximityLat, proximityLng)
+        } else {
+            locationTracker.searchPlaces(trimmed)
+        }
         return results.map { userLocation ->
             LocationPoint(
                 name = userLocation.addressName,

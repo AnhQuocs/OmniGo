@@ -49,13 +49,17 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
+import com.example.omnigo.utils.s16
 
 @Composable
 fun OrderDetailPaymentAndPricingSection(
     paymentMethod: PaymentMethod?,
     isPaid: Boolean?,
     createdAt: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    itemsPrice: Double? = null,
+    deliveryFee: Double? = null,
+    totalPrice: Double? = null
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -93,15 +97,12 @@ fun OrderDetailPaymentAndPricingSection(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            // Row 1: Phương thức thanh toán
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Phương thức thanh toán (Stacked Column - Tránh co cụm và cắt chữ)
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.CreditCard,
@@ -117,40 +118,35 @@ fun OrderDetailPaymentAndPricingSection(
                     )
                 }
 
-                // Payment method badge (e.g. Green pill Ví điện tử (Wallet) >)
+                Spacer(modifier = Modifier.height(AppSpacing.S))
+
                 Row(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .background(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(AppShape.ShapeS)
                         )
-                        .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXS),
+                        .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = null,
-                        tint = SuccessColor,
-                        modifier = Modifier.size(Dimen.SizeS)
+                        tint = PrimaryColor,
+                        modifier = Modifier.size(Dimen.SizeSM)
                     )
-                    Spacer(modifier = Modifier.width(AppSpacing.XS))
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
                     Text(
                         text = when (paymentMethod) {
-                            PaymentMethod.WALLET -> "Ví điện tử (Wallet)"
-                            PaymentMethod.MOMO -> "Ví MoMo"
-                            PaymentMethod.VNPAY -> "VNPay QR"
+                            PaymentMethod.WALLET -> stringResource(id = R.string.checkout_payment_wallet)
+                            PaymentMethod.MOMO -> stringResource(id = R.string.checkout_payment_momo)
+                            PaymentMethod.VNPAY -> stringResource(id = R.string.checkout_payment_vnpay)
                             PaymentMethod.CASH -> stringResource(id = R.string.order_detail_payment_cash_desc)
                             null -> stringResource(id = R.string.order_detail_payment_method_unknown)
                         },
                         style = MaterialTheme.typography.s13.medium(),
                         color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.width(AppSpacing.XXS))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(Dimen.SizeS)
                     )
                 }
             }
@@ -228,6 +224,71 @@ fun OrderDetailPaymentAndPricingSection(
                     }
                 }
             }
+
+            if (itemsPrice != null || totalPrice != null) {
+                Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+
+                if (itemsPrice != null) {
+                    PricingRow(
+                        label = stringResource(id = R.string.checkout_price_subtotal),
+                        value = formatFoodOrderPrice(itemsPrice)
+                    )
+                    Spacer(modifier = Modifier.height(AppSpacing.S))
+                }
+
+                PricingRow(
+                    label = stringResource(id = R.string.checkout_price_delivery_fee),
+                    value = formatFoodOrderPrice(deliveryFee ?: 0.0)
+                )
+
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.checkout_price_total),
+                        style = MaterialTheme.typography.s14.bold(),
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = formatFoodOrderPrice(totalPrice ?: ((itemsPrice ?: 0.0) + (deliveryFee ?: 0.0))),
+                        style = MaterialTheme.typography.s16.bold(),
+                        color = PrimaryColor
+                    )
+                }
+            }
         }
     }
 }
+
+@Composable
+private fun PricingRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.s13.normal(),
+            color = TextSecondary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.s13.medium(),
+            color = TextPrimary
+        )
+    }
+}
+

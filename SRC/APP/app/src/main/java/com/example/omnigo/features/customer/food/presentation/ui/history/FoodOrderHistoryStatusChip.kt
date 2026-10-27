@@ -71,7 +71,7 @@ private fun getStatusChipConfig(status: String): StatusChipConfig {
         )
         "CANCELLED" -> StatusChipConfig(
             labelRes = R.string.order_detail_status_cancelled,
-            bg = Color(0xFFE9ECEF),
+            bg = com.example.omnigo.ui.theme.SurfaceVariantLight,
             fg = TextSecondary
         )
         "REJECTED" -> StatusChipConfig(
@@ -86,7 +86,7 @@ private fun getStatusChipConfig(status: String): StatusChipConfig {
         )
         else -> StatusChipConfig(
             labelRes = R.string.order_detail_status_unknown,
-            bg = Color(0xFFE9ECEF),
+            bg = com.example.omnigo.ui.theme.SurfaceVariantLight,
             fg = TextSecondary
         )
     }

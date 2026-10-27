@@ -230,7 +230,10 @@ fun FoodOrderDetailScreen(
                             OrderDetailPaymentAndPricingSection(
                                 paymentMethod = order.paymentMethod,
                                 isPaid = order.isPaid,
-                                createdAt = order.createdAt
+                                createdAt = order.createdAt,
+                                itemsPrice = order.itemsPrice,
+                                deliveryFee = order.deliveryFee,
+                                totalPrice = order.totalPrice
                             )
                         }
 

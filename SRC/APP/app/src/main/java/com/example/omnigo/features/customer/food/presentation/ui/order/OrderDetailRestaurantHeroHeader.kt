@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,14 +29,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
@@ -56,28 +56,45 @@ fun OrderDetailRestaurantHeroHeader(
             .fillMaxWidth()
             .height(Dimen.HeightPromoBanner),
         shape = RoundedCornerShape(AppShape.ShapeL),
-        colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // 1. Cover background image
             if (!restaurantImageUrl.isNullOrBlank()) {
                 AsyncImage(
-                    model = restaurantImageUrl,
-                    contentDescription = null,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(restaurantImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = restaurantName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.size(Dimen.SizeMega)
+                    )
+                }
             }
 
-            // 2. Dark gradient overlay
+            // 2. Gradient overlay for text contrast at the bottom
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.35f),
-                                Color.Black.copy(alpha = 0.82f)
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.75f)
                             )
                         )
                     )
@@ -102,7 +119,10 @@ fun OrderDetailRestaurantHeroHeader(
                 ) {
                     if (!restaurantImageUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = restaurantImageUrl,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(restaurantImageUrl)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             placeholder = rememberVectorPainter(Icons.Default.Restaurant),
@@ -132,37 +152,14 @@ fun OrderDetailRestaurantHeroHeader(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(AppSpacing.XXS))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!restaurantAddress.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(AppSpacing.XXS))
                         Text(
-                            text = if (!restaurantAddress.isNullOrBlank()) {
-                                restaurantAddress
-                            } else {
-                                stringResource(id = R.string.food_title)
-                            },
+                            text = restaurantAddress,
                             style = MaterialTheme.typography.s13.medium(),
                             color = TextWhite.copy(alpha = 0.88f),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        Spacer(modifier = Modifier.width(AppSpacing.XS))
-
-                        Text(
-                            text = "• 4.7",
-                            style = MaterialTheme.typography.s13.medium(),
-                            color = TextWhite.copy(alpha = 0.88f)
-                        )
-
-                        Spacer(modifier = Modifier.width(AppSpacing.XXS))
-
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = SecondaryColor,
-                            modifier = Modifier.size(Dimen.SizeS)
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

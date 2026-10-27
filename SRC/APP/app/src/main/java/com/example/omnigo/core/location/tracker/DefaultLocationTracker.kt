@@ -29,6 +29,9 @@ class DefaultLocationTracker @Inject constructor(
     private val placesSearchService: PlacesSearchService
 ) : LocationTracker {
 
+    @Volatile
+    private var cachedLastLocation: Pair<Double, Double>? = null
+
     override fun isLocationPermissionGranted(): Boolean {
         val fineLocation = ContextCompat.checkSelfPermission(
             context,
@@ -91,7 +94,10 @@ class DefaultLocationTracker @Inject constructor(
                 }
             }
         }
-        if (freshHighAcc != null) return freshHighAcc
+        if (freshHighAcc != null) {
+            cachedLastLocation = Pair(freshHighAcc.latitude, freshHighAcc.longitude)
+            return freshHighAcc
+        }
 
         // 2. Try Balanced Power Accuracy (WiFi / Cell) with 3s timeout for fast indoor fix
         val balancedCts = CancellationTokenSource()
@@ -113,10 +119,13 @@ class DefaultLocationTracker @Inject constructor(
                 }
             }
         }
-        if (balancedLocation != null) return balancedLocation
+        if (balancedLocation != null) {
+            cachedLastLocation = Pair(balancedLocation.latitude, balancedLocation.longitude)
+            return balancedLocation
+        }
 
         // 3. Fallback to last known location
-        return kotlinx.coroutines.withTimeoutOrNull(2000L) {
+        val lastLoc = kotlinx.coroutines.withTimeoutOrNull(2000L) {
             suspendCancellableCoroutine { continuation ->
                 locationClient.lastLocation
                     .addOnSuccessListener { loc -> if (continuation.isActive) continuation.resume(loc) }
@@ -124,9 +133,18 @@ class DefaultLocationTracker @Inject constructor(
                     .addOnCanceledListener { if (continuation.isActive) continuation.cancel() }
             }
         }
+        if (lastLoc != null) {
+            cachedLastLocation = Pair(lastLoc.latitude, lastLoc.longitude)
+        }
+        return lastLoc
     }
 
     private suspend fun resolveAddressDetails(latitude: Double, longitude: Double): Pair<String, String> {
+        val mapboxResult = placesSearchService.reverseGeocode(latitude, longitude)
+        if (mapboxResult != null && mapboxResult.first.isNotBlank()) {
+            return mapboxResult
+        }
+
         return withContext(Dispatchers.IO) {
             try {
                 val geocoder = Geocoder(context, Locale.forLanguageTag("vi-VN"))
@@ -184,6 +202,7 @@ class DefaultLocationTracker @Inject constructor(
 
     private fun sanitizeAddress(rawFullAddress: String): String {
         var clean = rawFullAddress
+            .replace(Regex("^[A-Z0-9]{4,8}\\+[A-Z0-9]{2,4}(,\\s*)?"), "")
             .replace(Regex(",?\\s*Việt Nam$", RegexOption.IGNORE_CASE), "")
             .replace(Regex(",?\\s*Vietnam$", RegexOption.IGNORE_CASE), "")
             .trim()
@@ -247,17 +266,28 @@ class DefaultLocationTracker @Inject constructor(
     }
 
     override suspend fun searchPlaces(query: String): List<UserLocation> {
+        return searchPlaces(query, null, null)
+    }
+
+    override suspend fun searchPlaces(
+        query: String,
+        proximityLat: Double?,
+        proximityLng: Double?
+    ): List<UserLocation> {
         val trimmed = query.trim()
         if (trimmed.length < 2) return emptyList()
 
-        // 1. Priority: Android Geocoder (backed by Google Maps backend)
-        val geocoderResults = searchPlacesWithGeocoder(trimmed)
-        if (geocoderResults.isNotEmpty()) {
-            return geocoderResults
+        val lat = proximityLat ?: cachedLastLocation?.first
+        val lng = proximityLng ?: cachedLastLocation?.second
+
+        // 1. Priority: Mapbox Search Box v1 (Suggest + Retrieve)
+        val mapboxResults = placesSearchService.searchPlaces(trimmed, lat, lng)
+        if (mapboxResults.isNotEmpty()) {
+            return mapboxResults
         }
 
-        // 2. Fallback: Photon Komoot OSM API
-        return placesSearchService.searchPlaces(trimmed)
+        // 2. Fallback: Android Geocoder
+        return searchPlacesWithGeocoder(trimmed)
     }
 
     private suspend fun searchPlacesWithGeocoder(query: String): List<UserLocation> = withContext(Dispatchers.IO) {

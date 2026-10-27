@@ -9,8 +9,10 @@ import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderRes
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
+import com.example.omnigo.features.customer.food.domain.model.RestaurantAvailability
 import com.example.omnigo.features.customer.food.domain.usecase.CreateFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.util.GeoDistance
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +22,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 @HiltViewModel
 class FoodCheckoutViewModel @Inject constructor(
@@ -103,7 +101,7 @@ class FoodCheckoutViewModel @Inject constructor(
                     }
                 }
                 is GetRestaurantDetailResult.Error -> {
-                    // Non-fatal, use basic name from cart
+                    // Non-fatal, use basic restaurantName from cart
                 }
             }
         }
@@ -131,20 +129,41 @@ class FoodCheckoutViewModel @Inject constructor(
     }
 
     fun onPlaceOrder() {
+        var canProceed = false
+        _uiState.update { current ->
+            if (current.isPlacingOrder) {
+                current
+            } else {
+                canProceed = true
+                current.copy(isPlacingOrder = true, errorMessage = null)
+            }
+        }
+
+        if (!canProceed) return
+
         val state = _uiState.value
-        if (state.isPlacingOrder) return
         if (state.items.isEmpty() || state.restaurantId == null) {
-            _uiState.update { it.copy(errorMessage = UiText.StringResource(R.string.checkout_error_empty_cart)) }
+            _uiState.update { it.copy(isPlacingOrder = false, errorMessage = UiText.StringResource(R.string.checkout_error_empty_cart)) }
             return
         }
         if (state.deliveryAddress.isBlank()) {
-            _uiState.update { it.copy(errorMessage = UiText.StringResource(R.string.checkout_error_empty_address)) }
+            _uiState.update { it.copy(isPlacingOrder = false, errorMessage = UiText.StringResource(R.string.checkout_error_empty_address)) }
             return
         }
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isPlacingOrder = true, errorMessage = null) }
+        val restaurant = state.restaurant
+        if (restaurant != null) {
+            if (restaurant.availability == RestaurantAvailability.LOCKED) {
+                _uiState.update { it.copy(isPlacingOrder = false, errorMessage = UiText.StringResource(R.string.checkout_error_restaurant_locked)) }
+                return
+            }
+            if (restaurant.availability == RestaurantAvailability.CLOSED) {
+                _uiState.update { it.copy(isPlacingOrder = false, errorMessage = UiText.StringResource(R.string.checkout_error_restaurant_closed)) }
+                return
+            }
+        }
 
+        viewModelScope.launch {
             val result = createFoodOrderUseCase(
                 restaurantId = state.restaurantId,
                 dropOffAddress = state.deliveryAddress,
@@ -188,18 +207,16 @@ class FoodCheckoutViewModel @Inject constructor(
 
     private fun calculateDeliveryFee(restaurant: Restaurant?, dropOffLat: Double, dropOffLng: Double): Double {
         val baseFee = 15000.0
-        if (restaurant == null || (restaurant.latitude == 0.0 && restaurant.longitude == 0.0) || (dropOffLat == 0.0 && dropOffLng == 0.0)) {
+        if (restaurant == null || !restaurant.hasCoordinates || (dropOffLat == 0.0 && dropOffLng == 0.0)) {
             return baseFee
         }
 
-        val r = 6371.0 // Earth radius in km
-        val dLat = Math.toRadians(dropOffLat - restaurant.latitude)
-        val dLon = Math.toRadians(dropOffLng - restaurant.longitude)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(restaurant.latitude)) * cos(Math.toRadians(dropOffLat)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        val distanceKm = r * c
+        val distanceKm = GeoDistance.haversineKm(
+            dropOffLat,
+            dropOffLng,
+            restaurant.latitude,
+            restaurant.longitude
+        )
 
         return if (distanceKm <= 2.0) {
             baseFee

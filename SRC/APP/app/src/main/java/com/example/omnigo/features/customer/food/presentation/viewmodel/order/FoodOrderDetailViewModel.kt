@@ -17,6 +17,12 @@ import com.example.omnigo.features.customer.food.domain.usecase.RetryDriverUseCa
 import com.example.omnigo.features.customer.food.domain.usecase.SwitchToCashUseCase
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
+import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
+import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
+import com.example.omnigo.features.customer.food.domain.model.MenuItem
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +40,9 @@ class FoodOrderDetailViewModel @Inject constructor(
     private val switchToCashUseCase: SwitchToCashUseCase,
     private val retryDriverUseCase: RetryDriverUseCase,
     private val activeTrackingRepository: ActiveFoodOrderTrackingRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
+    private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase
 ) : ViewModel() {
 
     private val orderId: Long = savedStateHandle.get<Long>("orderId") ?: 0L
@@ -135,6 +143,7 @@ class FoodOrderDetailViewModel @Inject constructor(
                         )
                     }
                     loadDriverProfile(result.order.driverId)
+                    enrichOrderWithRestaurantData(result.order)
                 }
                 is GetFoodOrderDetailResult.Error -> {
                     val errorUiText = if (!result.message.isNullOrBlank()) {
@@ -315,6 +324,61 @@ class FoodOrderDetailViewModel @Inject constructor(
 
     fun onClearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun enrichOrderWithRestaurantData(order: FoodOrder) {
+        val restaurantId = order.restaurantId
+        if (restaurantId <= 0) return
+
+        viewModelScope.launch {
+            var restaurantImageUrl: String? = null
+            var restaurantAddress: String? = null
+            var catalogItems: List<MenuItem> = emptyList()
+
+            when (val res = getRestaurantDetailUseCase(restaurantId)) {
+                is GetRestaurantDetailResult.Success -> {
+                    restaurantImageUrl = res.restaurant.imageUrl.takeIf { it.isNotBlank() }
+                    restaurantAddress = res.restaurant.address.takeIf { it.isNotBlank() }
+                    catalogItems = res.restaurant.menuItems
+                }
+                else -> Unit
+            }
+
+            if (catalogItems.isEmpty() || catalogItems.none { it.imageUrl.isNotBlank() }) {
+                when (val menuRes = getRestaurantItemsUseCase(restaurantId, availableOnly = false)) {
+                    is GetMenuItemsResult.Success -> catalogItems = menuRes.items
+                    else -> Unit
+                }
+            }
+
+            _uiState.update { current ->
+                val curOrder = current.order ?: return@update current
+                if (curOrder.id != order.id) return@update current
+
+                val enrichedItems = curOrder.items.map { item ->
+                    val match = catalogItems.firstOrNull {
+                        it.id == item.menuItemId || it.name.trim().equals(item.itemName.trim(), ignoreCase = true)
+                    }
+                    val realImage = item.imageUrl?.takeIf { it.isNotBlank() } ?: match?.imageUrl
+                    if (!realImage.isNullOrBlank() && realImage != item.imageUrl) {
+                        item.copy(imageUrl = realImage)
+                    } else {
+                        item
+                    }
+                }
+
+                val finalImage = curOrder.restaurantImageUrl?.takeIf { it.isNotBlank() } ?: restaurantImageUrl
+                val finalAddress = curOrder.restaurantAddress?.takeIf { it.isNotBlank() } ?: restaurantAddress
+
+                current.copy(
+                    order = curOrder.copy(
+                        restaurantImageUrl = finalImage,
+                        restaurantAddress = finalAddress,
+                        items = enrichedItems
+                    )
+                )
+            }
+        }
     }
 
     override fun onCleared() {

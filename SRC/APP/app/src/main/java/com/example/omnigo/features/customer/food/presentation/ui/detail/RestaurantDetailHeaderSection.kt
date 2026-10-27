@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
@@ -30,21 +30,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
+import com.example.omnigo.features.customer.food.domain.model.RestaurantAvailability
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.ErrorColor
+import com.example.omnigo.ui.theme.ErrorContainer
+import com.example.omnigo.ui.theme.OnErrorContainer
+import com.example.omnigo.ui.theme.SecondaryContainer
 import com.example.omnigo.ui.theme.SuccessColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
@@ -57,13 +58,12 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s13
-import com.example.omnigo.utils.s20
+import com.example.omnigo.utils.s18
 
 @Composable
 fun RestaurantDetailHeaderSection(
     restaurant: Restaurant,
     distanceKm: Double?,
-    estimatedMinutes: Int?,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -72,7 +72,7 @@ fun RestaurantDetailHeaderSection(
             .fillMaxWidth()
             .background(SurfaceLight)
     ) {
-        // Hero Image with top action buttons overlay
+        // Hero Image with top back button overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,25 +88,12 @@ fun RestaurantDetailHeaderSection(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Gradient scrim for top bar visibility
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
-                        )
-                    )
-            )
-
-            // Top action buttons (Back & Bookmark)
+            // Top Back button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
@@ -114,26 +101,11 @@ fun RestaurantDetailHeaderSection(
                     modifier = Modifier
                         .size(Dimen.SizeXLPlus)
                         .clip(CircleShape)
-                        .background(SurfaceLight.copy(alpha = 0.85f))
+                        .background(SurfaceLight.copy(alpha = 0.9f))
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(Dimen.SizeSM)
-                    )
-                }
-
-                IconButton(
-                    onClick = { /* Bookmark action */ },
-                    modifier = Modifier
-                        .size(Dimen.SizeXLPlus)
-                        .clip(CircleShape)
-                        .background(SurfaceLight.copy(alpha = 0.85f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.BookmarkBorder,
-                        contentDescription = "Bookmark",
+                        contentDescription = stringResource(id = R.string.food_cd_back),
                         tint = TextPrimary,
                         modifier = Modifier.size(Dimen.SizeSM)
                     )
@@ -145,7 +117,7 @@ fun RestaurantDetailHeaderSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM)
+                .padding(Dimen.PaddingM)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -154,18 +126,19 @@ fun RestaurantDetailHeaderSection(
             ) {
                 Text(
                     text = restaurant.name,
-                    style = MaterialTheme.typography.s20.bold(),
+                    style = MaterialTheme.typography.s18.bold(),
                     color = TextPrimary,
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                val statusColor = if (restaurant.isOpen) SuccessColor else ErrorColor
-                val statusText = if (restaurant.isOpen) {
-                    stringResource(id = R.string.restaurant_detail_status_open)
-                } else {
-                    stringResource(id = R.string.restaurant_detail_status_closed)
+                Spacer(modifier = Modifier.width(AppSpacing.S))
+
+                val (statusColor, statusText) = when (restaurant.availability) {
+                    RestaurantAvailability.LOCKED -> WarningColor to stringResource(id = R.string.food_status_locked)
+                    RestaurantAvailability.CLOSED -> ErrorColor to stringResource(id = R.string.restaurant_detail_status_closed)
+                    RestaurantAvailability.OPEN -> SuccessColor to stringResource(id = R.string.restaurant_detail_status_open)
                 }
 
                 Surface(
@@ -188,37 +161,41 @@ fun RestaurantDetailHeaderSection(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = WarningColor,
-                    modifier = Modifier.size(Dimen.SizeS)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.XXS))
-                Text(
-                    text = stringResource(
-                        id = R.string.restaurant_detail_rating,
-                        restaurant.rating,
-                        restaurant.reviewCount
-                    ),
-                    style = MaterialTheme.typography.s12.bold(),
-                    color = TextPrimary
-                )
-
-                if (distanceKm != null && estimatedMinutes != null) {
-                    Spacer(modifier = Modifier.width(AppSpacing.M))
+                if (restaurant.hasReviews) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = WarningColor,
+                        modifier = Modifier.size(Dimen.SizeS)
+                    )
+                    Spacer(modifier = Modifier.width(AppSpacing.XXS))
                     Text(
-                        text = "•",
+                        text = stringResource(
+                            id = R.string.restaurant_detail_rating,
+                            restaurant.rating,
+                            restaurant.reviewCount
+                        ),
+                        style = MaterialTheme.typography.s12.bold(),
+                        color = TextPrimary
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.food_no_reviews),
+                        style = MaterialTheme.typography.s12.normal(),
+                        color = TextSecondary
+                    )
+                }
+
+                if (distanceKm != null) {
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
+                    Text(
+                        text = "·",
                         style = MaterialTheme.typography.s12.bold(),
                         color = TextSecondary
                     )
-                    Spacer(modifier = Modifier.width(AppSpacing.M))
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
                     Text(
-                        text = stringResource(
-                            id = R.string.restaurant_detail_distance,
-                            distanceKm,
-                            estimatedMinutes
-                        ),
+                        text = stringResource(id = R.string.restaurant_menu_distance, distanceKm),
                         style = MaterialTheme.typography.s12.medium(),
                         color = TextSecondary
                     )
@@ -226,7 +203,7 @@ fun RestaurantDetailHeaderSection(
             }
 
             if (restaurant.address.isNotBlank()) {
-                Spacer(modifier = Modifier.height(AppSpacing.XSPlus))
+                Spacer(modifier = Modifier.height(AppSpacing.XS))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Filled.LocationOn,
@@ -257,13 +234,53 @@ fun RestaurantDetailHeaderSection(
                     Spacer(modifier = Modifier.width(AppSpacing.XXS))
                     Text(
                         text = stringResource(
-                            id = R.string.restaurant_detail_open_hours,
+                            id = R.string.restaurant_menu_hours,
                             restaurant.openTime,
                             restaurant.closeTime
                         ),
                         style = MaterialTheme.typography.s12.normal(),
                         color = TextSecondary
                     )
+                }
+            }
+
+            // Notice Banner when not open
+            if (!restaurant.canOrder) {
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+                val isLocked = restaurant.availability == RestaurantAvailability.LOCKED
+                val bannerColor = if (isLocked) SecondaryContainer else ErrorContainer
+                val textColor = if (isLocked) WarningColor else OnErrorContainer
+                val bannerText = when {
+                    isLocked && restaurant.lockedReason.isNotBlank() ->
+                        stringResource(id = R.string.restaurant_menu_banner_locked_reason, restaurant.lockedReason)
+                    isLocked ->
+                        stringResource(id = R.string.restaurant_menu_banner_locked)
+                    else ->
+                        stringResource(id = R.string.restaurant_menu_banner_closed)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(AppShape.ShapeM),
+                    color = bannerColor,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Dimen.PaddingM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Info,
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(Dimen.SizeM)
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.S))
+                        Text(
+                            text = bannerText,
+                            style = MaterialTheme.typography.s13.normal(),
+                            color = textColor
+                        )
+                    }
                 }
             }
         }

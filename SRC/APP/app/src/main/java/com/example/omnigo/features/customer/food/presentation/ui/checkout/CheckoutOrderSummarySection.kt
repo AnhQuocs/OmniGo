@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.CartItem
+import com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -35,7 +36,6 @@ import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s15
 import com.example.omnigo.utils.s16
-import java.util.Locale
 
 @Composable
 fun CheckoutOrderSummarySection(
@@ -100,7 +100,7 @@ fun CheckoutOrderSummarySection(
                     }
 
                     Text(
-                        text = String.format(Locale.US, "%,.0f ₫", cartItem.subtotalPrice),
+                        text = formatFoodPrice(cartItem.subtotalPrice),
                         style = MaterialTheme.typography.s14.bold(),
                         color = TextPrimary
                     )
@@ -122,7 +122,7 @@ fun CheckoutOrderSummarySection(
                     color = TextSecondary
                 )
                 Text(
-                    text = String.format(Locale.US, "%,.0f ₫", itemsSubtotal),
+                    text = formatFoodPrice(itemsSubtotal),
                     style = MaterialTheme.typography.s13.medium(),
                     color = TextPrimary
                 )
@@ -130,7 +130,7 @@ fun CheckoutOrderSummarySection(
 
             Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-            // Delivery Fee
+            // Delivery Fee (estimated)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -141,11 +141,19 @@ fun CheckoutOrderSummarySection(
                     color = TextSecondary
                 )
                 Text(
-                    text = String.format(Locale.US, "%,.0f ₫", deliveryFee),
+                    text = formatFoodPrice(deliveryFee),
                     style = MaterialTheme.typography.s13.medium(),
                     color = TextPrimary
                 )
             }
+
+            Spacer(modifier = Modifier.height(AppSpacing.XXS))
+
+            Text(
+                text = stringResource(id = R.string.checkout_fee_estimated_note),
+                style = MaterialTheme.typography.s12.normal(),
+                color = TextSecondary
+            )
 
             Spacer(modifier = Modifier.height(AppSpacing.S))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -163,7 +171,7 @@ fun CheckoutOrderSummarySection(
                     color = TextPrimary
                 )
                 Text(
-                    text = String.format(Locale.US, "%,.0f ₫", totalAmount),
+                    text = formatFoodPrice(totalAmount),
                     style = MaterialTheme.typography.s16.bold(),
                     color = PrimaryColor
                 )

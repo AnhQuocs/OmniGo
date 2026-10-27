@@ -66,11 +66,7 @@ class RideBookingViewModel @Inject constructor(
         loadSavedAddresses()
         autoDetectPickupLocation()
         observeActiveRideSession()
-        rideBookingStatusCoordinator.restoreSessionIfAvailable(
-            scope = viewModelScope,
-            updateState = { _uiState.update(it) },
-            getState = { _uiState.value }
-        )
+        rideBookingStatusCoordinator.restoreSessionIfAvailable(viewModelScope, { _uiState.update(it) }, { _uiState.value })
     }
 
     private fun observeActiveRideSession() {
@@ -162,7 +158,10 @@ class RideBookingViewModel @Inject constructor(
 
     fun openPlaceSearch(target: LocationTarget) = ridePlaceSearchCoordinator.openPlaceSearch(target) { _uiState.update(it) }
     fun closePlaceSearch() = ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
-    fun updateSearchQuery(query: String) = ridePlaceSearchCoordinator.updateSearchQuery(viewModelScope, query) { _uiState.update(it) }
+    fun updateSearchQuery(query: String) {
+        val p = _uiState.value.pickupLocation ?: _uiState.value.dropoffLocation
+        ridePlaceSearchCoordinator.updateSearchQuery(viewModelScope, query, p?.latitude, p?.longitude) { _uiState.update(it) }
+    }
 
     fun selectSearchResult(point: LocationPoint) {
         val target = _uiState.value.searchTarget

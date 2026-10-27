@@ -551,6 +551,49 @@
     <string name="restaurant_reviews_filter_all">All</string>
     <string name="restaurant_reviews_empty">No reviews yet for this restaurant.</string>
 
+    <!-- Food redesign -->
+    <string name="food_sort_recommended">Recommended</string>
+    <string name="food_sort_top_rated">Top rated</string>
+    <string name="food_sort_nearest">Nearest</string>
+    <string name="food_section_featured">Highly rated</string>
+    <string name="food_section_all_restaurants">All restaurants</string>
+    <string name="food_restaurant_count">%1$d restaurants</string>
+    <string name="food_rating_compact">%1$.1f (%2$d)</string>
+    <string name="food_no_reviews">No reviews yet</string>
+    <string name="food_distance_km">%1$.1f km</string>
+    <string name="food_status_open_hours">Open · %1$s – %2$s</string>
+    <string name="food_status_locked">Not accepting orders</string>
+    <string name="food_error_title">Couldn\'t load restaurants</string>
+    <string name="food_error_retry">Try again</string>
+    <string name="food_empty_message">Try a different keyword or clear the filters.</string>
+    <string name="food_empty_clear_filters">Clear filters</string>
+    <string name="food_cd_back">Back</string>
+    <string name="food_cd_cart">Cart</string>
+    <string name="food_cd_close">Close</string>
+    <string name="food_cd_clear_search">Clear search</string>
+    <string name="food_cd_add_item">Add %1$s</string>
+    <string name="food_cd_remove_item">Remove one %1$s</string>
+    <string name="food_cd_increase_quantity">Increase quantity</string>
+    <string name="food_cd_decrease_quantity">Decrease quantity</string>
+    <string name="food_cd_restaurant_image">%1$s photo</string>
+    <string name="food_cart_bar_count">%1$d items</string>
+    <string name="restaurant_menu_search_hint">Search this menu</string>
+    <string name="restaurant_menu_search_empty">No dishes match \"%1$s\"</string>
+    <string name="restaurant_menu_uncategorized">Other dishes</string>
+    <string name="restaurant_menu_banner_closed">This restaurant is closed right now. You can browse the menu but can\'t order yet.</string>
+    <string name="restaurant_menu_banner_locked">This restaurant has paused taking orders.</string>
+    <string name="restaurant_menu_banner_locked_reason">This restaurant has paused taking orders: %1$s</string>
+    <string name="restaurant_menu_hours">Hours %1$s – %2$s</string>
+    <string name="restaurant_menu_distance">%1$.1f km from you</string>
+    <string name="restaurant_menu_error">Couldn\'t load the menu</string>
+    <string name="menu_item_sheet_add">Add to cart · %1$s</string>
+    <string name="menu_item_sheet_blocked">Restaurant isn\'t accepting orders</string>
+    <string name="menu_item_sheet_quantity">Quantity</string>
+    <string name="checkout_fee_estimated_note">Delivery fee is an estimate. The final fee is confirmed when the order is placed.</string>
+    <string name="checkout_error_restaurant_closed">This restaurant is closed right now, so the order can\'t be placed.</string>
+    <string name="checkout_error_restaurant_locked">This restaurant has paused taking orders.</string>
+    <string name="checkout_error_no_restaurant_location">Restaurant location is missing, so the delivery fee can\'t be estimated.</string>
+
     <!-- FLOW 2 — OmniRide Booking & Radar -->
     <string name="ride_booking_title">Book a Ride</string>
     <string name="ride_pickup_label">Pickup Location</string>

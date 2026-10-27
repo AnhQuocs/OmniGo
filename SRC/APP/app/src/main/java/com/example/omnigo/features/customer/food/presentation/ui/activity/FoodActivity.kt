@@ -80,7 +80,7 @@ class FoodActivity : BaseComponentActivity() {
                             navController.navigate("food_order_detail/$orderId")
                         },
                         onReorderClick = { order ->
-                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                            navController.navigate("restaurant_detail/${order.restaurantId}")
                         },
                         onReviewClick = { order ->
                             navController.navigate("food_order_review/${order.id}")
@@ -99,7 +99,7 @@ class FoodActivity : BaseComponentActivity() {
                             navController.popBackStack()
                         },
                         onReorderClick = { order ->
-                            navController.navigate("food_restaurant_detail/${order.restaurantId}")
+                            navController.navigate("restaurant_detail/${order.restaurantId}")
                         },
                         onReviewClick = { order ->
                             navController.navigate("food_order_review/${order.id}")

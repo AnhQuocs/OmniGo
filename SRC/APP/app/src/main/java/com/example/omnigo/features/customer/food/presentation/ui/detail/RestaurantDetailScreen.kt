@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.core.components.AppTextField
 import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomBar
 import com.example.omnigo.features.customer.food.presentation.viewmodel.RestaurantDetailViewModel
 import com.example.omnigo.ui.dimens.AppShape
@@ -38,6 +39,7 @@ import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.BackgroundLight
 import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
@@ -48,6 +50,7 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s15
+import com.example.omnigo.utils.s16
 
 @Composable
 fun RestaurantDetailScreen(
@@ -104,35 +107,44 @@ fun RestaurantDetailScreen(
             }
             uiState.restaurant != null -> {
                 val restaurant = uiState.restaurant!!
-                
-                val flatDisplayedItems = if (uiState.selectedCategory.isNullOrBlank()) {
-                    uiState.menuItems.values.flatten()
+                val bottomPadding = if (uiState.totalCartQuantity > 0) {
+                    Dimen.SizeMega + Dimen.PaddingML
                 } else {
-                    uiState.menuItems[uiState.selectedCategory] ?: emptyList()
+                    Dimen.PaddingM
                 }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = Dimen.SizeMega + Dimen.PaddingML)
+                    contentPadding = PaddingValues(bottom = bottomPadding)
                 ) {
                     // Header Section
                     item {
                         RestaurantDetailHeaderSection(
                             restaurant = restaurant,
                             distanceKm = uiState.distanceKm,
-                            estimatedMinutes = uiState.estimatedDeliveryMinutes,
                             onBackClick = onBackClick
                         )
                     }
 
+                    // Menu Search Bar
+                    item {
+                        AppTextField(
+                            value = uiState.menuSearchQuery,
+                            onValueChange = viewModel::onMenuSearchQueryChanged,
+                            placeholder = stringResource(id = R.string.restaurant_menu_search_hint),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS)
+                        )
+                    }
+
                     // Category Filter Chips
-                    if (uiState.categories.isNotEmpty()) {
+                    if (uiState.categories.isNotEmpty() && uiState.menuSearchQuery.isBlank()) {
                         item {
                             LazyRow(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(BackgroundLight)
-                                    .padding(vertical = Dimen.PaddingS),
+                                    .padding(vertical = Dimen.PaddingXS),
                                 contentPadding = PaddingValues(horizontal = Dimen.PaddingM),
                                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
                             ) {
@@ -144,12 +156,12 @@ fun RestaurantDetailScreen(
                                         label = {
                                             Text(
                                                 text = stringResource(id = R.string.restaurant_detail_category_all),
-                                                style = if (isAllSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.normal()
+                                                style = if (isAllSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.medium()
                                             )
                                         },
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = PrimaryColor,
-                                            selectedLabelColor = TextWhite,
+                                            selectedContainerColor = PrimaryContainer,
+                                            selectedLabelColor = PrimaryColor,
                                             containerColor = SurfaceLight,
                                             labelColor = TextPrimary
                                         ),
@@ -157,7 +169,7 @@ fun RestaurantDetailScreen(
                                     )
                                 }
 
-                                items(uiState.categories) { category ->
+                                items(uiState.categories, key = { it }) { category ->
                                     val isSelected = uiState.selectedCategory == category
                                     FilterChip(
                                         selected = isSelected,
@@ -165,12 +177,12 @@ fun RestaurantDetailScreen(
                                         label = {
                                             Text(
                                                 text = category,
-                                                style = if (isSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.normal()
+                                                style = if (isSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.medium()
                                             )
                                         },
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = PrimaryColor,
-                                            selectedLabelColor = TextWhite,
+                                            selectedContainerColor = PrimaryContainer,
+                                            selectedLabelColor = PrimaryColor,
                                             containerColor = SurfaceLight,
                                             labelColor = TextPrimary
                                         ),
@@ -181,7 +193,7 @@ fun RestaurantDetailScreen(
                         }
                     }
 
-                    // Menu Items List
+                    // Menu Items Content
                     if (uiState.isMenuLoading) {
                         item {
                             Box(
@@ -193,36 +205,66 @@ fun RestaurantDetailScreen(
                                 CircularProgressIndicator(color = PrimaryColor)
                             }
                         }
-                    } else if (flatDisplayedItems.isEmpty()) {
+                    } else if (uiState.totalItemCount == 0) {
                         item {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = Dimen.PaddingXL),
+                                    .padding(Dimen.PaddingXL),
                                 contentAlignment = Alignment.Center
                             ) {
+                                val emptyText = if (uiState.menuSearchQuery.isNotBlank()) {
+                                    stringResource(id = R.string.restaurant_menu_search_empty, uiState.menuSearchQuery)
+                                } else {
+                                    stringResource(id = R.string.restaurant_detail_empty_menu)
+                                }
                                 Text(
-                                    text = stringResource(id = R.string.restaurant_detail_empty_menu),
+                                    text = emptyText,
                                     style = MaterialTheme.typography.s14.normal(),
-                                    color = TextSecondary
+                                    color = TextSecondary,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
                     } else {
-                        items(flatDisplayedItems, key = { it.id }) { item ->
-                            val cartItem = uiState.cartItems[item.id]
-                            val quantity = cartItem?.quantity ?: 0
-
-                            MenuItemCard(
-                                menuItem = item,
-                                quantityInCart = quantity,
-                                onAddToCart = viewModel::onAddToCart,
-                                onRemoveFromCart = viewModel::onRemoveFromCart,
-                                modifier = Modifier.padding(
-                                    horizontal = Dimen.PaddingM,
-                                    vertical = AppSpacing.XSPlus
+                        // Display sections with section title
+                        uiState.displayedSections.forEach { section ->
+                            item(key = "section_${section.category}") {
+                                val title = if (section.isUncategorized) {
+                                    stringResource(id = R.string.restaurant_menu_uncategorized)
+                                } else {
+                                    section.category
+                                }
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.s16.bold(),
+                                    color = TextPrimary,
+                                    modifier = Modifier.padding(
+                                        start = Dimen.PaddingM,
+                                        end = Dimen.PaddingM,
+                                        top = Dimen.PaddingM,
+                                        bottom = Dimen.PaddingXS
+                                    )
                                 )
-                            )
+                            }
+
+                            items(section.items, key = { it.id }) { item ->
+                                val cartItem = uiState.cartItems[item.id]
+                                val quantity = cartItem?.quantity ?: 0
+
+                                MenuItemCard(
+                                    menuItem = item,
+                                    quantityInCart = quantity,
+                                    canOrder = uiState.canOrder,
+                                    onItemClick = viewModel::onMenuItemClick,
+                                    onAddToCart = viewModel::onAddToCart,
+                                    onRemoveFromCart = viewModel::onRemoveFromCart,
+                                    modifier = Modifier.padding(
+                                        horizontal = Dimen.PaddingM,
+                                        vertical = AppSpacing.XSPlus
+                                    )
+                                )
+                            }
                         }
 
                         // Reviews Section
@@ -232,7 +274,7 @@ fun RestaurantDetailScreen(
                                 isLoading = uiState.isReviewsLoading,
                                 selectedRating = uiState.selectedRatingFilter,
                                 onRatingFilterSelected = { rating ->
-                                    restaurant?.id?.let { resId ->
+                                    restaurant.id.let { resId ->
                                         viewModel.loadReviews(resId, rating)
                                     }
                                 },
@@ -253,6 +295,21 @@ fun RestaurantDetailScreen(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
+        }
+
+        // Dish Detail Modal BottomSheet
+        val detailItem = uiState.selectedMenuItemForDetail
+        if (detailItem != null) {
+            MenuItemDetailBottomSheet(
+                menuItem = detailItem,
+                quantity = uiState.itemDetailQuantity,
+                note = uiState.itemDetailNote,
+                canOrder = uiState.canOrder,
+                onQuantityChange = viewModel::onDetailQuantityChanged,
+                onNoteChange = viewModel::onDetailNoteChanged,
+                onAddToCart = viewModel::onConfirmAddFromDetail,
+                onDismiss = viewModel::onDismissMenuItemDetail
+            )
         }
 
         // Restaurant Conflict Dialog

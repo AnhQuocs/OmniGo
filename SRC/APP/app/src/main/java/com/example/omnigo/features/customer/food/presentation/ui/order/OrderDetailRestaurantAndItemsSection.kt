@@ -28,9 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.FoodOrderItem
 import com.example.omnigo.ui.dimens.AppShape
@@ -105,7 +107,10 @@ fun OrderDetailRestaurantAndItemsSection(
                         ) {
                             if (!item.imageUrl.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = item.imageUrl,
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(item.imageUrl)
+                                        .crossfade(true)
+                                        .build(),
                                     contentDescription = item.itemName,
                                     contentScale = ContentScale.Crop,
                                     placeholder = rememberVectorPainter(Icons.Default.Fastfood),

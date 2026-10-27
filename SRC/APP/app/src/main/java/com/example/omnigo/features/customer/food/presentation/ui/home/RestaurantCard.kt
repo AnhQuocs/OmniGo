@@ -29,14 +29,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
+import com.example.omnigo.features.customer.food.domain.model.RestaurantAvailability
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.ErrorColor
+import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.SuccessColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
@@ -54,6 +57,7 @@ import com.example.omnigo.utils.s16
 fun RestaurantCard(
     restaurant: Restaurant,
     onRestaurantClick: (Long) -> Unit,
+    distanceKm: Double? = null,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
@@ -75,7 +79,10 @@ fun RestaurantCard(
                         .data(restaurant.imageUrl)
                         .crossfade(true)
                         .build(),
-                    contentDescription = restaurant.name,
+                    contentDescription = stringResource(
+                        id = R.string.food_cd_restaurant_image,
+                        restaurant.name
+                    ),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -83,11 +90,17 @@ fun RestaurantCard(
                         .clip(RoundedCornerShape(topStart = AppShape.ShapeL, topEnd = AppShape.ShapeL))
                 )
 
-                val statusColor = if (restaurant.isOpen) SuccessColor else ErrorColor
-                val statusText = if (restaurant.isOpen) {
-                    stringResource(id = R.string.food_open_status)
-                } else {
-                    stringResource(id = R.string.food_closed_status)
+                val (statusColor, statusText) = when (restaurant.availability) {
+                    RestaurantAvailability.LOCKED -> WarningColor to stringResource(id = R.string.food_status_locked)
+                    RestaurantAvailability.CLOSED -> ErrorColor to stringResource(id = R.string.food_closed_status)
+                    RestaurantAvailability.OPEN -> {
+                        val text = if (restaurant.openTime.isNotBlank() && restaurant.closeTime.isNotBlank()) {
+                            stringResource(id = R.string.food_status_open_hours, restaurant.openTime, restaurant.closeTime)
+                        } else {
+                            stringResource(id = R.string.food_open_status)
+                        }
+                        SuccessColor to text
+                    }
                 }
 
                 Surface(
@@ -120,32 +133,63 @@ fun RestaurantCard(
                         text = restaurant.name,
                         style = MaterialTheme.typography.s16.bold(),
                         color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = null,
-                            tint = WarningColor,
-                            modifier = Modifier.size(Dimen.SizeS)
-                        )
-                        Spacer(modifier = Modifier.width(AppSpacing.XXS))
+                    Spacer(modifier = Modifier.width(AppSpacing.S))
+
+                    if (restaurant.hasReviews) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = WarningColor,
+                                modifier = Modifier.size(Dimen.SizeS)
+                            )
+                            Spacer(modifier = Modifier.width(AppSpacing.XXS))
+                            Text(
+                                text = stringResource(
+                                    id = R.string.food_rating_compact,
+                                    restaurant.rating,
+                                    restaurant.reviewCount
+                                ),
+                                style = MaterialTheme.typography.s12.bold(),
+                                color = TextPrimary
+                            )
+                        }
+                    } else {
                         Text(
-                            text = stringResource(
-                                id = R.string.food_rating_format,
-                                restaurant.rating,
-                                restaurant.reviewCount
-                            ),
-                            style = MaterialTheme.typography.s12.bold(),
-                            color = TextPrimary
+                            text = stringResource(id = R.string.food_no_reviews),
+                            style = MaterialTheme.typography.s12.normal(),
+                            color = TextSecondary
                         )
                     }
                 }
 
-                if (restaurant.address.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(AppSpacing.XXS))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.height(AppSpacing.XS))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (distanceKm != null) {
+                        Text(
+                            text = stringResource(id = R.string.food_distance_km, distanceKm),
+                            style = MaterialTheme.typography.s12.medium(),
+                            color = PrimaryColor
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.XS))
+                        Text(
+                            text = "·",
+                            style = MaterialTheme.typography.s12.medium(),
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.XS))
+                    }
+
+                    if (restaurant.address.isNotEmpty()) {
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
                             contentDescription = null,
@@ -157,7 +201,8 @@ fun RestaurantCard(
                             text = restaurant.address,
                             style = MaterialTheme.typography.s12.normal(),
                             color = TextSecondary,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

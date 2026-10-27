@@ -21,53 +21,55 @@ import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
+import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
-import com.example.omnigo.utils.s12
-
-data class FoodCategoryItem(
-    val id: String,
-    val labelRes: Int
-)
+import com.example.omnigo.utils.s13
 
 @Composable
 fun FoodCategoriesSection(
-    selectedCategoryId: String?,
+    categories: List<String>,
+    selectedCategory: String?,
     onCategorySelected: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val categories = listOf(
-        FoodCategoryItem("all", R.string.food_filter_all),
-        FoodCategoryItem("bún", R.string.food_filter_bun),
-        FoodCategoryItem("cơm", R.string.food_filter_com),
-        FoodCategoryItem("pizza", R.string.food_filter_pizza),
-        FoodCategoryItem("drink", R.string.food_filter_drink)
-    )
+    if (categories.isEmpty()) return
 
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
         contentPadding = PaddingValues(horizontal = Dimen.PaddingM)
     ) {
-        items(categories) { category ->
-            val isSelected = if (category.id == "all") {
-                selectedCategoryId == null || selectedCategoryId == "all"
-            } else {
-                selectedCategoryId == category.id
-            }
-
+        // "Tất cả" chip
+        item {
+            val isAllSelected = selectedCategory.isNullOrBlank()
             FilterChip(
-                selected = isSelected,
-                onClick = {
-                    if (category.id == "all") {
-                        onCategorySelected(null)
-                    } else {
-                        onCategorySelected(category.id)
-                    }
-                },
+                selected = isAllSelected,
+                onClick = { onCategorySelected(null) },
                 label = {
                     Text(
-                        text = stringResource(id = category.labelRes),
-                        style = MaterialTheme.typography.s12.medium()
+                        text = stringResource(id = R.string.food_filter_all),
+                        style = if (isAllSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.medium()
+                    )
+                },
+                shape = RoundedCornerShape(AppShape.ShapeXL2),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = SurfaceLight,
+                    labelColor = TextPrimary,
+                    selectedContainerColor = PrimaryContainer,
+                    selectedLabelColor = PrimaryColor
+                )
+            )
+        }
+
+        items(categories, key = { it }) { category ->
+            val isSelected = selectedCategory == category
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(category) },
+                label = {
+                    Text(
+                        text = category,
+                        style = if (isSelected) MaterialTheme.typography.s13.bold() else MaterialTheme.typography.s13.medium()
                     )
                 },
                 shape = RoundedCornerShape(AppShape.ShapeXL2),

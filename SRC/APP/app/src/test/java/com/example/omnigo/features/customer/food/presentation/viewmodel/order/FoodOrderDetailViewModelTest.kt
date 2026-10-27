@@ -16,6 +16,12 @@ import com.example.omnigo.features.customer.food.domain.usecase.GetDriverProfile
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.RetryDriverUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.SwitchToCashUseCase
+import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
+import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
+import com.example.omnigo.features.customer.food.domain.model.MenuItem
+import com.example.omnigo.features.customer.food.domain.model.Restaurant
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -43,41 +49,25 @@ class FoodOrderDetailViewModelTest {
     private lateinit var cancelFoodOrderUseCase: CancelFoodOrderUseCase
     private lateinit var switchToCashUseCase: SwitchToCashUseCase
     private lateinit var retryDriverUseCase: RetryDriverUseCase
+    private lateinit var getRestaurantDetailUseCase: GetRestaurantDetailUseCase
+    private lateinit var getRestaurantItemsUseCase: GetRestaurantItemsUseCase
     private lateinit var viewModel: FoodOrderDetailViewModel
 
     private val mockOrder = FoodOrder(
-        id = 123L,
-        customerId = 1L,
-        driverId = 77L,
-        driverName = "Trần Shipper",
-        driverPhone = "0988888888",
-        driverVehiclePlate = "30H-99999",
-        restaurantId = 5L,
-        restaurantName = "Bún Chả Hàng Quạt",
-        restaurantAddress = "74 Hàng Quạt, Hoàn Kiếm",
-        status = "PREPARING",
-        paymentMethod = PaymentMethod.WALLET,
-        isPaid = true,
-        itemsPrice = 60000.0,
-        deliveryFee = 15000.0,
-        totalPrice = 75000.0,
-        dropOffAddress = "69 Nguyễn Hy Quang, Đống Đa, Hà Nội",
-        dropOffLatitude = 21.0150,
-        dropOffLongitude = 105.8520,
+        id = 123L, customerId = 1L, driverId = 77L,
+        driverName = "Trần Shipper", driverPhone = "0988888888", driverVehiclePlate = "30H-99999",
+        restaurantId = 5L, restaurantName = "Bún Chả Hàng Quạt", restaurantAddress = "74 Hàng Quạt, Hoàn Kiếm",
+        status = "PREPARING", paymentMethod = PaymentMethod.WALLET, isPaid = true,
+        itemsPrice = 60000.0, deliveryFee = 15000.0, totalPrice = 75000.0,
+        dropOffAddress = "69 Nguyễn Hy Quang, Đống Đa, Hà Nội", dropOffLatitude = 21.0150, dropOffLongitude = 105.8520,
         note = "Nhiều ớt",
         items = listOf(
             FoodOrderItem(
-                id = 10L,
-                menuItemId = 201L,
-                itemName = "Bún Chả Đặc Biệt",
-                itemPrice = 60000.0,
-                quantity = 1,
-                subtotal = 60000.0,
-                note = ""
+                id = 10L, menuItemId = 201L, itemName = "Bún Chả Đặc Biệt",
+                itemPrice = 60000.0, quantity = 1, subtotal = 60000.0, note = ""
             )
         ),
-        estimatedDeliveryMinutes = 20,
-        createdAt = "2026-09-29T12:00:00Z"
+        estimatedDeliveryMinutes = 20, createdAt = "2026-09-29T12:00:00Z"
     )
 
     private lateinit var activeTrackingRepository: com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
@@ -90,6 +80,8 @@ class FoodOrderDetailViewModelTest {
         cancelFoodOrderUseCase = mockk()
         switchToCashUseCase = mockk()
         retryDriverUseCase = mockk()
+        getRestaurantDetailUseCase = mockk(relaxed = true)
+        getRestaurantItemsUseCase = mockk(relaxed = true)
         activeTrackingRepository = mockk(relaxed = true)
         io.mockk.every { activeTrackingRepository.activeTrackingState } returns trackingStateFlow
         coEvery { getDriverProfileUseCase(any()) } returns GetDriverProfileResult.Error(
@@ -106,7 +98,9 @@ class FoodOrderDetailViewModelTest {
             switchToCashUseCase = switchToCashUseCase,
             retryDriverUseCase = retryDriverUseCase,
             activeTrackingRepository = activeTrackingRepository,
-            savedStateHandle = savedStateHandle
+            savedStateHandle = savedStateHandle,
+            getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+            getRestaurantItemsUseCase = getRestaurantItemsUseCase
         )
     }
 
@@ -345,5 +339,46 @@ class FoodOrderDetailViewModelTest {
         assertEquals(profile, viewModel.uiState.value.driverProfile)
         assertFalse(viewModel.uiState.value.isDriverProfileLoading)
         io.mockk.coVerify(exactly = 1) { getDriverProfileUseCase(77L) }
+    }
+
+    @Test
+    fun `init enriches order with real restaurant image and dish images from catalog`() = runTest {
+        val mockRestaurant = Restaurant(
+            id = 5L,
+            name = "Bún Chả Hàng Quạt",
+            phone = "0912345678",
+            address = "74 Hàng Quạt, Hoàn Kiếm",
+            latitude = 21.0315,
+            longitude = 105.8501,
+            imageUrl = "https://images.unsplash.com/photo-buncha.jpg",
+            status = "OPEN",
+            openTime = "08:00",
+            closeTime = "22:00",
+            rating = 4.8,
+            reviewCount = 120,
+            isOpen = true,
+            menuItems = listOf(
+                MenuItem(
+                    id = 201L,
+                    restaurantId = 5L,
+                    name = "Bún Chả Đặc Biệt",
+                    description = "Nhiều thịt nướng, chả viên thơm lừng",
+                    price = 60000.0,
+                    imageUrl = "https://images.unsplash.com/photo-dish-buncha.jpg",
+                    category = "Món chính",
+                    isAvailable = true
+                )
+            )
+        )
+
+        coEvery { getFoodOrderDetailUseCase(123L) } returns GetFoodOrderDetailResult.Success(mockOrder)
+        coEvery { getRestaurantDetailUseCase(5L) } returns GetRestaurantDetailResult.Success(mockRestaurant)
+
+        viewModel = createViewModel(123L)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("https://images.unsplash.com/photo-buncha.jpg", state.order?.restaurantImageUrl)
+        assertEquals("https://images.unsplash.com/photo-dish-buncha.jpg", state.order?.items?.first()?.imageUrl)
     }
 }

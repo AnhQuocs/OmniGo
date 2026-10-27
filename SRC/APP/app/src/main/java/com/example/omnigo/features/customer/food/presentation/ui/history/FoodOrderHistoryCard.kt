@@ -15,13 +15,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.DeliveryDining
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,187 +45,250 @@ import com.example.omnigo.features.customer.food.presentation.ui.order.formatFoo
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
+import com.example.omnigo.ui.theme.CardBorderColor
 import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
+import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
+import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s15
+import com.example.omnigo.utils.s16
+import java.util.Locale
 
 @Composable
 fun FoodOrderHistoryCard(
     order: FoodOrder,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReorderClick: ((FoodOrder) -> Unit)? = null,
+    onReviewClick: ((FoodOrder) -> Unit)? = null,
+    onTrackClick: ((FoodOrder) -> Unit)? = null
 ) {
-    val displayImageUrl = order.items.firstOrNull { !it.imageUrl.isNullOrBlank() }?.imageUrl
-        ?: order.restaurantImageUrl.orEmpty()
+    val displayImageUrl = order.restaurantImageUrl.orEmpty().ifBlank {
+        order.items.firstOrNull { !it.imageUrl.isNullOrBlank() }?.imageUrl.orEmpty()
+    }
 
     val totalItemCount = order.items.sumOf { it.quantity }.coerceAtLeast(1)
     val finalTotal = order.totalPrice ?: (order.itemsPrice + (order.deliveryFee ?: 0.0))
     val formattedDate = formatFoodOrderDateTime(order.createdAt)
 
-    ElevatedCard(
+    val upperStatus = order.status.uppercase(Locale.ROOT)
+    val isDelivered = upperStatus in setOf("COMPLETED", "DELIVERED")
+    val isCancelled = upperStatus in setOf("CANCELLED", "REJECTED")
+    val isOngoing = !isDelivered && !isCancelled
+
+    val dishesSummary = order.items.joinToString(", ") { item ->
+        if (item.quantity > 1) "${item.itemName} × ${item.quantity}" else item.itemName
+    }
+
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(AppShape.ShapeL),
-        colors = CardDefaults.elevatedCardColors(containerColor = SurfaceLight),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = Dimen.PaddingXXS)
+        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimen.PaddingXXS)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingM),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(Dimen.PaddingM)
         ) {
-            // Big Rounded Food / Restaurant Thumbnail on Left
-            Box(
-                modifier = Modifier
-                    .size(Dimen.SizeMega)
-                    .clip(RoundedCornerShape(AppShape.ShapeM))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+            // Header: Restaurant Avatar + Info + Status Chip
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (displayImageUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(displayImageUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = order.restaurantName,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = null,
-                        tint = PrimaryColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(Dimen.SizeXL)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(AppSpacing.M))
-
-            // Right Content
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                // Row 1: Restaurant Name + Status Pill Chip
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(Dimen.SizeXXL)
+                        .clip(RoundedCornerShape(AppShape.ShapeM))
+                        .background(PrimaryContainer),
+                    contentAlignment = Alignment.Center
                 ) {
+                    if (displayImageUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(displayImageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = order.restaurantName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Storefront,
+                            contentDescription = null,
+                            tint = PrimaryColor,
+                            modifier = Modifier.size(Dimen.SizeM)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(AppSpacing.M))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = order.restaurantName.ifBlank { stringResource(R.string.order_detail_restaurant_title) },
                         style = MaterialTheme.typography.s15.bold(),
                         color = TextPrimary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.width(AppSpacing.S))
-
-                    FoodOrderHistoryStatusChip(status = order.status)
+                    if (formattedDate.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.s12.normal(),
+                            color = TextSecondary
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                Spacer(modifier = Modifier.width(AppSpacing.S))
 
-                // Row 2: Formatted Date & Time (dd/MM/yyyy · HH:mm)
-                if (formattedDate.isNotBlank()) {
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.s12.normal(),
-                        color = TextSecondary
-                    )
-                }
+                FoodOrderHistoryStatusChip(status = order.status)
+            }
 
-                Spacer(modifier = Modifier.height(AppSpacing.S))
+            // Dishes Summary
+            if (dishesSummary.isNotBlank()) {
+                Spacer(modifier = Modifier.height(AppSpacing.SPlus))
+                Text(
+                    text = dishesSummary,
+                    style = MaterialTheme.typography.s13.normal(),
+                    color = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-                // Row 3: Mini Dish Thumbnails Preview (up to 3 items + overflow badge)
-                if (order.items.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.XSPlus)
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+
+            // Pricing Row: Total Items + Final Price
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.food_history_order_items_count, totalItemCount),
+                    style = MaterialTheme.typography.s13.medium(),
+                    color = TextSecondary
+                )
+
+                Text(
+                    text = formatFoodOrderPrice(finalTotal),
+                    style = MaterialTheme.typography.s16.bold(),
+                    color = PrimaryColor
+                )
+            }
+
+            // Quick Actions Footer
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+
+            when {
+                isOngoing -> {
+                    Button(
+                        onClick = { onTrackClick?.invoke(order) ?: onClick() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Dimen.HeightDefault),
+                        shape = RoundedCornerShape(AppShape.ShapeM),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                     ) {
-                        val previewItems = order.items.take(3)
-                        val extraCount = (order.items.size - 3).coerceAtLeast(0)
-
-                        previewItems.forEach { item ->
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimen.SizeXL)
-                                    .clip(RoundedCornerShape(AppShape.ShapeS))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!item.imageUrl.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalContext.current)
-                                            .data(item.imageUrl)
-                                            .crossfade(true)
-                                            .build(),
-                                        contentDescription = item.itemName,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Fastfood,
-                                        contentDescription = null,
-                                        tint = PrimaryColor.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(Dimen.SizeS)
-                                    )
-                                }
-                            }
+                        Icon(
+                            imageVector = Icons.Default.DeliveryDining,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimen.SizeSM)
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.XS))
+                        Text(
+                            text = stringResource(id = R.string.food_history_btn_track_order),
+                            style = MaterialTheme.typography.s13.bold(),
+                            color = TextWhite
+                        )
+                    }
+                }
+                isDelivered -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
+                    ) {
+                        OutlinedButton(
+                            onClick = { onReviewClick?.invoke(order) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(Dimen.HeightDefault),
+                            shape = RoundedCornerShape(AppShape.ShapeM)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChatBubbleOutline,
+                                contentDescription = null,
+                                tint = PrimaryColor,
+                                modifier = Modifier.size(Dimen.SizeS)
+                            )
+                            Spacer(modifier = Modifier.width(AppSpacing.XS))
+                            Text(
+                                text = stringResource(id = R.string.food_history_btn_review),
+                                style = MaterialTheme.typography.s13.bold(),
+                                color = PrimaryColor
+                            )
                         }
 
-                        if (extraCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimen.SizeXL)
-                                    .clip(RoundedCornerShape(AppShape.ShapeS))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+$extraCount",
-                                    style = MaterialTheme.typography.s12.medium(),
-                                    color = TextSecondary
-                                )
-                            }
+                        Button(
+                            onClick = { onReorderClick?.invoke(order) },
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(Dimen.HeightDefault),
+                            shape = RoundedCornerShape(AppShape.ShapeM),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimen.SizeS)
+                            )
+                            Spacer(modifier = Modifier.width(AppSpacing.XS))
+                            Text(
+                                text = stringResource(id = R.string.food_history_btn_reorder),
+                                style = MaterialTheme.typography.s13.bold(),
+                                color = TextWhite
+                            )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(AppSpacing.S))
                 }
-
-                // Row 4: Total items + Total Price + Chevron Arrow
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${stringResource(R.string.food_history_order_items_count, totalItemCount)} • ${formatFoodOrderPrice(finalTotal)}",
-                        style = MaterialTheme.typography.s14.bold(),
-                        color = TextPrimary
-                    )
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = TextSecondary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(Dimen.SizeM)
-                    )
+                isCancelled -> {
+                    OutlinedButton(
+                        onClick = { onReorderClick?.invoke(order) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Dimen.HeightDefault),
+                        shape = RoundedCornerShape(AppShape.ShapeM)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            tint = PrimaryColor,
+                            modifier = Modifier.size(Dimen.SizeS)
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.XS))
+                        Text(
+                            text = stringResource(id = R.string.food_history_btn_reorder),
+                            style = MaterialTheme.typography.s13.bold(),
+                            color = PrimaryColor
+                        )
+                    }
                 }
             }
         }

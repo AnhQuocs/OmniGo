@@ -33,6 +33,8 @@ fun RestaurantResponse.toDomain(): Restaurant {
         rating = rating ?: 0.0,
         reviewCount = reviewCount ?: totalReviews ?: 0,
         isOpen = status?.uppercase() == "OPEN",
-        menuItems = menuItems?.map { it.toDomain() }.orEmpty()
+        menuItems = menuItems?.map { it.toDomain() }.orEmpty(),
+        isLocked = isLocked == true,
+        lockedReason = lockedReason.orEmpty()
     )
 }

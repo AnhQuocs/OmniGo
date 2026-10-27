@@ -31,6 +31,9 @@ android {
         val mapsApiKey = keyStoreProperties.getProperty("MAPS_API_KEY") ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
+
+        val mapboxAccessToken = keyStoreProperties.getProperty("MAPBOX_ACCESS_TOKEN") ?: ""
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxAccessToken\"")
     }
 
     buildTypes {

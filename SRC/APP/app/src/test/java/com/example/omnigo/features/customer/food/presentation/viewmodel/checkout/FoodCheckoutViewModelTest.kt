@@ -214,4 +214,36 @@ class FoodCheckoutViewModelTest {
             createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any())
         }
     }
+
+    @Test
+    fun `onPlaceOrder when restaurant is closed blocks order placement`() = runTest {
+        val closedRestaurant = mockRestaurant.copy(isOpen = false, status = "CLOSED")
+        coEvery { getRestaurantDetailUseCase(1L) } returns GetRestaurantDetailResult.Success(closedRestaurant)
+
+        userLocationManager.updateLocation(UserLocation(21.0150, 105.8520, "Nhà", "69 Nguyễn Hy Quang"))
+        cartManager.addItem(mockMenuItem, quantity = 1, restaurantName = "Phở Thìn Lò Đúc")
+        advanceUntilIdle()
+
+        viewModel.onPlaceOrder()
+        val state = viewModel.uiState.value
+        assertFalse(state.isPlacingOrder)
+        assertNotNull(state.errorMessage)
+        io.mockk.coVerify(exactly = 0) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `onPlaceOrder when restaurant is locked blocks order placement`() = runTest {
+        val lockedRestaurant = mockRestaurant.copy(isLocked = true, lockedReason = "Bảo trì")
+        coEvery { getRestaurantDetailUseCase(1L) } returns GetRestaurantDetailResult.Success(lockedRestaurant)
+
+        userLocationManager.updateLocation(UserLocation(21.0150, 105.8520, "Nhà", "69 Nguyễn Hy Quang"))
+        cartManager.addItem(mockMenuItem, quantity = 1, restaurantName = "Phở Thìn Lò Đúc")
+        advanceUntilIdle()
+
+        viewModel.onPlaceOrder()
+        val state = viewModel.uiState.value
+        assertFalse(state.isPlacingOrder)
+        assertNotNull(state.errorMessage)
+        io.mockk.coVerify(exactly = 0) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+    }
 }

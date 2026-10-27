@@ -42,6 +42,7 @@ import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.CardBorderColor
 import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
@@ -72,36 +73,43 @@ fun RestaurantReviewsSection(
 
         Spacer(modifier = Modifier.height(AppSpacing.S))
 
-        // Rating Filter Chips (All, 5, 4, 3, 2, 1)
-        FlowRow(
+        // Rating Filter Pills on a single sleek horizontal line
+        androidx.compose.foundation.lazy.LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.XXS)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
         ) {
-            FilterChip(
-                selected = selectedRating == null,
-                onClick = { onRatingFilterSelected(null) },
-                label = {
-                    Text(
-                        text = stringResource(id = R.string.restaurant_reviews_filter_all),
-                        style = MaterialTheme.typography.s12.normal()
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryColor,
-                    selectedLabelColor = SurfaceLight
-                )
-            )
-
-            for (star in 5 downTo 1) {
+            item {
+                val isAllSelected = selectedRating == null
                 FilterChip(
-                    selected = selectedRating == star,
-                    onClick = { onRatingFilterSelected(if (selectedRating == star) null else star) },
+                    selected = isAllSelected,
+                    onClick = { onRatingFilterSelected(null) },
+                    label = {
+                        Text(
+                            text = stringResource(id = R.string.restaurant_reviews_filter_all),
+                            style = if (isAllSelected) MaterialTheme.typography.s12.bold() else MaterialTheme.typography.s12.normal()
+                        )
+                    },
+                    shape = RoundedCornerShape(AppShape.ShapeXL),
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = SurfaceLight,
+                        labelColor = TextSecondary,
+                        selectedContainerColor = PrimaryContainer,
+                        selectedLabelColor = PrimaryColor
+                    )
+                )
+            }
+
+            items(5) { index ->
+                val star = 5 - index
+                val isSelected = selectedRating == star
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onRatingFilterSelected(if (isSelected) null else star) },
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "$star",
-                                style = MaterialTheme.typography.s12.normal()
+                                style = if (isSelected) MaterialTheme.typography.s12.bold() else MaterialTheme.typography.s12.normal()
                             )
                             Spacer(modifier = Modifier.width(AppSpacing.XXS))
                             Icon(
@@ -112,9 +120,12 @@ fun RestaurantReviewsSection(
                             )
                         }
                     },
+                    shape = RoundedCornerShape(AppShape.ShapeXL),
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PrimaryColor,
-                        selectedLabelColor = SurfaceLight
+                        containerColor = SurfaceLight,
+                        labelColor = TextSecondary,
+                        selectedContainerColor = PrimaryContainer,
+                        selectedLabelColor = PrimaryColor
                     )
                 )
             }

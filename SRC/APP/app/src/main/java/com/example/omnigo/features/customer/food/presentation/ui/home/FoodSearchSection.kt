@@ -37,7 +37,7 @@ fun FoodSearchSection(
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
                         imageVector = Icons.Filled.Clear,
-                        contentDescription = null,
+                        contentDescription = stringResource(id = R.string.food_cd_clear_search),
                         tint = TextSecondary
                     )
                 }
