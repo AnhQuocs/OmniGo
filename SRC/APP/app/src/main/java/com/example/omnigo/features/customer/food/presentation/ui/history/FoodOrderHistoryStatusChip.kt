@@ -1,26 +1,47 @@
 package com.example.omnigo.features.customer.food.presentation.ui.history
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.TwoWheeler
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
+import com.example.omnigo.features.customer.food.domain.util.FoodOrderHistoryHelper
+import com.example.omnigo.features.customer.food.domain.util.OrderHistoryStatusGroup
 import com.example.omnigo.ui.dimens.AppShape
+import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.ErrorColor
-import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.ErrorContainer
 import com.example.omnigo.ui.theme.SecondaryColor
+import com.example.omnigo.ui.theme.SecondaryContainer
 import com.example.omnigo.ui.theme.SuccessColor
+import com.example.omnigo.ui.theme.SurfaceVariantLight
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.utils.bold
+import com.example.omnigo.utils.medium
+import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
-import java.util.Locale
 
 @Composable
 fun FoodOrderHistoryStatusChip(
@@ -29,71 +50,116 @@ fun FoodOrderHistoryStatusChip(
 ) {
     val config = getStatusChipConfig(status)
 
-    Box(
+    Row(
         modifier = modifier
-            .background(color = config.bg, shape = RoundedCornerShape(AppShape.ShapeXL2))
-            .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS)
+            .background(color = config.bg, shape = CircleShape)
+            .padding(horizontal = Dimen.PaddingXSPlus, vertical = Dimen.PaddingXXS),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = config.icon,
+            contentDescription = null,
+            tint = config.fg,
+            modifier = Modifier.size(Dimen.SizeIconXS)
+        )
+        Spacer(modifier = Modifier.width(AppSpacing.XXS))
         Text(
             text = stringResource(config.labelRes),
-            style = MaterialTheme.typography.s12.bold(),
-            color = config.fg
+            style = MaterialTheme.typography.s10.bold(),
+            color = config.fg,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+fun FoodOrderPaymentMethodChip(
+    paymentMethod: PaymentMethod?,
+    modifier: Modifier = Modifier
+) {
+    val config = getPaymentChipConfig(paymentMethod)
+
+    Row(
+        modifier = modifier
+            .background(
+                color = config.bg,
+                shape = RoundedCornerShape(AppShape.ShapeXS)
+            )
+            .padding(horizontal = Dimen.PaddingXSPlus, vertical = Dimen.PaddingXXS),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = config.icon,
+            contentDescription = null,
+            tint = config.fg,
+            modifier = Modifier.size(Dimen.SizeIconXS)
+        )
+        Spacer(modifier = Modifier.width(AppSpacing.XXS))
+        Text(
+            text = stringResource(config.labelRes),
+            style = MaterialTheme.typography.s10.medium(),
+            color = config.fg,
+            maxLines = 1
         )
     }
 }
 
 private fun getStatusChipConfig(status: String): StatusChipConfig {
-    return when (status.uppercase(Locale.ROOT)) {
-        "COMPLETED", "DELIVERED" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_completed,
-            bg = SuccessColor.copy(alpha = 0.15f),
+    return when (FoodOrderHistoryHelper.resolveStatusGroup(status)) {
+        OrderHistoryStatusGroup.DELIVERED -> StatusChipConfig(
+            labelRes = R.string.food_history_status_delivered,
+            icon = Icons.Filled.CheckCircle,
+            bg = SuccessColor.copy(alpha = 0.14f),
             fg = SuccessColor
         )
-        "DELIVERING", "PICKED_UP", "ARRIVED_CUSTOMER" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_delivering,
-            bg = PrimaryColor.copy(alpha = 0.15f),
-            fg = PrimaryColor
-        )
-        "PREPARING", "ACCEPTED" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_preparing,
-            bg = SecondaryColor.copy(alpha = 0.18f),
-            fg = SecondaryColor
-        )
-        "PENDING", "PENDING_MERCHANT" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_pending,
-            bg = SecondaryColor.copy(alpha = 0.18f),
-            fg = SecondaryColor
-        )
-        "AWAITING_PAYMENT", "PENDING_PAYMENT" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_awaiting_payment,
-            bg = SecondaryColor.copy(alpha = 0.18f),
-            fg = SecondaryColor
-        )
-        "CANCELLED" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_cancelled,
-            bg = com.example.omnigo.ui.theme.SurfaceVariantLight,
-            fg = TextSecondary
-        )
-        "REJECTED" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_rejected,
-            bg = ErrorColor.copy(alpha = 0.12f),
+        OrderHistoryStatusGroup.CANCELLED -> StatusChipConfig(
+            labelRes = R.string.food_history_status_cancelled,
+            icon = Icons.Filled.Cancel,
+            bg = ErrorContainer,
             fg = ErrorColor
         )
-        "NO_DRIVER_FOUND" -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_no_driver,
-            bg = SecondaryColor.copy(alpha = 0.18f),
+        OrderHistoryStatusGroup.ONGOING -> StatusChipConfig(
+            labelRes = R.string.food_history_status_delivering,
+            icon = Icons.Filled.TwoWheeler,
+            bg = SecondaryContainer,
             fg = SecondaryColor
         )
-        else -> StatusChipConfig(
-            labelRes = R.string.order_detail_status_unknown,
-            bg = com.example.omnigo.ui.theme.SurfaceVariantLight,
+    }
+}
+
+private fun getPaymentChipConfig(paymentMethod: PaymentMethod?): StatusChipConfig {
+    return when (paymentMethod) {
+        PaymentMethod.WALLET -> StatusChipConfig(
+            labelRes = R.string.food_history_payment_method_wallet,
+            icon = Icons.Outlined.CreditCard,
+            bg = SecondaryContainer,
+            fg = SecondaryColor
+        )
+        PaymentMethod.VNPAY -> StatusChipConfig(
+            labelRes = R.string.food_history_payment_method_card,
+            icon = Icons.Outlined.CreditCard,
+            bg = SurfaceVariantLight,
             fg = TextSecondary
+        )
+        PaymentMethod.MOMO -> StatusChipConfig(
+            labelRes = R.string.food_history_payment_method_momo,
+            icon = Icons.Outlined.CreditCard,
+            bg = SurfaceVariantLight,
+            fg = TextSecondary
+        )
+        PaymentMethod.CASH, null -> StatusChipConfig(
+            labelRes = R.string.food_history_payment_method_cash,
+            icon = Icons.Outlined.AccountBalanceWallet,
+            bg = SecondaryContainer,
+            fg = SecondaryColor
         )
     }
 }
 
 private data class StatusChipConfig(
     val labelRes: Int,
+    val icon: ImageVector,
     val bg: Color,
     val fg: Color
 )

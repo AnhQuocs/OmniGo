@@ -17,6 +17,7 @@ object Dimen {
     val PaddingUltra = 68.dp
 
     // Size (icon, button, card width...)
+    val SizeIconXS = 12.dp
     val SizeS = 16.dp
     val SizeS2 = 18.dp
     val SizeSM = 20.dp
@@ -56,6 +57,12 @@ object Dimen {
     val HeightHeroBanner = 220.dp
     val SizeMenuItemImage = 88.dp
     val SizePopularPlaceImage = 104.dp
+    val SizeHistoryCardImage = 92.dp
+    val SizeActivityCompactImage = 72.dp
+    val SizeActivityFoodSummaryThumb = 48.dp
+    val SizeOrderItemThumbnail = 36.dp
+    val SizeTabBadge = 20.dp
+    val HeightRideMiniMapPreview = 110.dp
     val SizeWalletIcon = 38.dp
     val SizeHeaderLocation = 38.dp
     val HeightPinPickerBottomOffset = 180.dp

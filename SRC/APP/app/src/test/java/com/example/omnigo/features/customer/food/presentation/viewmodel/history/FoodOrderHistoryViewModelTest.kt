@@ -2,9 +2,15 @@ package com.example.omnigo.features.customer.food.presentation.viewmodel.history
 
 import com.example.omnigo.features.customer.food.domain.error.FoodError
 import com.example.omnigo.features.customer.food.domain.model.FoodOrder
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderItem
 import com.example.omnigo.features.customer.food.domain.model.GetMyFoodOrdersResult
+import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
+import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
+import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.GetMyFoodOrdersUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,6 +34,8 @@ class FoodOrderHistoryViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var getMyFoodOrdersUseCase: GetMyFoodOrdersUseCase
+    private lateinit var getRestaurantDetailUseCase: GetRestaurantDetailUseCase
+    private lateinit var getRestaurantItemsUseCase: GetRestaurantItemsUseCase
     private lateinit var viewModel: FoodOrderHistoryViewModel
 
     private val pendingOrder = FoodOrder(
@@ -77,7 +85,15 @@ class FoodOrderHistoryViewModelTest {
     @Before
     fun setUp() {
         getMyFoodOrdersUseCase = mockk()
+        getRestaurantDetailUseCase = mockk(relaxed = true)
+        getRestaurantItemsUseCase = mockk(relaxed = true)
     }
+
+    private fun createViewModel() = FoodOrderHistoryViewModel(
+        getMyFoodOrdersUseCase = getMyFoodOrdersUseCase,
+        getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+        getRestaurantItemsUseCase = getRestaurantItemsUseCase
+    )
 
     @Test
     fun `init loads order history successfully`() = runTest {
@@ -85,7 +101,7 @@ class FoodOrderHistoryViewModelTest {
             listOf(pendingOrder, completedOrder)
         )
 
-        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -101,22 +117,18 @@ class FoodOrderHistoryViewModelTest {
             listOf(pendingOrder, completedOrder)
         )
 
-        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Filter: ONGOING
         viewModel.onFilterSelected(HistoryFilter.ONGOING)
         assertEquals(HistoryFilter.ONGOING, viewModel.uiState.value.selectedFilter)
 
-        // Filter: DELIVERED
         viewModel.onFilterSelected(HistoryFilter.DELIVERED)
         assertEquals(HistoryFilter.DELIVERED, viewModel.uiState.value.selectedFilter)
 
-        // Filter: CANCELLED
         viewModel.onFilterSelected(HistoryFilter.CANCELLED)
         assertEquals(HistoryFilter.CANCELLED, viewModel.uiState.value.selectedFilter)
 
-        // Filter: ALL
         viewModel.onFilterSelected(HistoryFilter.ALL)
         assertEquals(HistoryFilter.ALL, viewModel.uiState.value.selectedFilter)
     }
@@ -127,7 +139,7 @@ class FoodOrderHistoryViewModelTest {
             listOf(pendingOrder)
         )
 
-        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         assertEquals(1, viewModel.uiState.value.orders.size)
@@ -152,7 +164,7 @@ class FoodOrderHistoryViewModelTest {
             "Network error"
         )
 
-        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -170,7 +182,7 @@ class FoodOrderHistoryViewModelTest {
             listOf(pendingOrder)
         )
 
-        viewModel = FoodOrderHistoryViewModel(getMyFoodOrdersUseCase)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.loadOrders(isRefresh = true)
@@ -180,6 +192,63 @@ class FoodOrderHistoryViewModelTest {
         assertEquals(1, viewModel.uiState.value.orders.size)
         coVerify(exactly = 2) { getMyFoodOrdersUseCase() }
     }
+
+    @Test
+    fun `loadOrders enriches restaurant image, address, and item thumbnails when missing`() = runTest {
+        val unhydratedOrder = pendingOrder.copy(
+            restaurantImageUrl = null,
+            restaurantAddress = null,
+            items = listOf(
+                FoodOrderItem(
+                    id = 10L,
+                    menuItemId = 100L,
+                    itemName = "Phở Bò",
+                    itemPrice = 50000.0,
+                    quantity = 2,
+                    subtotal = 100000.0,
+                    note = "",
+                    imageUrl = null
+                )
+            )
+        )
+
+        coEvery { getMyFoodOrdersUseCase() } returns GetMyFoodOrdersResult.Success(listOf(unhydratedOrder))
+        coEvery { getRestaurantDetailUseCase(1L) } returns GetRestaurantDetailResult.Success(
+            Restaurant(
+                id = 1L,
+                name = "Phở Hà Nội",
+                phone = "0901234567",
+                address = "13 Lò Đúc, Hai Bà Trưng, Hà Nội",
+                latitude = 21.01,
+                longitude = 105.85,
+                imageUrl = "https://example.com/restaurant.jpg",
+                status = "ACTIVE",
+                openTime = "06:00",
+                closeTime = "22:00",
+                rating = 4.9,
+                reviewCount = 120,
+                isOpen = true,
+                menuItems = listOf(
+                    MenuItem(
+                        id = 100L,
+                        restaurantId = 1L,
+                        name = "Phở Bò",
+                        description = "",
+                        price = 50000.0,
+                        imageUrl = "https://example.com/pho_bo.jpg",
+                        category = "Phở",
+                        isAvailable = true
+                    )
+                )
+            )
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val enrichedOrder = viewModel.uiState.value.orders.first()
+        assertEquals("https://example.com/restaurant.jpg", enrichedOrder.restaurantImageUrl)
+        assertEquals("13 Lò Đúc, Hai Bà Trưng, Hà Nội", enrichedOrder.restaurantAddress)
+        assertEquals("https://example.com/pho_bo.jpg", enrichedOrder.items.first().imageUrl)
+    }
 }
-
-

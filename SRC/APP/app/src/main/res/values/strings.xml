@@ -816,4 +816,46 @@
     <string name="trip_map_close_button">Close Map</string>
 
     <string name="ride_confirm_booking">Confirm Booking</string>
+    <!-- Food Order History Card Redesign -->
+    <string name="food_history_status_delivered">Delivered</string>
+    <string name="food_history_status_delivering">Delivering</string>
+    <string name="food_history_status_cancelled">Cancelled</string>
+    <string name="food_history_items_and_payment_status">%1$d items • %2$s</string>
+    <string name="food_history_payment_status_cash">Payment</string>
+    <string name="food_history_payment_status_paid">Paid</string>
+    <string name="food_history_payment_status_refunded">Refunded</string>
+    <string name="food_history_payment_method_cash">Cash</string>
+    <string name="food_history_payment_method_wallet">OmniGo Wallet</string>
+    <string name="food_history_payment_method_card">Bank Card</string>
+    <string name="food_history_payment_method_momo">MoMo Wallet</string>
+    <string name="food_history_eta_range">Est. %1$d–%2$d min</string>
+    <string name="food_history_extra_items_badge">+%1$d</string>
+
+    <!-- Activity Screen Redesign (Ongoing & History) -->
+    <string name="activity_service_omnifood">OmniFood</string>
+    <string name="activity_service_omniride">OmniRide</string>
+    <string name="activity_food_status_confirmed">Confirmed</string>
+    <string name="activity_food_status_preparing">Preparing</string>
+    <string name="activity_food_status_delivering">Delivering</string>
+    <string name="activity_food_status_completed">Completed</string>
+    <string name="activity_food_items_count_format">%1$d items</string>
+    <string name="activity_food_est_delivery_label">Estimated delivery</string>
+    <string name="activity_food_btn_view_details">View details</string>
+    <string name="activity_ride_status_driver_arriving">Driver arriving</string>
+    <string name="activity_ride_status_searching">Searching driver</string>
+    <string name="activity_ride_status_arrived">Driver arrived</string>
+    <string name="activity_ride_status_in_progress">In progress</string>
+    <string name="activity_ride_driver_rating_trips">4.9 (320 trips)</string>
+    <string name="activity_ride_map_eta_mins">%1$d mins</string>
+    <string name="activity_ride_map_dist_km">~ %1$.1f km</string>
+    <string name="activity_ride_pickup_label">Pickup</string>
+    <string name="activity_ride_dropoff_label">Drop-off</string>
+    <string name="activity_ride_btn_cancel">Cancel ride</string>
+    <string name="activity_ride_btn_contact_driver">Contact driver</string>
+    <string name="activity_history_month_header">Month %1$d, %2$d</string>
+    <string name="activity_history_payment_cash">Cash payment</string>
+    <string name="activity_history_payment_wallet">OmniGo Wallet</string>
+    <string name="activity_history_payment_card">Bank card</string>
+    <string name="activity_history_food_summary">%1$d items • %2$s</string>
+    <string name="activity_history_ride_summary">%1$.1f km • %2$s</string>
 </resources>

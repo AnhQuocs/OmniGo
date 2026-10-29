@@ -27,8 +27,8 @@ fun ActivityHeaderSection(
             .fillMaxWidth()
             .background(SurfaceLight)
             .statusBarsPadding()
-            .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM),
-        contentAlignment = Alignment.CenterStart
+            .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingSM),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = stringResource(id = R.string.activity_title),

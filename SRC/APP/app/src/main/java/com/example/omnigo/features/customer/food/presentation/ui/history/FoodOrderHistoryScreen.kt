@@ -1,7 +1,7 @@
 package com.example.omnigo.features.customer.food.presentation.ui.history
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,8 +23,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +35,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,14 +51,11 @@ import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.BackgroundLight
 import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextWhite
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
-import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
@@ -202,8 +198,11 @@ fun FoodOrderHistoryScreen(
                     else -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(Dimen.PaddingML),
-                            verticalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge)
+                            contentPadding = PaddingValues(
+                                horizontal = Dimen.PaddingSM,
+                                vertical = Dimen.PaddingSM
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
                         ) {
                             items(
                                 items = filteredOrders,
@@ -236,7 +235,7 @@ private fun FilterSection(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceLight)
-            .padding(horizontal = Dimen.PaddingML, vertical = Dimen.PaddingS)
+            .padding(horizontal = Dimen.PaddingSM, vertical = Dimen.PaddingS)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -818,4 +818,46 @@
     <string name="trip_map_close_button">Đóng bản đồ</string>
 
     <string name="ride_confirm_booking">Xác nhận đặt xe</string>
+    <!-- Food Order History Card Redesign -->
+    <string name="food_history_status_delivered">Đã giao</string>
+    <string name="food_history_status_delivering">Đang giao</string>
+    <string name="food_history_status_cancelled">Đã hủy</string>
+    <string name="food_history_items_and_payment_status">%1$d món • %2$s</string>
+    <string name="food_history_payment_status_cash">Thanh toán</string>
+    <string name="food_history_payment_status_paid">Đã thanh toán</string>
+    <string name="food_history_payment_status_refunded">Hoàn tiền thành công</string>
+    <string name="food_history_payment_method_cash">Tiền mặt</string>
+    <string name="food_history_payment_method_wallet">Ví OmniGo</string>
+    <string name="food_history_payment_method_card">Thẻ ngân hàng</string>
+    <string name="food_history_payment_method_momo">Ví MoMo</string>
+    <string name="food_history_eta_range">Dự kiến %1$d–%2$d phút</string>
+    <string name="food_history_extra_items_badge">+%1$d</string>
+
+    <!-- Activity Screen Redesign (Ongoing & History) -->
+    <string name="activity_service_omnifood">OmniFood</string>
+    <string name="activity_service_omniride">OmniRide</string>
+    <string name="activity_food_status_confirmed">Đã xác nhận</string>
+    <string name="activity_food_status_preparing">Đang chuẩn bị</string>
+    <string name="activity_food_status_delivering">Đang giao</string>
+    <string name="activity_food_status_completed">Hoàn thành</string>
+    <string name="activity_food_items_count_format">%1$d món</string>
+    <string name="activity_food_est_delivery_label">Dự kiến giao</string>
+    <string name="activity_food_btn_view_details">Xem chi tiết</string>
+    <string name="activity_ride_status_driver_arriving">Tài xế đang đến</string>
+    <string name="activity_ride_status_searching">Đang tìm tài xế</string>
+    <string name="activity_ride_status_arrived">Tài xế đã đến</string>
+    <string name="activity_ride_status_in_progress">Đang trong chuyến</string>
+    <string name="activity_ride_driver_rating_trips">4.9 (320 chuyến)</string>
+    <string name="activity_ride_map_eta_mins">%1$d phút</string>
+    <string name="activity_ride_map_dist_km">~ %1$.1f km</string>
+    <string name="activity_ride_pickup_label">Điểm đón</string>
+    <string name="activity_ride_dropoff_label">Điểm đến</string>
+    <string name="activity_ride_btn_cancel">Hủy chuyến</string>
+    <string name="activity_ride_btn_contact_driver">Liên hệ tài xế</string>
+    <string name="activity_history_month_header">Tháng %1$d, %2$d</string>
+    <string name="activity_history_payment_cash">Thanh toán tiền mặt</string>
+    <string name="activity_history_payment_wallet">Ví OmniGo</string>
+    <string name="activity_history_payment_card">Thẻ ngân hàng</string>
+    <string name="activity_history_food_summary">%1$d món • %2$s</string>
+    <string name="activity_history_ride_summary">%1$.1f km • %2$s</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.example.omnigo.features.customer.food.presentation.ui.activity
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +23,13 @@ class FoodActivity : BaseComponentActivity() {
 
     companion object {
         const val EXTRA_RESTAURANT_ID = "extra_restaurant_id"
+        const val EXTRA_ORDER_ID = "extra_order_id"
+
+        fun createOrderDetailIntent(context: Context, orderId: Long): Intent {
+            return Intent(context, FoodActivity::class.java).apply {
+                putExtra(EXTRA_ORDER_ID, orderId)
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,11 +43,12 @@ class FoodActivity : BaseComponentActivity() {
 
         setOmniGoContent {
             val navController = rememberNavController()
+            val initialOrderId = intent.getLongExtra(EXTRA_ORDER_ID, -1L)
             val initialRestaurantId = intent.getLongExtra(EXTRA_RESTAURANT_ID, -1L)
-            val startDestination = if (initialRestaurantId > 0L) {
-                "restaurant_detail/$initialRestaurantId"
-            } else {
-                "food_home"
+            val startDestination = when {
+                initialOrderId > 0L -> "food_order_detail/$initialOrderId"
+                initialRestaurantId > 0L -> "restaurant_detail/$initialRestaurantId"
+                else -> "food_home"
             }
 
             NavHost(
@@ -90,7 +100,11 @@ class FoodActivity : BaseComponentActivity() {
 
                 composable("food_order_history") {
                     FoodOrderHistoryScreen(
-                        onBackClick = { navController.popBackStack() },
+                        onBackClick = {
+                            if (!navController.popBackStack()) {
+                                finish()
+                            }
+                        },
                         onOrderClick = { orderId ->
                             navController.navigate("food_order_detail/$orderId")
                         },
@@ -111,7 +125,9 @@ class FoodActivity : BaseComponentActivity() {
                 ) {
                     FoodOrderDetailScreen(
                         onBackClick = {
-                            navController.popBackStack()
+                            if (!navController.popBackStack()) {
+                                finish()
+                            }
                         },
                         onReorderClick = { order ->
                             navController.navigate("restaurant_detail/${order.restaurantId}")
@@ -130,7 +146,9 @@ class FoodActivity : BaseComponentActivity() {
                 ) {
                     com.example.omnigo.features.customer.food.presentation.ui.review.FoodReviewScreen(
                         onBackClick = {
-                            navController.popBackStack()
+                            if (!navController.popBackStack()) {
+                                finish()
+                            }
                         }
                     )
                 }
