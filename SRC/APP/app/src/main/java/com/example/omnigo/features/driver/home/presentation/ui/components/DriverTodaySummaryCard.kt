@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.omnigo.R
+import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -32,9 +33,11 @@ import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s16
 import com.example.omnigo.utils.s20
 import com.example.omnigo.utils.semiBold
+import java.util.Locale
 
 @Composable
 fun DriverTodaySummaryCard(
+    dailyReport: DriverDailyReport? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -62,7 +65,7 @@ fun DriverTodaySummaryCard(
             Spacer(modifier = Modifier.height(AppSpacing.XS))
 
             Text(
-                text = "450.000 đ",
+                text = String.format(Locale.getDefault(), "%,.0f ₫", dailyReport?.driverEarnings ?: 0.0),
                 style = MaterialTheme.typography.s20.bold(),
                 color = PrimaryColor
             )
@@ -75,15 +78,15 @@ fun DriverTodaySummaryCard(
             ) {
                 DriverStatColumn(
                     title = stringResource(id = R.string.driver_completed_trips),
-                    value = "8"
+                    value = (dailyReport?.totalTrips ?: 0).toString()
                 )
                 DriverStatColumn(
-                    title = stringResource(id = R.string.driver_acceptance_rate),
-                    value = "98%"
+                    title = stringResource(id = R.string.driver_daily_report_gross_revenue),
+                    value = String.format(Locale.getDefault(), "%,.0f ₫", dailyReport?.totalRevenue ?: 0.0)
                 )
                 DriverStatColumn(
-                    title = stringResource(id = R.string.driver_rating),
-                    value = "⭐ 4.9"
+                    title = stringResource(id = R.string.driver_daily_report_net_earnings),
+                    value = String.format(Locale.getDefault(), "%,.0f ₫", dailyReport?.driverEarnings ?: 0.0)
                 )
             }
         }

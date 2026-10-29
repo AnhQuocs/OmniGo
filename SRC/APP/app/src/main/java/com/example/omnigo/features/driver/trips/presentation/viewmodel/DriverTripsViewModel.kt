@@ -3,6 +3,7 @@ package com.example.omnigo.features.driver.trips.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
+import com.example.omnigo.features.driver.domain.repository.DriverRepository
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,12 +20,20 @@ class DriverTripsViewModel @Inject constructor(
     private val driverTripSessionManager: DriverTripSessionManager
 ) : ViewModel() {
 
+    private var driverRepository: DriverRepository? = null
+
     private val _uiState = MutableStateFlow(DriverTripsUiState())
     val uiState: StateFlow<DriverTripsUiState> = _uiState.asStateFlow()
 
     init {
         loadDailyReport()
         observeActiveTrip()
+    }
+
+    @Inject
+    fun injectDriverRepository(repository: DriverRepository) {
+        this.driverRepository = repository
+        loadFoodOrders()
     }
 
     private fun observeActiveTrip() {
@@ -35,10 +44,10 @@ class DriverTripsViewModel @Inject constructor(
         }
     }
 
-    fun loadDailyReport() {
+    fun loadDailyReport(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _uiState.update { it.copy(isReportLoading = true, reportErrorMessage = null) }
-            when (val result = getDriverDailyReportUseCase()) {
+            when (val result = getDriverDailyReportUseCase(forceRefresh)) {
                 is GetDriverDailyReportResult.Success -> {
                     _uiState.update {
                         it.copy(
@@ -55,6 +64,27 @@ class DriverTripsViewModel @Inject constructor(
                             reportErrorMessage = result.message
                         )
                     }
+                }
+            }
+        }
+    }
+
+    fun refresh() {
+        loadDailyReport(forceRefresh = true)
+        loadFoodOrders()
+    }
+
+    fun loadFoodOrders() {
+        val repo = driverRepository ?: return
+        viewModelScope.launch {
+            repo.getDriverAllFoodOrders().onSuccess { allOrders ->
+                val activeList = allOrders.filter { it.status.isActive }
+                val historyList = allOrders.filter { !it.status.isActive }
+                _uiState.update {
+                    it.copy(
+                        activeFoodOrders = activeList,
+                        historyFoodOrders = historyList
+                    )
                 }
             }
         }

@@ -68,7 +68,8 @@
     <string name="already_have_account">Đã có tài khoản?</string>
     <string name="back_to_login">Đăng nhập</string>
     <string name="account_created_success">Tạo tài khoản thành công!</string>
-    <string name="driver_pending_notice">Tài khoản tài xế đã được tạo và đang chờ quản trị viên phê duyệt.</string>
+    <string name="driver_pending_notice">Tài khoản tài xế đã được tạo và đang chờ quản trị viên phê
+        duyệt.</string>
 
     <!-- AUTH REGISTER ERRORS -->
     <string name="error_empty_full_name">Họ và tên không được để trống</string>
@@ -112,7 +113,8 @@
     <string name="home_location_permission_denied">Chưa cấp quyền vị trí</string>
     <string name="home_location_gps_off">Định vị GPS đang tắt</string>
     <string name="location_dialog_title">Xác Định Vị Trí Của Bạn</string>
-    <string name="location_dialog_desc">Bật định vị GPS để tự động tìm quán gần bạn hoặc chọn địa chỉ thủ công để đặt xe và giao hàng thuận tiện.</string>
+    <string name="location_dialog_desc">Bật định vị GPS để tự động tìm quán gần bạn hoặc chọn địa
+        chỉ thủ công để đặt xe và giao hàng thuận tiện.</string>
     <string name="location_btn_enable_gps">Sử Dụng Vị Trí Hiện Tại (GPS)</string>
     <string name="location_btn_manual_picker">Chọn Địa Chỉ Thủ Công</string>
     <string name="location_saved_addresses_title">Địa Chỉ Đã Lưu &amp; Gần Đây</string>
@@ -122,7 +124,8 @@
     <string name="location_dialog_delete_address">Xóa</string>
     <string name="location_picker_title">Chọn Vị Trí Của Bạn</string>
     <string name="location_setup_title">Bật Vị Trí Để Trải Nghiệm Trọn Vẹn</string>
-    <string name="location_setup_subtitle">OmniGo cần biết vị trí của bạn để tìm kiếm tài xế gần nhất, tính giá cước chính xác và gợi ý các món ăn ngon xung quanh.</string>
+    <string name="location_setup_subtitle">OmniGo cần biết vị trí của bạn để tìm kiếm tài xế gần
+        nhất, tính giá cước chính xác và gợi ý các món ăn ngon xung quanh.</string>
     <string name="location_setup_btn_permission">Cấp Quyền Vị Trí</string>
     <string name="location_setup_btn_gps">Bật Định Vị GPS</string>
     <string name="location_setup_btn_manual">Chọn Địa Chỉ Thủ Công</string>
@@ -233,11 +236,14 @@
     <string name="onboarding_next">Tiếp tục</string>
     <string name="onboarding_get_started">Bắt đầu ngay</string>
     <string name="onboarding_title_1">Di chuyển nhanh chóng &amp; Tiện lợi</string>
-    <string name="onboarding_desc_1">Đặt xe máy hoặc ô tô công nghệ chỉ trong tích tắc với các đối tác tài xế tin cậy.</string>
+    <string name="onboarding_desc_1">Đặt xe máy hoặc ô tô công nghệ chỉ trong tích tắc với các đối
+        tác tài xế tin cậy.</string>
     <string name="onboarding_title_2">Món ngon &amp; Đi chợ siêu tốc</string>
-    <string name="onboarding_desc_2">Thưởng thức hàng ngàn món ngon nóng hổi và nhận thực phẩm tươi sạch tận cửa nhà.</string>
+    <string name="onboarding_desc_2">Thưởng thức hàng ngàn món ngon nóng hổi và nhận thực phẩm tươi
+        sạch tận cửa nhà.</string>
     <string name="onboarding_title_3">Giao hàng an toàn &amp; Thanh toán tiện lợi</string>
-    <string name="onboarding_desc_3">Giao nhận bưu kiện thần tốc cùng trải nghiệm thanh toán 1-chạm không tiền mặt.</string>
+    <string name="onboarding_desc_3">Giao nhận bưu kiện thần tốc cùng trải nghiệm thanh toán 1-chạm
+        không tiền mặt.</string>
 
     <!-- DRIVER -->
     <string name="driver_nav_home">Trang chủ</string>
@@ -266,15 +272,20 @@
     <string name="driver_vehicle_type">Loại xe</string>
     <string name="driver_license_plate">Biển số xe</string>
     <string name="driver_approval_pending_title">Trạng thái hồ sơ tài xế</string>
-    <string name="driver_approval_pending_message">Hồ sơ đối tác tài xế của bạn đang được Ban Quản Trị xét duyệt. Bạn chưa thể bật trực tuyến để nhận cuốc xe.</string>
-    <string name="driver_approval_inactive_message">Tài khoản tài xế của bạn hiện đang bị khóa hoặc tạm ngừng hoạt động. Vui lòng liên hệ CSKH.</string>
-    <string name="driver_permission_location_required">Vui lòng cấp quyền vị trí chính xác để bật trực tuyến và nhận cuốc xe/đơn hàng.</string>
+    <string name="driver_approval_pending_message">Hồ sơ đối tác tài xế của bạn đang được Ban Quản
+        Trị xét duyệt. Bạn chưa thể bật trực tuyến để nhận cuốc xe.</string>
+    <string name="driver_approval_inactive_message">Tài khoản tài xế của bạn hiện đang bị khóa hoặc
+        tạm ngừng hoạt động. Vui lòng liên hệ CSKH.</string>
+    <string name="driver_permission_location_required">Vui lòng cấp quyền vị trí chính xác để bật
+        trực tuyến và nhận cuốc xe/đơn hàng.</string>
     <string name="driver_gps_enable_required">Vui lòng bật định vị GPS trên thiết bị để hoạt động.</string>
     <string name="driver_notification_channel_name">Dịch vụ định vị Tài xế</string>
-    <string name="driver_notification_channel_desc">Theo dõi và cập nhật vị trí GPS khi tài xế trực tuyến</string>
+    <string name="driver_notification_channel_desc">Theo dõi và cập nhật vị trí GPS khi tài xế trực
+        tuyến</string>
     <string name="driver_service_notification_title">OmniGo Driver - Đang trực tuyến</string>
     <string name="driver_service_notification_text">Đang theo dõi vị trí và sẵn sàng nhận đơn</string>
-    <string name="driver_status_update_failed">Cập nhật trạng thái tài xế thất bại. Vui lòng thử lại.</string>
+    <string name="driver_status_update_failed">Cập nhật trạng thái tài xế thất bại. Vui lòng thử
+        lại.</string>
     <string name="driver_profile_load_failed">Không thể tải thông tin hồ sơ tài xế</string>
 
     <!-- RESTAURANT DETAIL SCREEN -->
@@ -298,7 +309,8 @@
     <string name="cart_bottom_items">%1$d món</string>
     <string name="cart_bottom_checkout">Thanh toán</string>
     <string name="restaurant_conflict_dialog_title">Đổi nhà hàng?</string>
-    <string name="restaurant_conflict_dialog_message">Giỏ hàng của bạn đang có món từ %1$s. Bạn có muốn xóa giỏ hàng hiện tại để chọn món từ %2$s không?</string>
+    <string name="restaurant_conflict_dialog_message">Giỏ hàng của bạn đang có món từ %1$s. Bạn có
+        muốn xóa giỏ hàng hiện tại để chọn món từ %2$s không?</string>
     <string name="restaurant_conflict_dialog_confirm">Xóa &amp; Thêm món</string>
     <string name="restaurant_conflict_dialog_cancel">Hủy</string>
     <string name="restaurant_conflict_fallback_current">nhà hàng khác</string>
@@ -340,7 +352,8 @@
     <string name="order_detail_status_preparing">Bếp đang làm món</string>
     <string name="order_detail_status_preparing_desc">Quán đang chuẩn bị món ăn nóng hổi cho bạn</string>
     <string name="order_detail_status_driver_searching">Đang tìm tài xế</string>
-    <string name="order_detail_status_driver_searching_desc">Hệ thống đang tìm tài xế shipper gần quán</string>
+    <string name="order_detail_status_driver_searching_desc">Hệ thống đang tìm tài xế shipper gần
+        quán</string>
     <string name="order_detail_status_driver_assigned">Tài xế đã nhận đơn</string>
     <string name="order_detail_status_driver_assigned_desc">Tài xế đang di chuyển đến quán lấy món</string>
     <string name="order_detail_status_delivering">Đang giao hàng</string>
@@ -389,7 +402,8 @@
     <!-- PART 4: History & Order Edge Cases -->
     <string name="food_history_title">Lịch sử đơn món ăn</string>
     <string name="food_history_empty_title">Chưa có đơn hàng nào</string>
-    <string name="food_history_empty_desc">Bạn chưa đặt đơn hàng nào. Hãy khám phá các quán ăn ngon ngay nhé!</string>
+    <string name="food_history_empty_desc">Bạn chưa đặt đơn hàng nào. Hãy khám phá các quán ăn ngon
+        ngay nhé!</string>
     <string name="food_history_order_items_count">%1$d món</string>
     <string name="food_history_btn_order_now">Khám phá món ngon</string>
     <string name="food_history_filter_all">Tất cả</string>
@@ -412,7 +426,8 @@
     <string name="order_cancel_reason_other_hint">Nhập lý do cụ thể...</string>
     <string name="order_cancel_confirm">Xác nhận hủy</string>
     <string name="order_cancel_dismiss">Không, giữ lại đơn</string>
-    <string name="order_cancel_cannot_cancel_preparing">Quán đã bắt đầu làm món, không thể tự hủy đơn.</string>
+    <string name="order_cancel_cannot_cancel_preparing">Quán đã bắt đầu làm món, không thể tự hủy
+        đơn.</string>
     <string name="order_cancel_success">Đã hủy đơn hàng thành công</string>
     <string name="order_switch_cash_success">Đã chuyển sang thanh toán tiền mặt thành công</string>
     <string name="order_retry_driver_success">Đang tìm kiếm tài xế mới quanh khu vực quán</string>
@@ -466,22 +481,26 @@
     <string name="driver_delivery_geofence_ready">Đã đến (&lt;= 50m)</string>
     <string name="driver_delivery_geofence_distance">Cách điểm đến %1$d m (&gt; 50m)</string>
     <string name="driver_delivery_paid_online_title">Đã thanh toán Online</string>
-    <string name="driver_delivery_paid_online_note">Đơn đã thanh toán online. Tuyệt đối KHÔNG thu tiền mặt từ khách.</string>
+    <string name="driver_delivery_paid_online_note">Đơn đã thanh toán online. Tuyệt đối KHÔNG thu
+        tiền mặt từ khách.</string>
     <string name="driver_delivery_cash_title">Thu tiền mặt khi giao hàng</string>
-    <string name="driver_delivery_cash_note">Vui lòng thu đủ tiền mặt từ khách hàng trước khi bàn giao đồ ăn.</string>
+    <string name="driver_delivery_cash_note">Vui lòng thu đủ tiền mặt từ khách hàng trước khi bàn
+        giao đồ ăn.</string>
     <string name="driver_delivery_items_title">Danh sách món cần lấy (%1$d)</string>
     <string name="driver_delivery_item_note">Ghi chú: %1$s</string>
     <string name="driver_delivery_order_note">Ghi chú đơn hàng: %1$s</string>
     <string name="driver_delivery_btn_confirm_pickup">Xác nhận đã lấy món</string>
     <string name="driver_delivery_btn_confirm_delivered">Xác nhận đã giao thành công</string>
     <string name="driver_delivery_btn_home">Về trang chủ</string>
-    <string name="driver_delivery_error_geofence_outside">Bạn đang ở ngoài bán kính 50m. Vui lòng di chuyển đến gần hơn để thao tác.</string>
+    <string name="driver_delivery_error_geofence_outside">Bạn đang ở ngoài bán kính 50m. Vui lòng di
+        chuyển đến gần hơn để thao tác.</string>
     <string name="driver_delivery_pickup_success">Đã lấy món thành công!</string>
     <string name="driver_delivery_completed_success">Đã giao hàng thành công!</string>
     <string name="driver_delivery_completed_dialog_title">Hoàn thành giao hàng!</string>
     <string name="driver_delivery_completed_dialog_msg">Tuyệt vời! Tiền cước tài xế nhận được: %1$s</string>
     <string name="driver_delivery_exit_dialog_title">Rời khỏi màn hình giao hàng?</string>
-    <string name="driver_delivery_exit_dialog_msg">Đơn hàng đang trong tiến trình giao. Bạn có chắc chắn muốn rời khỏi màn hình này?</string>
+    <string name="driver_delivery_exit_dialog_msg">Đơn hàng đang trong tiến trình giao. Bạn có chắc
+        chắn muốn rời khỏi màn hình này?</string>
     <string name="driver_delivery_btn_stay">Ở lại</string>
     <string name="driver_delivery_btn_exit">Rời đi</string>
     <string name="driver_delivery_missing_coordinates">Hệ thống chưa cung cấp tọa độ địa điểm</string>
@@ -514,8 +533,10 @@
     <string name="btn_prev_step">Quay lại</string>
     <string name="btn_complete_registration">Hoàn tất đăng ký</string>
     <string name="driver_pending_title">Hồ sơ đang chờ phê duyệt</string>
-    <string name="driver_pending_desc">Cảm ơn bạn đã đăng ký trở thành đối tác tài xế OmniGo! Hồ sơ của bạn đã được gửi thành công và đang được Ban quản trị xem xét trong vòng 24 giờ làm việc.</string>
-    <string name="driver_pending_info_note">Bạn sẽ nhận được thông báo sau khi tài khoản được kích hoạt để bắt đầu nhận chuyến.</string>
+    <string name="driver_pending_desc">Cảm ơn bạn đã đăng ký trở thành đối tác tài xế OmniGo! Hồ sơ
+        của bạn đã được gửi thành công và đang được Ban quản trị xem xét trong vòng 24 giờ làm việc.</string>
+    <string name="driver_pending_info_note">Bạn sẽ nhận được thông báo sau khi tài khoản được kích
+        hoạt để bắt đầu nhận chuyến.</string>
     <string name="driver_pending_btn_login">Về màn hình đăng nhập</string>
     <string name="password_strength_weak">Yếu</string>
     <string name="password_strength_medium">Trung bình</string>
@@ -532,11 +553,14 @@
     <string name="food_tracking_destination_hint">Địa chỉ giao hàng của bạn</string>
 
     <string name="food_review_title">Đánh giá đơn hàng</string>
-    <string name="food_review_banner_expired">Đơn hàng đã hoàn thành quá 7 ngày và đã bị khóa đánh giá.</string>
+    <string name="food_review_banner_expired">Đơn hàng đã hoàn thành quá 7 ngày và đã bị khóa đánh
+        giá.</string>
     <string name="food_review_banner_readonly">Đánh giá ở chế độ chỉ xem sau 48 giờ.</string>
     <string name="food_review_restaurant_title">Quán ăn &amp; Món ăn</string>
-    <string name="food_review_restaurant_subtitle">Hương vị món ăn và chất lượng dịch vụ của quán thế nào?</string>
-    <string name="food_review_comment_placeholder">Chia sẻ chi tiết về hương vị món, cách đóng gói, khẩu phần...</string>
+    <string name="food_review_restaurant_subtitle">Hương vị món ăn và chất lượng dịch vụ của quán
+        thế nào?</string>
+    <string name="food_review_comment_placeholder">Chia sẻ chi tiết về hương vị món, cách đóng gói,
+        khẩu phần...</string>
     <string name="food_review_photos_title">Ảnh món ăn (%1$d/%2$d)</string>
     <string name="food_review_add_photo">Thêm ảnh</string>
     <string name="food_review_driver_title">Tài xế giao hàng</string>
@@ -584,7 +608,8 @@
     <string name="restaurant_menu_search_hint">Tìm món trong thực đơn</string>
     <string name="restaurant_menu_search_empty">Không có món nào khớp \"%1$s\"</string>
     <string name="restaurant_menu_uncategorized">Món khác</string>
-    <string name="restaurant_menu_banner_closed">Nhà hàng hiện đã đóng cửa. Bạn vẫn xem được thực đơn nhưng chưa thể đặt món.</string>
+    <string name="restaurant_menu_banner_closed">Nhà hàng hiện đã đóng cửa. Bạn vẫn xem được thực
+        đơn nhưng chưa thể đặt món.</string>
     <string name="restaurant_menu_banner_locked">Nhà hàng đang tạm ngừng nhận đơn.</string>
     <string name="restaurant_menu_banner_locked_reason">Nhà hàng đang tạm ngừng nhận đơn: %1$s</string>
     <string name="restaurant_menu_hours">Giờ mở cửa %1$s – %2$s</string>
@@ -593,10 +618,12 @@
     <string name="menu_item_sheet_add">Thêm vào giỏ · %1$s</string>
     <string name="menu_item_sheet_blocked">Nhà hàng chưa nhận đơn</string>
     <string name="menu_item_sheet_quantity">Số lượng</string>
-    <string name="checkout_fee_estimated_note">Phí giao hàng là ước tính. Phí chính thức được xác nhận khi đặt đơn.</string>
+    <string name="checkout_fee_estimated_note">Phí giao hàng là ước tính. Phí chính thức được xác
+        nhận khi đặt đơn.</string>
     <string name="checkout_error_restaurant_closed">Nhà hàng đang đóng cửa nên chưa thể đặt đơn.</string>
     <string name="checkout_error_restaurant_locked">Nhà hàng đang tạm ngừng nhận đơn.</string>
-    <string name="checkout_error_no_restaurant_location">Thiếu vị trí nhà hàng nên chưa thể ước tính phí giao hàng.</string>
+    <string name="checkout_error_no_restaurant_location">Thiếu vị trí nhà hàng nên chưa thể ước tính
+        phí giao hàng.</string>
     <string name="food_price_range_format">%1$s – %2$s</string>
     <string name="food_price_range_default">15.000đ - 60.000đ</string>
     <string name="food_delivery_eta_format">%1$d - %2$d phút</string>
@@ -623,15 +650,18 @@
     <string name="ride_radar_countdown_label">Hết thời gian sau %1$ds</string>
     <string name="ride_cancel_searching_button">Hủy tìm xe</string>
     <string name="ride_cancel_confirm_title">Hủy tìm chuyến xe này?</string>
-    <string name="ride_cancel_confirm_message">Bạn có chắc chắn muốn hủy tìm xe không? Việc hủy hoàn toàn miễn phí khi tài xế chưa nhận chuyến.</string>
+    <string name="ride_cancel_confirm_message">Bạn có chắc chắn muốn hủy tìm xe không? Việc hủy hoàn
+        toàn miễn phí khi tài xế chưa nhận chuyến.</string>
     <string name="ride_cancel_confirm_yes">Đồng ý hủy</string>
     <string name="ride_cancel_confirm_no">Tiếp tục tìm</string>
-    <string name="ride_search_timeout_message">Chưa tìm thấy tài xế phù hợp trong khu vực. Vui lòng thử lại sau ít phút.</string>
+    <string name="ride_search_timeout_message">Chưa tìm thấy tài xế phù hợp trong khu vực. Vui lòng
+        thử lại sau ít phút.</string>
     <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
     <string name="ride_error_incomplete_locations">Vui lòng chọn đầy đủ điểm đón và điểm đến.</string>
-    <string name="ride_error_no_driver_found">Hiện không có tài xế nào ở gần bạn. Vui lòng thử lại sau ít phút.</string>
+    <string name="ride_error_no_driver_found">Hiện không có tài xế nào ở gần bạn. Vui lòng thử lại
+        sau ít phút.</string>
     <string name="ride_error_create_failed">Không thể tạo yêu cầu đặt xe lúc này.</string>
     <string name="ride_error_cancel_failed">Không thể hủy chuyến xe lúc này.</string>
 
@@ -660,11 +690,14 @@
     <string name="ride_search_places_title">Tìm kiếm địa điểm</string>
     <string name="ride_search_input_placeholder">Nhập địa chỉ hoặc tên địa điểm…</string>
     <string name="ride_search_pick_on_map">Chọn trực tiếp trên bản đồ</string>
-    <string name="ride_search_no_results">Không tìm thấy địa điểm. Hãy thử tìm từ khác hoặc chọn trên bản đồ.</string>
-    <string name="ride_gps_required_msg">Cần bật định vị GPS để tìm và đặt chuyến xe. Vui lòng bật GPS.</string>
+    <string name="ride_search_no_results">Không tìm thấy địa điểm. Hãy thử tìm từ khác hoặc chọn
+        trên bản đồ.</string>
+    <string name="ride_gps_required_msg">Cần bật định vị GPS để tìm và đặt chuyến xe. Vui lòng bật
+        GPS.</string>
     <string name="ride_clear_search">Xóa</string>
     <string name="ride_current_location">Vị trí hiện tại</string>
-    <string name="ride_search_step_dropoff_guide">Đã xác nhận điểm đón. Vui lòng chọn điểm đến của bạn.</string>
+    <string name="ride_search_step_dropoff_guide">Đã xác nhận điểm đón. Vui lòng chọn điểm đến của
+        bạn.</string>
     <string name="ride_pickup_confirmed_hint">Đã xác nhận điểm đón. Vui lòng chọn điểm đến.</string>
     <string name="ride_seats_format">%1$d chỗ</string>
     <string name="ride_eta_pickup_format">Đón trong ~%1$d phút</string>
@@ -709,7 +742,8 @@
     <string name="ride_stepper_arrived_title">Tài xế đã đến điểm đón</string>
     <string name="ride_stepper_in_progress_title">Đang di chuyển đến điểm trả</string>
     <string name="ride_stepper_completed_title">Chuyến đi đã hoàn thành</string>
-    <string name="ride_status_accepted_hint">Tài xế đang trên đường đến đón bạn. Vui lòng chuẩn bị ra xe.</string>
+    <string name="ride_status_accepted_hint">Tài xế đang trên đường đến đón bạn. Vui lòng chuẩn bị
+        ra xe.</string>
     <string name="ride_status_arrived_hint">Tài xế đã đến điểm đón hẹn. Vui lòng di chuyển ra xe.</string>
     <string name="ride_status_in_progress_hint">Chúc bạn có một chuyến đi an toàn và thoải mái.</string>
     <string name="ride_driver_info_title">Thông tin tài xế &amp; Xe</string>
@@ -717,9 +751,11 @@
     <string name="ride_call_driver_button">Gọi tài xế</string>
     <string name="ride_cancel_active_trip_button">Hủy chuyến xe</string>
     <string name="ride_cancel_active_trip_dialog_title">Xác nhận hủy chuyến xe?</string>
-    <string name="ride_cancel_active_trip_dialog_message">Tài xế đang trên đường đến đón bạn. Bạn có chắc chắn muốn hủy chuyến xe này không?</string>
+    <string name="ride_cancel_active_trip_dialog_message">Tài xế đang trên đường đến đón bạn. Bạn có
+        chắc chắn muốn hủy chuyến xe này không?</string>
     <string name="ride_completed_dialog_title">Chuyến đi hoàn tất</string>
-    <string name="ride_completed_dialog_message">Cảm ơn bạn đã lựa chọn dịch vụ của OmniGo. Chúc bạn một ngày tốt lành!</string>
+    <string name="ride_completed_dialog_message">Cảm ơn bạn đã lựa chọn dịch vụ của OmniGo. Chúc bạn
+        một ngày tốt lành!</string>
     <string name="ride_completed_done_button">Đóng</string>
 
     <!-- FLOW 2 — PART 5 Driver Active Trip & Geofencing -->
@@ -742,11 +778,14 @@
     <string name="driver_trip_btn_complete">Hoàn thành chuyến đi</string>
     <string name="driver_trip_btn_cancel">Hủy chuyến</string>
     <string name="driver_trip_cancel_dialog_title">Xác nhận hủy chuyến</string>
-    <string name="driver_trip_cancel_dialog_message">Bạn có chắc chắn muốn hủy chuyến xe này không? Chuyến xe sẽ được điều phối cho tài xế khác.</string>
+    <string name="driver_trip_cancel_dialog_message">Bạn có chắc chắn muốn hủy chuyến xe này không?
+        Chuyến xe sẽ được điều phối cho tài xế khác.</string>
     <string name="driver_trip_cancel_confirm">Xác nhận hủy</string>
     <string name="driver_trip_cancel_dismiss">Tiếp tục chuyến</string>
-    <string name="driver_trip_geofence_warning_pickup">Bạn cần đến gần điểm đón trong bán kính 50m để xác nhận đã đến nơi.</string>
-    <string name="driver_trip_geofence_warning_dropoff">Bạn cần đến gần điểm trả trong bán kính 50m để hoàn thành chuyến đi.</string>
+    <string name="driver_trip_geofence_warning_pickup">Bạn cần đến gần điểm đón trong bán kính 50m
+        để xác nhận đã đến nơi.</string>
+    <string name="driver_trip_geofence_warning_dropoff">Bạn cần đến gần điểm trả trong bán kính 50m
+        để hoàn thành chuyến đi.</string>
     <string name="driver_trip_settlement_title">Quyết toán chuyến đi</string>
     <string name="driver_trip_settlement_total_fare">Tổng cước phí</string>
     <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn (20%)</string>
@@ -787,7 +826,8 @@
     <string name="driver_trips_btn_resume_trip">Tiếp tục chuyến đi</string>
     <string name="driver_trips_report_loading">Đang tải báo cáo doanh thu…</string>
     <string name="ride_search_timeout_dialog_title">Chưa tìm thấy tài xế</string>
-    <string name="ride_search_timeout_dialog_message">Khu vực quanh bạn hiện chưa có tài xế nhận cuốc. Bạn có muốn tiếp tục tìm thêm 60 giây nữa không?</string>
+    <string name="ride_search_timeout_dialog_message">Khu vực quanh bạn hiện chưa có tài xế nhận
+        cuốc. Bạn có muốn tiếp tục tìm thêm 60 giây nữa không?</string>
     <string name="ride_search_timeout_btn_retry">Tiếp tục tìm</string>
     <string name="ride_search_timeout_btn_cancel">Hủy tìm xe</string>
     <string name="activity_item_ongoing_badge">Đang diễn ra</string>
@@ -866,42 +906,65 @@
     <string name="legal_tab_terms">Điều khoản sử dụng</string>
     <string name="legal_tab_privacy">Chính sách bảo mật</string>
     <string name="legal_last_updated">Cập nhật lần cuối: Tháng 10, 2026 • Phiên bản 1.0</string>
-    
+
     <string name="legal_tos_sec1_title">1. Tài khoản &amp; Điều kiện sử dụng</string>
-    <string name="legal_tos_sec1_content">Người dùng từ đủ 15 tuổi trở lên được phép đăng ký tài khoản OmniGo. Bạn cam kết cung cấp thông tin định danh chính xác, cập nhật và có trách nhiệm bảo mật mật khẩu cùng thông tin xác thực của mình.</string>
-    
+    <string name="legal_tos_sec1_content">Người dùng từ đủ 15 tuổi trở lên được phép đăng ký tài
+        khoản OmniGo. Bạn cam kết cung cấp thông tin định danh chính xác, cập nhật và có trách nhiệm
+        bảo mật mật khẩu cùng thông tin xác thực của mình.</string>
+
     <string name="legal_tos_sec2_title">2. Dịch vụ Đặt xe OmniRide</string>
-    <string name="legal_tos_sec2_content">OmniGo đóng vai trò kết nối hành khách với các đối tác tài xế. Hành khách cần có mặt tại điểm đón đúng giờ, tuân thủ luật an toàn giao thông và tôn trọng tài xế. Phí hủy chuyến có thể áp dụng nếu bạn hủy sau khi tài xế đã đến điểm đón.</string>
-    
+    <string name="legal_tos_sec2_content">OmniGo đóng vai trò kết nối hành khách với các đối tác tài
+        xế. Hành khách cần có mặt tại điểm đón đúng giờ, tuân thủ luật an toàn giao thông và tôn
+        trọng tài xế. Phí hủy chuyến có thể áp dụng nếu bạn hủy sau khi tài xế đã đến điểm đón.</string>
+
     <string name="legal_tos_sec3_title">3. Dịch vụ Đồ ăn OmniFood</string>
-    <string name="legal_tos_sec3_content">Nhà hàng đối tác chịu trách nhiệm về chất lượng món ăn và đóng gói. Đơn hàng không thể hủy khi nhà hàng đã bắt đầu chế biến. Khách hàng vui lòng kiểm tra món ăn khi nhận và phản hồi ngay nếu có sai sót.</string>
-    
+    <string name="legal_tos_sec3_content">Nhà hàng đối tác chịu trách nhiệm về chất lượng món ăn và
+        đóng gói. Đơn hàng không thể hủy khi nhà hàng đã bắt đầu chế biến. Khách hàng vui lòng kiểm
+        tra món ăn khi nhận và phản hồi ngay nếu có sai sót.</string>
+
     <string name="legal_tos_sec4_title">4. Thanh toán &amp; Ví OmniPay</string>
-    <string name="legal_tos_sec4_content">Hỗ trợ thanh toán bằng Tiền mặt, Ví OmniPay, MoMo, VNPay và Thẻ ngân hàng. Tiền hoàn từ các đơn hàng/chuyến xe hủy hợp lệ sẽ được chuyển về ví OmniPay hoặc nguồn thanh toán ban đầu theo thời gian quy định.</string>
-    
+    <string name="legal_tos_sec4_content">Hỗ trợ thanh toán bằng Tiền mặt, Ví OmniPay, MoMo, VNPay
+        và Thẻ ngân hàng. Tiền hoàn từ các đơn hàng/chuyến xe hủy hợp lệ sẽ được chuyển về ví
+        OmniPay hoặc nguồn thanh toán ban đầu theo thời gian quy định.</string>
+
     <string name="legal_tos_sec5_title">5. Hành vi bị nghiêm cấm</string>
-    <string name="legal_tos_sec5_content">Nghiêm cấm các hành vi gian lận mã ưu đãi, tạo tài khoản ảo, vận chuyển chất cháy nổ hoặc hàng cấm, đe dọa hoặc quấy rối tài xế/nhà hàng đối tác. Mọi vi phạm sẽ bị khóa tài khoản vĩnh viễn.</string>
-    
+    <string name="legal_tos_sec5_content">Nghiêm cấm các hành vi gian lận mã ưu đãi, tạo tài khoản
+        ảo, vận chuyển chất cháy nổ hoặc hàng cấm, đe dọa hoặc quấy rối tài xế/nhà hàng đối tác. Mọi
+        vi phạm sẽ bị khóa tài khoản vĩnh viễn.</string>
+
     <string name="legal_tos_sec6_title">6. Giải quyết tranh chấp</string>
-    <string name="legal_tos_sec6_content">Mọi khiếu nại về chất lượng dịch vụ sẽ được bộ phận Chăm sóc khách hàng OmniGo tiếp nhận và giải quyết thỏa đáng. Trường hợp tranh chấp không đạt được thỏa thuận sẽ căn cứ theo quy định của pháp luật Việt Nam.</string>
-    
+    <string name="legal_tos_sec6_content">Mọi khiếu nại về chất lượng dịch vụ sẽ được bộ phận Chăm
+        sóc khách hàng OmniGo tiếp nhận và giải quyết thỏa đáng. Trường hợp tranh chấp không đạt
+        được thỏa thuận sẽ căn cứ theo quy định của pháp luật Việt Nam.</string>
+
     <string name="legal_privacy_sec1_title">1. Dữ liệu chúng tôi thu thập</string>
-    <string name="legal_privacy_sec1_content">Chúng tôi thu thập thông tin cá nhân (họ tên, số điện thoại, email, ảnh đại diện), vị trí GPS thời gian thực khi thực hiện chuyến đi hoặc giao đơn hàng, lịch sử giao dịch và dữ liệu thiết bị.</string>
-    
+    <string name="legal_privacy_sec1_content">Chúng tôi thu thập thông tin cá nhân (họ tên, số điện
+        thoại, email, ảnh đại diện), vị trí GPS thời gian thực khi thực hiện chuyến đi hoặc giao đơn
+        hàng, lịch sử giao dịch và dữ liệu thiết bị.</string>
+
     <string name="legal_privacy_sec2_title">2. Mục đích sử dụng dữ liệu</string>
-    <string name="legal_privacy_sec2_content">Dữ liệu được dùng để tìm tài xế và nhà hàng gần nhất, tính giá cước chính xác, tối ưu hóa tuyến đường giao nhận, xử lý thanh toán an toàn và phòng chống gian lận tài khoản.</string>
-    
+    <string name="legal_privacy_sec2_content">Dữ liệu được dùng để tìm tài xế và nhà hàng gần nhất,
+        tính giá cước chính xác, tối ưu hóa tuyến đường giao nhận, xử lý thanh toán an toàn và phòng
+        chống gian lận tài khoản.</string>
+
     <string name="legal_privacy_sec3_title">3. Chia sẻ thông tin</string>
-    <string name="legal_privacy_sec3_content">Chúng tôi chia sẻ thông tin cần thiết (điểm đón, điểm trả, họ tên, danh sách món) cho tài xế và nhà hàng để thực hiện dịch vụ, cùng với cổng thanh toán bảo mật để hoàn tất giao dịch.</string>
-    
+    <string name="legal_privacy_sec3_content">Chúng tôi chia sẻ thông tin cần thiết (điểm đón, điểm
+        trả, họ tên, danh sách món) cho tài xế và nhà hàng để thực hiện dịch vụ, cùng với cổng thanh
+        toán bảo mật để hoàn tất giao dịch.</string>
+
     <string name="legal_privacy_sec4_title">4. Quyền của khách hàng</string>
-    <string name="legal_privacy_sec4_content">Theo quy định về bảo vệ dữ liệu cá nhân (Nghị định 13/2023/NĐ-CP), bạn có quyền truy cập, chỉnh sửa hoặc yêu cầu xóa dữ liệu cá nhân và tài khoản sau khi đã hoàn tất mọi nghĩa vụ thanh toán.</string>
-    
+    <string name="legal_privacy_sec4_content">Theo quy định về bảo vệ dữ liệu cá nhân (Nghị định
+        13/2023/NĐ-CP), bạn có quyền truy cập, chỉnh sửa hoặc yêu cầu xóa dữ liệu cá nhân và tài
+        khoản sau khi đã hoàn tất mọi nghĩa vụ thanh toán.</string>
+
     <string name="legal_privacy_sec5_title">5. Bảo mật &amp; Lưu trữ</string>
-    <string name="legal_privacy_sec5_content">Dữ liệu của bạn được mã hóa theo tiêu chuẩn SSL/TLS trên đường truyền và máy chủ. Dữ liệu chỉ được lưu trữ trong thời hạn cần thiết phục vụ vận hành và tuân thủ các quy định lưu trữ kế toán của nhà nước.</string>
-    
+    <string name="legal_privacy_sec5_content">Dữ liệu của bạn được mã hóa theo tiêu chuẩn SSL/TLS
+        trên đường truyền và máy chủ. Dữ liệu chỉ được lưu trữ trong thời hạn cần thiết phục vụ vận
+        hành và tuân thủ các quy định lưu trữ kế toán của nhà nước.</string>
+
     <string name="legal_contact_support_title">Bạn có thắc mắc?</string>
-    <string name="legal_contact_support_desc">Nếu bạn có bất kỳ câu hỏi nào về Điều khoản hoặc Chính sách bảo mật, hãy liên hệ ngay với đội ngũ Chăm sóc khách hàng của OmniGo.</string>
+    <string name="legal_contact_support_desc">Nếu bạn có bất kỳ câu hỏi nào về Điều khoản hoặc Chính
+        sách bảo mật, hãy liên hệ ngay với đội ngũ Chăm sóc khách hàng của OmniGo.</string>
     <string name="legal_contact_hotline">Tổng đài: 1900 6868</string>
     <string name="legal_contact_email">Email: support@omnigo.vn</string>
 
@@ -931,4 +994,85 @@
 
     <string name="home_service_ride_desc">Di chuyển an toàn &amp; nhanh chóng</string>
     <string name="home_service_food_desc">Món ngon giao tận nơi</string>
+    <string name="driver_swipe_to_online">Trượt để Bật trực tuyến</string>
+    <string name="driver_swipe_to_offline">Trượt để Nghỉ nhận chuyến</string>
+    <string name="driver_swipe_to_accept">Trượt để Nhận cuốc</string>
+    <string name="driver_swipe_hint">&gt;&gt;&gt;</string>
+    <string name="driver_payment_banner_cash_title">THU TIỀN MẶT TỪ KHÁCH</string>
+    <string name="driver_payment_banner_cash_subtitle">Thu đủ số tiền khi hoàn thành chuyến</string>
+    <string name="driver_payment_banner_online_title">ĐÃ THANH TOÁN ONLINE / VÍ</string>
+    <string name="driver_payment_banner_online_subtitle">KHÔNG thu tiền mặt từ khách</string>
+    <string name="driver_geofence_override_title">Ngoài phạm vi 50m điểm đón/trả</string>
+    <string name="driver_geofence_override_desc">GPS phát hiện bạn đang cách điểm đến %1$s (&gt;
+        50m). Nếu bạn đã tới nơi thực tế hoặc GPS bị trôi, bạn có thể xác nhận thủ công.</string>
+    <string name="driver_geofence_override_desc_no_gps">Chưa xác định được khoảng cách GPS chính
+        xác. Nếu bạn đã có mặt tại điểm đón/trả, bạn có thể xác nhận thủ công.</string>
+    <string name="driver_geofence_override_confirm">Vẫn xác nhận (Bỏ qua GPS)</string>
+    <string name="driver_geofence_override_cancel">Đợi thêm / Kiểm tra lại GPS</string>
+    <string name="driver_approval_badge_approved">Đã duyệt</string>
+    <string name="driver_approval_badge_pending">Chờ duyệt</string>
+    <string name="driver_approval_badge_rejected">Chưa kích hoạt</string>
+    <string name="driver_cockpit_active_ride_banner">Chuyến chở khách #%1$d • Chạm để tiếp tục</string>
+    <string name="driver_cockpit_active_food_banner">Đơn giao đồ ăn #%1$d • Chạm để tiếp tục</string>
+    <string name="driver_cockpit_recenter_gps">Vị trí của bạn</string>
+    <string name="driver_cockpit_today_trips">%1$d chuyến hôm nay</string>
+    <string name="driver_food_offer_cash_to_collect_note">Tiền món cần thu hộ từ khách: %1$s</string>
+    <string name="driver_food_offer_no_cash_note">Khách đã trả Online • Không thu tiền mặt (0 đ)</string>
+    <string name="driver_open_google_maps">Mở Google Maps dẫn đường</string>
+    <string name="driver_message_customer">Nhắn tin</string>
+    <string name="driver_delivery_order_code_label">MÃ ĐƠN ĐỌC CHO QUÁN</string>
+    <string name="driver_delivery_stage_1_label">Chặng 1: Đến quán lấy món</string>
+    <string name="driver_delivery_stage_2_label">Chặng 2: Giao tới khách hàng</string>
+    <string name="driver_trips_active_food_title">Đơn giao đồ ăn đang thực hiện</string>
+    <string name="driver_trips_btn_resume_food">Tiếp tục giao đơn</string>
+    <string name="driver_trips_history_food_completed">Đã hoàn thành</string>
+    <string name="driver_trips_history_food_cancelled">Đã hủy</string>
+    <string name="driver_earnings_today_summary_title">Hiệu suất hôm nay</string>
+    <string name="driver_earnings_quest_10_trips">Hoàn thành 10 cuốc xe hôm nay (+50.000 đ)</string>
+    <string name="driver_earnings_quest_progress_format">Tiến độ: %1$d/%2$d cuốc</string>
+    <string name="driver_wallet_dialog_cashout_title">Rút tiền về ngân hàng</string>
+    <string name="driver_wallet_dialog_cashout_msg">Yêu cầu rút tiền từ Ví thu nhập sẽ được xử lý
+        chuyển khoản về tài khoản ngân hàng liên kết trong vòng 24 giờ làm việc. Hạn mức tối thiểu:
+        50.000 đ.</string>
+    <string name="driver_wallet_dialog_topup_title">Nạp tiền Ví ký quỹ</string>
+    <string name="driver_wallet_dialog_topup_msg">Vui lòng nạp tiền qua Ví OmniPay hoặc chuyển khoản
+        ngân hàng để duy trì số dư ký quỹ tối thiểu khi nhận các cuốc xe tiền mặt.</string>
+    <string name="driver_account_plate_not_updated">Chưa cập nhật</string>
+    <string name="driver_account_status_label">Trạng thái duyệt hồ sơ</string>
+
+    <!-- In-App 3D Driver Navigation -->
+    <string name="driver_nav_maneuver_straight">Đi thẳng theo lộ trình</string>
+    <string name="driver_nav_maneuver_turn_left">Rẽ trái phía trước</string>
+    <string name="driver_nav_maneuver_turn_right">Rẽ phải phía trước</string>
+    <string name="driver_nav_maneuver_u_turn">Quay đầu xe</string>
+    <string name="driver_nav_maneuver_arrive">Sắp đến điểm đích</string>
+    <string name="driver_nav_eta_minutes_format">~%1$d phút</string>
+    <string name="driver_nav_eta_arriving_now">&lt; 1 phút</string>
+    <string name="driver_nav_distance_meters_format">%1$.0f m</string>
+    <string name="driver_nav_distance_km_format">%1$.1f km</string>
+    <string name="driver_nav_recenter_3d">Tiếp tục dẫn đường</string>
+    <string name="driver_nav_mode_3d">3D</string>
+    <string name="driver_nav_mode_2d">2D</string>
+    <string name="driver_nav_sheet_expand">Xem chi tiết</string>
+    <string name="driver_nav_sheet_collapse">Thu gọn</string>
+    <string name="driver_nav_heading_to_pickup">Đang dẫn đường tới điểm đón</string>
+    <string name="driver_nav_heading_to_dropoff">Đang dẫn đường tới điểm trả</string>
+    <string name="driver_nav_heading_to_restaurant">Chặng 1 • Dẫn đường tới quán ăn</string>
+    <string name="driver_nav_heading_to_customer">Chặng 2 • Dẫn đường giao cho khách</string>
+    <string name="driver_nav_marker_driver">Vị trí của bạn</string>
+    <string name="driver_nav_marker_target">Điểm đích</string>
+    <string name="driver_nav_marker_secondary">Điểm tiếp theo</string>
+    <string name="driver_nav_loading_route">Đang tính lộ trình tối ưu…</string>
+    <string name="driver_nav_overview">Toàn bộ lộ trình</string>
+    <string name="driver_ride_offer_service_ride">CHỞ KHÁCH</string>
+    <string name="driver_food_offer_service_food">GIAO ĐỒ ĂN</string>
+    <string name="driver_ride_offer_new_subtitle">Cuốc xe mới gần bạn</string>
+    <string name="driver_food_offer_new_subtitle">Đơn giao đồ ăn mới</string>
+    <string name="driver_btn_understood">Đã hiểu</string>
+    <string name="driver_refresh">Làm mới</string>
+    <string name="driver_nav_trips_badge_desc">Đang có chuyến dở</string>
+    <string name="driver_ride_offer_customer_label">Khách hàng</string>
+    <string name="driver_ride_offer_customer_default">Khách hàng OmniGo</string>
+    <string name="driver_food_offer_customer_default">Khách đặt món</string>
+    <string name="driver_food_offer_restaurant_label">Quán ăn nhận đơn</string>
 </resources>

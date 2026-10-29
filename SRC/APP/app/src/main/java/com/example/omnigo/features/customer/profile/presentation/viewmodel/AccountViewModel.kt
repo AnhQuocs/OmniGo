@@ -10,6 +10,8 @@ import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.features.auth.domain.usecase.GetMeUseCase
 import com.example.omnigo.features.auth.domain.usecase.LogoutUseCase
 import com.example.omnigo.features.auth.domain.usecase.UpdateAvatarUseCase
+import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
+import com.example.omnigo.features.driver.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.utils.ImageCompressor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -29,6 +31,8 @@ data class AccountUiState(
     val userEmail: String = "",
     val userRole: String = "CUSTOMER",
     val avatarUrl: String? = null,
+    val vehiclePlate: String? = null,
+    val approvalStatus: DriverApprovalStatus = DriverApprovalStatus.APPROVED,
     val isLoading: Boolean = false,
     val isUploadingAvatar: Boolean = false,
     val showLogoutDialog: Boolean = false,
@@ -44,10 +48,12 @@ sealed interface AccountUiEvent {
 @HiltViewModel
 class AccountViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
-    private val updateAvatarUseCase: UpdateAvatarUseCase,
-    private val getMeUseCase: GetMeUseCase,
     private val sessionManager: SessionManager
 ) : ViewModel() {
+
+    private var updateAvatarUseCase: UpdateAvatarUseCase? = null
+    private var getMeUseCase: GetMeUseCase? = null
+    private var getDriverProfileUseCase: GetDriverProfileUseCase? = null
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
@@ -57,7 +63,37 @@ class AccountViewModel @Inject constructor(
 
     init {
         loadUserProfile()
+    }
+
+    @Inject
+    fun injectProfileDependencies(
+        updateAvatarUseCase: UpdateAvatarUseCase,
+        getMeUseCase: GetMeUseCase,
+        driverProfileUseCase: GetDriverProfileUseCase
+    ) {
+        this.updateAvatarUseCase = updateAvatarUseCase
+        this.getMeUseCase = getMeUseCase
+        this.getDriverProfileUseCase = driverProfileUseCase
         syncWithRemoteProfile()
+        loadDriverProfileInfo()
+    }
+
+    fun loadDriverProfileInfo() {
+        val useCase = getDriverProfileUseCase ?: return
+        viewModelScope.launch {
+            val userId = try { sessionManager.getUserId() } catch (_: Exception) { null }
+            useCase(userId).onSuccess { driverProfile ->
+                _uiState.update {
+                    it.copy(
+                        userName = driverProfile.fullName?.ifBlank { null } ?: it.userName,
+                        userPhone = driverProfile.phoneNumber?.ifBlank { null } ?: it.userPhone,
+                        avatarUrl = driverProfile.avatarUrl ?: it.avatarUrl,
+                        vehiclePlate = driverProfile.vehiclePlate,
+                        approvalStatus = driverProfile.approvalStatus
+                    )
+                }
+            }
+        }
     }
 
     fun loadUserProfile() {
@@ -65,7 +101,7 @@ class AccountViewModel @Inject constructor(
             val fullName = sessionManager.getFullName()
             val phone = sessionManager.getPhoneNumber()
             val role = sessionManager.getRole()
-            val avatar = sessionManager.getAvatarUrl()
+            val avatar = try { sessionManager.getAvatarUrl() } catch (_: Exception) { null }
 
             _uiState.update {
                 it.copy(
@@ -79,8 +115,9 @@ class AccountViewModel @Inject constructor(
     }
 
     fun syncWithRemoteProfile() {
+        val useCase = getMeUseCase ?: return
         viewModelScope.launch {
-            getMeUseCase()
+            useCase()
                 .catch { /* Network or auth error, fallback to local session */ }
                 .collect { user ->
                     _uiState.update {
@@ -93,7 +130,7 @@ class AccountViewModel @Inject constructor(
                         )
                     }
                     if (!user.avatarUrl.isNullOrBlank()) {
-                        sessionManager.saveAvatarUrl(user.avatarUrl)
+                        try { sessionManager.saveAvatarUrl(user.avatarUrl) } catch (_: Exception) {}
                     }
                 }
         }
@@ -124,13 +161,14 @@ class AccountViewModel @Inject constructor(
     }
 
     private suspend fun performUploadAvatar(part: MultipartBody.Part?) {
-        if (part == null) {
+        val useCase = updateAvatarUseCase
+        if (part == null || useCase == null) {
             _uiState.update { it.copy(isUploadingAvatar = false) }
             _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_failed))
             return
         }
 
-        val result = updateAvatarUseCase(part)
+        val result = useCase(part)
         result.fold(
             onSuccess = { newUrl ->
                 _uiState.update { it.copy(avatarUrl = newUrl, isUploadingAvatar = false) }

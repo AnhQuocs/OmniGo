@@ -47,6 +47,7 @@ class DriverActiveTripViewModelTest {
     private lateinit var rejectRideBookingUseCase: RejectRideBookingUseCase
     private lateinit var locationTracker: LocationTracker
     private lateinit var driverTripSessionManager: DriverTripSessionManager
+    private lateinit var navigationCoordinator: com.example.omnigo.features.driver.common.presentation.DriverNavigationCoordinator
 
     private val activeBookingFlow = MutableStateFlow<Booking?>(null)
 
@@ -85,6 +86,7 @@ class DriverActiveTripViewModelTest {
         rejectRideBookingUseCase = mockk()
         locationTracker = mockk(relaxed = true)
         driverTripSessionManager = mockk(relaxed = true)
+        navigationCoordinator = mockk(relaxed = true)
 
         every { driverTripSessionManager.activeBooking } returns activeBookingFlow
         every { locationTracker.isLocationPermissionGranted() } returns true
@@ -104,7 +106,8 @@ class DriverActiveTripViewModelTest {
             completeTripUseCase = completeTripUseCase,
             rejectRideBookingUseCase = rejectRideBookingUseCase,
             locationTracker = locationTracker,
-            driverTripSessionManager = driverTripSessionManager
+            driverTripSessionManager = driverTripSessionManager,
+            navigationCoordinator = navigationCoordinator
         )
     }
 
@@ -166,8 +169,30 @@ class DriverActiveTripViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals(DriverActiveTripViewModel.GEOFENCE_WARNING_PICKUP, state.errorMessage)
+        assertTrue(state.showGeofenceOverrideDialog)
         assertEquals(BookingStatus.ACCEPTED, state.status)
         coVerify(exactly = 0) { arrivePickupUseCase(any()) }
+    }
+
+    @Test
+    fun onConfirmGeofenceOverride_whenAccepted_bypassesGeofenceAndArrivesPickup() = runTest {
+        val updatedBooking = sampleBooking.copy(status = BookingStatus.ARRIVED)
+        coEvery { arrivePickupUseCase(555L) } returns ArriveRideBookingResult.Success(updatedBooking)
+
+        val viewModel = createViewModel()
+        viewModel.updateLocationAndDistance(10.8000, 106.7000)
+
+        viewModel.onArrivePickup()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showGeofenceOverrideDialog)
+
+        viewModel.onConfirmGeofenceOverride()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.showGeofenceOverrideDialog)
+        assertEquals(BookingStatus.ARRIVED, state.status)
+        coVerify(exactly = 1) { arrivePickupUseCase(555L) }
     }
 
     @Test
@@ -217,7 +242,29 @@ class DriverActiveTripViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals(DriverActiveTripViewModel.GEOFENCE_WARNING_DROPOFF, state.errorMessage)
+        assertTrue(state.showGeofenceOverrideDialog)
         coVerify(exactly = 0) { completeTripUseCase(any(), any()) }
+    }
+
+    @Test
+    fun onConfirmGeofenceOverride_whenInProgress_bypassesGeofenceAndCompletesTrip() = runTest {
+        val inProgressBooking = sampleBooking.copy(status = BookingStatus.IN_PROGRESS)
+        activeBookingFlow.value = inProgressBooking
+
+        val completedBooking = sampleBooking.copy(status = BookingStatus.COMPLETED)
+        coEvery { completeTripUseCase(555L, "CASH") } returns CompleteRideBookingResult.Success(completedBooking)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onConfirmGeofenceOverride()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.showGeofenceOverrideDialog)
+        assertEquals(BookingStatus.COMPLETED, state.status)
+        assertTrue(state.showSettlementDialog)
+        coVerify(exactly = 1) { completeTripUseCase(555L, "CASH") }
     }
 
     @Test

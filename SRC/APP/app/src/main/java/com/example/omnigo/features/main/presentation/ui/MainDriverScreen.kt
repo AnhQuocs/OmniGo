@@ -7,33 +7,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.omnigo.features.driver.earnings.presentation.ui.DriverEarningsScreen
+import com.example.omnigo.features.driver.food.presentation.ui.DriverActiveDeliveryScreen
 import com.example.omnigo.features.driver.home.presentation.ui.DriverHomeScreen
 import com.example.omnigo.features.driver.profile.presentation.ui.DriverAccountScreen
+import com.example.omnigo.features.driver.ride.presentation.ui.DriverActiveTripScreen
 import com.example.omnigo.features.driver.trips.presentation.ui.DriverTripsScreen
 import com.example.omnigo.features.main.presentation.navigation.DriverBottomNavDestination
 import com.example.omnigo.features.main.presentation.ui.components.DriverBottomNavBar
+import com.example.omnigo.features.main.presentation.viewmodel.DriverMainViewModel
 import com.example.omnigo.ui.theme.BackgroundLight
-
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.example.omnigo.features.driver.food.presentation.ui.DriverActiveDeliveryScreen
-import com.example.omnigo.features.driver.ride.presentation.ui.DriverActiveTripScreen
 
 @Composable
 fun MainDriverScreen(
     onNavigateToLogin: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: DriverMainViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: DriverBottomNavDestination.Home.route
     val isTripOrDeliveryActive = currentRoute.startsWith("driver_active_delivery") || currentRoute.startsWith("driver_active_trip")
+    val hasActiveTask by viewModel.hasActiveTask.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -142,6 +146,15 @@ fun MainDriverScreen(
                         navController.navigate(
                             "driver_active_trip/${booking.bookingId}?pickupLat=${booking.startLatitude}&pickupLng=${booking.startLongitude}&dropoffLat=${booking.endLatitude}&dropoffLng=${booking.endLongitude}&price=${booking.price}&paymentMethod=${booking.paymentMethod ?: "CASH"}"
                         )
+                    },
+                    onResumeActiveFoodOrder = { order ->
+                        val route = buildString {
+                            append("driver_active_delivery/${order.orderId}")
+                            if (order.restaurantLatitude != null && order.restaurantLongitude != null) {
+                                append("?restaurantLat=${order.restaurantLatitude}&restaurantLng=${order.restaurantLongitude}")
+                            }
+                        }
+                        navController.navigate(route)
                     }
                 )
             }
@@ -169,6 +182,7 @@ fun MainDriverScreen(
                         restoreState = true
                     }
                 },
+                hasActiveTask = hasActiveTask,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

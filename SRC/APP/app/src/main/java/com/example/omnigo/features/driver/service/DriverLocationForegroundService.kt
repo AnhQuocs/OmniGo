@@ -19,6 +19,7 @@ import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.core.location.tracker.LocationTracker
 import com.example.omnigo.features.driver.domain.model.DriverLocationUpdate
 import com.example.omnigo.features.driver.domain.usecase.SendDriverLocationUseCase
+import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import com.example.omnigo.features.main.MainActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -50,6 +51,9 @@ class DriverLocationForegroundService : Service() {
 
     @Inject
     lateinit var rideTrackingSessionManager: com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
+
+    @Inject
+    lateinit var driverTripSessionManager: DriverTripSessionManager
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isTracking = false
@@ -191,7 +195,9 @@ class DriverLocationForegroundService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        stopLocationUpdates()
+        if (driverTripSessionManager.activeBooking.value == null) {
+            stopLocationUpdates()
+        }
     }
 
     override fun onDestroy() {

@@ -10,6 +10,7 @@ data class DriverActiveDeliveryUiState(
     val isWithinGeofence: Boolean = false,
     val isLoading: Boolean = false,
     val isUpdatingStatus: Boolean = false,
+    val showGeofenceOverrideDialog: Boolean = false,
     val errorMessage: String? = null,
     val actionMessage: String? = null,
     val isCompleted: Boolean = false,

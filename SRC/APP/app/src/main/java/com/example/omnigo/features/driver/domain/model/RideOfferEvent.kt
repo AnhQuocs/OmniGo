@@ -8,12 +8,16 @@ data class RideOfferEvent(
     val pickupLng: Double,
     val dropoffLat: Double,
     val dropoffLng: Double,
+    val pickupAddress: String = "",
+    val dropoffAddress: String = "",
     val distanceInKm: Double,
     val price: Double,
     val paymentMethod: String? = null,
     val status: BookingStatus = BookingStatus.PENDING,
     val timeoutSeconds: Int = DEFAULT_TIMEOUT_SECONDS,
-    val receivedAtMillis: Long = System.currentTimeMillis()
+    val receivedAtMillis: Long = System.currentTimeMillis(),
+    val customerName: String? = null,
+    val customerPhone: String? = null
 ) {
     val isPending: Boolean
         get() = status == BookingStatus.PENDING

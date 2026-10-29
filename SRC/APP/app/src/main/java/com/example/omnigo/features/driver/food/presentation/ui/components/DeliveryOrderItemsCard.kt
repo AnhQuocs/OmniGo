@@ -24,9 +24,8 @@ import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrderI
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.CardBorderColor
 import com.example.omnigo.ui.theme.OutlineVariantLight
-import com.example.omnigo.ui.theme.SurfaceLight
+import com.example.omnigo.ui.theme.SurfaceVariantLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.utils.medium
@@ -44,15 +43,9 @@ fun DeliveryOrderItemsCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        shape = RoundedCornerShape(AppShape.ShapeM),
-        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = Dimen.PaddingXXS,
-                color = CardBorderColor,
-                shape = RoundedCornerShape(AppShape.ShapeM)
-            )
+        shape = RoundedCornerShape(AppShape.ShapeL),
+        colors = CardDefaults.cardColors(containerColor = SurfaceVariantLight),
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier

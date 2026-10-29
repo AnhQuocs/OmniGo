@@ -16,7 +16,9 @@ data class DriverFoodOffer(
     val isPaid: Boolean = false,
     val paymentMethod: String? = null,
     val timeoutSeconds: Int = DEFAULT_TIMEOUT_SECONDS,
-    val receivedAtMillis: Long = System.currentTimeMillis()
+    val receivedAtMillis: Long = System.currentTimeMillis(),
+    val customerName: String? = null,
+    val customerPhone: String? = null
 ) {
     companion object {
         const val DEFAULT_TIMEOUT_SECONDS = 20

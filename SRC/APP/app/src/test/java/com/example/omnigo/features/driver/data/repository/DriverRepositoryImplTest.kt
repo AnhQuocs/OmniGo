@@ -32,39 +32,29 @@ class DriverRepositoryImplTest {
 
     @Test
     fun `updateDriverStatus with driverId calls updateDriverStatus on api`() = runTest {
-        val request = DriverStatusUpdateRequest(status = "ONLINE", isOnline = true)
-        val successResponse: ApiResponse<Any> = ApiResponse(
+        val successResponse: ApiResponse<String> = ApiResponse(
             success = true,
             message = "OK",
             data = "OK",
             timestamp = null
         )
-        coEvery { driverApi.updateDriverStatus(101L, request) } returns successResponse
+        coEvery { driverApi.updateDriverStatus(101L, true) } returns successResponse
 
         val result = repository.updateDriverStatus(101L, true)
 
         assertTrue(result.isSuccess)
         assertEquals(true, result.getOrNull())
-        coVerify(exactly = 1) { driverApi.updateDriverStatus(101L, request) }
+        coVerify(exactly = 1) { driverApi.updateDriverStatus(101L, true) }
     }
 
     @Test
-    fun `updateDriverStatus with null driverId queries sessionManager and falls back to updateMyDriverStatus`() = runTest {
-        val request = DriverStatusUpdateRequest(status = "OFFLINE", isOnline = false)
-        val successResponse: ApiResponse<Any> = ApiResponse(
-            success = true,
-            message = "OK",
-            data = "OK",
-            timestamp = null
-        )
+    fun `updateDriverStatus with null driverId queries sessionManager and fails when userId is null`() = runTest {
         coEvery { sessionManager.getUserId() } returns null
-        coEvery { driverApi.updateMyDriverStatus(request) } returns successResponse
 
         val result = repository.updateDriverStatus(null, false)
 
-        assertTrue(result.isSuccess)
-        assertEquals(true, result.getOrNull())
-        coVerify(exactly = 1) { driverApi.updateMyDriverStatus(request) }
+        assertTrue(result.isFailure)
+        assertEquals("Driver ID not found", result.exceptionOrNull()?.message)
     }
 
     @Test
@@ -332,5 +322,40 @@ class DriverRepositoryImplTest {
         assertTrue(result.isSuccess)
         assertEquals(com.example.omnigo.features.driver.food.domain.model.DriverDeliveryStatus.DELIVERING, result.getOrNull()?.status)
         coVerify(exactly = 1) { driverApi.updateDriverOrderStatus(orderId, expectedRequest) }
+    }
+
+    @Test
+    fun `getDriverAllFoodOrders returns all orders including completed and cancelled`() = runTest {
+        val activeOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 401L,
+            restaurantName = "Com Tam",
+            status = "DELIVERING",
+            totalPrice = 50000.0
+        )
+        val completedOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 402L,
+            restaurantName = "Com Tam 2",
+            status = "COMPLETED",
+            totalPrice = 60000.0
+        )
+        val cancelledOrderDto = com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse(
+            id = 403L,
+            restaurantName = "Com Tam 3",
+            status = "CANCELLED",
+            totalPrice = 70000.0
+        )
+        val apiResponse = ApiResponse(
+            success = true,
+            message = "OK",
+            data = listOf(activeOrderDto, completedOrderDto, cancelledOrderDto),
+            timestamp = null
+        )
+        coEvery { driverApi.getDriverFoodOrders() } returns apiResponse
+
+        val result = repository.getDriverAllFoodOrders()
+
+        assertTrue(result.isSuccess)
+        val allList = result.getOrNull()!!
+        assertEquals(3, allList.size)
     }
 }

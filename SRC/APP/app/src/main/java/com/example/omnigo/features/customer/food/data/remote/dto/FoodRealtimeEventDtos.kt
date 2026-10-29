@@ -44,6 +44,10 @@ data class FoodOfferEventDto(
     val orderId: Long? = null,
     @SerializedName("customerId")
     val customerId: Long? = null,
+    @SerializedName(value = "customerName", alternate = ["userName", "fullName", "name"])
+    val customerName: String? = null,
+    @SerializedName(value = "customerPhone", alternate = ["phoneNumber", "phone"])
+    val customerPhone: String? = null,
     @SerializedName("restaurantId")
     val restaurantId: Long? = null,
     @SerializedName("restaurantName")

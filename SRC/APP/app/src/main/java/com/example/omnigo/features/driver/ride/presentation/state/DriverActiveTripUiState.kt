@@ -26,6 +26,7 @@ data class DriverActiveTripUiState(
     val isTripCancelled: Boolean = false,
     val showSettlementDialog: Boolean = false,
     val showCancelConfirmDialog: Boolean = false,
+    val showGeofenceOverrideDialog: Boolean = false,
     val errorMessage: String? = null,
     val actionMessage: String? = null
 ) {

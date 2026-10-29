@@ -25,6 +25,8 @@ fun BookingResponse.toRideOfferEvent(): RideOfferEvent? {
             pickupLng = startLongitude ?: 0.0,
             dropoffLat = endLatitude ?: 0.0,
             dropoffLng = endLongitude ?: 0.0,
+            pickupAddress = pickupAddress?.trim().orEmpty(),
+            dropoffAddress = dropoffAddress?.trim().orEmpty(),
             distanceInKm = distanceInKm ?: 0.0,
             price = price ?: 0.0,
             paymentMethod = paymentMethod,
@@ -49,9 +51,13 @@ fun BookingResponse.toRideOfferEvent(): RideOfferEvent? {
         pickupLng = sLng,
         dropoffLat = eLat,
         dropoffLng = eLng,
+        pickupAddress = pickupAddress?.trim().orEmpty(),
+        dropoffAddress = dropoffAddress?.trim().orEmpty(),
         distanceInKm = (distanceInKm ?: 0.0).coerceAtLeast(0.0),
         price = (price ?: 0.0).coerceAtLeast(0.0),
         paymentMethod = paymentMethod,
-        status = bookingStatus
+        status = bookingStatus,
+        customerName = customerName?.trim()?.takeIf { it.isNotBlank() },
+        customerPhone = customerPhone?.trim()?.takeIf { it.isNotBlank() }
     )
 }

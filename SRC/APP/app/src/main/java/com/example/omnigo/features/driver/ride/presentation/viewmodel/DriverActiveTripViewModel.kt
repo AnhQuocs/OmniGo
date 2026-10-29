@@ -10,6 +10,8 @@ import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.features.customer.ride.domain.model.CompleteRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.StartRideBookingResult
+import com.example.omnigo.features.driver.common.presentation.DriverNavigationCoordinator
+import com.example.omnigo.features.driver.common.presentation.DriverNavigationUiState
 import com.example.omnigo.features.driver.domain.usecase.ArrivePickupUseCase
 import com.example.omnigo.features.driver.domain.usecase.CompleteTripUseCase
 import com.example.omnigo.features.driver.domain.usecase.RejectRideBookingUseCase
@@ -36,7 +38,8 @@ class DriverActiveTripViewModel @Inject constructor(
     private val completeTripUseCase: CompleteTripUseCase,
     private val rejectRideBookingUseCase: RejectRideBookingUseCase,
     private val locationTracker: LocationTracker,
-    private val driverTripSessionManager: DriverTripSessionManager
+    private val driverTripSessionManager: DriverTripSessionManager,
+    private val navigationCoordinator: DriverNavigationCoordinator
 ) : ViewModel() {
 
     companion object {
@@ -56,7 +59,10 @@ class DriverActiveTripViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DriverActiveTripUiState(bookingId = navBookingId))
     val uiState: StateFlow<DriverActiveTripUiState> = _uiState.asStateFlow()
 
+    val navigationState: StateFlow<DriverNavigationUiState> = navigationCoordinator.navigationState
+
     private var locationPollingJob: Job? = null
+    private var liveLocationJob: Job? = null
 
     init {
         initializeTripData()
@@ -89,10 +95,41 @@ class DriverActiveTripViewModel @Inject constructor(
             )
         }
 
+        syncNavigationDestination()
         resolveAddresses(startLat, startLng, endLat, endLng)
     }
 
+    private fun syncNavigationDestination() {
+        val state = _uiState.value
+        val (targetLat, targetLng) = getTargetCoordinates(state)
+        val targetAddress = when (state.status) {
+            BookingStatus.IN_PROGRESS -> state.dropoffAddress.orEmpty()
+            else -> state.pickupAddress.orEmpty()
+        }
+        val (secLat, secLng) = when (state.status) {
+            BookingStatus.ACCEPTED, BookingStatus.ARRIVED -> Pair(state.endLatitude, state.endLongitude)
+            else -> Pair(null, null)
+        }
+        viewModelScope.launch {
+            navigationCoordinator.updateDestination(
+                targetLat = targetLat,
+                targetLng = targetLng,
+                targetAddress = targetAddress,
+                vehicleType = "BIKE",
+                secondaryLat = secLat,
+                secondaryLng = secLng
+            )
+        }
+    }
+
     fun startPeriodicLocationTracking() {
+        liveLocationJob?.cancel()
+        liveLocationJob = viewModelScope.launch {
+            navigationCoordinator.observeLocationUpdates().collect { update ->
+                updateLocationAndDistance(update.latitude, update.longitude, update.bearing)
+            }
+        }
+
         locationPollingJob?.cancel()
         locationPollingJob = viewModelScope.launch {
             while (isActive) {
@@ -103,19 +140,12 @@ class DriverActiveTripViewModel @Inject constructor(
     }
 
     fun refreshLocation() {
-        viewModelScope.launch {
-            refreshLocationInternal()
-        }
+        viewModelScope.launch { refreshLocationInternal() }
     }
 
     private suspend fun refreshLocationInternal() {
         if (!locationTracker.isLocationPermissionGranted() || !locationTracker.isGpsEnabled()) {
-            _uiState.update {
-                it.copy(
-                    distanceToTargetMeters = null,
-                    isWithinGeofence = false
-                )
-            }
+            _uiState.update { it.copy(distanceToTargetMeters = null, isWithinGeofence = false) }
             return
         }
 
@@ -123,16 +153,11 @@ class DriverActiveTripViewModel @Inject constructor(
         if (location != null) {
             updateLocationAndDistance(location.latitude, location.longitude)
         } else {
-            _uiState.update {
-                it.copy(
-                    distanceToTargetMeters = null,
-                    isWithinGeofence = false
-                )
-            }
+            _uiState.update { it.copy(distanceToTargetMeters = null, isWithinGeofence = false) }
         }
     }
 
-    fun updateLocationAndDistance(lat: Double, lng: Double) {
+    fun updateLocationAndDistance(lat: Double, lng: Double, bearing: Float? = null) {
         val currentState = _uiState.value
         val (targetLat, targetLng) = getTargetCoordinates(currentState)
 
@@ -142,11 +167,7 @@ class DriverActiveTripViewModel @Inject constructor(
             null
         }
 
-        val withinGeofence = if (distance != null) {
-            distance <= RideGeofenceCalculator.DEFAULT_GEOFENCE_RADIUS_METERS
-        } else {
-            false
-        }
+        val withinGeofence = distance != null && distance <= RideGeofenceCalculator.DEFAULT_GEOFENCE_RADIUS_METERS
 
         _uiState.update {
             it.copy(
@@ -155,6 +176,10 @@ class DriverActiveTripViewModel @Inject constructor(
                 distanceToTargetMeters = distance,
                 isWithinGeofence = withinGeofence
             )
+        }
+
+        viewModelScope.launch {
+            navigationCoordinator.onLocationTick(lat, lng, bearing)
         }
     }
 
@@ -180,6 +205,7 @@ class DriverActiveTripViewModel @Inject constructor(
                     _uiState.update { it.copy(dropoffAddress = dropoff) }
                 }
             }
+            syncNavigationDestination()
         }
     }
 
@@ -190,24 +216,23 @@ class DriverActiveTripViewModel @Inject constructor(
         viewModelScope.launch {
             refreshLocationInternal()
             if (!_uiState.value.isWithinGeofence) {
-                _uiState.update { it.copy(errorMessage = GEOFENCE_WARNING_PICKUP) }
+                _uiState.update {
+                    it.copy(errorMessage = GEOFENCE_WARNING_PICKUP, showGeofenceOverrideDialog = true)
+                }
                 return@launch
             }
+            executeArrivePickup(bookingId)
+        }
+    }
 
-            _uiState.update { it.copy(isUpdatingStatus = true, errorMessage = null) }
-            val result = arrivePickupUseCase(bookingId)
-            when (result) {
-                is ArriveRideBookingResult.Success -> {
-                    updateBookingSuccess(result.booking, BookingStatus.ARRIVED)
-                }
-                is ArriveRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isUpdatingStatus = false,
-                            errorMessage = result.message ?: "Failed to update arrival status"
-                        )
-                    }
-                }
+    private suspend fun executeArrivePickup(bookingId: Long) {
+        _uiState.update {
+            it.copy(isUpdatingStatus = true, errorMessage = null, showGeofenceOverrideDialog = false)
+        }
+        when (val result = arrivePickupUseCase(bookingId)) {
+            is ArriveRideBookingResult.Success -> updateBookingSuccess(result.booking, BookingStatus.ARRIVED)
+            is ArriveRideBookingResult.Error -> _uiState.update {
+                it.copy(isUpdatingStatus = false, errorMessage = result.message ?: "Failed to update arrival status")
             }
         }
     }
@@ -218,19 +243,13 @@ class DriverActiveTripViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isUpdatingStatus = true, errorMessage = null) }
-            val result = startTripUseCase(bookingId)
-            when (result) {
+            when (val result = startTripUseCase(bookingId)) {
                 is StartRideBookingResult.Success -> {
                     updateBookingSuccess(result.booking, BookingStatus.IN_PROGRESS)
                     refreshLocationInternal()
                 }
-                is StartRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isUpdatingStatus = false,
-                            errorMessage = result.message ?: "Failed to start trip"
-                        )
-                    }
+                is StartRideBookingResult.Error -> _uiState.update {
+                    it.copy(isUpdatingStatus = false, errorMessage = result.message ?: "Failed to start trip")
                 }
             }
         }
@@ -244,34 +263,54 @@ class DriverActiveTripViewModel @Inject constructor(
         viewModelScope.launch {
             refreshLocationInternal()
             if (!_uiState.value.isWithinGeofence) {
-                _uiState.update { it.copy(errorMessage = GEOFENCE_WARNING_DROPOFF) }
+                _uiState.update {
+                    it.copy(errorMessage = GEOFENCE_WARNING_DROPOFF, showGeofenceOverrideDialog = true)
+                }
                 return@launch
             }
+            executeCompleteTrip(bookingId, currentState.paymentMethod)
+        }
+    }
 
-            _uiState.update { it.copy(isUpdatingStatus = true, errorMessage = null) }
-            val result = completeTripUseCase(bookingId, currentState.paymentMethod)
-            when (result) {
-                is CompleteRideBookingResult.Success -> {
-                    driverTripSessionManager.clearActiveTrip()
-                    _uiState.update {
-                        it.copy(
-                            status = BookingStatus.COMPLETED,
-                            isUpdatingStatus = false,
-                            showSettlementDialog = true,
-                            price = if (result.booking.price > 0.0) result.booking.price else it.price
-                        )
-                    }
+    private suspend fun executeCompleteTrip(bookingId: Long, paymentMethod: String) {
+        _uiState.update {
+            it.copy(isUpdatingStatus = true, errorMessage = null, showGeofenceOverrideDialog = false)
+        }
+        when (val result = completeTripUseCase(bookingId, paymentMethod)) {
+            is CompleteRideBookingResult.Success -> {
+                driverTripSessionManager.clearActiveTrip()
+                _uiState.update {
+                    it.copy(
+                        status = BookingStatus.COMPLETED,
+                        isUpdatingStatus = false,
+                        showSettlementDialog = true,
+                        price = if (result.booking.price > 0.0) result.booking.price else it.price
+                    )
                 }
-                is CompleteRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isUpdatingStatus = false,
-                            errorMessage = result.message ?: "Failed to complete trip"
-                        )
-                    }
-                }
+                syncNavigationDestination()
+            }
+            is CompleteRideBookingResult.Error -> _uiState.update {
+                it.copy(isUpdatingStatus = false, errorMessage = result.message ?: "Failed to complete trip")
             }
         }
+    }
+
+    fun onConfirmGeofenceOverride() {
+        val currentState = _uiState.value
+        val bookingId = currentState.bookingId
+        if (bookingId <= 0L || currentState.isUpdatingStatus) return
+
+        viewModelScope.launch {
+            when (currentState.status) {
+                BookingStatus.ACCEPTED -> executeArrivePickup(bookingId)
+                BookingStatus.IN_PROGRESS -> executeCompleteTrip(bookingId, currentState.paymentMethod)
+                else -> _uiState.update { it.copy(showGeofenceOverrideDialog = false) }
+            }
+        }
+    }
+
+    fun dismissGeofenceOverrideDialog() {
+        _uiState.update { it.copy(showGeofenceOverrideDialog = false) }
     }
 
     fun showCancelConfirmDialog(show: Boolean) {
@@ -284,25 +323,15 @@ class DriverActiveTripViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isUpdatingStatus = true, showCancelConfirmDialog = false) }
-            val result = rejectRideBookingUseCase(bookingId)
-            when (result) {
+            when (val result = rejectRideBookingUseCase(bookingId)) {
                 is RejectRideBookingResult.Success -> {
                     driverTripSessionManager.clearActiveTrip()
                     _uiState.update {
-                        it.copy(
-                            status = BookingStatus.CANCELLED,
-                            isUpdatingStatus = false,
-                            isTripCancelled = true
-                        )
+                        it.copy(status = BookingStatus.CANCELLED, isUpdatingStatus = false, isTripCancelled = true)
                     }
                 }
-                is RejectRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isUpdatingStatus = false,
-                            errorMessage = result.message ?: "Failed to cancel trip"
-                        )
-                    }
+                is RejectRideBookingResult.Error -> _uiState.update {
+                    it.copy(isUpdatingStatus = false, errorMessage = result.message ?: "Failed to cancel trip")
                 }
             }
         }
@@ -319,6 +348,7 @@ class DriverActiveTripViewModel @Inject constructor(
                 price = if (booking.price > 0.0) booking.price else it.price
             )
         }
+        syncNavigationDestination()
     }
 
     fun clearErrorMessage() {
@@ -332,5 +362,6 @@ class DriverActiveTripViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         locationPollingJob?.cancel()
+        liveLocationJob?.cancel()
     }
 }

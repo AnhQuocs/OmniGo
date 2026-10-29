@@ -12,6 +12,7 @@ interface DriverRepository {
     suspend fun rejectFoodOrder(orderId: Long): Result<Boolean>
     suspend fun getDriverFoodOrderDetail(orderId: Long): Result<DriverDeliveryOrder>
     suspend fun getDriverActiveFoodOrders(): Result<List<DriverDeliveryOrder>>
+    suspend fun getDriverAllFoodOrders(): Result<List<DriverDeliveryOrder>> = Result.success(emptyList())
     suspend fun updateDriverOrderStatus(
         orderId: Long,
         status: String,

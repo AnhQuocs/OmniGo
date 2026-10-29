@@ -159,6 +159,25 @@ class DriverRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getDriverAllFoodOrders(): Result<List<com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = driverApi.getDriverFoodOrders()
+                val body = response.data
+                if (response.success && body != null) {
+                    val orders = body.mapNotNull {
+                        com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(it)
+                    }
+                    Result.success(orders)
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to fetch driver food orders"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
     override suspend fun updateDriverOrderStatus(
         orderId: Long,
         status: String,

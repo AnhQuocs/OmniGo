@@ -118,7 +118,7 @@ fun DriverApprovalWarningDialog(
                         .height(Dimen.SizeXLPlus)
                 ) {
                     Text(
-                        text = stringResource(id = R.string.apply),
+                        text = stringResource(id = R.string.driver_btn_understood),
                         style = MaterialTheme.typography.s16.semiBold(),
                         color = OnPrimaryColor
                     )

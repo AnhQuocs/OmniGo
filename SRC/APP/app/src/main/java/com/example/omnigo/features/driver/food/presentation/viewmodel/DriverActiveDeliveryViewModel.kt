@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.core.location.tracker.LocationTracker
+import com.example.omnigo.features.driver.common.presentation.DriverNavigationCoordinator
+import com.example.omnigo.features.driver.common.presentation.DriverNavigationUiState
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryStatus
 import com.example.omnigo.features.driver.food.domain.usecase.GetDriverFoodOrderDetailUseCase
@@ -25,7 +27,8 @@ class DriverActiveDeliveryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val getDriverFoodOrderDetailUseCase: GetDriverFoodOrderDetailUseCase,
     private val updateDriverFoodOrderStatusUseCase: UpdateDriverFoodOrderStatusUseCase,
-    private val locationTracker: LocationTracker
+    private val locationTracker: LocationTracker,
+    private val navigationCoordinator: DriverNavigationCoordinator
 ) : ViewModel() {
 
     private val navRestaurantLat: Double? = savedStateHandle.get<String>("restaurantLat")?.toDoubleOrNull()
@@ -34,7 +37,10 @@ class DriverActiveDeliveryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DriverActiveDeliveryUiState())
     val uiState: StateFlow<DriverActiveDeliveryUiState> = _uiState.asStateFlow()
 
+    val navigationState: StateFlow<DriverNavigationUiState> = navigationCoordinator.navigationState
+
     private var locationPollingJob: Job? = null
+    private var liveLocationJob: Job? = null
 
     fun loadOrderDetail(orderId: Long) {
         viewModelScope.launch {
@@ -57,6 +63,7 @@ class DriverActiveDeliveryViewModel @Inject constructor(
                         isCancelled = effectiveOrder.status == DriverDeliveryStatus.CANCELLED
                     )
                 }
+                syncNavigationDestination(effectiveOrder)
                 refreshLocation()
             }.onFailure { error ->
                 _uiState.update {
@@ -69,7 +76,48 @@ class DriverActiveDeliveryViewModel @Inject constructor(
         }
     }
 
+    private fun syncNavigationDestination(order: DriverDeliveryOrder?) {
+        viewModelScope.launch {
+            if (order == null) {
+                navigationCoordinator.updateDestination(null, null, "")
+                return@launch
+            }
+            when (order.status) {
+                DriverDeliveryStatus.ACCEPTED -> {
+                    navigationCoordinator.updateDestination(
+                        targetLat = order.restaurantLatitude,
+                        targetLng = order.restaurantLongitude,
+                        targetAddress = order.restaurantAddress.ifBlank { order.restaurantName },
+                        vehicleType = "BIKE",
+                        secondaryLat = order.dropOffLatitude,
+                        secondaryLng = order.dropOffLongitude
+                    )
+                }
+                DriverDeliveryStatus.DELIVERING -> {
+                    navigationCoordinator.updateDestination(
+                        targetLat = order.dropOffLatitude,
+                        targetLng = order.dropOffLongitude,
+                        targetAddress = order.dropOffAddress.ifBlank { order.customerName },
+                        vehicleType = "BIKE",
+                        secondaryLat = null,
+                        secondaryLng = null
+                    )
+                }
+                else -> {
+                    navigationCoordinator.updateDestination(null, null, "")
+                }
+            }
+        }
+    }
+
     fun startPeriodicLocationTracking() {
+        liveLocationJob?.cancel()
+        liveLocationJob = viewModelScope.launch {
+            navigationCoordinator.observeLocationUpdates().collect { update ->
+                updateLocationAndDistance(update.latitude, update.longitude, update.bearing)
+            }
+        }
+
         locationPollingJob?.cancel()
         locationPollingJob = viewModelScope.launch {
             while (isActive) {
@@ -80,19 +128,12 @@ class DriverActiveDeliveryViewModel @Inject constructor(
     }
 
     fun refreshLocation() {
-        viewModelScope.launch {
-            refreshLocationInternal()
-        }
+        viewModelScope.launch { refreshLocationInternal() }
     }
 
     private suspend fun refreshLocationInternal() {
         if (!locationTracker.isLocationPermissionGranted() || !locationTracker.isGpsEnabled()) {
-            _uiState.update {
-                it.copy(
-                    distanceToTargetMeters = null,
-                    isWithinGeofence = false
-                )
-            }
+            _uiState.update { it.copy(distanceToTargetMeters = null, isWithinGeofence = false) }
             return
         }
 
@@ -100,16 +141,11 @@ class DriverActiveDeliveryViewModel @Inject constructor(
         if (location != null) {
             updateLocationAndDistance(location.latitude, location.longitude)
         } else {
-            _uiState.update {
-                it.copy(
-                    distanceToTargetMeters = null,
-                    isWithinGeofence = false
-                )
-            }
+            _uiState.update { it.copy(distanceToTargetMeters = null, isWithinGeofence = false) }
         }
     }
 
-    fun updateLocationAndDistance(lat: Double, lng: Double) {
+    fun updateLocationAndDistance(lat: Double, lng: Double, bearing: Float? = null) {
         val currentOrder = _uiState.value.order
         val (targetLat, targetLng) = getTargetCoordinates(currentOrder)
 
@@ -119,11 +155,7 @@ class DriverActiveDeliveryViewModel @Inject constructor(
             null
         }
 
-        val withinGeofence = if (distance != null) {
-            distance <= GeofenceCalculator.DEFAULT_GEOFENCE_RADIUS_METERS
-        } else {
-            false
-        }
+        val withinGeofence = distance != null && distance <= GeofenceCalculator.DEFAULT_GEOFENCE_RADIUS_METERS
 
         _uiState.update {
             it.copy(
@@ -132,6 +164,10 @@ class DriverActiveDeliveryViewModel @Inject constructor(
                 distanceToTargetMeters = distance,
                 isWithinGeofence = withinGeofence
             )
+        }
+
+        viewModelScope.launch {
+            navigationCoordinator.onLocationTick(lat, lng, bearing)
         }
     }
 
@@ -152,34 +188,41 @@ class DriverActiveDeliveryViewModel @Inject constructor(
 
         viewModelScope.launch {
             refreshLocationInternal()
-
             if (!_uiState.value.isWithinGeofence) {
                 _uiState.update {
                     it.copy(
                         isUpdatingStatus = false,
-                        errorMessage = ERROR_GEOFENCE_OUTSIDE
+                        errorMessage = ERROR_GEOFENCE_OUTSIDE,
+                        showGeofenceOverrideDialog = true
                     )
                 }
                 return@launch
             }
+            executePickupStatusUpdate(order.orderId)
+        }
+    }
 
-            val result = updateDriverFoodOrderStatusUseCase(order.orderId, "DELIVERING")
-            result.onSuccess { updatedOrder ->
-                _uiState.update {
-                    it.copy(
-                        order = updatedOrder,
-                        isUpdatingStatus = false,
-                        actionMessage = MESSAGE_PICKUP_SUCCESS
-                    )
-                }
-                refreshLocationInternal()
-            }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isUpdatingStatus = false,
-                        errorMessage = error.message ?: "Failed to update pickup status"
-                    )
-                }
+    private suspend fun executePickupStatusUpdate(orderId: Long) {
+        _uiState.update {
+            it.copy(isUpdatingStatus = true, errorMessage = null, showGeofenceOverrideDialog = false)
+        }
+        val result = updateDriverFoodOrderStatusUseCase(orderId, "DELIVERING")
+        result.onSuccess { updatedOrder ->
+            _uiState.update {
+                it.copy(
+                    order = updatedOrder,
+                    isUpdatingStatus = false,
+                    actionMessage = MESSAGE_PICKUP_SUCCESS
+                )
+            }
+            syncNavigationDestination(updatedOrder)
+            refreshLocationInternal()
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    isUpdatingStatus = false,
+                    errorMessage = error.message ?: "Failed to update pickup status"
+                )
             }
         }
     }
@@ -192,42 +235,68 @@ class DriverActiveDeliveryViewModel @Inject constructor(
 
         viewModelScope.launch {
             refreshLocationInternal()
-
             if (!_uiState.value.isWithinGeofence) {
                 _uiState.update {
                     it.copy(
                         isUpdatingStatus = false,
-                        errorMessage = ERROR_GEOFENCE_OUTSIDE
+                        errorMessage = ERROR_GEOFENCE_OUTSIDE,
+                        showGeofenceOverrideDialog = true
                     )
                 }
                 return@launch
             }
+            executeDeliveredStatusUpdate(order.orderId)
+        }
+    }
 
-            val result = updateDriverFoodOrderStatusUseCase(order.orderId, "COMPLETED")
-            result.onSuccess { updatedOrder ->
-                _uiState.update {
-                    it.copy(
-                        order = updatedOrder,
-                        isUpdatingStatus = false,
-                        isCompleted = true,
-                        actionMessage = MESSAGE_DELIVERY_SUCCESS
-                    )
-                }
-                stopPeriodicLocationTracking()
-            }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isUpdatingStatus = false,
-                        errorMessage = error.message ?: "Failed to complete delivery"
-                    )
-                }
+    private suspend fun executeDeliveredStatusUpdate(orderId: Long) {
+        _uiState.update {
+            it.copy(isUpdatingStatus = true, errorMessage = null, showGeofenceOverrideDialog = false)
+        }
+        val result = updateDriverFoodOrderStatusUseCase(orderId, "COMPLETED")
+        result.onSuccess { updatedOrder ->
+            _uiState.update {
+                it.copy(
+                    order = updatedOrder,
+                    isUpdatingStatus = false,
+                    isCompleted = true,
+                    actionMessage = MESSAGE_DELIVERY_SUCCESS
+                )
+            }
+            syncNavigationDestination(updatedOrder)
+            stopPeriodicLocationTracking()
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    isUpdatingStatus = false,
+                    errorMessage = error.message ?: "Failed to complete delivery"
+                )
             }
         }
+    }
+
+    fun onConfirmGeofenceOverride() {
+        val order = _uiState.value.order ?: return
+        if (_uiState.value.isUpdatingStatus) return
+
+        viewModelScope.launch {
+            when (order.status) {
+                DriverDeliveryStatus.ACCEPTED -> executePickupStatusUpdate(order.orderId)
+                DriverDeliveryStatus.DELIVERING -> executeDeliveredStatusUpdate(order.orderId)
+                else -> _uiState.update { it.copy(showGeofenceOverrideDialog = false) }
+            }
+        }
+    }
+
+    fun dismissGeofenceOverrideDialog() {
+        _uiState.update { it.copy(showGeofenceOverrideDialog = false) }
     }
 
     fun stopPeriodicLocationTracking() {
         locationPollingJob?.cancel()
         locationPollingJob = null
+        liveLocationJob?.cancel()
+        liveLocationJob = null
     }
 
     fun clearErrorMessage() {

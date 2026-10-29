@@ -35,6 +35,7 @@ class DriverActiveDeliveryViewModelTest {
     private lateinit var getOrderDetailUseCase: GetDriverFoodOrderDetailUseCase
     private lateinit var updateStatusUseCase: UpdateDriverFoodOrderStatusUseCase
     private lateinit var locationTracker: LocationTracker
+    private lateinit var navigationCoordinator: com.example.omnigo.features.driver.common.presentation.DriverNavigationCoordinator
 
     private val testOrder = DriverDeliveryOrder(
         orderId = 100L,
@@ -60,6 +61,7 @@ class DriverActiveDeliveryViewModelTest {
         getOrderDetailUseCase = mockk()
         updateStatusUseCase = mockk()
         locationTracker = mockk()
+        navigationCoordinator = mockk(relaxed = true)
 
         every { locationTracker.isLocationPermissionGranted() } returns true
         every { locationTracker.isGpsEnabled() } returns true
@@ -78,7 +80,8 @@ class DriverActiveDeliveryViewModelTest {
             savedStateHandle = savedStateHandle,
             getDriverFoodOrderDetailUseCase = getOrderDetailUseCase,
             updateDriverFoodOrderStatusUseCase = updateStatusUseCase,
-            locationTracker = locationTracker
+            locationTracker = locationTracker,
+            navigationCoordinator = navigationCoordinator
         )
     }
 
@@ -281,6 +284,32 @@ class DriverActiveDeliveryViewModelTest {
 
         advanceUntilIdle()
 
+        coVerify(exactly = 1) { updateStatusUseCase(100L, "DELIVERING") }
+    }
+
+    @Test
+    fun `onConfirmGeofenceOverride bypasses geofence check and updates status`() = runTest {
+        coEvery { getOrderDetailUseCase(100L) } returns Result.success(testOrder)
+        val updatedOrder = testOrder.copy(status = DriverDeliveryStatus.DELIVERING)
+        coEvery { updateStatusUseCase(100L, "DELIVERING") } returns Result.success(updatedOrder)
+
+        val viewModel = createViewModel()
+        viewModel.loadOrderDetail(100L)
+        advanceUntilIdle()
+
+        // Far from restaurant -> triggers showGeofenceOverrideDialog
+        viewModel.updateLocationAndDistance(10.800000, 106.700000)
+        viewModel.onConfirmPickup()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showGeofenceOverrideDialog)
+
+        viewModel.onConfirmGeofenceOverride()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.showGeofenceOverrideDialog)
+        assertEquals(DriverDeliveryStatus.DELIVERING, state.order?.status)
         coVerify(exactly = 1) { updateStatusUseCase(100L, "DELIVERING") }
     }
 }

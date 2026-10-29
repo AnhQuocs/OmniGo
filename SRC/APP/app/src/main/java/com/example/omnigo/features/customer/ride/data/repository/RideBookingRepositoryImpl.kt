@@ -23,6 +23,7 @@ import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
 import com.example.omnigo.features.customer.ride.domain.model.StartRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.repository.RideBookingRepository
+import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.model.RideOfferEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -35,6 +36,14 @@ class RideBookingRepositoryImpl @Inject constructor(
     private val rideBookingApi: RideBookingApi,
     private val rideStompSubscriptionSource: RideStompSubscriptionSource
 ) : RideBookingRepository {
+
+    internal var clock: () -> Long = { System.currentTimeMillis() }
+    private var cachedDailyReport: DriverDailyReport? = null
+    private var lastDailyReportFetchMs: Long = 0L
+
+    companion object {
+        const val DAILY_REPORT_CACHE_TTL_MS = 5 * 60 * 1000L
+    }
 
     override suspend fun createBooking(
         startLatitude: Double,
@@ -224,6 +233,7 @@ class RideBookingRepositoryImpl @Inject constructor(
     override suspend fun completeBooking(bookingId: Long, paymentMethod: String?): CompleteRideBookingResult {
         return try {
             val response = rideBookingApi.completeBooking(bookingId, paymentMethod)
+            invalidateDailyReportCache()
             CompleteRideBookingResult.Success(response.toDomain())
         } catch (e: IOException) {
             CompleteRideBookingResult.Error(
@@ -290,11 +300,23 @@ class RideBookingRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getDriverDailyReport(): GetDriverDailyReportResult {
+    override fun invalidateDailyReportCache() {
+        cachedDailyReport = null
+        lastDailyReportFetchMs = 0L
+    }
+
+    override suspend fun getDriverDailyReport(forceRefresh: Boolean): GetDriverDailyReportResult {
+        val cached = cachedDailyReport
+        if (!forceRefresh && cached != null && clock() - lastDailyReportFetchMs < DAILY_REPORT_CACHE_TTL_MS) {
+            return GetDriverDailyReportResult.Success(cached)
+        }
         return try {
             val response = rideBookingApi.getDriverDailyReport()
             if (response.success && response.data != null) {
-                GetDriverDailyReportResult.Success(response.data.toDomain())
+                val report = response.data.toDomain()
+                cachedDailyReport = report
+                lastDailyReportFetchMs = clock()
+                GetDriverDailyReportResult.Success(report)
             } else {
                 GetDriverDailyReportResult.Error(
                     error = RideError.UNKNOWN_ERROR,

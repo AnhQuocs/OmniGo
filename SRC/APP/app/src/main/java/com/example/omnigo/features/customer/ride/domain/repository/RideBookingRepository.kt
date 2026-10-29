@@ -48,7 +48,9 @@ interface RideBookingRepository {
 
     suspend fun getCustomerBookings(): GetCustomerBookingsResult
 
-    suspend fun getDriverDailyReport(): GetDriverDailyReportResult
+    suspend fun getDriverDailyReport(forceRefresh: Boolean = false): GetDriverDailyReportResult
+
+    fun invalidateDailyReportCache()
 
     suspend fun getNearbyDrivers(
         latitude: Double,

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.BottomBarBg
 import com.example.omnigo.ui.theme.BottomBarBorder
 import com.example.omnigo.ui.theme.BottomNavDefault
+import com.example.omnigo.ui.theme.ErrorColor
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.utils.s10
 
@@ -45,7 +48,8 @@ import com.example.omnigo.utils.s10
 fun DriverBottomNavBar(
     currentRoute: String?,
     onNavigateToDestination: (DriverBottomNavDestination) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hasActiveTask: Boolean = false
 ) {
     val pillShape = remember { RoundedCornerShape(AppShape.PillShape) }
     val inactiveColor = BottomNavDefault
@@ -91,12 +95,20 @@ fun DriverBottomNavBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.XXS, Alignment.CenterVertically)
                 ) {
-                    Image(
-                        painter = painterResource(destination.iconRes),
-                        contentDescription = stringResource(destination.titleRes),
-                        modifier = Modifier.size(Dimen.SizeS2),
-                        colorFilter = ColorFilter.tint(color)
-                    )
+                    BadgedBox(
+                        badge = {
+                            if (destination == DriverBottomNavDestination.Trips && hasActiveTask) {
+                                Badge(containerColor = ErrorColor)
+                            }
+                        }
+                    ) {
+                        Image(
+                            painter = painterResource(destination.iconRes),
+                            contentDescription = stringResource(destination.titleRes),
+                            modifier = Modifier.size(Dimen.SizeS2),
+                            colorFilter = ColorFilter.tint(color)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(AppSpacing.XXS))
 

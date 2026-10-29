@@ -1,7 +1,6 @@
 package com.example.omnigo.features.driver.ride.presentation.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,40 +23,33 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.omnigo.R
-import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.CardBorderColor
-import com.example.omnigo.ui.theme.PrimaryColor
+import com.example.omnigo.ui.theme.OutlineVariantLight
 import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.SuccessColor
-import com.example.omnigo.ui.theme.SurfaceLight
+import com.example.omnigo.ui.theme.SurfaceVariantLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
-import com.example.omnigo.ui.theme.WarningColor
-import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
-import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.semiBold
-import java.util.Locale
 
 @Composable
 fun DriverTripRouteCard(
-    status: BookingStatus,
     pickupAddress: String?,
     dropoffAddress: String?,
     startLat: Double?,
     startLng: Double?,
     endLat: Double?,
     endLng: Double?,
-    distanceToTargetMeters: Double?,
-    isWithinGeofence: Boolean,
     modifier: Modifier = Modifier
 ) {
     val pickupDisplay = pickupAddress ?: if (startLat != null && startLng != null) {
@@ -74,114 +65,89 @@ fun DriverTripRouteCard(
     }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = Dimen.PaddingXXS,
-                color = CardBorderColor,
-                shape = RoundedCornerShape(AppShape.ShapeL)
-            ),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppShape.ShapeL),
-        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+        colors = CardDefaults.cardColors(containerColor = SurfaceVariantLight)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingML)
+                .padding(Dimen.PaddingM)
         ) {
-            // Pickup Row
-            Row(verticalAlignment = Alignment.Top) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
                 Box(
                     modifier = Modifier
                         .size(Dimen.SizeM)
-                        .background(PrimaryColor, CircleShape)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.M))
-                Column {
+                        .clip(CircleShape)
+                        .background(SuccessColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = SuccessColor,
+                        modifier = Modifier.size(Dimen.SizeS)
+                    )
+                }
+                Spacer(modifier = Modifier.width(AppSpacing.SPlus))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.driver_trip_pickup_title),
-                        style = MaterialTheme.typography.s12.normal(),
+                        style = MaterialTheme.typography.s12.medium(),
                         color = TextSecondary
                     )
                     Text(
                         text = pickupDisplay,
                         style = MaterialTheme.typography.s14.semiBold(),
-                        color = TextPrimary
+                        color = TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            // Connecting line
             Box(
                 modifier = Modifier
-                    .padding(start = Dimen.PaddingS)
+                    .padding(start = Dimen.PaddingS, top = Dimen.PaddingXXS, bottom = Dimen.PaddingXXS)
                     .width(Dimen.PaddingXXS)
-                    .height(Dimen.SizeM)
-                    .background(CardBorderColor)
+                    .height(Dimen.PaddingM)
+                    .background(OutlineVariantLight)
             )
 
-            // Dropoff Row
-            Row(verticalAlignment = Alignment.Top) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
                 Box(
                     modifier = Modifier
                         .size(Dimen.SizeM)
-                        .background(SecondaryColor, CircleShape)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.M))
-                Column {
+                        .clip(CircleShape)
+                        .background(SecondaryColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Navigation,
+                        contentDescription = null,
+                        tint = SecondaryColor,
+                        modifier = Modifier.size(Dimen.SizeS)
+                    )
+                }
+                Spacer(modifier = Modifier.width(AppSpacing.SPlus))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.driver_trip_dropoff_title),
-                        style = MaterialTheme.typography.s12.normal(),
+                        style = MaterialTheme.typography.s12.medium(),
                         color = TextSecondary
                     )
                     Text(
                         text = dropoffDisplay,
                         style = MaterialTheme.typography.s14.semiBold(),
-                        color = TextPrimary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            // Distance & Geofencing status pill
-            if (distanceToTargetMeters != null && status != BookingStatus.COMPLETED) {
-                val formattedDistance = if (distanceToTargetMeters >= 1000.0) {
-                    String.format(Locale.US, "%.1f km", distanceToTargetMeters / 1000.0)
-                } else {
-                    String.format(Locale.US, "%.0f m", distanceToTargetMeters)
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = if (isWithinGeofence) SuccessColor.copy(alpha = 0.12f) else WarningColor.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(AppShape.ShapeM)
-                        )
-                        .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (isWithinGeofence) Icons.Default.CheckCircle else Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = if (isWithinGeofence) SuccessColor else WarningColor,
-                        modifier = Modifier.size(Dimen.SizeM)
-                    )
-                    Spacer(modifier = Modifier.width(AppSpacing.S))
-                    Text(
-                        text = stringResource(R.string.driver_trip_distance_remaining, formattedDistance),
-                        style = MaterialTheme.typography.s13.bold(),
-                        color = if (isWithinGeofence) SuccessColor else WarningColor,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = stringResource(
-                            if (isWithinGeofence) R.string.driver_trip_geofence_in_range
-                            else R.string.driver_trip_geofence_out_of_range
-                        ),
-                        style = MaterialTheme.typography.s12.medium(),
-                        color = if (isWithinGeofence) SuccessColor else WarningColor
+                        color = TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

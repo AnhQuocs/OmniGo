@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.core.location.tracker.LocationTracker
+import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
 import com.example.omnigo.features.driver.domain.model.DriverFoodOffer
 import com.example.omnigo.features.driver.domain.usecase.AcceptFoodOrderUseCase
+import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.domain.usecase.GetDriverProfileUseCase
 import com.example.omnigo.features.driver.domain.usecase.ObserveDriverFoodOffersUseCase
 import com.example.omnigo.features.driver.domain.usecase.RejectFoodOrderUseCase
 import com.example.omnigo.features.driver.domain.usecase.UpdateDriverStatusUseCase
 import com.example.omnigo.features.driver.food.domain.usecase.GetDriverActiveFoodOrdersUseCase
+import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +41,9 @@ class DriverHomeViewModel @Inject constructor(
     private val rideOfferCoordinator: DriverRideOfferCoordinator
 ) : ViewModel() {
 
+    private var getDriverDailyReportUseCase: GetDriverDailyReportUseCase? = null
+    private var driverTripSessionManager: DriverTripSessionManager? = null
+
     private val _uiState = MutableStateFlow(DriverHomeUiState())
     val uiState: StateFlow<DriverHomeUiState> = _uiState.asStateFlow()
 
@@ -48,14 +55,62 @@ class DriverHomeViewModel @Inject constructor(
     init {
         loadDriverProfile()
         checkLocationPrerequisites()
+        refreshDriverLocation()
+    }
+
+    @Inject
+    fun injectCockpitDependencies(
+        dailyReportUseCase: GetDriverDailyReportUseCase,
+        tripSessionManager: DriverTripSessionManager
+    ) {
+        this.getDriverDailyReportUseCase = dailyReportUseCase
+        this.driverTripSessionManager = tripSessionManager
+        loadDailyReport()
+        observeActiveRideSession()
+    }
+
+    private fun observeActiveRideSession() {
+        val sessionManager = driverTripSessionManager ?: return
+        viewModelScope.launch {
+            val wasRestored = sessionManager.restoreActiveTrip()
+            val restored = sessionManager.activeBooking.value
+            if (wasRestored && restored?.status == BookingStatus.IN_PROGRESS) {
+                _uiState.update { it.copy(acceptedRideBookingId = restored.bookingId) }
+            }
+            sessionManager.activeBooking.collect { booking ->
+                _uiState.update { it.copy(activeRideBooking = booking) }
+            }
+        }
+    }
+
+    fun loadDailyReport(forceRefresh: Boolean = false) {
+        val useCase = getDriverDailyReportUseCase ?: return
+        viewModelScope.launch {
+            when (val result = useCase(forceRefresh)) {
+                is GetDriverDailyReportResult.Success -> _uiState.update { it.copy(dailyReport = result.report) }
+                is GetDriverDailyReportResult.Error -> Unit
+            }
+        }
+    }
+
+    fun refreshDriverLocation() {
+        viewModelScope.launch {
+            if (locationTracker.isLocationPermissionGranted() && locationTracker.isGpsEnabled()) {
+                val loc = runCatching { locationTracker.getCurrentLocation() }.getOrNull()
+                if (loc != null) {
+                    _uiState.update {
+                        it.copy(currentLatitude = loc.latitude, currentLongitude = loc.longitude)
+                    }
+                }
+            }
+        }
     }
 
     fun loadDriverProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val userId = sessionManager.getUserId()
-            val result = getDriverProfileUseCase(userId)
-            result.onSuccess { profile ->
+            getDriverProfileUseCase(userId).onSuccess { profile ->
                 val online = profile.isOnline
                 _uiState.update {
                     it.copy(
@@ -72,41 +127,31 @@ class DriverHomeViewModel @Inject constructor(
                     stopObservingOffers()
                 }
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = error.message
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
             }
         }
     }
 
     fun checkLocationPrerequisites() {
-        val hasPermission = locationTracker.isLocationPermissionGranted()
-        val isGpsOn = locationTracker.isGpsEnabled()
         _uiState.update {
             it.copy(
-                isLocationPermissionGranted = hasPermission,
-                isGpsEnabled = isGpsOn
+                isLocationPermissionGranted = locationTracker.isLocationPermissionGranted(),
+                isGpsEnabled = locationTracker.isGpsEnabled()
             )
         }
     }
 
     fun toggleOnlineStatus(targetOnline: Boolean) {
         if (targetOnline) {
-            val currentApproval = _uiState.value.approvalStatus
-            if (currentApproval != DriverApprovalStatus.APPROVED) {
+            if (_uiState.value.approvalStatus != DriverApprovalStatus.APPROVED) {
                 _uiState.update { it.copy(showApprovalWarningDialog = true) }
                 return
             }
-
             checkLocationPrerequisites()
             if (!_uiState.value.isLocationPermissionGranted) {
                 _uiState.update { it.copy(errorMessage = ERROR_LOCATION_PERMISSION_REQUIRED) }
                 return
             }
-
             if (!_uiState.value.isGpsEnabled) {
                 _uiState.update { it.copy(errorMessage = ERROR_GPS_REQUIRED) }
                 return
@@ -116,16 +161,10 @@ class DriverHomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isStatusUpdating = true, errorMessage = null) }
             val driverId = _uiState.value.profile?.driverId ?: sessionManager.getUserId()
-            val result = updateDriverStatusUseCase(driverId, targetOnline)
-
-            result.onSuccess {
-                _uiState.update {
-                    it.copy(
-                        isOnline = targetOnline,
-                        isStatusUpdating = false
-                    )
-                }
+            updateDriverStatusUseCase(driverId, targetOnline).onSuccess {
+                _uiState.update { it.copy(isOnline = targetOnline, isStatusUpdating = false) }
                 if (targetOnline) {
+                    refreshDriverLocation()
                     startObservingOffers()
                 } else {
                     stopObservingOffers()
@@ -144,9 +183,7 @@ class DriverHomeViewModel @Inject constructor(
     fun startObservingOffers() {
         offersJob?.cancel()
         offersJob = viewModelScope.launch {
-            observeDriverFoodOffersUseCase().collect { offer ->
-                handleIncomingOffer(offer)
-            }
+            observeDriverFoodOffersUseCase().collect { offer -> handleIncomingOffer(offer) }
         }
         rideOfferCoordinator.startObserving(
             scope = viewModelScope,
@@ -173,14 +210,11 @@ class DriverHomeViewModel @Inject constructor(
     }
 
     fun handleIncomingOffer(offer: DriverFoodOffer) {
-        if (!_uiState.value.isOnline) return
-        if (offer.orderId <= 0L) return
-        if (_uiState.value.isOfferAccepting) return
+        if (!_uiState.value.isOnline || offer.orderId <= 0L || _uiState.value.isOfferAccepting) return
         if (_uiState.value.currentFoodOffer?.orderId == offer.orderId) return
 
         cancelCountdown()
         isProcessingOffer = false
-
         _uiState.update {
             it.copy(
                 currentFoodOffer = offer,
@@ -200,20 +234,12 @@ class DriverHomeViewModel @Inject constructor(
 
         countdownJob = viewModelScope.launch {
             while (isActive) {
-                val now = timeProvider()
-                val remainingMs = (deadline - now).coerceAtLeast(0L)
+                val remainingMs = (deadline - timeProvider()).coerceAtLeast(0L)
                 val remainingSec = ceil(remainingMs / 1000.0).toInt().coerceAtLeast(0)
-                val progress = if (totalMs > 0L) {
-                    (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
-                } else 0f
-
+                val progress = if (totalMs > 0L) (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f) else 0f
                 _uiState.update {
-                    it.copy(
-                        offerCountdownSeconds = remainingSec,
-                        offerCountdownProgress = progress
-                    )
+                    it.copy(offerCountdownSeconds = remainingSec, offerCountdownProgress = progress)
                 }
-
                 if (remainingMs <= 0L) {
                     executeReject(offer.orderId, isTimeout = true)
                     break
@@ -230,21 +256,16 @@ class DriverHomeViewModel @Inject constructor(
 
     fun onAcceptOffer(orderId: Long? = null) {
         val targetOrderId = orderId ?: _uiState.value.currentFoodOffer?.orderId ?: return
-        if (isProcessingOffer || _uiState.value.isOfferAccepting || _uiState.value.isOfferRejecting) {
-            return
-        }
+        if (isProcessingOffer || _uiState.value.isOfferAccepting || _uiState.value.isOfferRejecting) return
         val currentOffer = _uiState.value.currentFoodOffer
-        if (currentOffer == null || currentOffer.orderId != targetOrderId) {
-            return
-        }
+        if (currentOffer == null || currentOffer.orderId != targetOrderId) return
 
         isProcessingOffer = true
         cancelCountdown()
 
         viewModelScope.launch {
             _uiState.update { it.copy(isOfferAccepting = true, errorMessage = null) }
-            val result = acceptFoodOrderUseCase(targetOrderId)
-            result.onSuccess {
+            acceptFoodOrderUseCase(targetOrderId).onSuccess {
                 _uiState.update {
                     it.copy(
                         currentFoodOffer = null,
@@ -269,21 +290,17 @@ class DriverHomeViewModel @Inject constructor(
 
     fun checkActiveDeliveries() {
         viewModelScope.launch {
-            if (_uiState.value.acceptedOrderId != null || isProcessingOffer) {
-                return@launch
-            }
-            val result = getDriverActiveFoodOrdersUseCase()
-            result.onSuccess { orders ->
+            if (_uiState.value.acceptedOrderId != null || isProcessingOffer) return@launch
+            getDriverActiveFoodOrdersUseCase().onSuccess { orders ->
                 val activeOrder = orders.firstOrNull { it.status.isActive }
-                if (activeOrder != null && activeOrder.orderId > 0L) {
-                    if (_uiState.value.acceptedOrderId != activeOrder.orderId) {
-                        _uiState.update {
-                            it.copy(
-                                acceptedOrderId = activeOrder.orderId,
-                                acceptedOfferRestaurantLat = activeOrder.restaurantLatitude,
-                                acceptedOfferRestaurantLng = activeOrder.restaurantLongitude
-                            )
-                        }
+                _uiState.update { it.copy(activeFoodOrder = activeOrder) }
+                if (activeOrder != null && activeOrder.orderId > 0L && _uiState.value.acceptedOrderId != activeOrder.orderId) {
+                    _uiState.update {
+                        it.copy(
+                            acceptedOrderId = activeOrder.orderId,
+                            acceptedOfferRestaurantLat = activeOrder.restaurantLatitude,
+                            acceptedOfferRestaurantLng = activeOrder.restaurantLongitude
+                        )
                     }
                 }
             }
@@ -296,21 +313,16 @@ class DriverHomeViewModel @Inject constructor(
     }
 
     private fun executeReject(orderId: Long, isTimeout: Boolean) {
-        if (isProcessingOffer || _uiState.value.isOfferRejecting || _uiState.value.isOfferAccepting) {
-            return
-        }
+        if (isProcessingOffer || _uiState.value.isOfferRejecting || _uiState.value.isOfferAccepting) return
         val currentOffer = _uiState.value.currentFoodOffer
-        if (currentOffer == null || currentOffer.orderId != orderId) {
-            return
-        }
+        if (currentOffer == null || currentOffer.orderId != orderId) return
 
         isProcessingOffer = true
         cancelCountdown()
 
         viewModelScope.launch {
             _uiState.update { it.copy(isOfferRejecting = true) }
-            val result = rejectFoodOrderUseCase(orderId)
-            result.onSuccess {
+            rejectFoodOrderUseCase(orderId).onSuccess {
                 _uiState.update {
                     it.copy(
                         currentFoodOffer = null,
@@ -331,49 +343,25 @@ class DriverHomeViewModel @Inject constructor(
         }
     }
 
-    fun dismissApprovalWarningDialog() {
-        _uiState.update { it.copy(showApprovalWarningDialog = false) }
-    }
-
-    fun clearErrorMessage() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    fun clearOfferActionMessage() {
-        _uiState.update { it.copy(offerActionMessage = null) }
-    }
+    fun dismissApprovalWarningDialog() = _uiState.update { it.copy(showApprovalWarningDialog = false) }
+    fun clearErrorMessage() = _uiState.update { it.copy(errorMessage = null) }
+    fun clearOfferActionMessage() = _uiState.update { it.copy(offerActionMessage = null) }
 
     fun clearAcceptedOrderId() {
         _uiState.update {
-            it.copy(
-                acceptedOrderId = null,
-                acceptedOfferRestaurantLat = null,
-                acceptedOfferRestaurantLng = null
-            )
+            it.copy(acceptedOrderId = null, acceptedOfferRestaurantLat = null, acceptedOfferRestaurantLng = null)
         }
     }
 
     fun onAcceptRideOffer(bookingId: Long? = null) {
-        rideOfferCoordinator.onAcceptOffer(
-            scope = viewModelScope,
-            bookingId = bookingId,
-            updateState = { _uiState.update(it) },
-            getState = { _uiState.value }
-        )
+        rideOfferCoordinator.onAcceptOffer(viewModelScope, bookingId, { _uiState.update(it) }, { _uiState.value })
     }
 
     fun onRejectRideOffer(bookingId: Long? = null) {
-        rideOfferCoordinator.onRejectOffer(
-            scope = viewModelScope,
-            bookingId = bookingId,
-            updateState = { _uiState.update(it) },
-            getState = { _uiState.value }
-        )
+        rideOfferCoordinator.onRejectOffer(viewModelScope, bookingId, { _uiState.update(it) }, { _uiState.value })
     }
 
-    fun clearAcceptedRideBookingId() {
-        _uiState.update { it.copy(acceptedRideBookingId = null) }
-    }
+    fun clearAcceptedRideBookingId() = _uiState.update { it.copy(acceptedRideBookingId = null) }
 
     override fun onCleared() {
         super.onCleared()
@@ -388,4 +376,3 @@ class DriverHomeViewModel @Inject constructor(
         const val TIMEOUT_MESSAGE = "TIMEOUT_OFFER_REJECTED"
     }
 }
-

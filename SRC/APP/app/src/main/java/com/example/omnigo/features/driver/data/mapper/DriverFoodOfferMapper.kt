@@ -24,7 +24,9 @@ object DriverFoodOfferMapper {
             totalPrice = dto.totalPrice ?: 0.0,
             isPaid = dto.isPaid ?: false,
             paymentMethod = dto.paymentMethod,
-            timeoutSeconds = DriverFoodOffer.DEFAULT_TIMEOUT_SECONDS
+            timeoutSeconds = DriverFoodOffer.DEFAULT_TIMEOUT_SECONDS,
+            customerName = dto.customerName?.trim()?.takeIf { it.isNotBlank() },
+            customerPhone = dto.customerPhone?.trim()?.takeIf { it.isNotBlank() }
         )
     }
 }

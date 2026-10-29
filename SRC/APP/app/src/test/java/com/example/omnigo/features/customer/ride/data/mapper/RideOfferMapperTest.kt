@@ -18,6 +18,8 @@ class RideOfferMapperTest {
             startLongitude = 106.660172,
             endLatitude = 10.772622,
             endLongitude = 106.670172,
+            pickupAddress = " 123 Le Loi, Q1 ",
+            dropoffAddress = " 456 Nguyen Hue, Q1 ",
             status = "PENDING",
             distanceInKm = 3.5,
             price = 45000.0,
@@ -32,6 +34,8 @@ class RideOfferMapperTest {
         assertEquals(106.660172, event?.pickupLng ?: 0.0, 0.000001)
         assertEquals(10.772622, event?.dropoffLat ?: 0.0, 0.000001)
         assertEquals(106.670172, event?.dropoffLng ?: 0.0, 0.000001)
+        assertEquals("123 Le Loi, Q1", event?.pickupAddress)
+        assertEquals("456 Nguyen Hue, Q1", event?.dropoffAddress)
         assertEquals(3.5, event?.distanceInKm ?: 0.0, 0.001)
         assertEquals(45000.0, event?.price ?: 0.0, 0.001)
         assertEquals("CASH", event?.paymentMethod)
