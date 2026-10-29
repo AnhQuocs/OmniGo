@@ -860,4 +860,48 @@
     <string name="activity_history_payment_card">Thẻ ngân hàng</string>
     <string name="activity_history_food_summary">%1$d món • %2$s</string>
     <string name="activity_history_ride_summary">%1$.1f km • %2$s</string>
+
+    <!-- TERMS OF SERVICE & PRIVACY POLICY -->
+    <string name="legal_screen_title">Điều khoản &amp; Bảo mật</string>
+    <string name="legal_tab_terms">Điều khoản sử dụng</string>
+    <string name="legal_tab_privacy">Chính sách bảo mật</string>
+    <string name="legal_last_updated">Cập nhật lần cuối: Tháng 10, 2026 • Phiên bản 1.0</string>
+    
+    <string name="legal_tos_sec1_title">1. Tài khoản &amp; Điều kiện sử dụng</string>
+    <string name="legal_tos_sec1_content">Người dùng từ đủ 15 tuổi trở lên được phép đăng ký tài khoản OmniGo. Bạn cam kết cung cấp thông tin định danh chính xác, cập nhật và có trách nhiệm bảo mật mật khẩu cùng thông tin xác thực của mình.</string>
+    
+    <string name="legal_tos_sec2_title">2. Dịch vụ Đặt xe OmniRide</string>
+    <string name="legal_tos_sec2_content">OmniGo đóng vai trò kết nối hành khách với các đối tác tài xế. Hành khách cần có mặt tại điểm đón đúng giờ, tuân thủ luật an toàn giao thông và tôn trọng tài xế. Phí hủy chuyến có thể áp dụng nếu bạn hủy sau khi tài xế đã đến điểm đón.</string>
+    
+    <string name="legal_tos_sec3_title">3. Dịch vụ Đồ ăn OmniFood</string>
+    <string name="legal_tos_sec3_content">Nhà hàng đối tác chịu trách nhiệm về chất lượng món ăn và đóng gói. Đơn hàng không thể hủy khi nhà hàng đã bắt đầu chế biến. Khách hàng vui lòng kiểm tra món ăn khi nhận và phản hồi ngay nếu có sai sót.</string>
+    
+    <string name="legal_tos_sec4_title">4. Thanh toán &amp; Ví OmniPay</string>
+    <string name="legal_tos_sec4_content">Hỗ trợ thanh toán bằng Tiền mặt, Ví OmniPay, MoMo, VNPay và Thẻ ngân hàng. Tiền hoàn từ các đơn hàng/chuyến xe hủy hợp lệ sẽ được chuyển về ví OmniPay hoặc nguồn thanh toán ban đầu theo thời gian quy định.</string>
+    
+    <string name="legal_tos_sec5_title">5. Hành vi bị nghiêm cấm</string>
+    <string name="legal_tos_sec5_content">Nghiêm cấm các hành vi gian lận mã ưu đãi, tạo tài khoản ảo, vận chuyển chất cháy nổ hoặc hàng cấm, đe dọa hoặc quấy rối tài xế/nhà hàng đối tác. Mọi vi phạm sẽ bị khóa tài khoản vĩnh viễn.</string>
+    
+    <string name="legal_tos_sec6_title">6. Giải quyết tranh chấp</string>
+    <string name="legal_tos_sec6_content">Mọi khiếu nại về chất lượng dịch vụ sẽ được bộ phận Chăm sóc khách hàng OmniGo tiếp nhận và giải quyết thỏa đáng. Trường hợp tranh chấp không đạt được thỏa thuận sẽ căn cứ theo quy định của pháp luật Việt Nam.</string>
+    
+    <string name="legal_privacy_sec1_title">1. Dữ liệu chúng tôi thu thập</string>
+    <string name="legal_privacy_sec1_content">Chúng tôi thu thập thông tin cá nhân (họ tên, số điện thoại, email, ảnh đại diện), vị trí GPS thời gian thực khi thực hiện chuyến đi hoặc giao đơn hàng, lịch sử giao dịch và dữ liệu thiết bị.</string>
+    
+    <string name="legal_privacy_sec2_title">2. Mục đích sử dụng dữ liệu</string>
+    <string name="legal_privacy_sec2_content">Dữ liệu được dùng để tìm tài xế và nhà hàng gần nhất, tính giá cước chính xác, tối ưu hóa tuyến đường giao nhận, xử lý thanh toán an toàn và phòng chống gian lận tài khoản.</string>
+    
+    <string name="legal_privacy_sec3_title">3. Chia sẻ thông tin</string>
+    <string name="legal_privacy_sec3_content">Chúng tôi chia sẻ thông tin cần thiết (điểm đón, điểm trả, họ tên, danh sách món) cho tài xế và nhà hàng để thực hiện dịch vụ, cùng với cổng thanh toán bảo mật để hoàn tất giao dịch.</string>
+    
+    <string name="legal_privacy_sec4_title">4. Quyền của khách hàng</string>
+    <string name="legal_privacy_sec4_content">Theo quy định về bảo vệ dữ liệu cá nhân (Nghị định 13/2023/NĐ-CP), bạn có quyền truy cập, chỉnh sửa hoặc yêu cầu xóa dữ liệu cá nhân và tài khoản sau khi đã hoàn tất mọi nghĩa vụ thanh toán.</string>
+    
+    <string name="legal_privacy_sec5_title">5. Bảo mật &amp; Lưu trữ</string>
+    <string name="legal_privacy_sec5_content">Dữ liệu của bạn được mã hóa theo tiêu chuẩn SSL/TLS trên đường truyền và máy chủ. Dữ liệu chỉ được lưu trữ trong thời hạn cần thiết phục vụ vận hành và tuân thủ các quy định lưu trữ kế toán của nhà nước.</string>
+    
+    <string name="legal_contact_support_title">Bạn có thắc mắc?</string>
+    <string name="legal_contact_support_desc">Nếu bạn có bất kỳ câu hỏi nào về Điều khoản hoặc Chính sách bảo mật, hãy liên hệ ngay với đội ngũ Chăm sóc khách hàng của OmniGo.</string>
+    <string name="legal_contact_hotline">Tổng đài: 1900 6868</string>
+    <string name="legal_contact_email">Email: support@omnigo.vn</string>
 </resources>

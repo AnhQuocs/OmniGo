@@ -858,4 +858,48 @@
     <string name="activity_history_payment_card">Bank card</string>
     <string name="activity_history_food_summary">%1$d items • %2$s</string>
     <string name="activity_history_ride_summary">%1$.1f km • %2$s</string>
+
+    <!-- TERMS OF SERVICE & PRIVACY POLICY -->
+    <string name="legal_screen_title">Terms &amp; Privacy</string>
+    <string name="legal_tab_terms">Terms of Service</string>
+    <string name="legal_tab_privacy">Privacy Policy</string>
+    <string name="legal_last_updated">Last updated: October 2026 • Version 1.0</string>
+    
+    <string name="legal_tos_sec1_title">1. Account &amp; Eligibility</string>
+    <string name="legal_tos_sec1_content">Users must be at least 15 years old to register an OmniGo account. You agree to provide accurate, up-to-date identity information and maintain the security of your password and credentials.</string>
+    
+    <string name="legal_tos_sec2_title">2. OmniRide Transportation Services</string>
+    <string name="legal_tos_sec2_content">OmniGo connects passengers with licensed driver partners. Passengers must arrive at pickup on time, follow traffic laws, and treat drivers respectfully. Cancellation fees may apply if cancelled after the driver has arrived.</string>
+    
+    <string name="legal_tos_sec3_title">3. OmniFood Delivery Services</string>
+    <string name="legal_tos_sec3_content">Partner restaurants are responsible for food quality and packaging. Orders cannot be cancelled once preparation has begun. Customers must inspect deliveries upon receipt and report issues promptly.</string>
+    
+    <string name="legal_tos_sec4_title">4. Payment &amp; OmniPay Wallet</string>
+    <string name="legal_tos_sec4_content">We support Cash, OmniPay Wallet, MoMo, VNPay, and Bank Cards. Refunds for eligible cancelled orders or rides will be credited to your OmniPay wallet or original payment source within standard processing windows.</string>
+    
+    <string name="legal_tos_sec5_title">5. Prohibited Conduct</string>
+    <string name="legal_tos_sec5_content">Fraudulent activity, promotion abuse, creating multiple accounts, transporting hazardous or illegal substances, and harassment of drivers or merchant partners will result in immediate permanent account suspension.</string>
+    
+    <string name="legal_tos_sec6_title">6. Dispute Resolution</string>
+    <string name="legal_tos_sec6_content">Any disputes regarding service quality should first be directed to the OmniGo Customer Support team. Unresolved disputes shall be resolved in accordance with the laws of Vietnam.</string>
+    
+    <string name="legal_privacy_sec1_title">1. Data We Collect</string>
+    <string name="legal_privacy_sec1_content">We collect personal info (name, phone, email, avatar), precise real-time GPS location during active rides/deliveries, transaction history, and device diagnostic information.</string>
+    
+    <string name="legal_privacy_sec2_title">2. How We Use Data</string>
+    <string name="legal_privacy_sec2_content">Your data is utilized to match nearest drivers and merchants, calculate fares and delivery ETAs, process secure payments, enhance route optimization, and prevent unauthorized account access.</string>
+    
+    <string name="legal_privacy_sec3_title">3. Data Sharing</string>
+    <string name="legal_privacy_sec3_content">We share necessary trip/order info (pickup location, destination, name, items) with matched drivers and restaurants during fulfillment, and with trusted payment gateways for transaction settlement.</string>
+    
+    <string name="legal_privacy_sec4_title">4. Your Privacy Rights</string>
+    <string name="legal_privacy_sec4_content">Under applicable data protection laws, you have the right to view, update, or request the deletion of your account and personal data, provided all outstanding dues and obligations are settled.</string>
+    
+    <string name="legal_privacy_sec5_title">5. Security &amp; Retention</string>
+    <string name="legal_privacy_sec5_content">We employ industry-standard SSL/TLS encryption to protect your data during transit and rest. Personal information is retained only as long as necessary for business and statutory regulatory compliance.</string>
+    
+    <string name="legal_contact_support_title">Questions or Concerns?</string>
+    <string name="legal_contact_support_desc">If you have any questions about our Terms or Privacy Policy, please contact our Support Team.</string>
+    <string name="legal_contact_hotline">Hotline: 1900 6868</string>
+    <string name="legal_contact_email">Email: support@omnigo.vn</string>
 </resources>

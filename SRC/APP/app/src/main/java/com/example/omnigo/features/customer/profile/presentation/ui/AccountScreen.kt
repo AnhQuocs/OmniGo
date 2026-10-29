@@ -142,7 +142,11 @@ fun AccountScreen(
                 AccountMenuItem(
                     icon = Icons.Filled.Policy,
                     title = stringResource(id = R.string.account_terms),
-                    onClick = { /* Terms and privacy */ }
+                    onClick = {
+                        context.startActivity(
+                            com.example.omnigo.features.customer.profile.presentation.ui.legal.TermsAndPrivacyActivity.createIntent(context)
+                        )
+                    }
                 )
             }
         }
