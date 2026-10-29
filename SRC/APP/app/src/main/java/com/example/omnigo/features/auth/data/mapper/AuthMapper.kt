@@ -42,6 +42,7 @@ fun UserResponse.toDomain(): AuthUser {
         fullName = fullName.orEmpty(),
         role = userRole,
         status = userStatus,
+        avatarUrl = avatarUrl,
         driverInfo = parsedDriverInfo,
         createdAt = parseCreatedAtSafely(createdAt)
     )

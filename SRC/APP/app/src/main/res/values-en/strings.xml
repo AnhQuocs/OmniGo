@@ -904,4 +904,31 @@
     <string name="legal_contact_support_desc">If you have any questions about our Terms or Privacy Policy, please contact our Support Team.</string>
     <string name="legal_contact_hotline">Hotline: 1900 6868</string>
     <string name="legal_contact_email">Email: support@omnigo.vn</string>
+
+    <!-- Profile & Avatar Feature -->
+    <string name="profile_personal_info_title">Personal Profile</string>
+    <string name="profile_personal_info_subtitle">View your verified account details</string>
+    <string name="profile_verified_badge">Verified</string>
+    <string name="profile_account_role">Account Role</string>
+    <string name="profile_role_customer">Customer</string>
+    <string name="profile_role_driver">Partner Driver</string>
+    <string name="profile_phone_label">Phone Number</string>
+    <string name="profile_email_label">Email Address</string>
+    <string name="profile_fullname_label">Full Name</string>
+    <string name="profile_avatar_picker_title">Profile Photo</string>
+    <string name="profile_avatar_take_photo">Take a Photo</string>
+    <string name="profile_avatar_choose_gallery">Choose from Gallery</string>
+    <string name="profile_avatar_view">View Profile Photo</string>
+    <string name="profile_avatar_edit_btn">Change Avatar</string>
+    <string name="profile_uploading_avatar">Uploading avatar...</string>
+    <string name="profile_upload_avatar_success">Avatar updated successfully!</string>
+    <string name="profile_upload_avatar_failed">Failed to update avatar. Please try again!</string>
+    <string name="profile_section_account">Account &amp; Profile</string>
+    <string name="profile_quick_wallet">OmniPay</string>
+    <string name="profile_quick_promo">Vouchers</string>
+    <string name="profile_quick_activity">Activity</string>
+    <string name="profile_customer_member_badge">Loyal Customer</string>
+
+    <string name="home_service_ride_desc">Safe &amp; fast trips</string>
+    <string name="home_service_food_desc">Delicious food delivered</string>
 </resources>

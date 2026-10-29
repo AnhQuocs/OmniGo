@@ -11,6 +11,7 @@ import com.example.omnigo.features.auth.domain.model.SendOtpResult
 import com.example.omnigo.features.auth.domain.model.VerifyOtpResult
 import com.example.omnigo.features.auth.domain.usecase.RegisterResult
 import kotlinx.coroutines.flow.Flow
+import okhttp3.MultipartBody
 
 interface AuthRepository {
 
@@ -43,6 +44,10 @@ interface AuthRepository {
     suspend fun getMe(): Flow<AuthUser>
 
     suspend fun uploadDriverDocument(
-        file: okhttp3.MultipartBody.Part
+        file: MultipartBody.Part
+    ): Result<String>
+
+    suspend fun uploadAvatar(
+        file: MultipartBody.Part
     ): Result<String>
 }

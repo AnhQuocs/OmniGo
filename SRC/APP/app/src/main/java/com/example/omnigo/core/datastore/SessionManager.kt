@@ -30,6 +30,7 @@ class SessionManager @Inject constructor(
         private val KEY_PHONE_NUMBER = stringPreferencesKey("phone_number")
         private val KEY_FULL_NAME = stringPreferencesKey("full_name")
         private val KEY_ROLE = stringPreferencesKey("user_role")
+        private val KEY_AVATAR_URL = stringPreferencesKey("avatar_url")
         private val KEY_LOCATION_LAT = doublePreferencesKey("user_location_lat")
         private val KEY_LOCATION_LNG = doublePreferencesKey("user_location_lng")
         private val KEY_LOCATION_NAME = stringPreferencesKey("user_location_name")
@@ -69,6 +70,13 @@ class SessionManager @Inject constructor(
             else cryptoManager.decrypt(encrypted).isSuccess
         }
 
+    val avatarUrlFlow: Flow<String?> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences())
+            else throw exception
+        }
+        .map { preferences -> preferences[KEY_AVATAR_URL] }
+
     suspend fun getAccessToken(): String? {
         val encrypted = dataStore.data
             .catch { emit(emptyPreferences()) }
@@ -99,7 +107,8 @@ class SessionManager @Inject constructor(
         userId: Long? = null,
         phoneNumber: String? = null,
         fullName: String? = null,
-        role: String? = null
+        role: String? = null,
+        avatarUrl: String? = null
     ) {
         dataStore.edit { preferences ->
             if (accessToken != null) {
@@ -124,6 +133,13 @@ class SessionManager @Inject constructor(
             if (phoneNumber != null) preferences[KEY_PHONE_NUMBER] = phoneNumber
             if (fullName != null) preferences[KEY_FULL_NAME] = fullName
             if (role != null) preferences[KEY_ROLE] = role
+            if (avatarUrl != null) preferences[KEY_AVATAR_URL] = avatarUrl
+        }
+    }
+
+    suspend fun saveAvatarUrl(url: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_AVATAR_URL] = url
         }
     }
 
@@ -150,6 +166,13 @@ class SessionManager @Inject constructor(
         return dataStore.data
             .catch { emit(emptyPreferences()) }
             .map { it[KEY_ROLE] }
+            .firstOrNull()
+    }
+
+    suspend fun getAvatarUrl(): String? {
+        return dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[KEY_AVATAR_URL] }
             .firstOrNull()
     }
 

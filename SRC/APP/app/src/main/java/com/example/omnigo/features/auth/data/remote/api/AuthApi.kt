@@ -14,12 +14,19 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 
 interface AuthApi {
 
     @GET(ApiEndpoints.GET_ME)
     suspend fun getMe(): Response<ApiResponse<UserResponse>>
+
+    @Multipart
+    @PUT("api/v1/users/me/avatar")
+    suspend fun uploadAvatar(
+        @Part file: MultipartBody.Part
+    ): Response<ApiResponse<UserResponse>>
 
     @POST(ApiEndpoints.REGISTER_CUSTOMER)
     suspend fun registerCustomer(

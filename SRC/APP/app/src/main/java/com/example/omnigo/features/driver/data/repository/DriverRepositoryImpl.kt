@@ -4,7 +4,6 @@ import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.features.driver.data.mapper.DriverMapper
 import com.example.omnigo.features.driver.data.remote.api.DriverApi
 import com.example.omnigo.features.driver.data.remote.dto.DriverLocationRequest
-import com.example.omnigo.features.driver.data.remote.dto.DriverStatusUpdateRequest
 import com.example.omnigo.features.driver.domain.model.DriverAccountProfile
 import com.example.omnigo.features.driver.domain.model.DriverLocationUpdate
 import com.example.omnigo.features.driver.domain.repository.DriverRepository
@@ -22,19 +21,12 @@ class DriverRepositoryImpl @Inject constructor(
     override suspend fun updateDriverStatus(driverId: Long?, isOnline: Boolean): Result<Boolean> {
         return withContext(Dispatchers.IO) {
             try {
-                val statusStr = if (isOnline) "ONLINE" else "OFFLINE"
-                val request = DriverStatusUpdateRequest(status = statusStr, isOnline = isOnline)
-
                 val targetId = driverId ?: sessionManager.getUserId()
-                val response = if (targetId != null && targetId > 0L) {
-                    try {
-                        driverApi.updateDriverStatus(targetId, request)
-                    } catch (e: Exception) {
-                        driverApi.updateMyDriverStatus(request)
-                    }
-                } else {
-                    driverApi.updateMyDriverStatus(request)
+                if (targetId == null || targetId <= 0L) {
+                    return@withContext Result.failure(Exception("Driver ID not found"))
                 }
+
+                val response = driverApi.updateDriverStatus(targetId, isActive = isOnline)
 
                 if (response.success) {
                     Result.success(true)
@@ -54,15 +46,11 @@ class DriverRepositoryImpl @Inject constructor(
                 val response = if (targetId > 0L) {
                     try {
                         driverApi.getDriverProfileById(targetId)
-                    } catch (e: Exception) {
-                        try {
-                            driverApi.getMyDriverProfile()
-                        } catch (e2: Exception) {
-                            driverApi.getDriverProfileInternal(targetId)
-                        }
+                    } catch (_: Exception) {
+                        driverApi.getMyProfile()
                     }
                 } else {
-                    driverApi.getMyDriverProfile()
+                    driverApi.getMyProfile()
                 }
 
                 val data = response.data

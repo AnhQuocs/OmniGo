@@ -71,6 +71,10 @@
             android:name=".features.customer.profile.presentation.ui.legal.TermsAndPrivacyActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".features.customer.profile.presentation.ui.PersonalProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name=".features.driver.service.DriverLocationForegroundService"

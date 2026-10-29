@@ -341,6 +341,29 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun uploadAvatar(
+        file: MultipartBody.Part
+    ): Result<String> {
+        return try {
+            val response = authApi.uploadAvatar(file)
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                val avatarUrl = apiResponse?.data?.avatarUrl
+                if (!avatarUrl.isNullOrBlank()) {
+                    sessionManager.saveAvatarUrl(avatarUrl)
+                    Result.success(avatarUrl)
+                } else {
+                    Result.failure(Exception(apiResponse?.message ?: "Upload avatar failed: avatarUrl is empty"))
+                }
+            } else {
+                Result.failure(Exception("Upload avatar failed with HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadAvatar: Error uploading avatar", e)
+            Result.failure(e)
+        }
+    }
+
     private suspend fun handleApiResponse(response: Response<ApiResponse<LoginResponse>>): RegisterResult {
         return if (response.isSuccessful) {
             val apiResponse = response.body()

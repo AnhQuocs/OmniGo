@@ -11,8 +11,10 @@ data class DriverAccountProfileResponse(
     val phoneNumber: String? = null,
     @SerializedName(value = "licensePlate", alternate = ["vehiclePlate", "driverVehiclePlate"])
     val vehiclePlate: String? = null,
-    @SerializedName(value = "status", alternate = ["approvalStatus", "driverStatus", "userStatus"])
+    @SerializedName(value = "status", alternate = ["driverStatus", "userStatus"])
     val status: String? = null,
+    @SerializedName("approvalStatus")
+    val approvalStatus: String? = null,
     @SerializedName(value = "isOnline", alternate = ["online"])
     val isOnline: Boolean? = null,
     @SerializedName("avatarUrl")

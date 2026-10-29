@@ -48,27 +48,54 @@ fun HomeServicesGridShimmer(
 
         Spacer(modifier = Modifier.height(AppSpacing.M))
 
-        repeat(2) { rowIndex ->
-            if (rowIndex > 0) {
-                Spacer(modifier = Modifier.height(AppSpacing.MPlus))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                repeat(4) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.M)
+        ) {
+            repeat(2) {
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(AppShape.ShapeL),
+                    color = SurfaceLight,
+                    border = BorderStroke(Dimen.PaddingXXS, CardBorderColor)
+                ) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimen.PaddingM)
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(Dimen.SizeXXL)
+                                    .shimmerBackground(shimmerBrush, CircleShape)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(Dimen.ShimmerTextWidthXS)
+                                    .height(Dimen.ShimmerTextHeightS)
+                                    .shimmerBackground(shimmerBrush, RoundedCornerShape(AppShape.ShapeXXS))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(AppSpacing.M))
+
                         Box(
                             modifier = Modifier
-                                .size(Dimen.SizeXXL)
-                                .shimmerBackground(shimmerBrush, RoundedCornerShape(AppShape.ShapeL))
+                                .width(Dimen.ShimmerTextWidthSM)
+                                .height(Dimen.ShimmerTextHeightM)
+                                .shimmerBackground(shimmerBrush, RoundedCornerShape(AppShape.ShapeXXS))
                         )
-                        Spacer(modifier = Modifier.height(AppSpacing.XSPlus))
+
+                        Spacer(modifier = Modifier.height(AppSpacing.XXS))
+
                         Box(
                             modifier = Modifier
-                                .width(Dimen.ShimmerTextWidthXS)
+                                .fillMaxWidth()
                                 .height(Dimen.ShimmerTextHeightXS)
                                 .shimmerBackground(shimmerBrush, RoundedCornerShape(AppShape.ShapeXXS))
                         )

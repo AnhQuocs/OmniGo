@@ -7,14 +7,15 @@ import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
 object DriverMapper {
 
     fun mapToDomain(response: DriverAccountProfileResponse, fallbackId: Long = 0L): DriverAccountProfile {
-        val status = parseApprovalStatus(response.status)
+        val approval = parseApprovalStatus(response.approvalStatus ?: response.status)
+        val online = response.isOnline == true || response.status.equals("ONLINE", ignoreCase = true)
         return DriverAccountProfile(
             driverId = response.id ?: fallbackId,
             fullName = response.fullName,
             phoneNumber = response.phoneNumber,
             vehiclePlate = response.vehiclePlate,
-            approvalStatus = status,
-            isOnline = response.isOnline ?: false,
+            approvalStatus = approval,
+            isOnline = online,
             avatarUrl = response.avatarUrl
         )
     }

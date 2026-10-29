@@ -10,6 +10,7 @@ data class UserResponse(
     val vehicleType: String? = null,
     val licensePlate: String? = null,
     val vehicleModel: String? = null,
+    val avatarUrl: String? = null,
     val createdAt: String? = null,
     val accessToken: String? = null,
     val refreshToken: String? = null

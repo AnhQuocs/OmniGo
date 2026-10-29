@@ -22,6 +22,7 @@ data class AuthUser(
     val fullName: String,
     val role: UserRole,
     val status: UserStatus?,
+    val avatarUrl: String? = null,
     val driverInfo: DriverInfo?,
     val createdAt: LocalDateTime
 )

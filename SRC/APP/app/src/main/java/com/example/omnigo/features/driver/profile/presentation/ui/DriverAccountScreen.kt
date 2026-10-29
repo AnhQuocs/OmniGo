@@ -82,6 +82,7 @@ fun DriverAccountScreen(
             when (event) {
                 is AccountUiEvent.NavigateToLogin -> onNavigateToLogin()
                 is AccountUiEvent.ShowToast -> {}
+                is AccountUiEvent.ShowStringResToast -> {}
             }
         }
     }

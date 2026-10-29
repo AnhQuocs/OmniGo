@@ -904,4 +904,31 @@
     <string name="legal_contact_support_desc">Nếu bạn có bất kỳ câu hỏi nào về Điều khoản hoặc Chính sách bảo mật, hãy liên hệ ngay với đội ngũ Chăm sóc khách hàng của OmniGo.</string>
     <string name="legal_contact_hotline">Tổng đài: 1900 6868</string>
     <string name="legal_contact_email">Email: support@omnigo.vn</string>
+
+    <!-- Profile & Avatar Feature -->
+    <string name="profile_personal_info_title">Hồ sơ cá nhân</string>
+    <string name="profile_personal_info_subtitle">Xem thông tin định danh tài khoản</string>
+    <string name="profile_verified_badge">Đã xác thực</string>
+    <string name="profile_account_role">Vai trò tài khoản</string>
+    <string name="profile_role_customer">Khách hàng</string>
+    <string name="profile_role_driver">Tài xế đối tác</string>
+    <string name="profile_phone_label">Số điện thoại</string>
+    <string name="profile_email_label">Địa chỉ email</string>
+    <string name="profile_fullname_label">Họ và tên</string>
+    <string name="profile_avatar_picker_title">Ảnh đại diện</string>
+    <string name="profile_avatar_take_photo">Chụp ảnh mới</string>
+    <string name="profile_avatar_choose_gallery">Chọn từ thư viện</string>
+    <string name="profile_avatar_view">Xem ảnh đại diện</string>
+    <string name="profile_avatar_edit_btn">Đổi ảnh đại diện</string>
+    <string name="profile_uploading_avatar">Đang tải ảnh lên...</string>
+    <string name="profile_upload_avatar_success">Cập nhật ảnh đại diện thành công!</string>
+    <string name="profile_upload_avatar_failed">Cập nhật ảnh đại diện thất bại. Vui lòng thử lại!</string>
+    <string name="profile_section_account">Tài khoản &amp; Cá nhân</string>
+    <string name="profile_quick_wallet">Ví OmniPay</string>
+    <string name="profile_quick_promo">Ưu đãi</string>
+    <string name="profile_quick_activity">Hoạt động</string>
+    <string name="profile_customer_member_badge">Khách hàng thân thiết</string>
+
+    <string name="home_service_ride_desc">Di chuyển an toàn &amp; nhanh chóng</string>
+    <string name="home_service_food_desc">Món ngon giao tận nơi</string>
 </resources>

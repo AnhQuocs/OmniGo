@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,17 +20,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,10 +37,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.omnigo.R
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -70,13 +72,21 @@ fun AccountHeaderSection(
     userName: String,
     userPhone: String,
     userRole: String,
+    avatarUrl: String?,
+    isUploadingAvatar: Boolean,
+    onProfileClick: () -> Unit,
+    onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onProfileClick),
+        shape = RoundedCornerShape(AppShape.ShapeL),
         color = SurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor)
+        border = androidx.compose.foundation.BorderStroke(Dimen.PaddingXXS, CardBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -84,22 +94,77 @@ fun AccountHeaderSection(
                 .padding(Dimen.PaddingM),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Avatar with edit badge
             Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryContainer),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(Dimen.SizeXXLPlus)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = null,
-                    tint = PrimaryColor,
-                    modifier = Modifier.size(Dimen.SizeL)
-                )
+                if (!avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(avatarUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "User Avatar",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .border(Dimen.PaddingXXS, PrimaryColor, CircleShape)
+                            .clickable(onClick = onAvatarClick)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(PrimaryContainer)
+                            .clickable(onClick = onAvatarClick),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = userName.firstOrNull()?.uppercase() ?: "O",
+                            style = MaterialTheme.typography.s18.bold(),
+                            color = PrimaryColor
+                        )
+                    }
+                }
+
+                if (isUploadingAvatar) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = TextWhite,
+                            modifier = Modifier.size(Dimen.SizeM)
+                        )
+                    }
+                }
+
+                // Small Camera icon badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(Dimen.SizeM)
+                        .clip(CircleShape)
+                        .background(PrimaryColor)
+                        .border(Dimen.PaddingXXS, SurfaceLight, CircleShape)
+                        .clickable(onClick = onAvatarClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Change Avatar",
+                        tint = TextWhite,
+                        modifier = Modifier.size(Dimen.SizeIconXS)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(AppSpacing.M))
+            Spacer(modifier = Modifier.width(AppSpacing.MediumLarge))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -114,47 +179,77 @@ fun AccountHeaderSection(
                     color = TextSecondary
                 )
 
-                Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                Spacer(modifier = Modifier.height(AppSpacing.XS))
 
                 Surface(
                     shape = RoundedCornerShape(AppShape.ShapeXXS),
                     color = PrimaryContainer
                 ) {
-                    Text(
-                        text = userRole,
-                        style = MaterialTheme.typography.s10.bold(),
-                        color = PrimaryColor,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = Dimen.PaddingXSPlus, vertical = Dimen.PaddingXXS)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = PrimaryColor,
+                            modifier = Modifier.size(Dimen.SizeIconXS)
+                        )
+                        Spacer(modifier = Modifier.width(AppSpacing.XXS))
+                        Text(
+                            text = if (userRole.equals("DRIVER", ignoreCase = true)) {
+                                stringResource(id = R.string.profile_role_driver)
+                            } else {
+                                stringResource(id = R.string.profile_customer_member_badge)
+                            },
+                            style = MaterialTheme.typography.s10.bold(),
+                            color = PrimaryColor
+                        )
+                    }
                 }
             }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = "View Profile",
+                tint = TextSecondary.copy(alpha = 0.5f),
+                modifier = Modifier.size(Dimen.SizeSM)
+            )
         }
     }
 }
 
 @Composable
-fun AccountWalletCard(
+fun AccountQuickDashboard(
     balance: String,
-    onTopUpClick: () -> Unit,
+    onWalletClick: () -> Unit,
+    onPromoClick: () -> Unit,
+    onActivityClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
+        shape = RoundedCornerShape(AppShape.ShapeL),
         color = SurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor)
+        border = androidx.compose.foundation.BorderStroke(Dimen.PaddingXXS, CardBorderColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingM),
+                .padding(vertical = Dimen.PaddingSM, horizontal = Dimen.PaddingM),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Wallet section
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onWalletClick)
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(Dimen.SizeXLPlus)
                         .clip(RoundedCornerShape(AppShape.ShapeM))
                         .background(SecondaryContainer),
                     contentAlignment = Alignment.Center
@@ -167,39 +262,63 @@ fun AccountWalletCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(AppSpacing.M))
+                Spacer(modifier = Modifier.width(AppSpacing.S))
 
                 Column {
                     Text(
-                        text = stringResource(id = R.string.account_wallet_title),
-                        style = MaterialTheme.typography.s12.normal(),
+                        text = stringResource(id = R.string.profile_quick_wallet),
+                        style = MaterialTheme.typography.s10.medium(),
                         color = TextSecondary
                     )
                     Text(
                         text = balance,
-                        style = MaterialTheme.typography.s16.bold(),
+                        style = MaterialTheme.typography.s14.bold(),
                         color = TextPrimary
                     )
                 }
             }
 
-            Button(
-                onClick = onTopUpClick,
-                shape = RoundedCornerShape(AppShape.ShapeM),
-                colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            // Promo item
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AppShape.ShapeM))
+                    .clickable(onClick = onPromoClick)
+                    .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXS)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Add,
+                    imageVector = Icons.Outlined.LocalOffer,
                     contentDescription = null,
-                    tint = TextWhite,
-                    modifier = Modifier.size(16.dp)
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(Dimen.SizeM)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.height(AppSpacing.XXS))
                 Text(
-                    text = stringResource(id = R.string.account_wallet_topup),
-                    style = MaterialTheme.typography.s12.semiBold(),
-                    color = TextWhite
+                    text = stringResource(id = R.string.profile_quick_promo),
+                    style = MaterialTheme.typography.s12.medium(),
+                    color = TextPrimary
+                )
+            }
+
+            // Activity item
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AppShape.ShapeM))
+                    .clickable(onClick = onActivityClick)
+                    .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXS)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.History,
+                    contentDescription = null,
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(Dimen.SizeM)
+                )
+                Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                Text(
+                    text = stringResource(id = R.string.profile_quick_activity),
+                    style = MaterialTheme.typography.s12.medium(),
+                    color = TextPrimary
                 )
             }
         }
@@ -216,7 +335,7 @@ fun AccountMenuItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         color = SurfaceLight
     ) {
         Row(
@@ -233,7 +352,7 @@ fun AccountMenuItem(
                     tint = PrimaryColor,
                     modifier = Modifier.size(Dimen.SizeM)
                 )
-                Spacer(modifier = Modifier.width(AppSpacing.M))
+                Spacer(modifier = Modifier.width(AppSpacing.MediumLarge))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.s14.medium(),
@@ -245,7 +364,7 @@ fun AccountMenuItem(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
                 tint = TextSecondary.copy(alpha = 0.5f),
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(Dimen.SizeIconXS)
             )
         }
     }
