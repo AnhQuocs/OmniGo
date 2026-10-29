@@ -18,6 +18,11 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class FoodActivity : BaseComponentActivity() {
+
+    companion object {
+        const val EXTRA_RESTAURANT_ID = "extra_restaurant_id"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
@@ -29,10 +34,16 @@ class FoodActivity : BaseComponentActivity() {
 
         setOmniGoContent {
             val navController = rememberNavController()
+            val initialRestaurantId = intent.getLongExtra(EXTRA_RESTAURANT_ID, -1L)
+            val startDestination = if (initialRestaurantId > 0L) {
+                "restaurant_detail/$initialRestaurantId"
+            } else {
+                "food_home"
+            }
 
             NavHost(
                 navController = navController,
-                startDestination = "food_home"
+                startDestination = startDestination
             ) {
                 composable("food_home") {
                     FoodHomeScreen(
@@ -55,7 +66,11 @@ class FoodActivity : BaseComponentActivity() {
                     val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
                     RestaurantDetailScreen(
                         restaurantId = restaurantId,
-                        onBackClick = { navController.popBackStack() },
+                        onBackClick = {
+                            if (!navController.popBackStack()) {
+                                finish()
+                            }
+                        },
                         onCheckoutClick = {
                             navController.navigate("food_checkout")
                         }

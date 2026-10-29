@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.core.components.OmniGoMainLayout
+import com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerBottomSheet
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeFilterChipsSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeHeaderSection
@@ -144,8 +145,13 @@ fun HomeScreen(
 
                 HomePopularPlacesSection(
                     popularRestaurants = uiState.popularPlaces,
+                    userLocation = uiState.userLocation,
                     onPlaceClick = { placeId ->
-                        // Handle place click
+                        val restaurantId = placeId.toLongOrNull() ?: return@HomePopularPlacesSection
+                        val intent = Intent(context, FoodActivity::class.java).apply {
+                            putExtra(FoodActivity.EXTRA_RESTAURANT_ID, restaurantId)
+                        }
+                        context.startActivity(intent)
                     },
                     onViewAllClick = {
                         onNavigateToService("food")

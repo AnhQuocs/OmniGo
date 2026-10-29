@@ -166,6 +166,8 @@
     <string name="home_banner_desc_1">Code: OMNIRIDE50</string>
     <string name="home_banner_title_2">Free Food Delivery</string>
     <string name="home_banner_desc_2">For orders from 50k</string>
+    <string name="rating_count">%s reviews</string>
+    <string name="home_popular_status_open">OPEN</string>
 
     <!-- ACTIVITY SCREEN -->
     <string name="activity_title">Activity &amp; History</string>
@@ -593,6 +595,11 @@
     <string name="checkout_error_restaurant_closed">This restaurant is closed right now, so the order can\'t be placed.</string>
     <string name="checkout_error_restaurant_locked">This restaurant has paused taking orders.</string>
     <string name="checkout_error_no_restaurant_location">Restaurant location is missing, so the delivery fee can\'t be estimated.</string>
+    <string name="food_price_range_format">%1$s – %2$s</string>
+    <string name="food_price_range_default">15,000đ - 60,000đ</string>
+    <string name="food_delivery_eta_format">%1$d - %2$d mins</string>
+    <string name="food_delivery_eta_with_distance_format">%1$d - %2$d mins • %3$.1f km</string>
+    <string name="food_delivery_eta_default">20 - 30 mins</string>
 
     <!-- FLOW 2 — OmniRide Booking & Radar -->
     <string name="ride_booking_title">Book a Ride</string>

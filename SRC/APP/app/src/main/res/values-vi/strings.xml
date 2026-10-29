@@ -166,6 +166,8 @@
     <string name="home_banner_desc_1">Nhập mã: OMNIRIDE50</string>
     <string name="home_banner_title_2">Miễn phí giao đồ ăn</string>
     <string name="home_banner_desc_2">Áp dụng cho đơn từ 50k</string>
+    <string name="rating_count">%s đánh giá</string>
+    <string name="home_popular_status_open">ĐANG MỞ</string>
 
     <!-- ACTIVITY SCREEN -->
     <string name="activity_title">Hoạt động &amp; Lịch sử</string>
@@ -595,6 +597,11 @@
     <string name="checkout_error_restaurant_closed">Nhà hàng đang đóng cửa nên chưa thể đặt đơn.</string>
     <string name="checkout_error_restaurant_locked">Nhà hàng đang tạm ngừng nhận đơn.</string>
     <string name="checkout_error_no_restaurant_location">Thiếu vị trí nhà hàng nên chưa thể ước tính phí giao hàng.</string>
+    <string name="food_price_range_format">%1$s – %2$s</string>
+    <string name="food_price_range_default">15.000đ - 60.000đ</string>
+    <string name="food_delivery_eta_format">%1$d - %2$d phút</string>
+    <string name="food_delivery_eta_with_distance_format">%1$d - %2$d phút • %3$.1f km</string>
+    <string name="food_delivery_eta_default">20 - 30 phút</string>
 
     <!-- FLOW 2 — OmniRide Booking & Radar -->
     <string name="ride_booking_title">Đặt chuyến xe</string>
