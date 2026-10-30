@@ -1103,4 +1103,29 @@
     <string name="driver_earnings_detail_today">Earnings Details</string>
     <string name="driver_earnings_trips_empty_title">No trips yet</string>
     <string name="driver_earnings_trips_empty_subtitle">Earnings will appear here once trips are completed</string>
+    <!-- Earnings Actions & BottomSheets -->
+    <string name="driver_cashout_sheet_title">Withdraw to Bank Account</string>
+    <string name="driver_cashout_available_balance">Available Balance</string>
+    <string name="driver_cashout_amount_label">Withdrawal Amount</string>
+    <string name="driver_cashout_amount_hint">Enter amount (min 50,000 VND)</string>
+    <string name="driver_cashout_btn_all">All</string>
+    <string name="driver_cashout_bank_info">Beneficiary Bank</string>
+    <string name="driver_cashout_bank_default">Vietcombank •••• 8868</string>
+    <string name="driver_cashout_btn_confirm">Confirm Withdrawal</string>
+    <string name="driver_cashout_success_msg">Withdrawal request submitted successfully!</string>
+    <string name="driver_cashout_error_min">Minimum withdrawal is 50,000 VND</string>
+    <string name="driver_cashout_error_exceed">Amount exceeds available balance</string>
+    <string name="driver_topup_sheet_title">Top Up Credit Wallet</string>
+    <string name="driver_topup_select_amount">Select Amount</string>
+    <string name="driver_topup_method_label">Payment Method</string>
+    <string name="driver_topup_method_qr">VietQR / Bank Transfer (Instant)</string>
+    <string name="driver_topup_method_momo">MoMo / E-Wallet</string>
+    <string name="driver_topup_btn_confirm">Proceed to Top Up</string>
+    <string name="driver_topup_success_msg">Wallet topped up successfully!</string>
+    <string name="driver_wallet_history_title">Transaction History</string>
+    <string name="driver_wallet_history_empty">No recent transactions</string>
+    <string name="driver_quest_modal_title">Daily Quest Milestones</string>
+    <string name="driver_quest_m1">Milestone 1: Complete 5 trips (+20,000 VND)</string>
+    <string name="driver_quest_m2">Milestone 2: Complete 10 trips (+50,000 VND)</string>
+    <string name="driver_quest_m3">Milestone 3: Complete 15 trips (+100,000 VND)</string>
 </resources>

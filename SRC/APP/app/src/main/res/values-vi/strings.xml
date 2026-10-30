@@ -1103,4 +1103,29 @@
     <string name="driver_earnings_detail_today">Chi tiết thu nhập</string>
     <string name="driver_earnings_trips_empty_title">Chưa có chuyến xe nào</string>
     <string name="driver_earnings_trips_empty_subtitle">Khi hoàn thành chuyến, thu nhập sẽ hiển thị tại đây</string>
+    <!-- Earnings Actions & BottomSheets -->
+    <string name="driver_cashout_sheet_title">Rút tiền về tài khoản ngân hàng</string>
+    <string name="driver_cashout_available_balance">Số dư khả dụng</string>
+    <string name="driver_cashout_amount_label">Số tiền cần rút</string>
+    <string name="driver_cashout_amount_hint">Nhập số tiền (tối thiểu 50.000 đ)</string>
+    <string name="driver_cashout_btn_all">Tất cả</string>
+    <string name="driver_cashout_bank_info">Ngân hàng thụ hưởng</string>
+    <string name="driver_cashout_bank_default">Vietcombank •••• 8868</string>
+    <string name="driver_cashout_btn_confirm">Xác nhận rút tiền</string>
+    <string name="driver_cashout_success_msg">Đã gửi yêu cầu rút tiền thành công!</string>
+    <string name="driver_cashout_error_min">Số tiền rút tối thiểu là 50.000 đ</string>
+    <string name="driver_cashout_error_exceed">Số tiền rút vượt quá số dư khả dụng</string>
+    <string name="driver_topup_sheet_title">Nạp tiền Ví ký quỹ</string>
+    <string name="driver_topup_select_amount">Chọn mệnh giá</string>
+    <string name="driver_topup_method_label">Phương thức nạp tiền</string>
+    <string name="driver_topup_method_qr">VietQR / Chuyển khoản nhanh</string>
+    <string name="driver_topup_method_momo">Ví điện tử MoMo / OmniPay</string>
+    <string name="driver_topup_btn_confirm">Tiếp tục nạp tiền</string>
+    <string name="driver_topup_success_msg">Nạp tiền vào ví ký quỹ thành công!</string>
+    <string name="driver_wallet_history_title">Biến động số dư ví</string>
+    <string name="driver_wallet_history_empty">Chưa có giao dịch nào gần đây</string>
+    <string name="driver_quest_modal_title">Chi tiết mốc thưởng ngày</string>
+    <string name="driver_quest_m1">Mốc 1: Hoàn thành 5 chuyến (+20.000 đ)</string>
+    <string name="driver_quest_m2">Mốc 2: Hoàn thành 10 chuyến (+50.000 đ)</string>
+    <string name="driver_quest_m3">Mốc 3: Hoàn thành 15 chuyến (+100.000 đ)</string>
 </resources>

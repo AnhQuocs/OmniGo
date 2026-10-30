@@ -1,5 +1,8 @@
 package com.example.omnigo.features.driver.earnings.presentation.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,22 +11,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.omnigo.R
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverCashoutBottomSheet
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverQuestDetailDialog
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverTopupBottomSheet
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverWalletHistoryDialog
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsChartSection
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsDailyQuestCard
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsDualWalletSection
@@ -32,36 +33,50 @@ import com.example.omnigo.features.driver.earnings.presentation.ui.components.Ea
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsPillTabSwitcher
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsTripDetailSection
 import com.example.omnigo.features.driver.earnings.presentation.viewmodel.DriverEarningsViewModel
-import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.BackgroundLight
-import com.example.omnigo.ui.theme.OnPrimaryColor
-import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.SurfaceLight
-import com.example.omnigo.ui.theme.TextPrimary
-import com.example.omnigo.ui.theme.TextSecondary
-import com.example.omnigo.utils.bold
-import com.example.omnigo.utils.medium
-import com.example.omnigo.utils.normal
-import com.example.omnigo.utils.s14
-import com.example.omnigo.utils.s18
 
-private const val DAILY_QUEST_TARGET_TRIPS = 10
+private const val DAILY_QUEST_TARGET_TRIPS = 12
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverEarningsScreen(
     modifier: Modifier = Modifier,
+    onNavigateToTrips: () -> Unit = {},
     viewModel: DriverEarningsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     val report = uiState.dailyReport
     val netEarnings = report?.driverEarnings ?: 0.0
     val cashCollected = report?.cashCollected ?: 0.0
+    val walletBalance = uiState.wallet?.balance ?: netEarnings
+    val depositBalance = uiState.wallet?.balance ?: cashCollected
     val completedTrips = report?.totalTrips ?: 0
+
+    // Handle Toast notification
+    LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            viewModel.clearToastMessage()
+        }
+    }
+
+    // Handle Open Payment Gateway URL (VNPAY / MoMo)
+    LaunchedEffect(uiState.openPaymentUrl) {
+        uiState.openPaymentUrl?.let { url ->
+            runCatching {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            }
+            viewModel.clearOpenPaymentUrl()
+        }
+    }
 
     PullToRefreshBox(
         isRefreshing = uiState.isLoading,
@@ -97,88 +112,71 @@ fun DriverEarningsScreen(
 
             EarningsDualWalletSection(
                 incomeBalance = netEarnings,
-                depositBalance = cashCollected,
-                onCashoutClick = { viewModel.setShowCashoutDialog(true) },
-                onTopupClick = { viewModel.setShowTopupDialog(true) }
+                depositBalance = depositBalance,
+                onCashoutClick = { viewModel.setShowCashoutSheet(true) },
+                onTopupClick = { viewModel.setShowTopupSheet(true) },
+                onWalletHistoryClick = { viewModel.setShowWalletHistory(true) }
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
             EarningsDailyQuestCard(
                 completedTrips = completedTrips,
-                targetTrips = DAILY_QUEST_TARGET_TRIPS
+                targetTrips = DAILY_QUEST_TARGET_TRIPS,
+                onQuestClick = { viewModel.setShowQuestDetail(true) }
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
             EarningsChartSection(
                 selectedPeriod = uiState.selectedPeriod,
-                chartPoints = uiState.chartPoints
+                chartPoints = uiState.chartPoints,
+                onPeriodSelected = viewModel::onPeriodSelected
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
             EarningsTripDetailSection(
-                tripItems = uiState.tripItems
+                tripItems = uiState.tripItems,
+                onViewAllTripsClick = onNavigateToTrips
             )
 
             Spacer(modifier = Modifier.height(Dimen.HeightBottomNavPadding))
         }
     }
 
-    if (uiState.showCashoutDialog) {
-        DriverWalletInfoDialog(
-            title = stringResource(id = R.string.driver_wallet_dialog_cashout_title),
-            message = stringResource(id = R.string.driver_wallet_dialog_cashout_msg),
-            onDismiss = { viewModel.setShowCashoutDialog(false) }
+    // BottomSheet: Rút tiền về tài khoản ngân hàng
+    if (uiState.showCashoutSheet) {
+        DriverCashoutBottomSheet(
+            availableBalance = walletBalance,
+            isSubmitting = uiState.isActionLoading,
+            onDismiss = { viewModel.setShowCashoutSheet(false) },
+            onConfirmCashout = viewModel::confirmCashout
         )
     }
 
-    if (uiState.showTopupDialog) {
-        DriverWalletInfoDialog(
-            title = stringResource(id = R.string.driver_wallet_dialog_topup_title),
-            message = stringResource(id = R.string.driver_wallet_dialog_topup_msg),
-            onDismiss = { viewModel.setShowTopupDialog(false) }
+    // BottomSheet: Nạp tiền ví ký quỹ
+    if (uiState.showTopupSheet) {
+        DriverTopupBottomSheet(
+            isSubmitting = uiState.isActionLoading,
+            onDismiss = { viewModel.setShowTopupSheet(false) },
+            onConfirmTopup = { amount, method -> viewModel.confirmTopup(amount, method) }
         )
     }
-}
 
-@Composable
-private fun DriverWalletInfoDialog(
-    title: String,
-    message: String,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.s18.bold(),
-                color = TextPrimary
-            )
-        },
-        text = {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.s14.normal(),
-                color = TextSecondary
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(AppShape.ShapeM),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.driver_btn_understood),
-                    style = MaterialTheme.typography.s14.medium(),
-                    color = OnPrimaryColor
-                )
-            }
-        },
-        containerColor = SurfaceLight,
-        shape = RoundedCornerShape(AppShape.ShapeL)
-    )
+    // Dialog: Lịch sử biến động số dư ví
+    if (uiState.showWalletHistory) {
+        DriverWalletHistoryDialog(
+            transactions = uiState.walletTransactions,
+            onDismiss = { viewModel.setShowWalletHistory(false) }
+        )
+    }
+
+    // Dialog: Chi tiết các mốc nhiệm vụ thưởng ngày
+    if (uiState.showQuestDetail) {
+        DriverQuestDetailDialog(
+            completedTrips = completedTrips,
+            onDismiss = { viewModel.setShowQuestDetail(false) }
+        )
+    }
 }

@@ -58,4 +58,10 @@ object ApiEndpoints {
     const val BOOKING_COMPLETE = "$API_V1/bookings/{bookingId}/complete"
     const val BOOKINGS_CUSTOMER = "$API_V1/bookings/customer"
     const val BOOKINGS_DRIVER_DAILY_REPORT = "$API_V1/bookings/driver/daily-report"
+
+    // --- PAYMENTS & WALLET ---
+    const val PAYMENTS_WALLET = "$API_V1/payments/wallet"
+    const val PAYMENTS_TRANSACTIONS = "$API_V1/payments/transactions"
+    const val DRIVER_WITHDRAW = "$API_V1/payments/driver/withdraw"
+    const val PAYMENT_CREATE = "$API_V1/payments/payment/create"
 }

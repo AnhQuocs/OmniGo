@@ -6,7 +6,13 @@ import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyRepo
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.repository.DriverRepository
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
+import com.example.omnigo.features.driver.earnings.domain.model.DriverWallet
+import com.example.omnigo.features.driver.earnings.domain.model.DriverWalletTransaction
 import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
+import com.example.omnigo.features.driver.earnings.domain.usecase.CreateDriverDepositUrlUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.DriverWithdrawUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverTransactionsUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase
 import com.example.omnigo.features.driver.earnings.domain.util.EarningsChartPoint
 import com.example.omnigo.features.driver.earnings.domain.util.EarningsDataHelper
 import com.example.omnigo.features.driver.earnings.domain.util.EarningsTripItem
@@ -21,19 +27,30 @@ import javax.inject.Inject
 
 data class DriverEarningsUiState(
     val isLoading: Boolean = false,
+    val isActionLoading: Boolean = false,
     val selectedPeriod: EarningsPeriod = EarningsPeriod.TODAY,
     val dailyReport: DriverDailyReport? = null,
+    val wallet: DriverWallet? = null,
+    val walletTransactions: List<DriverWalletTransaction> = emptyList(),
     val foodOrders: List<DriverDeliveryOrder> = emptyList(),
     val chartPoints: List<EarningsChartPoint> = emptyList(),
     val tripItems: List<EarningsTripItem> = emptyList(),
-    val showCashoutDialog: Boolean = false,
-    val showTopupDialog: Boolean = false
+    val showCashoutSheet: Boolean = false,
+    val showTopupSheet: Boolean = false,
+    val showWalletHistory: Boolean = false,
+    val showQuestDetail: Boolean = false,
+    val toastMessage: String? = null,
+    val openPaymentUrl: String? = null
 )
 
 @HiltViewModel
 class DriverEarningsViewModel @Inject constructor(
     private val getDriverDailyReportUseCase: GetDriverDailyReportUseCase,
-    private val driverRepository: DriverRepository
+    private val driverRepository: DriverRepository,
+    private val driverWithdrawUseCase: DriverWithdrawUseCase,
+    private val createDriverDepositUrlUseCase: CreateDriverDepositUrlUseCase,
+    private val getDriverWalletUseCase: GetDriverWalletUseCase,
+    private val getDriverTransactionsUseCase: GetDriverTransactionsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriverEarningsUiState())
@@ -58,6 +75,14 @@ class DriverEarningsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val orders = driverRepository.getDriverAllFoodOrders().getOrDefault(emptyList())
+
+            // Fetch real wallet & transactions concurrently
+            val walletResult = getDriverWalletUseCase()
+            val transactionsResult = getDriverTransactionsUseCase()
+
+            val wallet = walletResult.getOrNull() ?: _uiState.value.wallet
+            val transactions = transactionsResult.getOrDefault(emptyList())
+
             when (val result = getDriverDailyReportUseCase(forceRefresh = forceRefresh, period = apiPeriod)) {
                 is GetDriverDailyReportResult.Success -> {
                     val report = result.report
@@ -67,6 +92,8 @@ class DriverEarningsViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             dailyReport = report,
+                            wallet = wallet,
+                            walletTransactions = transactions,
                             foodOrders = orders,
                             chartPoints = points,
                             tripItems = trips
@@ -79,6 +106,8 @@ class DriverEarningsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            wallet = wallet,
+                            walletTransactions = transactions,
                             foodOrders = orders,
                             chartPoints = points,
                             tripItems = trips
@@ -93,11 +122,75 @@ class DriverEarningsViewModel @Inject constructor(
         loadEarningsReport(forceRefresh = true)
     }
 
-    fun setShowCashoutDialog(show: Boolean) {
-        _uiState.update { it.copy(showCashoutDialog = show) }
+    fun setShowCashoutSheet(show: Boolean) {
+        _uiState.update { it.copy(showCashoutSheet = show) }
     }
 
-    fun setShowTopupDialog(show: Boolean) {
-        _uiState.update { it.copy(showTopupDialog = show) }
+    fun setShowTopupSheet(show: Boolean) {
+        _uiState.update { it.copy(showTopupSheet = show) }
+    }
+
+    fun setShowWalletHistory(show: Boolean) {
+        _uiState.update { it.copy(showWalletHistory = show) }
+    }
+
+    fun setShowQuestDetail(show: Boolean) {
+        _uiState.update { it.copy(showQuestDetail = show) }
+    }
+
+    fun clearToastMessage() {
+        _uiState.update { it.copy(toastMessage = null) }
+    }
+
+    fun clearOpenPaymentUrl() {
+        _uiState.update { it.copy(openPaymentUrl = null) }
+    }
+
+    fun confirmCashout(amount: Double) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true) }
+            val result = driverWithdrawUseCase(amount)
+            result.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        isActionLoading = false,
+                        showCashoutSheet = false,
+                        toastMessage = "Đã gửi yêu cầu rút tiền thành công!"
+                    )
+                }
+                loadEarningsReport(forceRefresh = true)
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(
+                        isActionLoading = false,
+                        toastMessage = "Rút tiền thất bại: ${e.message ?: "Lỗi hệ thống"}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun confirmTopup(amount: Double, method: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true) }
+            val result = createDriverDepositUrlUseCase(method = method, amount = amount)
+            result.onSuccess { url ->
+                _uiState.update {
+                    it.copy(
+                        isActionLoading = false,
+                        showTopupSheet = false,
+                        openPaymentUrl = url,
+                        toastMessage = "Đang chuyển tiếp tới cổng thanh toán..."
+                    )
+                }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(
+                        isActionLoading = false,
+                        toastMessage = "Khởi tạo thanh toán thất bại: ${e.message ?: "Lỗi kết nối"}"
+                    )
+                }
+            }
+        }
     }
 }

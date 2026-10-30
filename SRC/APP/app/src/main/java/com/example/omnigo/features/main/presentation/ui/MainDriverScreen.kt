@@ -160,7 +160,17 @@ fun MainDriverScreen(
             }
 
             composable(DriverBottomNavDestination.Earnings.route) {
-                DriverEarningsScreen()
+                DriverEarningsScreen(
+                    onNavigateToTrips = {
+                        navController.navigate(DriverBottomNavDestination.Trips.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
 
             composable(DriverBottomNavDestination.Account.route) {

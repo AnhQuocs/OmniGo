@@ -3,6 +3,7 @@ package com.example.omnigo.features.driver.earnings.presentation.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,15 +23,20 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -60,8 +66,11 @@ import com.example.omnigo.utils.semiBold
 fun EarningsChartSection(
     selectedPeriod: EarningsPeriod,
     chartPoints: List<EarningsChartPoint>,
+    onPeriodSelected: (EarningsPeriod) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
     val periodLabelRes = when (selectedPeriod) {
         EarningsPeriod.TODAY -> R.string.driver_earnings_period_today
         EarningsPeriod.THIS_WEEK -> R.string.driver_earnings_period_week
@@ -114,30 +123,61 @@ fun EarningsChartSection(
                     )
                 }
 
-                // Dropdown Pill Filter: "Hôm nay ∨"
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AppShape.PillShape))
-                        .border(
-                            width = Dimen.BorderHairline,
-                            color = CardBorderColor,
-                            shape = RoundedCornerShape(AppShape.PillShape)
+                // Dropdown Pill Filter: "Hôm nay ∨" with Interactive Popup
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(AppShape.PillShape))
+                            .border(
+                                width = Dimen.BorderHairline,
+                                color = CardBorderColor,
+                                shape = RoundedCornerShape(AppShape.PillShape)
+                            )
+                            .clickable { isDropdownExpanded = true }
+                            .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.XXS)
+                    ) {
+                        Text(
+                            text = stringResource(id = periodLabelRes),
+                            style = MaterialTheme.typography.s12.medium(),
+                            color = TextSecondary
                         )
-                        .padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.XXS)
-                ) {
-                    Text(
-                        text = stringResource(id = periodLabelRes),
-                        style = MaterialTheme.typography.s12.medium(),
-                        color = TextSecondary
-                    )
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(Dimen.SizeIconXS)
-                    )
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(Dimen.SizeIconXS)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = isDropdownExpanded,
+                        onDismissRequest = { isDropdownExpanded = false },
+                        modifier = Modifier.background(SurfaceLight)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.driver_earnings_period_today), style = MaterialTheme.typography.s13.normal()) },
+                            onClick = {
+                                onPeriodSelected(EarningsPeriod.TODAY)
+                                isDropdownExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.driver_earnings_period_week), style = MaterialTheme.typography.s13.normal()) },
+                            onClick = {
+                                onPeriodSelected(EarningsPeriod.THIS_WEEK)
+                                isDropdownExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.driver_earnings_period_month), style = MaterialTheme.typography.s13.normal()) },
+                            onClick = {
+                                onPeriodSelected(EarningsPeriod.THIS_MONTH)
+                                isDropdownExpanded = false
+                            }
+                        )
+                    }
                 }
             }
 
@@ -234,7 +274,7 @@ fun EarningsChartSection(
                             }
                         }
                     } else {
-                        // Empty State Watermark: 3D translucent badge with watermark bars
+                        // Empty State Watermark
                         Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
@@ -280,11 +320,11 @@ fun EarningsChartSection(
 
             Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-            // Bottom X-Axis Timeline Scale (Aligned perfectly with grid columns)
+            // Bottom X-Axis Timeline Scale
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = Dimen.PaddingML), // offset matching the Y-axis label column
+                    .padding(start = Dimen.PaddingML),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 chartPoints.forEach { point ->
