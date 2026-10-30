@@ -42,12 +42,15 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
     @Override
     public String validateImageUrl(String input) {
-        // Business requests only store URLs returned by the multipart upload endpoint.
         if (input == null) return null;
         String url = input.trim();
+        if (url.isEmpty()) return null;
         if (!isCloudinaryImageUrl(url)) {
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                return url;
+            }
             throw new ImageUploadException(
-                    "Vui lòng upload ảnh bằng multipart/form-data trước, sau đó gửi URL Cloudinary được trả về.",
+                    "Vui lòng upload ảnh trước",
                     HttpStatus.BAD_REQUEST);
         }
         return url;

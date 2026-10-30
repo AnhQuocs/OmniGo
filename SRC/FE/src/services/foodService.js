@@ -50,6 +50,13 @@ export const foodService = {
   },
 
   /**
+   * Lấy thực đơn của nhà hàng cho chủ quán (alias của getMenuItems)
+   */
+  getMerchantMenu: async (restaurantId) => {
+    return foodService.getMenuItems(restaurantId);
+  },
+
+  /**
    * Cập nhật trạng thái nhà hàng (OPEN, BUSY, CLOSED)
    */
   updateRestaurantStatus: async (restaurantId, status) => {
@@ -268,6 +275,13 @@ export const foodService = {
       console.warn(`Lỗi lấy đơn hàng của quán #${restaurantId}:`, error.message);
       return [];
     }
+  },
+  /**
+   * Lấy danh sách đơn hàng cho chủ quán (alias của getRestaurantOrders)
+   * Endpoint: GET /api/v1/food-orders/restaurant/{restaurantId}
+   */
+  getMerchantOrders: async (restaurantId) => {
+    return foodService.getRestaurantOrders(restaurantId);
   },
 
   /**

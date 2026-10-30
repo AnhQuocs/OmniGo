@@ -336,7 +336,8 @@ export const MerchantOrders = () => {
     async function init() {
       if (!restaurant?.id) return;
       try {
-        const orderList = await foodService.getMerchantOrders(restaurant.id);
+        const res = await foodService.getMerchantOrders(restaurant.id);
+        const orderList = Array.isArray(res) ? res : res?.data || [];
         if (active) {
           setOrders(orderList);
         }
