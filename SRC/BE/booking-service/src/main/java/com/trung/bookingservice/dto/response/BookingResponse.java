@@ -11,6 +11,7 @@ import lombok.Setter;
 public class BookingResponse {
     private Long bookingId;
     private Long customerId;
+    private String customerName;
     private Long driverId;
     private String customerAvatarUrl;
     private String driverAvatarUrl;

@@ -8,6 +8,8 @@ import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
 import com.trung.bookingservice.util.enums.BookingStatus;
 
+import java.time.LocalDate;
+import com.trung.bookingservice.util.enums.ReportPeriod;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +29,8 @@ public interface BookingService {
     ApiResponse<List<Booking>> getCustomerBookings(Long customerId);
 
     ApiResponse<Map<String, Object>> getDriverDailyReport(Long driverId);
+
+    ApiResponse<Map<String, Object>> getDriverReport(Long driverId, ReportPeriod period, LocalDate date);
 
     ApiResponse<List<Booking>> getAllBookings();
 

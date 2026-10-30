@@ -275,10 +275,18 @@
         <ul id="tx-list"
             style="margin-top: 15px; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px; max-height: 150px; overflow-y: auto; display: none;"></ul>
 
-        <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Báo cáo hôm nay</button>
+        <label for="report-period">Kỳ báo cáo:</label>
+        <select id="report-period">
+            <option value="DAY">Ngày</option>
+            <option value="WEEK">Tuần</option>
+            <option value="MONTH">Tháng</option>
+        </select>
+        <label for="report-date">Ngày tham chiếu (để trống: hôm nay):</label>
+        <input id="report-date" type="date">
+        <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Xem báo cáo thu nhập</button>
 
         <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
-            <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU NGÀY HÔM NAY</h4>
+            <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU THEO KỲ</h4>
             <div style="font-size: 15px; line-height: 1.8;">
                 <div>🚗 Tổng số cuốc xe hoàn thành: <b id="rep-trips" style="color: blue;">0</b> cuốc</div>
                 <hr style="border-top: 1px solid #eee;">
@@ -1809,12 +1817,12 @@
 
     function fetchDailyReport() {
         let panel = document.getElementById('daily-report-panel');
-        if (panel.style.display === 'block') {
-            panel.style.display = 'none';
-            return;
-        }
+        panel.style.display = 'none';
+        const params = new URLSearchParams({ period: document.getElementById('report-period').value });
+        const date = document.getElementById('report-date').value;
+        if (date) params.set('date', date);
 
-        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report`, {
+        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`,  {
             method: 'GET',
             headers: { 'X-User-Id': DRIVER_ID }
         })
