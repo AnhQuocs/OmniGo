@@ -20,6 +20,15 @@ val OnSecondaryContainer = Color(0xFF7C2D12)
 val RadarCyan = Color(0xFF06B6D4)              // Modern High-tech Radar Cyan
 val RadarCyanGlow = Color(0x3306B6D4)          // Soft Cyan Glow Tint
 
+// Hero Card Glassmorphic & Glow Colors
+val HeroGradientStart = Color(0xFF0066EE)
+val HeroGradientMiddle = Color(0xFF1D8DF8)
+val HeroGradientEnd = Color(0xFF70B9FB)
+val HeroGlassBackground = Color(0x14FFFFFF)      // ~8% transparent white
+val HeroGlassBorder = Color(0x2EFFFFFF)          // ~18% subtle white border
+val HeroWalletGlowCenter = Color(0x99FFFFFF)     // 60% radiant white
+val HeroWalletGlowEdge = Color(0x2660A5FA)       // 15% soft sky blue
+
 // Background & Surface (Light Theme)
 val BackgroundLight = Color(0xFFF8FAFC)
 val SurfaceLight = Color(0xFFFFFFFF)

@@ -67,4 +67,13 @@ object Dimen {
     val SizeHeaderLocation = 38.dp
     val HeightPinPickerBottomOffset = 180.dp
     val HeightRideBottomSheetOffset = 290.dp
+    val SizeWalletBadge = 38.dp
+    val SizeHeroWalletIllustration = 140.dp
+    val SizeHeroWalletIllustrationCompact = 140.dp
+    val SizeWalletGlow = 135.dp
+    val BorderHairline = 0.75.dp
+    val BorderThin = 1.dp
+    val HeightEarningsChartContainer = 170.dp
+    val HeightPillButtonSmall = 36.dp
+    val HeightBottomNavPadding = 100.dp
 }

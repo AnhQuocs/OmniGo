@@ -1028,7 +1028,7 @@
     <string name="driver_trips_history_food_completed">Đã hoàn thành</string>
     <string name="driver_trips_history_food_cancelled">Đã hủy</string>
     <string name="driver_earnings_today_summary_title">Hiệu suất hôm nay</string>
-    <string name="driver_earnings_quest_10_trips">Hoàn thành 10 cuốc xe hôm nay (+50.000 đ)</string>
+    <string name="driver_earnings_quest_10_trips">Hoàn thành 10 cuốc xe hôm nay</string>
     <string name="driver_earnings_quest_progress_format">Tiến độ: %1$d/%2$d cuốc</string>
     <string name="driver_wallet_dialog_cashout_title">Rút tiền về ngân hàng</string>
     <string name="driver_wallet_dialog_cashout_msg">Yêu cầu rút tiền từ Ví thu nhập sẽ được xử lý
@@ -1087,4 +1087,20 @@
     <string name="driver_trips_cockpit_active">Đang chạy</string>
     <string name="driver_trips_cockpit_completed">Hoàn thành</string>
     <string name="driver_trips_tab_active_fmt">Đang chạy (%1$d)</string>
+    <!-- Driver Earnings Redesign 2026 -->
+    <string name="driver_earnings_subtitle">Theo dõi thu nhập và quản lý ví của bạn</string>
+    <string name="driver_earnings_total_today">Tổng thu nhập hôm nay</string>
+    <string name="driver_earnings_total_week">Tổng thu nhập tuần này</string>
+    <string name="driver_earnings_total_month">Tổng thu nhập tháng này</string>
+    <string name="driver_earnings_trips_count_fmt">%1$d chuyến</string>
+    <string name="driver_earnings_net_received_label">Thực nhận (80%)</string>
+    <string name="driver_earnings_platform_fee_label">Chiết khấu sàn (20%)</string>
+    <string name="driver_earnings_gross_fare_label">Tổng cước phí</string>
+    <string name="driver_earnings_quest_reward">+50.000 đ</string>
+    <string name="driver_earnings_chart_title">Biểu đồ thu nhập</string>
+    <string name="driver_earnings_chart_empty_title">Chưa có dữ liệu thu nhập</string>
+    <string name="driver_earnings_chart_empty_subtitle">Hãy bắt đầu nhận chuyến để xem biểu đồ</string>
+    <string name="driver_earnings_detail_today">Chi tiết thu nhập</string>
+    <string name="driver_earnings_trips_empty_title">Chưa có chuyến xe nào</string>
+    <string name="driver_earnings_trips_empty_subtitle">Khi hoàn thành chuyến, thu nhập sẽ hiển thị tại đây</string>
 </resources>

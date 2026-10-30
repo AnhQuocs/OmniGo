@@ -963,7 +963,7 @@
     <string name="driver_trips_history_food_completed">Delivered</string>
     <string name="driver_trips_history_food_cancelled">Cancelled</string>
     <string name="driver_earnings_today_summary_title">Today\'s Performance</string>
-    <string name="driver_earnings_quest_10_trips">Complete 10 trips today (+50,000 VND)</string>
+    <string name="driver_earnings_quest_10_trips">Complete 10 trips today</string>
     <string name="driver_earnings_quest_progress_format">Progress: %1$d/%2$d trips</string>
     <string name="driver_wallet_dialog_cashout_title">Withdraw Earnings</string>
     <string name="driver_wallet_dialog_cashout_msg">Your withdrawal request will be transferred to your linked bank account within 24 working hours. Minimum withdrawal is 50,000 VND.</string>
@@ -1019,4 +1019,20 @@
     <string name="driver_trips_cockpit_active">In Progress</string>
     <string name="driver_trips_cockpit_completed">Completed</string>
     <string name="driver_trips_tab_active_fmt">Active (%1$d)</string>
+    <!-- Driver Earnings Redesign 2026 -->
+    <string name="driver_earnings_subtitle">Track your earnings and manage your wallets</string>
+    <string name="driver_earnings_total_today">Total Earnings Today</string>
+    <string name="driver_earnings_total_week">Total Earnings This Week</string>
+    <string name="driver_earnings_total_month">Total Earnings This Month</string>
+    <string name="driver_earnings_trips_count_fmt">%1$d trips</string>
+    <string name="driver_earnings_net_received_label">Net (80%)</string>
+    <string name="driver_earnings_platform_fee_label">Platform Fee (20%)</string>
+    <string name="driver_earnings_gross_fare_label">Gross Fare</string>
+    <string name="driver_earnings_quest_reward">+50,000 VND</string>
+    <string name="driver_earnings_chart_title">Earnings Chart</string>
+    <string name="driver_earnings_chart_empty_title">No earnings data yet</string>
+    <string name="driver_earnings_chart_empty_subtitle">Start accepting rides to view chart</string>
+    <string name="driver_earnings_detail_today">Earnings Details</string>
+    <string name="driver_earnings_trips_empty_title">No trips yet</string>
+    <string name="driver_earnings_trips_empty_subtitle">Earnings will appear here once trips are completed</string>
 </resources>
