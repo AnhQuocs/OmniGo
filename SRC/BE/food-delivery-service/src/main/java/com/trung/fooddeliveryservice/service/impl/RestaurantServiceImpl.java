@@ -413,8 +413,10 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurant.setAddress(request.getAddress());
         restaurant.setLatitude(request.getLatitude());
         restaurant.setLongitude(request.getLongitude());
-        restaurant.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
-        if (request.getLicenseImageUrl() != null) {
+        if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            restaurant.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
+        }
+        if (request.getLicenseImageUrl() != null && !request.getLicenseImageUrl().trim().isEmpty()) {
             restaurant.setLicenseImageUrl(cloudinaryService.validateImageUrl(request.getLicenseImageUrl()));
         }
         restaurant.setOpenTime(request.getOpenTime());

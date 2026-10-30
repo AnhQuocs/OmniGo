@@ -75,7 +75,7 @@ public class FoodOrderReviewController {
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin đánh giá thành công"));
     }
 
-    @GetMapping("/restaurants/{restaurantId}/reviews")
+    @GetMapping({"/restaurants/{restaurantId}/reviews", "/food-reviews/restaurant/{restaurantId}"})
     public ResponseEntity<ApiResponse<RestaurantReviewSummaryResponse>> getRestaurantReviews(
             @PathVariable Long restaurantId,
             @RequestParam(required = false) Integer rating,
