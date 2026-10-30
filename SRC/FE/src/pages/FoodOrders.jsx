@@ -48,6 +48,9 @@ import driverService from '../services/driverService';
 import userService from '../services/userService';
 import FoodOrderReviewModal from '../components/food/FoodOrderReviewModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { formatVietnamDateTime, formatVietnamShortTime } from '../utils/dateTime';
+import { formatLocation, formatCoordinate } from '../utils/address';
+import { getPaymentMethodText } from '../utils/enums';
 
 
 const CANCEL_REASON_MAP = {
@@ -264,7 +267,7 @@ export const FoodOrders = () => {
       customerPhoneNumber.includes(searchTerm) ||
       (customer?.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       o.restaurantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.deliveryAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      formatLocation(o.deliveryLatitude, o.deliveryLongitude, o.deliveryAddress).toLowerCase().includes(searchTerm.toLowerCase()) ||
       o.driverId?.toString().includes(searchTerm);
 
     let matchStatus = true;
@@ -594,14 +597,7 @@ export const FoodOrders = () => {
                 </TableRow>
               ) : (
                 paginatedList.map((order) => {
-                  const dateStr = order.createdAt
-                    ? new Date(order.createdAt).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        day: '2-digit',
-                        month: '2-digit',
-                      })
-                    : 'N/A';
+                  const dateStr = formatVietnamShortTime(order.createdAt);
 
                   const itemsList = order.orderItems || order.items || [];
                   const itemsSummary = itemsList
@@ -716,9 +712,10 @@ export const FoodOrders = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 0.5 }}>
                           <Chip
-                            label={order.paymentMethod || 'CASH'}
+                            label={getPaymentMethodText(order.paymentMethod)}
                             size="small"
-                            sx={{ fontSize: '0.68rem', height: 18 }}
+                            variant="outlined"
+                            sx={{ fontSize: '0.68rem', height: 20, fontWeight: 700, borderColor: '#cbd5e1' }}
                           />
                           <Chip
                             label={order.isPaid ? 'Đã Trả' : 'Chưa Trả'}
@@ -804,9 +801,9 @@ export const FoodOrders = () => {
       <Dialog
         open={Boolean(selectedOrder)}
         onClose={() => setSelectedOrder(null)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ sx: { borderRadius: 3, p: { xs: 0.5, sm: 1 } } }}
       >
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -815,9 +812,17 @@ export const FoodOrders = () => {
               <Typography variant="h6" sx={{ fontWeight: 800 }}>
                 Chi Tiết Đơn Hàng #{selectedOrder?.id}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Trạng thái: {getStatusChip(selectedOrder?.status)}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.3, flexWrap: 'wrap' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Trạng thái:
+                </Typography>
+                {getStatusChip(selectedOrder?.status)}
+                {selectedOrder?.createdAt && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                    • Đặt lúc: <b>{formatVietnamDateTime(selectedOrder.createdAt)}</b>
+                  </Typography>
+                )}
+              </Box>
             </Box>
           </Box>
           <IconButton onClick={() => setSelectedOrder(null)} size="small">
@@ -886,13 +891,18 @@ export const FoodOrders = () => {
                             <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F172A' }}>{cEmail}</Typography>
                           </Box>
                         )}
-                        <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #F1F5F9' }}>
-                          <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600, display: 'block' }}>
-                            Địa chỉ nhận hàng:
+                        <Box sx={{ mt: 1, p: 1.2, borderRadius: 1.5, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                          <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700, display: 'block' }}>
+                            📍 Địa chỉ nhận hàng:
                           </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', mt: 0.2 }}>
-                            {selectedOrder.deliveryAddress || 'Chưa có địa chỉ chi tiết'}
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', mt: 0.3, lineHeight: 1.4 }}>
+                            {formatLocation(selectedOrder.deliveryLatitude, selectedOrder.deliveryLongitude, selectedOrder.deliveryAddress)}
                           </Typography>
+                          {selectedOrder.deliveryLatitude && selectedOrder.deliveryLongitude && (
+                            <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, fontFamily: 'monospace', fontWeight: 600 }}>
+                              🎯 Tọa độ GPS: {formatCoordinate(selectedOrder.deliveryLatitude, selectedOrder.deliveryLongitude)}
+                            </Typography>
+                          )}
                         </Box>
                       </Card>
                     );
@@ -1110,8 +1120,8 @@ export const FoodOrders = () => {
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, fontSize: '0.88rem' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>Phương thức:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {selectedOrder.paymentMethod} ({selectedOrder.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'})
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0284c7' }}>
+                    {getPaymentMethodText(selectedOrder.paymentMethod)} ({selectedOrder.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'})
                   </Typography>
                 </Box>
                 <Divider sx={{ my: 1 }} />

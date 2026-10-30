@@ -134,7 +134,7 @@ public class BookingServiceImpl implements BookingService {
                 .customerId(customerId)
                 .customerName(bookingCustomerService.getName(customerId))
                 .customerAvatarUrl(bookingAvatarService.getAvatar(customerId))
-                .pickupAddress(request.getPickupAddress())
+                .pickupAddress(request.getPickupAddress() != null && request.getPickupAddress().toLowerCase().contains("vị trí gps của bạn") ? "Điểm đón GPS" : request.getPickupAddress())
                 .dropoffAddress(request.getDropoffAddress())
                 .startLongitude(request.getStartLongitude())
                 .startLatitude(request.getStartLatitude())

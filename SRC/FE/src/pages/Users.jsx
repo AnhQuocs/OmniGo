@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import userService from '../services/userService';
+import { formatVietnamDate } from '../utils/dateTime';
 
 export const Users = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -361,7 +362,7 @@ export const Users = () => {
                         )}
                       </TableCell>
                       <TableCell sx={{ color: 'text.secondary', fontSize: '0.9rem', fontWeight: 500 }}>
-                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}
+                        {formatVietnamDate(user.createdAt)}
                       </TableCell>
                       <TableCell align="center">
                         {user.role !== 'ADMIN' && (

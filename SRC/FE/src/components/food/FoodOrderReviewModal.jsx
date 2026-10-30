@@ -24,6 +24,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import { formatVietnamDateTime } from '../../utils/dateTime';
 
 const RESTAURANT_TAGS = [
   'Đồ ăn nóng hổi',
@@ -237,7 +238,7 @@ export default function FoodOrderReviewModal({
               </Typography>
               {(existingReview?.merchantRepliedAt || existingReview?.restaurantReplyAt) && (
                 <Typography variant="caption" color="text.secondary">
-                  • {new Date(existingReview.merchantRepliedAt || existingReview.restaurantReplyAt).toLocaleDateString('vi-VN')}
+                  • {formatVietnamDateTime(existingReview.merchantRepliedAt || existingReview.restaurantReplyAt)}
                 </Typography>
               )}
             </Stack>
