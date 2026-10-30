@@ -305,17 +305,24 @@ class RideBookingRepositoryImpl @Inject constructor(
         lastDailyReportFetchMs = 0L
     }
 
-    override suspend fun getDriverDailyReport(forceRefresh: Boolean): GetDriverDailyReportResult {
+    override suspend fun getDriverDailyReport(
+        forceRefresh: Boolean,
+        period: String?,
+        date: String?
+    ): GetDriverDailyReportResult {
+        val isTodayReport = (period == null || period == "DAY") && date == null
         val cached = cachedDailyReport
-        if (!forceRefresh && cached != null && clock() - lastDailyReportFetchMs < DAILY_REPORT_CACHE_TTL_MS) {
+        if (isTodayReport && !forceRefresh && cached != null && clock() - lastDailyReportFetchMs < DAILY_REPORT_CACHE_TTL_MS) {
             return GetDriverDailyReportResult.Success(cached)
         }
         return try {
-            val response = rideBookingApi.getDriverDailyReport()
+            val response = rideBookingApi.getDriverDailyReport(period = period, date = date)
             if (response.success && response.data != null) {
                 val report = response.data.toDomain()
-                cachedDailyReport = report
-                lastDailyReportFetchMs = clock()
+                if (isTodayReport) {
+                    cachedDailyReport = report
+                    lastDailyReportFetchMs = clock()
+                }
                 GetDriverDailyReportResult.Success(report)
             } else {
                 GetDriverDailyReportResult.Error(

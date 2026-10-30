@@ -41,9 +41,14 @@ class DriverEarningsViewModel @Inject constructor(
     }
 
     fun loadEarningsReport(forceRefresh: Boolean = false) {
+        val apiPeriod = when (_uiState.value.selectedPeriod) {
+            EarningsPeriod.TODAY -> "DAY"
+            EarningsPeriod.THIS_WEEK -> "WEEK"
+            EarningsPeriod.THIS_MONTH -> "MONTH"
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            when (val result = getDriverDailyReportUseCase(forceRefresh)) {
+            when (val result = getDriverDailyReportUseCase(forceRefresh = forceRefresh, period = apiPeriod)) {
                 is GetDriverDailyReportResult.Success -> {
                     _uiState.update {
                         it.copy(isLoading = false, dailyReport = result.report)

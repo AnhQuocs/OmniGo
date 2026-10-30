@@ -48,7 +48,7 @@ interface RideBookingRepository {
 
     suspend fun getCustomerBookings(): GetCustomerBookingsResult
 
-    suspend fun getDriverDailyReport(forceRefresh: Boolean = false): GetDriverDailyReportResult
+    suspend fun getDriverDailyReport(forceRefresh: Boolean = false, period: String? = null, date: String? = null): GetDriverDailyReportResult
 
     fun invalidateDailyReportCache()
 

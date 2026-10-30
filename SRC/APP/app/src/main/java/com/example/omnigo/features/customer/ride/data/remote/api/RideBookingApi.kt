@@ -60,7 +60,10 @@ interface RideBookingApi {
     suspend fun getCustomerBookings(): ApiResponse<List<BookingResponse>>
 
     @GET(ApiEndpoints.BOOKINGS_DRIVER_DAILY_REPORT)
-    suspend fun getDriverDailyReport(): ApiResponse<DriverDailyReportDto>
+    suspend fun getDriverDailyReport(
+        @Query("period") period: String? = null,
+        @Query("date") date: String? = null
+    ): ApiResponse<DriverDailyReportDto>
 
     @GET(ApiEndpoints.LOCATIONS_NEARBY)
     suspend fun getNearbyDrivers(

@@ -7,7 +7,15 @@ import javax.inject.Inject
 class GetDriverDailyReportUseCase @Inject constructor(
     private val rideBookingRepository: RideBookingRepository
 ) {
-    suspend operator fun invoke(forceRefresh: Boolean = false): GetDriverDailyReportResult {
-        return rideBookingRepository.getDriverDailyReport(forceRefresh)
+    suspend operator fun invoke(
+        forceRefresh: Boolean = false,
+        period: String? = null,
+        date: String? = null
+    ): GetDriverDailyReportResult {
+        return rideBookingRepository.getDriverDailyReport(
+            forceRefresh = forceRefresh,
+            period = period,
+            date = date
+        )
     }
 }

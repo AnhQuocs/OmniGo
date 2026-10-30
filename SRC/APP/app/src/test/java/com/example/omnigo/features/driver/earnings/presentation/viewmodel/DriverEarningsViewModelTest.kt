@@ -1,7 +1,7 @@
 package com.example.omnigo.features.driver.earnings.presentation.viewmodel
 
-import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.customer.ride.domain.error.RideError
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
@@ -51,7 +51,9 @@ class DriverEarningsViewModelTest {
 
     @Test
     fun `init loads earnings report successfully`() = runTest {
-        coEvery { getDriverDailyReportUseCase(false) } returns GetDriverDailyReportResult.Success(sampleReport)
+        coEvery {
+            getDriverDailyReportUseCase(forceRefresh = false, period = "DAY", date = null)
+        } returns GetDriverDailyReportResult.Success(sampleReport)
 
         val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
         advanceUntilIdle()
@@ -62,12 +64,16 @@ class DriverEarningsViewModelTest {
         assertNotNull(state.dailyReport)
         assertEquals(8, state.dailyReport?.totalTrips)
         assertEquals(320000.0, state.dailyReport?.driverEarnings ?: 0.0, 0.01)
-        coVerify(exactly = 1) { getDriverDailyReportUseCase(false) }
+        coVerify(exactly = 1) {
+            getDriverDailyReportUseCase(forceRefresh = false, period = "DAY", date = null)
+        }
     }
 
     @Test
-    fun `onPeriodSelected updates selectedPeriod and triggers forceRefresh`() = runTest {
-        coEvery { getDriverDailyReportUseCase(any()) } returns GetDriverDailyReportResult.Success(sampleReport)
+    fun `onPeriodSelected updates selectedPeriod and triggers forceRefresh with api period`() = runTest {
+        coEvery {
+            getDriverDailyReportUseCase(forceRefresh = any(), period = any(), date = any())
+        } returns GetDriverDailyReportResult.Success(sampleReport)
 
         val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
         advanceUntilIdle()
@@ -76,17 +82,23 @@ class DriverEarningsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(EarningsPeriod.THIS_WEEK, viewModel.uiState.value.selectedPeriod)
-        coVerify(exactly = 1) { getDriverDailyReportUseCase(true) }
+        coVerify(exactly = 1) {
+            getDriverDailyReportUseCase(forceRefresh = true, period = "WEEK", date = null)
+        }
 
         // When selecting same period, no extra call
         viewModel.onPeriodSelected(EarningsPeriod.THIS_WEEK)
         advanceUntilIdle()
-        coVerify(exactly = 1) { getDriverDailyReportUseCase(true) }
+        coVerify(exactly = 1) {
+            getDriverDailyReportUseCase(forceRefresh = true, period = "WEEK", date = null)
+        }
     }
 
     @Test
     fun `setShowCashoutDialog and setShowTopupDialog update states correctly`() = runTest {
-        coEvery { getDriverDailyReportUseCase(false) } returns GetDriverDailyReportResult.Success(sampleReport)
+        coEvery {
+            getDriverDailyReportUseCase(forceRefresh = any(), period = any(), date = any())
+        } returns GetDriverDailyReportResult.Success(sampleReport)
 
         val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
         advanceUntilIdle()
@@ -107,4 +119,3 @@ class DriverEarningsViewModelTest {
         assertFalse(viewModel.uiState.value.showTopupDialog)
     }
 }
-
