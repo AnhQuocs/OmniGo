@@ -81,6 +81,8 @@ import foodService from '../../services/foodService';
 import driverService from '../../services/driverService';
 import toast from 'react-hot-toast';
 import AddressAutocomplete from '../../components/common/AddressAutocomplete';
+import { formatVietnamDateTime, formatVietnamShortTime } from '../../utils/dateTime';
+import { formatLocation, formatCoordinate } from '../../utils/address';
 
 // Beep sound function using Web Audio API
 const playOrderBeep = () => {
@@ -402,19 +404,11 @@ export const MerchantOrders = () => {
   };
 
   const formatTime = (dateStr) => {
-    if (!dateStr) return 'Vừa xong';
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    return formatVietnamShortTime(dateStr);
   };
 
   const formatFullDateTime = (dateStr) => {
-    if (!dateStr) return 'Vừa xong';
-    try {
-      const d = new Date(dateStr);
-      return `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-    } catch {
-      return dateStr;
-    }
+    return formatVietnamDateTime(dateStr);
   };
 
   // 1. Loading State
@@ -1057,8 +1051,13 @@ export const MerchantOrders = () => {
                       Địa chỉ nhận món:
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#0F172A', wordBreak: 'break-word', mt: 0.2, lineHeight: 1.4 }}>
-                      {selectedOrder.deliveryAddress || 'Khách chưa nhập địa chỉ chi tiết'}
+                      {formatLocation(selectedOrder.deliveryLatitude, selectedOrder.deliveryLongitude, selectedOrder.deliveryAddress)}
                     </Typography>
+                    {selectedOrder.deliveryLatitude && selectedOrder.deliveryLongitude && (
+                      <Typography variant="caption" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, fontFamily: 'monospace', fontWeight: 600 }}>
+                        📍 Tọa độ GPS: {formatCoordinate(selectedOrder.deliveryLatitude, selectedOrder.deliveryLongitude)}
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
               </Box>

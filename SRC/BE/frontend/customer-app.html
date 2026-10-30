@@ -2021,11 +2021,24 @@
             return;
         }
         navigator.geolocation.getCurrentPosition(
-            pos => {
+            async pos => {
                 const lat = Number(pos.coords.latitude.toFixed(6));
                 const lng = Number(pos.coords.longitude.toFixed(6));
-                selectFoodDeliveryLocation('Vị trí GPS hiện tại của tôi', lat, lng, true);
-                alert(`📍 Đã lấy được vị trí GPS:\n• Vĩ độ (Lat): ${lat}\n• Kinh độ (Lng): ${lng}\n\nĐang tìm kiếm 5 nhà hàng gần nhất cho bạn.`);
+                let resolvedAddr = 'Vị trí hiện tại của tôi';
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+                    if (res.ok) {
+                        const data = await res.json();
+                        resolvedAddr = formatGeocodedAddress(data, lat, lng);
+                    } else {
+                        resolvedAddr = formatGeocodedAddress(null, lat, lng);
+                    }
+                } catch(e) {
+                    resolvedAddr = formatGeocodedAddress(null, lat, lng);
+                }
+                selectFoodDeliveryLocation(resolvedAddr, lat, lng, true);
+                alert(`📍 Đã lấy được vị trí GPS:\n• Vĩ độ (Lat): ${lat}\n• Kinh độ (Lng): ${lng}\n• Địa chỉ: ${resolvedAddr}\n\nĐang tìm kiếm nhà hàng gần nhất cho bạn.`);
             },
             err => {
                 alert("Không thể lấy vị trí GPS tự động: " + err.message + "\nVui lòng chọn địa điểm nhanh hoặc nhập tọa độ kiểm thử.");
@@ -4036,19 +4049,69 @@
         }
     });
 
+    function formatGeocodedAddress(data, lat, lng) {
+        if (data && data.address) {
+            const a = data.address;
+            const parts = [];
+            if (a.amenity || a.shop || a.building || a.office || a.leisure || a.tourism) {
+                parts.push(a.amenity || a.shop || a.building || a.office || a.leisure || a.tourism);
+            }
+            if (a.house_number && a.road) {
+                parts.push(`${a.house_number} ${a.road}`);
+            } else if (a.road) {
+                parts.push(a.road);
+            }
+            if (a.suburb || a.quarter || a.neighbourhood) {
+                parts.push(a.suburb || a.quarter || a.neighbourhood);
+            }
+            if (a.city_district || a.district || a.county) {
+                parts.push(a.city_district || a.district || a.county);
+            }
+            if (a.city || a.state) {
+                parts.push(a.city || a.state);
+            }
+            if (parts.length >= 2) {
+                return parts.join(', ');
+            }
+        }
+        if (data && data.display_name) {
+            return data.display_name
+                .replace(/,?\s*\d{5,6},?\s*/g, '')
+                .replace(/,?\s*Việt Nam\s*$/i, '')
+                .trim();
+        }
+        const nLat = Number(lat);
+        const nLng = Number(lng);
+        if (nLat >= 20.9 && nLat <= 21.2 && nLng >= 105.7 && nLng <= 106.0) {
+            if (nLat > 21.05) return 'Tây Hồ, Hà Nội';
+            if (nLat > 21.03) return 'Ba Đình, Hà Nội';
+            if (nLng < 105.80) return 'Cầu Giấy, Hà Nội';
+            if (nLng >= 105.815 && nLng <= 105.845 && nLat >= 21.005 && nLat <= 21.030) {
+                return 'Hoàng Cầu, Đống Đa, Hà Nội';
+            }
+            if (nLat < 21.01) return 'Hai Bà Trưng, Hà Nội';
+            return 'Hoàn Kiếm, Hà Nội';
+        }
+        return `Tọa độ (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
+    }
+
     async function fetchReverseGeocode(lat, lng, type) {
+        const input = document.getElementById(type === 'pickup' ? 'ride-pickup-address' : 'ride-dropoff-address');
         try {
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
             const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
             if (res.ok) {
                 const data = await res.json();
-                let addr = data.display_name || `Vị trí (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-                const input = document.getElementById(type === 'pickup' ? 'ride-pickup-address' : 'ride-dropoff-address');
+                const addr = formatGeocodedAddress(data, lat, lng);
                 if (input) input.value = addr;
+                return addr;
             }
         } catch (e) {
             console.warn("Reverse geocode failed:", e);
         }
+        const fallback = formatGeocodedAddress(null, lat, lng);
+        if (input) input.value = fallback;
+        return fallback;
     }
 
     function setRidePickup(address, lat, lng) {
@@ -4070,12 +4133,19 @@
             alert("Trình duyệt không hỗ trợ Geolocation!");
             return;
         }
-        navigator.geolocation.getCurrentPosition(pos => {
+        const input = document.getElementById('ride-pickup-address');
+        if (input) input.value = "Đang định vị địa chỉ đón...";
+        navigator.geolocation.getCurrentPosition(async pos => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
-            setRidePickup(`Vị trí GPS của bạn (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng);
+            startPoint = [lat, lng];
+            await fetchReverseGeocode(lat, lng, 'pickup');
+            updateRideRouteAndPricing();
         }, err => {
             alert("Không lấy được GPS hiện tại: " + err.message);
+            if (input && input.value === "Đang định vị địa chỉ đón...") {
+                input.value = "Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội";
+            }
         }, { enableHighAccuracy: true, timeout: 8000 });
     }
 

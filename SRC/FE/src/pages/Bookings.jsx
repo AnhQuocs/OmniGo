@@ -53,82 +53,38 @@ import bookingService from '../services/bookingService';
 import userService from '../services/userService';
 import driverService from '../services/driverService';
 
-const KNOWN_LOCATIONS = {
-  '21.0245,105.8574': 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
-  '21.0585,105.8202': 'Xuân La, Tây Hồ, Hà Nội',
-  '21.0285,105.8542': 'Đinh Tiên Hoàng, Hoàn Kiếm, Hà Nội',
-  '21.0031,105.8431': 'Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
-  '21.0378,105.7836': 'Duy Tân, Cầu Giấy, Hà Nội',
-  '21.0135,105.7988': 'Trung Hòa, Cầu Giấy, Hà Nội',
-  '21.0333,105.8500': 'Điện Biên Phủ, Ba Đình, Hà Nội',
-  '21.0307,105.7845': 'Trần Thái Tông, Cầu Giấy, Hà Nội',
-  '21.0175,105.8540': 'Phố Huế, Hai Bà Trưng, Hà Nội',
-};
-
-const formatLocation = (lat, lng, addr) => {
-  if (addr && String(addr).trim()) return addr;
-  if (lat === undefined || lat === null || lng === undefined || lng === null) return '—';
-  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
-  if (KNOWN_LOCATIONS[key]) return KNOWN_LOCATIONS[key];
-  const nLat = Number(lat);
-  const nLng = Number(lng);
-  if (nLat >= 20.9 && nLat <= 21.2 && nLng >= 105.7 && nLng <= 106.0) {
-    if (nLat > 21.05) return 'Tây Hồ, Hà Nội';
-    if (nLat > 21.03) return 'Ba Đình, Hà Nội';
-    if (nLng < 105.80) return 'Cầu Giấy, Hà Nội';
-    if (nLat < 21.01) return 'Hai Bà Trưng, Hà Nội';
-    return 'Hoàn Kiếm, Hà Nội';
-  }
-  return `Vị trí (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
-};
-
-const formatCoordinate = (lat, lng) => {
-  if (lat === undefined || lat === null || lng === undefined || lng === null) return '—';
-  return `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
-};
+import { formatVietnamDateTime } from '../utils/dateTime';
+import { formatLocation, formatCoordinate } from '../utils/address';
+import { getPaymentMethodText } from '../utils/enums';
 
 const formatDateTime = (dateStr) => {
-  if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatVietnamDateTime(dateStr);
 };
 
 const getVehicleTypeBadge = (vType) => {
   const type = (vType || 'BIKE').toUpperCase();
-  switch (type) {
-    case 'CAR_4':
-      return {
-        label: 'Ô tô 4 chỗ',
-        icon: <RideIcon sx={{ fontSize: 15 }} />,
-        color: '#0284c7',
-        bgcolor: 'rgba(2, 132, 199, 0.1)',
-      };
-    case 'CAR_7':
-      return {
-        label: 'Ô tô 7 chỗ',
-        icon: <RideIcon sx={{ fontSize: 15 }} />,
-        color: '#7c3aed',
-        bgcolor: 'rgba(124, 58, 237, 0.1)',
-      };
-    case 'BIKE':
-    default:
-      return {
-        label: 'Xe máy',
-        icon: <BikeIcon sx={{ fontSize: 15 }} />,
-        color: '#16a34a',
-        bgcolor: 'rgba(22, 163, 74, 0.1)',
-      };
+  if (type.includes('7')) {
+    return {
+      label: 'Ô tô 7 chỗ',
+      icon: <RideIcon sx={{ fontSize: 15 }} />,
+      color: '#7c3aed',
+      bgcolor: 'rgba(124, 58, 237, 0.1)',
+    };
   }
+  if (type.includes('4') || type.includes('CAR')) {
+    return {
+      label: 'Ô tô 4 chỗ',
+      icon: <RideIcon sx={{ fontSize: 15 }} />,
+      color: '#0284c7',
+      bgcolor: 'rgba(2, 132, 199, 0.1)',
+    };
+  }
+  return {
+    label: 'Xe máy',
+    icon: <BikeIcon sx={{ fontSize: 15 }} />,
+    color: '#16a34a',
+    bgcolor: 'rgba(22, 163, 74, 0.1)',
+  };
 };
 
 export const Bookings = () => {
@@ -465,8 +421,8 @@ export const Bookings = () => {
                   const dAvatar = driver?.avatarUrl || b.driverAvatarUrl || '';
                   const dPlate = driver?.licensePlate || '';
 
-                  const pickupDisplay = b.pickupAddress || b.startAddress || formatLocation(b.startLatitude, b.startLongitude);
-                  const dropoffDisplay = b.dropoffAddress || b.endAddress || formatLocation(b.endLatitude, b.endLongitude);
+                  const pickupDisplay = formatLocation(b.startLatitude, b.startLongitude, b.pickupAddress || b.startAddress);
+                  const dropoffDisplay = formatLocation(b.endLatitude, b.endLongitude, b.dropoffAddress || b.endAddress);
                   const vehicleBadge = getVehicleTypeBadge(b.vehicleType);
 
                   return (
@@ -617,10 +573,10 @@ export const Bookings = () => {
                       {/* Thanh toán */}
                       <TableCell>
                         <Chip
-                          label={b.paymentMethod || 'CASH'}
+                          label={getPaymentMethodText(b.paymentMethod)}
                           size="small"
                           variant="outlined"
-                          sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                          sx={{ fontSize: '0.68rem', height: 20, fontWeight: 700, borderColor: '#cbd5e1' }}
                         />
                       </TableCell>
 
@@ -730,8 +686,8 @@ export const Bookings = () => {
             const dPlate = driver?.licensePlate || 'Chưa có biển số';
             const dModel = driver?.vehicleModel || driver?.vehicleType || 'Xe máy đối tác OmniGo';
 
-            const pickupAddress = selectedBooking.pickupAddress || selectedBooking.startAddress || formatLocation(selectedBooking.startLatitude, selectedBooking.startLongitude);
-            const dropoffAddress = selectedBooking.dropoffAddress || selectedBooking.endAddress || formatLocation(selectedBooking.endLatitude, selectedBooking.endLongitude);
+            const pickupAddress = formatLocation(selectedBooking.startLatitude, selectedBooking.startLongitude, selectedBooking.pickupAddress || selectedBooking.startAddress);
+            const dropoffAddress = formatLocation(selectedBooking.endLatitude, selectedBooking.endLongitude, selectedBooking.dropoffAddress || selectedBooking.endAddress);
             const vehicleBadge = getVehicleTypeBadge(selectedBooking.vehicleType);
 
             return (
@@ -990,9 +946,9 @@ export const Bookings = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>Phương thức thanh toán:</Typography>
                           <Chip
-                            label={selectedBooking.paymentMethod || 'CASH'}
+                            label={getPaymentMethodText(selectedBooking.paymentMethod)}
                             size="small"
-                            sx={{ fontWeight: 800, fontSize: '0.75rem', bgcolor: '#F1F5F9', color: '#0F172A' }}
+                            sx={{ fontWeight: 800, fontSize: '0.75rem', bgcolor: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD' }}
                           />
                         </Box>
                       </Box>
