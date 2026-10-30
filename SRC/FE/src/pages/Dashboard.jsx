@@ -50,6 +50,7 @@ import pricingService from '../services/pricingService';
 import bookingService from '../services/bookingService';
 import paymentService from '../services/paymentService';
 import foodService from '../services/foodService';
+import { getPaymentMethodText } from '../utils/enums';
 
 export const Dashboard = () => {
   const theme = useTheme();
@@ -893,7 +894,7 @@ export const Dashboard = () => {
                           {b.price ? `${Number(b.price).toLocaleString('vi-VN')} đ` : '—'}
                         </TableCell>
                         <TableCell>
-                          <Chip label={b.paymentMethod || 'Tiền mặt'} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                          <Chip label={getPaymentMethodText(b.paymentMethod)} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
                         </TableCell>
                         <TableCell>{getBookingStatusBadge(b.status)}</TableCell>
                       </TableRow>

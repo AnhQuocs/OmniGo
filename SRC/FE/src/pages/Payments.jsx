@@ -30,6 +30,8 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import paymentService from '../services/paymentService';
+import { formatVietnamDateTime } from '../utils/dateTime';
+import { getTransactionTypeText, getPaymentMethodText } from '../utils/enums';
 
 export const Payments = () => {
   const location = useLocation();
@@ -105,20 +107,103 @@ export const Payments = () => {
     }
   };
 
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '—';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateStr;
+  const getTransactionTypeChip = (type) => {
+    const text = getTransactionTypeText(type);
+    let color = '#475569';
+    let bg = '#f1f5f9';
+    switch (type) {
+      case 'COMMISSION_FEE':
+        color = '#475569';
+        bg = '#f1f5f9';
+        break;
+      case 'DEPOSIT':
+        color = '#15803d';
+        bg = '#dcfce7';
+        break;
+      case 'TRIP_PAYMENT':
+        color = '#0284c7';
+        bg = '#e0f2fe';
+        break;
+      case 'TRIP_INCOME':
+        color = '#059669';
+        bg = '#d1fae5';
+        break;
+      case 'FOOD_PAYMENT':
+        color = '#ea580c';
+        bg = '#ffedd5';
+        break;
+      case 'FOOD_DELIVERY_INCOME':
+        color = '#d97706';
+        bg = '#fef3c7';
+        break;
+      case 'WITHDRAWAL':
+        color = '#7e22ce';
+        bg = '#f3e8ff';
+        break;
+      case 'REFUND':
+        color = '#dc2626';
+        bg = '#fee2e2';
+        break;
+      default:
+        break;
     }
+    return (
+      <Chip
+        label={text}
+        size="small"
+        sx={{
+          fontWeight: 700,
+          fontSize: '0.74rem',
+          color,
+          bgcolor: bg,
+          border: `1px solid ${color}33`,
+        }}
+      />
+    );
+  };
+
+  const getPaymentMethodChip = (method) => {
+    const text = getPaymentMethodText(method);
+    let color = '#0284c7';
+    let bg = '#f0f9ff';
+    switch (method) {
+      case 'WALLET':
+        color = '#ea580c';
+        bg = '#fff7ed';
+        break;
+      case 'VNPAY':
+        color = '#dc2626';
+        bg = '#fef2f2';
+        break;
+      case 'MOMO':
+        color = '#c026d3';
+        bg = '#fdf4ff';
+        break;
+      case 'CASH':
+        color = '#16a34a';
+        bg = '#f0fdf4';
+        break;
+      default:
+        break;
+    }
+    return (
+      <Chip
+        label={text}
+        size="small"
+        variant="outlined"
+        sx={{
+          fontWeight: 700,
+          fontSize: '0.74rem',
+          color,
+          borderColor: color,
+          bgcolor: bg,
+        }}
+      />
+    );
+  };
+
+  const formatDateTime = (dateStr) => {
+    return formatVietnamDateTime(dateStr);
   };
 
   const totalCount = transactions.length;
@@ -137,7 +222,9 @@ export const Payments = () => {
       (t.orderId && t.orderId.toLowerCase().includes(term)) ||
       (t.gatewayTransId && t.gatewayTransId.toLowerCase().includes(term)) ||
       (t.paymentMethod && t.paymentMethod.toLowerCase().includes(term)) ||
+      (t.paymentMethod && getPaymentMethodText(t.paymentMethod).toLowerCase().includes(term)) ||
       (t.transactionType && t.transactionType.toLowerCase().includes(term)) ||
+      (t.transactionType && getTransactionTypeText(t.transactionType).toLowerCase().includes(term)) ||
       (t.description && t.description.toLowerCase().includes(term));
 
     if (!matchSearch) return false;
@@ -342,21 +429,11 @@ export const Payments = () => {
                     <TableCell align="right" sx={{ fontWeight: 800, color: 'text.primary' }}>
                       {tx.amount ? `${Number(tx.amount).toLocaleString('vi-VN')} đ` : '—'}
                     </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={tx.transactionType || 'TRIP_PAYMENT'}
-                        size="small"
-                        sx={{ fontWeight: 600, fontSize: '0.72rem' }}
-                      />
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {getTransactionTypeChip(tx.transactionType)}
                     </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={tx.paymentMethod || 'VNPAY'}
-                        size="small"
-                        color={tx.paymentMethod === 'MOMO' ? 'secondary' : 'primary'}
-                        variant="outlined"
-                        sx={{ fontWeight: 700, fontSize: '0.72rem' }}
-                      />
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {getPaymentMethodChip(tx.paymentMethod)}
                     </TableCell>
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'text.secondary' }}>
                       {tx.gatewayTransId || '—'}

@@ -21,7 +21,7 @@ class BookingAvatarFlowTest {
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     private final BookingAvatarService avatars = mock(BookingAvatarService.class);
     private final BookingServiceImpl service = new BookingServiceImpl(repository, null, messaging, redis,
-            mock(UserDriverClient.class), null, null, null, null, null, avatars);
+            mock(UserDriverClient.class), null, null, null, null, null, avatars, mock(BookingCustomerService.class), mock(DriverVehicleService.class));
 
     private Booking booking(BookingStatus status) {
         Booking booking = Booking.builder().id(1L).customerId(2L).status(status)

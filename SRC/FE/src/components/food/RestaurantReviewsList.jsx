@@ -22,6 +22,7 @@ import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import ReplyIcon from '@mui/icons-material/Reply';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
+import { formatVietnamDateTime } from '../../utils/dateTime';
 
 export default function RestaurantReviewsList({ restaurantId, isMerchantOwner = false }) {
   const [data, setData] = useState(null);
@@ -223,7 +224,7 @@ export default function RestaurantReviewsList({ restaurantId, isMerchantOwner = 
                         />
                       </Stack>
                       <Typography variant="caption" color="text.secondary">
-                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
+                        {review.createdAt ? formatVietnamDateTime(review.createdAt) : ''}
                         {review.isEdited && ' • Đã chỉnh sửa'}
                       </Typography>
                     </Box>
@@ -311,7 +312,7 @@ export default function RestaurantReviewsList({ restaurantId, isMerchantOwner = 
                         </Typography>
                         {review.merchantRepliedAt && (
                           <Typography variant="caption" color="text.secondary">
-                            • {new Date(review.merchantRepliedAt).toLocaleDateString('vi-VN')}
+                            • {formatVietnamDateTime(review.merchantRepliedAt)}
                           </Typography>
                         )}
                       </Stack>

@@ -31,6 +31,14 @@ public class InternalUserDriverController {
     private final DriverService driverService;
     private final UserService userService;
 
+    @GetMapping("/users/{id}/name")
+    public ResponseEntity<ApiResponse<String>> getUserName(@PathVariable Long id) throws ResourceNotFoundException {
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .data(userService.getUserById(id).getData().getFullName())
+                .build());
+    }
+
     @GetMapping("/users/{id}/avatar")
     public ResponseEntity<ApiResponse<String>> getUserAvatar(@PathVariable Long id) throws ResourceNotFoundException {
         return ResponseEntity.ok(ApiResponse.<String>builder()

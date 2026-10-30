@@ -12,6 +12,7 @@ import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
 import com.trung.bookingservice.repository.BookingRepository;
 import com.trung.bookingservice.service.BookingAvatarService;
+import com.trung.bookingservice.service.BookingCustomerService;
 import com.trung.bookingservice.service.BookingService;
 import com.trung.bookingservice.service.DispatchConfigService;
 import com.trung.bookingservice.service.DriverVehicleService;
@@ -34,7 +35,10 @@ import org.springframework.transaction.support.TransactionSynchronizationAdapter
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
+import com.trung.bookingservice.util.enums.ReportPeriod;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +60,7 @@ public class BookingServiceImpl implements BookingService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DispatchConfigService dispatchConfigService;
     private final BookingAvatarService bookingAvatarService;
+    private final BookingCustomerService bookingCustomerService;
     private final DriverVehicleService driverVehicleService;
 
     @Override
@@ -127,8 +132,9 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = Booking.builder()
                 .customerId(customerId)
+                .customerName(bookingCustomerService.getName(customerId))
                 .customerAvatarUrl(bookingAvatarService.getAvatar(customerId))
-                .pickupAddress(request.getPickupAddress())
+                .pickupAddress(request.getPickupAddress() != null && request.getPickupAddress().toLowerCase().contains("vị trí gps của bạn") ? "Điểm đón GPS" : request.getPickupAddress())
                 .dropoffAddress(request.getDropoffAddress())
                 .startLongitude(request.getStartLongitude())
                 .startLatitude(request.getStartLatitude())
@@ -407,6 +413,7 @@ public class BookingServiceImpl implements BookingService {
         BookingResponse driverCancelResponse = BookingResponse.builder()
                 .bookingId(booking.getId())
                 .customerId(booking.getCustomerId())
+                .customerName(booking.getCustomerName())
                 .customerAvatarUrl(booking.getCustomerAvatarUrl())
                 .driverId(driverId)
                 .startLongitude(booking.getStartLongitude())
@@ -534,8 +541,24 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public ApiResponse<Map<String, Object>> getDriverDailyReport(Long driverId) {
-        LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
-        LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
+        return getDriverReport(driverId, ReportPeriod.DAY, LocalDate.now());
+    }
+
+    @Override
+    public ApiResponse<Map<String, Object>> getDriverReport(Long driverId, ReportPeriod period, LocalDate date) {
+        LocalDate anchor = date != null ? date : LocalDate.now();
+        LocalDate start = switch (period) {
+            case DAY -> anchor;
+            case WEEK -> anchor.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            case MONTH -> anchor.withDayOfMonth(1);
+        };
+        LocalDate endExclusive = switch (period) {
+            case DAY -> start.plusDays(1);
+            case WEEK -> start.plusWeeks(1);
+            case MONTH -> start.plusMonths(1);
+        };
+        LocalDateTime startOfDay = start.atStartOfDay();
+        LocalDateTime endOfDay = endExclusive.atStartOfDay();
 
         List<Booking> todayBookings = bookingRepository.findCompletedBookingsByDriverToday(driverId, startOfDay, endOfDay);
 
@@ -605,6 +628,7 @@ public class BookingServiceImpl implements BookingService {
         return BookingResponse.builder()
                 .bookingId(booking.getId())
                 .customerId(booking.getCustomerId())
+                .customerName(booking.getCustomerName())
                 .customerAvatarUrl(booking.getCustomerAvatarUrl())
                 .driverAvatarUrl(booking.getDriverAvatarUrl())
                 .driverId(booking.getDriverId())

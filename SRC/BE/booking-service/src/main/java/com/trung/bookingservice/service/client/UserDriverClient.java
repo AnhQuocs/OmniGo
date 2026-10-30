@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "user-driver-service")
 public interface UserDriverClient {
 
+    @GetMapping("/api/v1/internal/users/{id}/name")
+    ResponseEntity<ApiResponse<String>> getUserName(@PathVariable("id") Long id);
+
     @GetMapping("/api/v1/internal/users/{id}/avatar")
     ResponseEntity<ApiResponse<String>> getUserAvatar(@PathVariable("id") Long id);
 
