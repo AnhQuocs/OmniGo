@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import com.trung.bookingservice.util.enums.ReportPeriod;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -103,8 +106,11 @@ public class BookingController {
     }
 
     @GetMapping("/driver/daily-report")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyReport(@RequestHeader("X-User-Id") Long driverId) {
-        return ResponseEntity.ok(bookingService.getDriverDailyReport(driverId));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyReport(
+            @RequestHeader("X-User-Id") Long driverId,
+            @RequestParam(defaultValue = "DAY") ReportPeriod period,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(bookingService.getDriverReport(driverId, period, date));
     }
 
     @GetMapping("/admin/all")
