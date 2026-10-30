@@ -1128,4 +1128,10 @@
     <string name="driver_quest_m1">Mốc 1: Hoàn thành 5 chuyến (+20.000 đ)</string>
     <string name="driver_quest_m2">Mốc 2: Hoàn thành 10 chuyến (+50.000 đ)</string>
     <string name="driver_quest_m3">Mốc 3: Hoàn thành 15 chuyến (+100.000 đ)</string>
+    <string name="driver_wallet_tab_deposit">Ví ký quỹ</string>
+    <string name="driver_wallet_tab_income">Thu nhập cuốc xe</string>
+    <string name="driver_wallet_deposit_subtitle">Số dư ví ký quỹ hiện tại</string>
+    <string name="driver_wallet_income_subtitle">Tổng thu nhập thực nhận trong kỳ</string>
+    <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ 20% chiết khấu sàn.</string>
+    <string name="driver_wallet_note_success_only">Chỉ giao dịch đã thành công mới được cộng/trừ vào số dư ví.</string>
 </resources>

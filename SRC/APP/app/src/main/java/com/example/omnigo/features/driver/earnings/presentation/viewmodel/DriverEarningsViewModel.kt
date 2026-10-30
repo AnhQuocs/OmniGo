@@ -38,6 +38,7 @@ data class DriverEarningsUiState(
     val showCashoutSheet: Boolean = false,
     val showTopupSheet: Boolean = false,
     val showWalletHistory: Boolean = false,
+    val walletHistoryInitialTab: Int = 0,
     val showQuestDetail: Boolean = false,
     val toastMessage: String? = null,
     val openPaymentUrl: String? = null
@@ -130,8 +131,8 @@ class DriverEarningsViewModel @Inject constructor(
         _uiState.update { it.copy(showTopupSheet = show) }
     }
 
-    fun setShowWalletHistory(show: Boolean) {
-        _uiState.update { it.copy(showWalletHistory = show) }
+    fun setShowWalletHistory(show: Boolean, initialTab: Int = 0) {
+        _uiState.update { it.copy(showWalletHistory = show, walletHistoryInitialTab = initialTab) }
     }
 
     fun setShowQuestDetail(show: Boolean) {

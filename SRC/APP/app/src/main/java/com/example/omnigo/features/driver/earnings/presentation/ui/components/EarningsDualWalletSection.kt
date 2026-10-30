@@ -58,7 +58,8 @@ fun EarningsDualWalletSection(
     depositBalance: Double,
     onCashoutClick: () -> Unit,
     onTopupClick: () -> Unit,
-    onWalletHistoryClick: () -> Unit,
+    onIncomeHistoryClick: () -> Unit,
+    onDepositHistoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -76,7 +77,7 @@ fun EarningsDualWalletSection(
             buttonBgColor = PrimaryColor,
             buttonTextColor = OnPrimaryColor,
             onActionClick = onCashoutClick,
-            onHistoryClick = onWalletHistoryClick,
+            onHistoryClick = onIncomeHistoryClick,
             modifier = Modifier.weight(1f)
         )
 
@@ -91,7 +92,7 @@ fun EarningsDualWalletSection(
             buttonBgColor = SecondaryContainer,
             buttonTextColor = SecondaryColor,
             onActionClick = onTopupClick,
-            onHistoryClick = onWalletHistoryClick,
+            onHistoryClick = onDepositHistoryClick,
             modifier = Modifier.weight(1f)
         )
     }

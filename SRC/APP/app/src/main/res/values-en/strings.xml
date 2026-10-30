@@ -1060,4 +1060,10 @@
     <string name="driver_quest_m1">Milestone 1: Complete 5 trips (+20,000 VND)</string>
     <string name="driver_quest_m2">Milestone 2: Complete 10 trips (+50,000 VND)</string>
     <string name="driver_quest_m3">Milestone 3: Complete 15 trips (+100,000 VND)</string>
+    <string name="driver_wallet_tab_deposit">Deposit Wallet</string>
+    <string name="driver_wallet_tab_income">Trip Income</string>
+    <string name="driver_wallet_deposit_subtitle">Current Credit Balance</string>
+    <string name="driver_wallet_income_subtitle">Net Earnings in Period</string>
+    <string name="driver_wallet_income_note">Earnings after 20% platform commission fee deduction.</string>
+    <string name="driver_wallet_note_success_only">Only successful transactions affect your wallet balance.</string>
 </resources>

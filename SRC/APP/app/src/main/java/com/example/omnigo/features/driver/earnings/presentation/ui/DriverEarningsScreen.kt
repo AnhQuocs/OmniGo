@@ -24,7 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverCashoutBottomSheet
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverQuestDetailDialog
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverTopupBottomSheet
-import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverWalletHistoryDialog
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverWalletHistoryBottomSheet
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsChartSection
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsDailyQuestCard
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsDualWalletSection
@@ -115,7 +115,8 @@ fun DriverEarningsScreen(
                 depositBalance = depositBalance,
                 onCashoutClick = { viewModel.setShowCashoutSheet(true) },
                 onTopupClick = { viewModel.setShowTopupSheet(true) },
-                onWalletHistoryClick = { viewModel.setShowWalletHistory(true) }
+                onIncomeHistoryClick = { viewModel.setShowWalletHistory(true, initialTab = 1) },
+                onDepositHistoryClick = { viewModel.setShowWalletHistory(true, initialTab = 0) }
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
@@ -164,11 +165,14 @@ fun DriverEarningsScreen(
         )
     }
 
-    // Dialog: Lịch sử biến động số dư ví
+    // BottomSheet: Lịch sử biến động số dư ví & thu nhập
     if (uiState.showWalletHistory) {
-        DriverWalletHistoryDialog(
-            walletBalance = depositBalance,
+        DriverWalletHistoryBottomSheet(
+            initialTab = uiState.walletHistoryInitialTab,
+            depositBalance = depositBalance,
+            incomeBalance = netEarnings,
             transactions = uiState.walletTransactions,
+            tripItems = uiState.tripItems,
             onDismiss = { viewModel.setShowWalletHistory(false) }
         )
     }
