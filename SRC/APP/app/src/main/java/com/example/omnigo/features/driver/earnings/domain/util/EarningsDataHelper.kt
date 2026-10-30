@@ -3,6 +3,7 @@ package com.example.omnigo.features.driver.earnings.domain.util
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
+import java.util.Locale
 
 data class EarningsChartPoint(
     val label: String,
@@ -108,10 +109,13 @@ object EarningsDataHelper {
         if (completedOrders.isNotEmpty()) {
             return completedOrders.mapIndexed { index, order ->
                 val gross = order.deliveryFee ?: 25_000.0
+                val hour = (10 + index) % 24
+                val minute = ((index + 1) * 15) % 60
+                val timeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
                 EarningsTripItem(
                     id = order.orderId,
-                    title = "Giao món #" + order.orderId,
-                    time = "1" + (index % 9) + ":30",
+                    title = "Giao món #${order.orderId}",
+                    time = timeStr,
                     grossAmount = gross,
                     netAmount = gross * 0.80,
                     isCash = index % 2 == 0
@@ -125,10 +129,13 @@ object EarningsDataHelper {
             val totalRev = report?.totalRevenue ?: 0.0
             val avgFare = if (tripsCount > 0) totalRev / tripsCount else 0.0
             return (1..tripsCount).map { i ->
+                val hour = (8 + i) % 24
+                val minute = 15
+                val timeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
                 EarningsTripItem(
                     id = i.toLong(),
-                    title = "Cuốc xe hoàn thành #" + i,
-                    time = "0" + (8 + i) + ":15",
+                    title = "Cuốc xe hoàn thành #$i",
+                    time = timeStr,
                     grossAmount = avgFare,
                     netAmount = avgFare * 0.80,
                     isCash = i % 2 == 0
