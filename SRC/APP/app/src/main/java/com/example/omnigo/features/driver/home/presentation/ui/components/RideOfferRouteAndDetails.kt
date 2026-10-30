@@ -104,8 +104,12 @@ fun RideOfferSummaryCard(offer: RideOfferEvent) {
 
 @Composable
 fun RideOfferCustomerInfoRow(offer: RideOfferEvent) {
-    val displayName = offer.customerName?.ifBlank { null }
-        ?: stringResource(id = R.string.driver_ride_offer_customer_default)
+    val displayName = offer.customerName?.trim()?.takeIf { it.isNotBlank() }
+        ?: if (offer.customerId != null && offer.customerId > 0L) {
+            "${stringResource(id = R.string.driver_trip_customer_name_default)} #${offer.customerId}"
+        } else {
+            stringResource(id = R.string.driver_ride_offer_customer_default)
+        }
 
     Row(
         modifier = Modifier

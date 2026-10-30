@@ -1,10 +1,11 @@
 package com.example.omnigo.features.driver.trips.presentation.viewmodel
 
-import com.example.omnigo.features.customer.ride.domain.error.RideError
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
-import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
+import com.example.omnigo.features.customer.ride.domain.error.RideError
+import com.example.omnigo.features.driver.domain.model.DriverDailyReport
+import com.example.omnigo.features.driver.domain.repository.DriverRepository
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import io.mockk.coEvery
@@ -24,7 +25,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -33,6 +33,7 @@ class DriverTripsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var getDriverDailyReportUseCase: GetDriverDailyReportUseCase
+    private lateinit var driverRepository: DriverRepository
     private lateinit var driverTripSessionManager: DriverTripSessionManager
 
     private val activeBookingFlow = MutableStateFlow<Booking?>(null)
@@ -61,8 +62,10 @@ class DriverTripsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         getDriverDailyReportUseCase = mockk()
+        driverRepository = mockk()
         driverTripSessionManager = mockk()
         every { driverTripSessionManager.activeBooking } returns activeBookingFlow
+        coEvery { driverRepository.getDriverAllFoodOrders() } returns Result.success(emptyList())
     }
 
     @After
@@ -73,10 +76,14 @@ class DriverTripsViewModelTest {
     @Test
     fun `init loads daily report and reflects active booking from session manager`() = runTest {
         coEvery {
-            getDriverDailyReportUseCase()
+            getDriverDailyReportUseCase(false)
         } returns GetDriverDailyReportResult.Success(sampleReport)
 
-        val viewModel = DriverTripsViewModel(getDriverDailyReportUseCase, driverTripSessionManager)
+        val viewModel = DriverTripsViewModel(
+            getDriverDailyReportUseCase,
+            driverRepository,
+            driverTripSessionManager
+        )
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -91,19 +98,24 @@ class DriverTripsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(999L, viewModel.uiState.value.activeBooking?.bookingId)
-        coVerify(atLeast = 1) { getDriverDailyReportUseCase() }
+        coVerify(atLeast = 1) { getDriverDailyReportUseCase(false) }
+        coVerify(atLeast = 1) { driverRepository.getDriverAllFoodOrders() }
     }
 
     @Test
     fun `loadDailyReport handles error result and updates state with error message`() = runTest {
         coEvery {
-            getDriverDailyReportUseCase()
+            getDriverDailyReportUseCase(false)
         } returns GetDriverDailyReportResult.Error(
             error = RideError.NETWORK_ERROR,
             message = "Connection timeout"
         )
 
-        val viewModel = DriverTripsViewModel(getDriverDailyReportUseCase, driverTripSessionManager)
+        val viewModel = DriverTripsViewModel(
+            getDriverDailyReportUseCase,
+            driverRepository,
+            driverTripSessionManager
+        )
         advanceUntilIdle()
 
         val state = viewModel.uiState.value

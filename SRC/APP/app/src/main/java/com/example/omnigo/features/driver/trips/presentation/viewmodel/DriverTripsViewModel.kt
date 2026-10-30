@@ -17,10 +17,9 @@ import javax.inject.Inject
 @HiltViewModel
 class DriverTripsViewModel @Inject constructor(
     private val getDriverDailyReportUseCase: GetDriverDailyReportUseCase,
+    private val driverRepository: DriverRepository,
     private val driverTripSessionManager: DriverTripSessionManager
 ) : ViewModel() {
-
-    private var driverRepository: DriverRepository? = null
 
     private val _uiState = MutableStateFlow(DriverTripsUiState())
     val uiState: StateFlow<DriverTripsUiState> = _uiState.asStateFlow()
@@ -28,11 +27,6 @@ class DriverTripsViewModel @Inject constructor(
     init {
         loadDailyReport()
         observeActiveTrip()
-    }
-
-    @Inject
-    fun injectDriverRepository(repository: DriverRepository) {
-        this.driverRepository = repository
         loadFoodOrders()
     }
 
@@ -75,9 +69,8 @@ class DriverTripsViewModel @Inject constructor(
     }
 
     fun loadFoodOrders() {
-        val repo = driverRepository ?: return
         viewModelScope.launch {
-            repo.getDriverAllFoodOrders().onSuccess { allOrders ->
+            driverRepository.getDriverAllFoodOrders().onSuccess { allOrders ->
                 val activeList = allOrders.filter { it.status.isActive }
                 val historyList = allOrders.filter { !it.status.isActive }
                 _uiState.update {

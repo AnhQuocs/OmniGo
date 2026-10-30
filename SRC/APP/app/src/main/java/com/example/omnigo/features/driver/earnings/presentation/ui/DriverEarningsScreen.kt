@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.driver.common.ui.components.DriverRefreshTitleBar
 import com.example.omnigo.features.driver.earnings.presentation.viewmodel.DriverEarningsViewModel
+import com.example.omnigo.features.driver.earnings.presentation.ui.components.EarningsPeriodFilterChips
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverDailyReportCard
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -97,7 +98,14 @@ fun DriverEarningsScreen(
             isRefreshEnabled = !uiState.isLoading
         )
 
-        Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
+        Spacer(modifier = Modifier.height(AppSpacing.M))
+
+        EarningsPeriodFilterChips(
+            selectedPeriod = uiState.selectedPeriod,
+            onPeriodSelected = viewModel::onPeriodSelected
+        )
+
+        Spacer(modifier = Modifier.height(AppSpacing.M))
 
         DriverDailyReportCard(
             report = report,

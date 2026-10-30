@@ -17,7 +17,8 @@ data class RideOfferEvent(
     val timeoutSeconds: Int = DEFAULT_TIMEOUT_SECONDS,
     val receivedAtMillis: Long = System.currentTimeMillis(),
     val customerName: String? = null,
-    val customerPhone: String? = null
+    val customerPhone: String? = null,
+    val customerId: Long? = null
 ) {
     val isPending: Boolean
         get() = status == BookingStatus.PENDING

@@ -1075,4 +1075,16 @@
     <string name="driver_ride_offer_customer_default">OmniGo Customer</string>
     <string name="driver_food_offer_customer_default">Food Customer</string>
     <string name="driver_food_offer_restaurant_label">Pickup Store</string>
+    <string name="driver_earnings_period_today">Today</string>
+    <string name="driver_earnings_period_week">This Week</string>
+    <string name="driver_earnings_period_month">This Month</string>
+    <string name="driver_trips_operational_title">Today\'s Operations</string>
+    <string name="driver_trips_status_active_count">%1$d active</string>
+    <string name="driver_trips_status_completed_count">%1$d completed</string>
+    <string name="driver_trips_status_all_done">Ready for next trip</string>
+    <string name="driver_trips_cockpit_title">Trip Cockpit</string>
+    <string name="driver_trips_cockpit_ready">Ready</string>
+    <string name="driver_trips_cockpit_active">In Progress</string>
+    <string name="driver_trips_cockpit_completed">Completed</string>
+    <string name="driver_trips_tab_active_fmt">Active (%1$d)</string>
 </resources>

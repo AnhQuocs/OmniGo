@@ -1075,4 +1075,16 @@
     <string name="driver_ride_offer_customer_default">Khách hàng OmniGo</string>
     <string name="driver_food_offer_customer_default">Khách đặt món</string>
     <string name="driver_food_offer_restaurant_label">Quán ăn nhận đơn</string>
+    <string name="driver_earnings_period_today">Hôm nay</string>
+    <string name="driver_earnings_period_week">Tuần này</string>
+    <string name="driver_earnings_period_month">Tháng này</string>
+    <string name="driver_trips_operational_title">Tác nghiệp hôm nay</string>
+    <string name="driver_trips_status_active_count">%1$d đang chạy</string>
+    <string name="driver_trips_status_completed_count">%1$d hoàn thành</string>
+    <string name="driver_trips_status_all_done">Sẵn sàng nhận chuyến</string>
+    <string name="driver_trips_cockpit_title">Cockpit chuyến</string>
+    <string name="driver_trips_cockpit_ready">Sẵn sàng</string>
+    <string name="driver_trips_cockpit_active">Đang chạy</string>
+    <string name="driver_trips_cockpit_completed">Hoàn thành</string>
+    <string name="driver_trips_tab_active_fmt">Đang chạy (%1$d)</string>
 </resources>

@@ -30,7 +30,8 @@ fun BookingResponse.toRideOfferEvent(): RideOfferEvent? {
             distanceInKm = distanceInKm ?: 0.0,
             price = price ?: 0.0,
             paymentMethod = paymentMethod,
-            status = BookingStatus.CANCELLED
+            status = BookingStatus.CANCELLED,
+            customerId = customerId
         )
     }
 
@@ -58,6 +59,7 @@ fun BookingResponse.toRideOfferEvent(): RideOfferEvent? {
         paymentMethod = paymentMethod,
         status = bookingStatus,
         customerName = customerName?.trim()?.takeIf { it.isNotBlank() },
-        customerPhone = customerPhone?.trim()?.takeIf { it.isNotBlank() }
+        customerPhone = customerPhone?.trim()?.takeIf { it.isNotBlank() },
+        customerId = customerId
     )
 }

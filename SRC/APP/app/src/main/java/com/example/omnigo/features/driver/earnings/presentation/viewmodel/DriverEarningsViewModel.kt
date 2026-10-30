@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
+import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import javax.inject.Inject
 
 data class DriverEarningsUiState(
     val isLoading: Boolean = false,
+    val selectedPeriod: EarningsPeriod = EarningsPeriod.TODAY,
     val dailyReport: DriverDailyReport? = null,
     val showCashoutDialog: Boolean = false,
     val showTopupDialog: Boolean = false
@@ -30,6 +32,12 @@ class DriverEarningsViewModel @Inject constructor(
 
     init {
         loadEarningsReport()
+    }
+
+    fun onPeriodSelected(period: EarningsPeriod) {
+        if (_uiState.value.selectedPeriod == period) return
+        _uiState.update { it.copy(selectedPeriod = period) }
+        loadEarningsReport(forceRefresh = true)
     }
 
     fun loadEarningsReport(forceRefresh: Boolean = false) {

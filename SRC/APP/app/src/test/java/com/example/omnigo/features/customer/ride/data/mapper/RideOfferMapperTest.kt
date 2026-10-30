@@ -40,6 +40,7 @@ class RideOfferMapperTest {
         assertEquals(45000.0, event?.price ?: 0.0, 0.001)
         assertEquals("CASH", event?.paymentMethod)
         assertEquals(BookingStatus.PENDING, event?.status)
+        assertEquals(10L, event?.customerId)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.example.omnigo.features.driver.trips.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +13,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,22 +28,14 @@ import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.driver.common.ui.components.DriverRefreshTitleBar
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverActiveBookingCard
-import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverDailyReportCard
+import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverCockpitCapsule
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverFoodOrderCard
+import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverPillTabSwitcher
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverTripsEmptyState
 import com.example.omnigo.features.driver.trips.presentation.viewmodel.DriverTripsViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.BackgroundLight
-import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.SurfaceLight
-import com.example.omnigo.ui.theme.TextPrimary
-import com.example.omnigo.ui.theme.TextSecondary
-import com.example.omnigo.utils.bold
-import com.example.omnigo.utils.normal
-import com.example.omnigo.utils.s14
-import com.example.omnigo.utils.s18
-import com.example.omnigo.utils.semiBold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,12 +47,13 @@ fun DriverTripsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-    val tabTitles = listOf(
-        stringResource(id = R.string.driver_trips_tab_active),
-        stringResource(id = R.string.driver_trips_tab_history)
-    )
 
-    val scrollState = rememberScrollState()
+    // Tách riêng 2 ScrollState độc lập cho từng tab
+    val activeScrollState = rememberScrollState()
+    val historyScrollState = rememberScrollState()
+
+    val activeCount = (if (uiState.activeBooking != null) 1 else 0) + uiState.activeFoodOrders.size
+    val completedCount = (uiState.dailyReport?.totalTrips ?: 0) + uiState.historyFoodOrders.size
 
     PullToRefreshBox(
         isRefreshing = uiState.isReportLoading,
@@ -75,106 +63,102 @@ fun DriverTripsScreen(
             .background(BackgroundLight)
             .statusBarsPadding()
     ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM)
-    ) {
-        DriverRefreshTitleBar(
-            title = stringResource(id = R.string.driver_nav_trips),
-            onRefreshClick = viewModel::refresh,
-            isRefreshEnabled = !uiState.isReportLoading
-        )
-
-        Spacer(modifier = Modifier.height(AppSpacing.M))
-
-        DriverDailyReportCard(
-            report = uiState.dailyReport,
-            isLoading = uiState.isReportLoading
-        )
-
-        Spacer(modifier = Modifier.height(AppSpacing.L))
-
-        TabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = SurfaceLight,
-            contentColor = PrimaryColor,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                    color = PrimaryColor,
-                    height = Dimen.PaddingXXS
-                )
-            },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM)
         ) {
-            tabTitles.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = {
-                        Text(
-                            text = title,
-                            style = if (selectedTabIndex == index) {
-                                MaterialTheme.typography.s14.semiBold()
-                            } else {
-                                MaterialTheme.typography.s14.normal()
-                            },
-                            color = if (selectedTabIndex == index) PrimaryColor else TextSecondary
-                        )
+            // 1. PINNED HEADER AREA (Cố định ở trên đỉnh, không bị cuộn trôi)
+            DriverRefreshTitleBar(
+                title = stringResource(id = R.string.driver_nav_trips),
+                onRefreshClick = viewModel::refresh,
+                isRefreshEnabled = !uiState.isReportLoading
+            )
+
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+
+            // Cockpit Radar Capsule (Cố định)
+            DriverCockpitCapsule(
+                activeCount = activeCount,
+                completedCount = completedCount
+            )
+
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+
+            // Floating Elevated Pill Tab Switcher (Cố định)
+            DriverPillTabSwitcher(
+                selectedTabIndex = selectedTabIndex,
+                activeCount = activeCount,
+                onTabSelected = { selectedTabIndex = it }
+            )
+
+            Spacer(modifier = Modifier.height(AppSpacing.M))
+
+            // 2. INDEPENDENT SCROLLABLE CONTENT (Vùng cuộn độc lập theo từng tab)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                if (selectedTabIndex == 0) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(activeScrollState),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
+                    ) {
+                        val activeRide = uiState.activeBooking
+                        val activeFoods = uiState.activeFoodOrders
+
+                        if (activeRide == null && activeFoods.isEmpty()) {
+                            DriverTripsEmptyState(
+                                message = stringResource(id = R.string.driver_no_active_trip)
+                            )
+                        } else {
+                            activeRide?.let { booking ->
+                                DriverActiveBookingCard(
+                                    booking = booking,
+                                    onResumeClick = { onResumeActiveTrip(booking) }
+                                )
+                            }
+                            activeFoods.forEach { foodOrder ->
+                                DriverFoodOrderCard(
+                                    order = foodOrder,
+                                    isActive = true,
+                                    onResumeClick = { onResumeActiveFoodOrder(foodOrder) }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(AppSpacing.XXLPlus))
                     }
-                )
-            }
-        }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(historyScrollState),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
+                    ) {
+                        val historyFoods = uiState.historyFoodOrders
 
-        Spacer(modifier = Modifier.height(AppSpacing.L))
+                        if (historyFoods.isEmpty()) {
+                            DriverTripsEmptyState(
+                                message = stringResource(id = R.string.driver_no_trip_history)
+                            )
+                        } else {
+                            historyFoods.forEach { order ->
+                                DriverFoodOrderCard(
+                                    order = order,
+                                    isActive = false,
+                                    onResumeClick = {}
+                                )
+                            }
+                        }
 
-        if (selectedTabIndex == 0) {
-            val activeRide = uiState.activeBooking
-            val activeFoods = uiState.activeFoodOrders
-
-            if (activeRide == null && activeFoods.isEmpty()) {
-                DriverTripsEmptyState(
-                    message = stringResource(id = R.string.driver_no_active_trip)
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.M)) {
-                    activeRide?.let { booking ->
-                        DriverActiveBookingCard(
-                            booking = booking,
-                            onResumeClick = { onResumeActiveTrip(booking) }
-                        )
-                    }
-                    activeFoods.forEach { foodOrder ->
-                        DriverFoodOrderCard(
-                            order = foodOrder,
-                            isActive = true,
-                            onResumeClick = { onResumeActiveFoodOrder(foodOrder) }
-                        )
+                        Spacer(modifier = Modifier.height(AppSpacing.XXLPlus))
                     }
                 }
             }
-        } else {
-            val historyFoods = uiState.historyFoodOrders
-            if (historyFoods.isEmpty()) {
-                DriverTripsEmptyState(
-                    message = stringResource(id = R.string.driver_no_trip_history)
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.M)) {
-                    historyFoods.forEach { order ->
-                        DriverFoodOrderCard(
-                            order = order,
-                            isActive = false,
-                            onResumeClick = {}
-                        )
-                    }
-                }
-            }
         }
-
-        Spacer(modifier = Modifier.height(AppSpacing.XXLPlus))
-    }
     }
 }

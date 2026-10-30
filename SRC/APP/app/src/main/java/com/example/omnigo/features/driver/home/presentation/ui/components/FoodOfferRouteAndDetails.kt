@@ -116,8 +116,12 @@ fun FoodOfferSummaryCard(offer: DriverFoodOffer) {
 
 @Composable
 fun FoodOfferCustomerInfoRow(offer: DriverFoodOffer) {
-    val displayName = offer.customerName?.ifBlank { null }
-        ?: stringResource(id = R.string.driver_food_offer_customer_default)
+    val displayName = offer.customerName?.trim()?.takeIf { it.isNotBlank() }
+        ?: if (offer.customerId != null && offer.customerId > 0L) {
+            "${stringResource(id = R.string.driver_trip_customer_name_default)} #${offer.customerId}"
+        } else {
+            stringResource(id = R.string.driver_food_offer_customer_default)
+        }
 
     Row(
         modifier = Modifier
