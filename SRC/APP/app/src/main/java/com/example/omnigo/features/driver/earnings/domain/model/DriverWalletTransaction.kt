@@ -6,6 +6,6 @@ data class DriverWalletTransaction(
     val timeFormatted: String = "",
     val amountFormatted: String = "",
     val isIncome: Boolean = true,
-    val status: String = "SUCCESS"
+    val status: String = "SUCCESS",
+    val statusLabel: String = "Thành công"
 )
-

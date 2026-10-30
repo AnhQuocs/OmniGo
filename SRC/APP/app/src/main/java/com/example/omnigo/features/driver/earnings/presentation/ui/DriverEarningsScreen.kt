@@ -53,7 +53,7 @@ fun DriverEarningsScreen(
     val report = uiState.dailyReport
     val netEarnings = report?.driverEarnings ?: 0.0
     val cashCollected = report?.cashCollected ?: 0.0
-    val walletBalance = uiState.wallet?.balance ?: netEarnings
+    val walletBalance = maxOf(0.0, netEarnings)
     val depositBalance = uiState.wallet?.balance ?: cashCollected
     val completedTrips = report?.totalTrips ?: 0
 
@@ -167,6 +167,7 @@ fun DriverEarningsScreen(
     // Dialog: Lịch sử biến động số dư ví
     if (uiState.showWalletHistory) {
         DriverWalletHistoryDialog(
+            walletBalance = depositBalance,
             transactions = uiState.walletTransactions,
             onDismiss = { viewModel.setShowWalletHistory(false) }
         )

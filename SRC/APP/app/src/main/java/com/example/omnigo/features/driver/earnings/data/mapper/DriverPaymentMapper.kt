@@ -35,6 +35,14 @@ object DriverPaymentMapper {
         }
 
         val formattedTime = formatTime(dto.createdAt)
+        val status = dto.status.orEmpty().uppercase().ifEmpty { "SUCCESS" }
+        val statusLabel = when (status) {
+            "PENDING" -> "Chờ thanh toán"
+            "SUCCESS" -> "Thành công"
+            "FAILED" -> "Thất bại"
+            "CANCELED" -> "Đã hủy"
+            else -> status
+        }
 
         return DriverWalletTransaction(
             id = dto.id ?: 0L,
@@ -42,7 +50,8 @@ object DriverPaymentMapper {
             timeFormatted = formattedTime,
             amountFormatted = formattedAmount,
             isIncome = isIncome,
-            status = dto.status ?: "SUCCESS"
+            status = status,
+            statusLabel = statusLabel
         )
     }
 
@@ -56,4 +65,3 @@ object DriverPaymentMapper {
         }
     }
 }
-
