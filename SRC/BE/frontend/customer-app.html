@@ -1575,6 +1575,48 @@
     </div>
 </div>
 
+<!-- Modal: Đánh Giá Chuyến Xe (Ride-Hailing) -->
+<div class="modal-backdrop" id="modal-ride-review" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0;">
+                ⭐ Đánh Giá Chuyến Đi #<span id="review-ride-id-display"></span>
+            </h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="closeModal('modal-ride-review')">✕</button>
+        </div>
+
+        <input type="hidden" id="review-ride-booking-id">
+
+        <div style="background: #f0f9ff; border: 1px solid #e0f2fe; padding: 14px; border-radius: 10px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #0369a1; font-size: 14px; margin-bottom: 8px;">
+                🚕 Đánh giá Bác tài & Chuyến đi
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div id="star-picker-ride" style="font-size: 26px; cursor: pointer; user-select: none;">
+                    <span onclick="setRideStarRating(1)">⭐</span><span onclick="setRideStarRating(2)">⭐</span><span onclick="setRideStarRating(3)">⭐</span><span onclick="setRideStarRating(4)">⭐</span><span onclick="setRideStarRating(5)">⭐</span>
+                </div>
+                <span id="star-desc-ride" style="font-size: 13px; font-weight: 700; color: #0284c7;">Rất hài lòng & An toàn (5 sao)</span>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                <button type="button" class="btn-action review-tag-ride" style="padding: 4px 10px; font-size: 11px; background: white; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 20px;" onclick="addRideReviewTag('Lái xe an toàn cẩn thận')">+ Lái xe an toàn</button>
+                <button type="button" class="btn-action review-tag-ride" style="padding: 4px 10px; font-size: 11px; background: white; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 20px;" onclick="addRideReviewTag('Thân thiện lịch sự')">+ Thân thiện lịch sự</button>
+                <button type="button" class="btn-action review-tag-ride" style="padding: 4px 10px; font-size: 11px; background: white; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 20px;" onclick="addRideReviewTag('Xe sạch sẽ thơm tho')">+ Xe sạch sẽ thơm</button>
+                <button type="button" class="btn-action review-tag-ride" style="padding: 4px 10px; font-size: 11px; background: white; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 20px;" onclick="addRideReviewTag('Đón đúng giờ')">+ Đón đúng giờ</button>
+            </div>
+
+            <textarea id="review-ride-comment" class="form-control" rows="3" placeholder="Chia sẻ thêm cảm nhận của bạn về chuyến đi..." style="font-size: 13px;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-action" style="background: #e2e8f0; color: #1e293b;" onclick="closeModal('modal-ride-review')">Để sau</button>
+            <button type="button" id="btn-submit-ride-review" class="btn-action" style="background: #0284c7; color: white; padding: 10px 22px; font-weight: 700;" onclick="submitRideReview()">
+                🚀 Gửi Đánh Giá
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
@@ -1624,6 +1666,86 @@
     let currentFoodDeliveryFee = 15000;
     let currentFoodDistanceKm = 0;
     let currentActiveServiceForVoucher = 'RIDE_HAILING';
+
+    // ==========================================
+    // ⭐ ĐÁNH GIÁ CHUYẾN ĐI (RIDE-HAILING REVIEW)
+    // ==========================================
+    let currentRideRating = 5;
+
+    function setRideStarRating(star) {
+        currentRideRating = star;
+        const container = document.getElementById('star-picker-ride');
+        if (!container) return;
+        const spans = container.querySelectorAll('span');
+        spans.forEach((s, idx) => {
+            s.textContent = idx < star ? '⭐' : '☆';
+        });
+        const descEl = document.getElementById('star-desc-ride');
+        const descs = {
+            1: 'Rất không hài lòng (1 sao)',
+            2: 'Chưa tốt (2 sao)',
+            3: 'Bình thường (3 sao)',
+            4: 'Hài lòng (4 sao)',
+            5: 'Rất hài lòng & An toàn (5 sao)'
+        };
+        if (descEl) descEl.textContent = descs[star] || '';
+    }
+
+    function addRideReviewTag(tag) {
+        const commentEl = document.getElementById('review-ride-comment');
+        if (!commentEl) return;
+        let currentVal = commentEl.value.trim();
+        if (currentVal.includes(tag)) return;
+        commentEl.value = currentVal ? `${currentVal}, ${tag}` : tag;
+    }
+
+    function openRideReviewModal(bookingId) {
+        if (!bookingId) return;
+        document.getElementById('review-ride-booking-id').value = bookingId;
+        document.getElementById('review-ride-id-display').textContent = bookingId;
+        document.getElementById('review-ride-comment').value = '';
+        setRideStarRating(5);
+        document.getElementById('modal-ride-review').style.display = 'flex';
+    }
+
+    async function submitRideReview() {
+        const bookingId = document.getElementById('review-ride-booking-id').value;
+        const comment = document.getElementById('review-ride-comment').value.trim();
+        const btn = document.getElementById('btn-submit-ride-review');
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang gửi...';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${bookingId}/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': customerId ? customerId.toString() : '1'
+                },
+                body: JSON.stringify({
+                    bookingId: parseInt(bookingId),
+                    rating: currentRideRating,
+                    comment: comment
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && (data.success || data.id)) {
+                alert('🎉 Cảm ơn bạn đã đánh giá chuyến đi!');
+                closeModal('modal-ride-review');
+                if (typeof fetchCustomerBookings === 'function') {
+                    fetchCustomerBookings();
+                }
+            } else {
+                alert('⚠️ ' + (data.message || 'Không thể gửi đánh giá chuyến đi'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🚀 Gửi Đánh Giá';
+        }
+    }
 
     // Google Polyline Decoder (Thuật toán chuẩn Google Polyline Algorithm)
     function decodePolyline(encoded) {
@@ -4999,7 +5121,7 @@
                 btnMomo.style.display = "none";
                 btnVnpay.style.display = "none";
                 if (btnWallet) btnWallet.style.display = "none";
-                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế.${discountInfo}<br>Cảm ơn bạn!`;
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế.${discountInfo}<br><div style="margin-top:8px;"><button onclick="openRideReviewModal(${event.bookingId || currentBookingId})" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Chuyến Đi</button></div>`;
                 logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
 
                 setTimeout(() => {
@@ -5335,6 +5457,11 @@
                         ${b.dropoffAddress ? `<div style="font-size:12px; color:#dc2626;">🔴 <b>Đến:</b> ${b.dropoffAddress}</div>` : ''}
                         <div>Quãng đường: <b>${b.distanceInKm ? b.distanceInKm.toFixed(2) : '?'} km</b> - Thành tiền: <b style="color: #d32f2f;">${displayPrice} đ</b></div>
                         <div>Trạng thái: <span style="color: ${statusColor}; font-weight: bold;">${b.status}</span></div>
+                        ${b.status === 'COMPLETED' ? `
+                            <div style="margin-top:6px; text-align:right;">
+                                <button class="btn-action" style="background:#f59e0b; color:white; padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="openRideReviewModal(${b.id || b.bookingId})">⭐ Đánh giá chuyến đi</button>
+                            </div>
+                        ` : ''}
                     </li>
                 `;
             });

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trung.fooddeliveryservice.dto.request.CreateFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.ReplyFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.UpdateFoodReviewRequest;
+import com.trung.fooddeliveryservice.dto.response.DriverReviewSummaryResponse;
 import com.trung.fooddeliveryservice.dto.response.FoodReviewResponse;
 import com.trung.fooddeliveryservice.dto.response.RestaurantReviewSummaryResponse;
 import com.trung.fooddeliveryservice.entity.FoodOrder;
@@ -205,6 +206,33 @@ public class FoodOrderReviewServiceImpl implements FoodOrderReviewService {
 
         return RestaurantReviewSummaryResponse.builder()
                 .restaurantId(restaurantId)
+                .averageRating(roundOneDecimal(avgRating))
+                .totalReviews(total)
+                .ratingCounts(counts)
+                .reviews(page.map(r -> toResponse(r, null)))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DriverReviewSummaryResponse getDriverReviews(Long driverId, Integer rating, Pageable pageable) {
+        Page<FoodOrderReview> page;
+        if (rating != null && rating >= 1 && rating <= 5) {
+            page = reviewRepository.findByDriverIdAndDriverRatingOrderByCreatedAtDesc(driverId, rating, pageable);
+        } else {
+            page = reviewRepository.findByDriverIdAndDriverRatingIsNotNullOrderByCreatedAtDesc(driverId, pageable);
+        }
+
+        Double avgRating = reviewRepository.calculateAverageDriverRating(driverId);
+        long total = reviewRepository.countByDriverIdAndDriverRatingIsNotNull(driverId);
+
+        Map<Integer, Long> counts = new HashMap<>();
+        for (int r = 1; r <= 5; r++) {
+            counts.put(r, reviewRepository.countByDriverIdAndDriverRating(driverId, r));
+        }
+
+        return DriverReviewSummaryResponse.builder()
+                .driverId(driverId)
                 .averageRating(roundOneDecimal(avgRating))
                 .totalReviews(total)
                 .ratingCounts(counts)

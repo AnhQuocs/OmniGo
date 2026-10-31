@@ -27,4 +27,15 @@ public interface FoodOrderReviewRepository extends JpaRepository<FoodOrderReview
 
     @Query("SELECT COALESCE(AVG(r.restaurantRating), 5.0) FROM FoodOrderReview r WHERE r.restaurantId = :restaurantId")
     Double calculateAverageRating(@Param("restaurantId") Long restaurantId);
+
+    Page<FoodOrderReview> findByDriverIdAndDriverRatingIsNotNullOrderByCreatedAtDesc(Long driverId, Pageable pageable);
+
+    Page<FoodOrderReview> findByDriverIdAndDriverRatingOrderByCreatedAtDesc(Long driverId, Integer rating, Pageable pageable);
+
+    long countByDriverIdAndDriverRatingIsNotNull(Long driverId);
+
+    long countByDriverIdAndDriverRating(Long driverId, Integer rating);
+
+    @Query("SELECT COALESCE(AVG(r.driverRating), 5.0) FROM FoodOrderReview r WHERE r.driverId = :driverId AND r.driverRating IS NOT NULL")
+    Double calculateAverageDriverRating(@Param("driverId") Long driverId);
 }

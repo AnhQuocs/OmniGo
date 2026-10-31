@@ -185,7 +185,8 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <button onclick="openDriverProfileModal()" style="background:#0284c7; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">👤 Hồ Sơ & Phương Tiện</button>
-        <button onclick="openDriverTripHistoryModal()" style="background:#20c997; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">📜 Lịch Sử Cuốc Xe</button>
+        <button onclick="openDriverReviewsModal()" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Của Tôi</button>
+        <button onclick="openDriverTripHistoryModal()" style="background:#20c997; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">📜 Lịch Sử Hoạt Động</button>
         <button onclick="openDriverChangePasswordModal()" style="background:#6c757d; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">🔒 Đổi Mật Khẩu</button>
         <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
     </div>
@@ -257,24 +258,93 @@
 </div>
 
 
-<!-- Modal Lịch sử cuốc xe riêng của Tài xế (Phase 3) -->
+<!-- Modal Lịch Sử Chuyến Đi & Đơn Hàng (Tài xế) -->
 <div id="driver-trip-history-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:white; padding:22px; border-radius:10px; width:720px; max-width:92%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
-            <h3 style="margin:0; color:#20c997; display:flex; align-items:center; gap:8px;">📜 Lịch Sử Cuốc Xe Riêng (Tài xế)</h3>
+    <div style="background:white; padding:22px; border-radius:12px; width:760px; max-width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 28px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px;">
+            <h3 style="margin:0; color:#20c997; display:flex; align-items:center; gap:8px;">📜 Lịch Sử Chuyến Đi & Đơn Hàng (Tài xế)</h3>
             <button onclick="closeDriverTripHistoryModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">✕</button>
         </div>
         
-        <!-- Filter Tabs -->
-        <div style="display:flex; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
+        <!-- Service Type Switcher: Cuốc xe vs Đơn giao đồ ăn -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; background:#f1f5f9; padding:4px; border-radius:8px;">
+            <button id="driver-history-service-ride-btn" class="driver-history-service-btn" onclick="switchDriverServiceHistoryTab('RIDE')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:#20c997; color:white; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🚗 Cuốc Xe Chở Khách
+            </button>
+            <button id="driver-history-service-food-btn" class="driver-history-service-btn" onclick="switchDriverServiceHistoryTab('FOOD')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:transparent; color:#475569; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🍔 Đơn Giao Đồ Ăn
+            </button>
+        </div>
+
+        <!-- Filter Tabs cho Cuốc xe -->
+        <div id="driver-ride-filters" style="display:flex; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
             <button class="driver-trip-tab active" onclick="switchDriverTripTab('', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #20c997; background:#20c997; color:white; cursor:pointer; font-weight:600; font-size:12px;">Tất cả</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('COMPLETED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Hoàn thành</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('CANCELLED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đã hủy</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('ACCEPTED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đang đón/chạy</button>
         </div>
 
+        <!-- Filter Tabs cho Đơn đồ ăn -->
+        <div id="driver-food-filters" style="display:none; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
+            <button class="driver-food-tab active" onclick="switchDriverFoodHistoryTab('', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #f97316; background:#f97316; color:white; cursor:pointer; font-weight:600; font-size:12px;">Tất cả</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('COMPLETED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Hoàn thành</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('DELIVERING', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đang giao</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('CANCELLED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đã hủy</button>
+        </div>
+
+        <!-- Container danh sách Cuốc xe -->
         <div id="driver-trips-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
             <div style="text-align:center; color:#64748b; padding:20px;">Đang tải danh sách cuốc xe...</div>
+        </div>
+
+        <!-- Container danh sách Đơn đồ ăn -->
+        <div id="driver-food-orders-list" style="display:none; flex:1; overflow-y:auto; flex-direction:column; gap:10px; padding-right:4px;">
+            <div style="text-align:center; color:#64748b; padding:20px;">Đang tải danh sách đơn đồ ăn...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đánh Giá Của Tài Xế (Tách Biệt Đặt Xe & Đồ Ăn) -->
+<div id="driver-reviews-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:22px; border-radius:12px; width:760px; max-width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 28px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+            <h3 style="margin:0; color:#d97706; display:flex; align-items:center; gap:8px;">⭐ Đánh Giá & Phản Hồi Từ Khách Hàng</h3>
+            <button onclick="closeDriverReviewsModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">✕</button>
+        </div>
+
+        <!-- Service Switcher: Đặt xe vs Đồ ăn -->
+        <div style="display:flex; gap:8px; margin-bottom:14px; background:#fef3c7; padding:4px; border-radius:8px; border:1px solid #fde68a;">
+            <button id="rev-tab-ride" class="driver-rev-service-tab active" onclick="switchDriverReviewServiceTab('RIDE')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:#d97706; color:white; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🚗 Đánh Giá Cuốc Xe
+            </button>
+            <button id="rev-tab-food" class="driver-rev-service-tab" onclick="switchDriverReviewServiceTab('FOOD')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:transparent; color:#92400e; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🍔 Đánh Giá Giao Đồ Ăn
+            </button>
+        </div>
+
+        <!-- Rating Summary Box (Average + Star breakdown + Star filters) -->
+        <div id="driver-review-summary-box" style="background:#fffbeb; border:1px solid #fef3c7; border-radius:10px; padding:14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="font-size:36px; font-weight:800; color:#d97706; line-height:1;" id="rev-avg-score">5.0</div>
+                <div>
+                    <div id="rev-stars-display" style="font-size:16px; color:#f59e0b;">⭐⭐⭐⭐⭐</div>
+                    <div style="font-size:12px; color:#78350f; font-weight:600; margin-top:2px;">Dựa trên <b id="rev-total-count">0</b> lượt đánh giá</div>
+                </div>
+            </div>
+            <!-- Star filter pills -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="driver-rev-star-pill active" onclick="filterDriverReviewsByStar(null, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #d97706; background:#d97706; color:white; cursor:pointer; font-size:11px; font-weight:700;">Tất cả</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(5, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">5 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(4, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">4 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(3, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">3 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(2, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">2 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(1, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">1 ⭐</button>
+            </div>
+        </div>
+
+        <!-- Container danh sách đánh giá -->
+        <div id="driver-reviews-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
+            <div style="text-align:center; color:#64748b; padding:20px;">Đang tải đánh giá của tài xế...</div>
         </div>
     </div>
 </div>
@@ -469,7 +539,8 @@
         <label for="report-date">Ngày tham chiếu (để trống: hôm nay):</label>
         <input id="report-date" type="date">
         <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Xem báo cáo thu nhập</button>
-        <button class="history-btn" onclick="openDriverTripHistoryModal()" style="background-color: #20c997; margin-left: 6px;">📜 Lịch sử cuốc xe riêng</button>
+        <button class="history-btn" onclick="openDriverTripHistoryModal()" style="background-color: #20c997; margin-left: 6px;">📜 Lịch sử hoạt động</button>
+        <button class="history-btn" onclick="openDriverReviewsModal()" style="background-color: #f59e0b; margin-left: 6px;">⭐ Đánh giá của tôi</button>
 
         <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
             <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU THEO KỲ</h4>
@@ -2390,17 +2461,55 @@
     }
 
     // ==========================================
-    // ⚡ PHA 3: LỊCH SỬ CUỐC XE RIÊNG CỦA TÀI XẾ
+    // ⚡ PHA 3: LỊCH SỬ CHUYẾN ĐI & ĐƠN HÀNG CỦA TÀI XẾ
     // ==========================================
+    let currentDriverHistoryService = 'RIDE'; // 'RIDE' | 'FOOD'
     let currentDriverTripStatusFilter = '';
+    let currentDriverFoodStatusFilter = '';
 
     function openDriverTripHistoryModal() {
         document.getElementById('driver-trip-history-modal').style.display = 'flex';
-        fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        if (currentDriverHistoryService === 'RIDE') {
+            fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        } else {
+            fetchDriverFoodOrderHistory(currentDriverFoodStatusFilter);
+        }
     }
 
     function closeDriverTripHistoryModal() {
         document.getElementById('driver-trip-history-modal').style.display = 'none';
+    }
+
+    function switchDriverServiceHistoryTab(service) {
+        currentDriverHistoryService = service;
+        const rideBtn = document.getElementById('driver-history-service-ride-btn');
+        const foodBtn = document.getElementById('driver-history-service-food-btn');
+        const rideFilters = document.getElementById('driver-ride-filters');
+        const foodFilters = document.getElementById('driver-food-filters');
+        const rideList = document.getElementById('driver-trips-list');
+        const foodList = document.getElementById('driver-food-orders-list');
+
+        if (service === 'RIDE') {
+            rideBtn.style.background = '#20c997';
+            rideBtn.style.color = 'white';
+            foodBtn.style.background = 'transparent';
+            foodBtn.style.color = '#475569';
+            rideFilters.style.display = 'flex';
+            foodFilters.style.display = 'none';
+            rideList.style.display = 'flex';
+            foodList.style.display = 'none';
+            fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        } else {
+            foodBtn.style.background = '#f97316';
+            foodBtn.style.color = 'white';
+            rideBtn.style.background = 'transparent';
+            rideBtn.style.color = '#475569';
+            rideFilters.style.display = 'none';
+            foodFilters.style.display = 'flex';
+            rideList.style.display = 'none';
+            foodList.style.display = 'flex';
+            fetchDriverFoodOrderHistory(currentDriverFoodStatusFilter);
+        }
     }
 
     function switchDriverTripTab(status, btnEl) {
@@ -2416,6 +2525,332 @@
             btnEl.style.borderColor = '#20c997';
         }
         fetchDriverBookingHistory(status);
+    }
+
+    function switchDriverFoodHistoryTab(status, btnEl) {
+        currentDriverFoodStatusFilter = status;
+        document.querySelectorAll('.driver-food-tab').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#334155';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (btnEl) {
+            btnEl.style.background = '#f97316';
+            btnEl.style.color = 'white';
+            btnEl.style.borderColor = '#f97316';
+        }
+        fetchDriverFoodOrderHistory(status);
+    }
+
+    async function fetchDriverFoodOrderHistory(status = '') {
+        const listEl = document.getElementById('driver-food-orders-list');
+        listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu đơn giao đồ ăn...</div>';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/driver`);
+            if (!res.ok) {
+                listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Không thể tải lịch sử đơn đồ ăn (HTTP ${res.status})</div>`;
+                return;
+            }
+
+            const data = await res.json();
+            let orders = data.data || data || [];
+            if (!Array.isArray(orders)) orders = [];
+
+            // Lọc theo trạng thái nếu có
+            if (status) {
+                if (status === 'COMPLETED') {
+                    orders = orders.filter(o => o.status === 'COMPLETED' || o.status === 'DELIVERED');
+                } else if (status === 'DELIVERING') {
+                    orders = orders.filter(o => ['DELIVERING', 'PREPARING', 'READY_FOR_PICKUP', 'ACCEPTED'].includes(o.status));
+                } else if (status === 'CANCELLED') {
+                    orders = orders.filter(o => ['CANCELLED', 'REJECTED', 'NO_DRIVER_FOUND'].includes(o.status));
+                } else {
+                    orders = orders.filter(o => o.status === status);
+                }
+            }
+
+            if (orders.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                        <div style="font-size:36px; margin-bottom:8px;">🍔</div>
+                        <div style="font-weight:600;">Chưa có đơn đồ ăn nào ${status ? 'với trạng thái này' : ''}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = orders.map(o => {
+                let badgeColor = '#64748b';
+                let badgeBg = '#f1f5f9';
+                let statusVi = o.status;
+
+                if (o.status === 'COMPLETED' || o.status === 'DELIVERED') {
+                    badgeColor = '#16a34a'; badgeBg = '#dcfce7'; statusVi = 'Đã giao thành công';
+                } else if (o.status === 'DELIVERING') {
+                    badgeColor = '#0284c7'; badgeBg = '#e0f2fe'; statusVi = 'Đang giao hàng';
+                } else if (o.status === 'READY_FOR_PICKUP') {
+                    badgeColor = '#7e22ce'; badgeBg = '#f3e8ff'; statusVi = 'Món đã sẵn sàng - Chờ lấy';
+                } else if (o.status === 'PREPARING') {
+                    badgeColor = '#d97706'; badgeBg = '#fef3c7'; statusVi = 'Quán đang làm món';
+                } else if (o.status === 'ACCEPTED') {
+                    badgeColor = '#0369a1'; badgeBg = '#e0f2fe'; statusVi = 'Đã nhận đơn';
+                } else if (o.status === 'CANCELLED' || o.status === 'REJECTED') {
+                    badgeColor = '#dc2626'; badgeBg = '#fee2e2'; statusVi = 'Đã hủy';
+                } else if (o.status === 'NO_DRIVER_FOUND') {
+                    badgeColor = '#64748b'; badgeBg = '#f1f5f9'; statusVi = 'Không tìm thấy tài xế';
+                }
+
+                const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN') : 'Gần đây';
+                const shipFeeFormatted = Number(o.deliveryFee || 0).toLocaleString('vi-VN') + ' đ';
+                const totalPriceFormatted = Number(o.totalPrice || 0).toLocaleString('vi-VN') + ' đ';
+
+                // Danh sách món ăn
+                let itemsSummary = 'Món đặt theo đơn';
+                if (Array.isArray(o.orderItems) && o.orderItems.length > 0) {
+                    itemsSummary = o.orderItems.map(it => `${it.dishName || 'Món'} x${it.quantity || 1}`).join(', ');
+                }
+
+                return `
+                    <div style="border:1px solid #fed7aa; border-radius:10px; padding:14px; background:#ffffff; box-shadow:0 1px 4px rgba(249,115,22,0.06); margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div>
+                                <b style="color:#c2410c; font-size:14px;">🍔 Đơn đồ ăn #${o.id}</b>
+                                <span style="font-size:11px; color:#64748b; margin-left:8px;">🕒 ${dateStr}</span>
+                            </div>
+                            <span style="padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700; color:${badgeColor}; background:${badgeBg};">
+                                ${statusVi}
+                            </span>
+                        </div>
+
+                        <!-- Điểm lấy món (Quán ăn) -->
+                        <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; line-height:1.5;">
+                            <span style="font-size:16px;">🏪</span>
+                            <div style="flex:1;">
+                                <b style="color:#ea580c;">Quán: ${escapeHtml(o.restaurantName || 'Cửa hàng')}</b>
+                                <div style="font-size:12px; color:#64748b;">${escapeHtml(o.restaurantAddress || 'Địa chỉ quán')}</div>
+                            </div>
+                        </div>
+
+                        <!-- Điểm giao món (Khách hàng) -->
+                        <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; line-height:1.5;">
+                            <span style="font-size:16px;">📍</span>
+                            <div style="flex:1;">
+                                <b style="color:#0f172a;">Giao đến: ${escapeHtml(o.customerName || 'Khách hàng')} ${o.customerPhone ? '(' + escapeHtml(o.customerPhone) + ')' : ''}</b>
+                                <div style="font-size:12px; color:#475569;">${escapeHtml(o.deliveryAddress || 'Địa chỉ khách')}</div>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách món -->
+                        <div style="background:#fff7ed; padding:8px 12px; border-radius:6px; font-size:12px; color:#9a3412; margin-bottom:10px; border:1px solid #ffedd5;">
+                            🍱 <b>Món ăn:</b> ${escapeHtml(itemsSummary)}
+                        </div>
+
+                        <!-- Cước ship tài xế nhận & Tổng đơn -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px dashed #fed7aa; font-size:13px;">
+                            <div>🛵 <b>Cước ship nhận:</b> <b style="color:#16a34a; font-size:14px;">${shipFeeFormatted}</b></div>
+                            <div>💰 <b>Tổng đơn:</b> <b style="color:#d97706;">${totalPriceFormatted}</b> <span style="font-size:11px; color:#64748b;">(${o.paymentMethod || 'ONLINE'})</span></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Lỗi tải dữ liệu đơn đồ ăn: ${e.message}</div>`;
+        }
+    }
+
+    // ==========================================
+    // ⭐ PHA 4: ĐÁNH GIÁ TÀI XẾ (TÁCH BIỆT ĐẶT XE & ĐỒ ĂN)
+    // ==========================================
+    let currentDriverReviewService = 'RIDE'; // 'RIDE' | 'FOOD'
+    let currentDriverReviewStarFilter = null;
+
+    function openDriverReviewsModal() {
+        document.getElementById('driver-reviews-modal').style.display = 'flex';
+        loadDriverReviews();
+    }
+
+    function closeDriverReviewsModal() {
+        document.getElementById('driver-reviews-modal').style.display = 'none';
+    }
+
+    function switchDriverReviewServiceTab(service) {
+        currentDriverReviewService = service;
+        currentDriverReviewStarFilter = null;
+        const rideBtn = document.getElementById('rev-tab-ride');
+        const foodBtn = document.getElementById('rev-tab-food');
+
+        if (service === 'RIDE') {
+            rideBtn.style.background = '#d97706';
+            rideBtn.style.color = 'white';
+            foodBtn.style.background = 'transparent';
+            foodBtn.style.color = '#92400e';
+        } else {
+            foodBtn.style.background = '#ea580c';
+            foodBtn.style.color = 'white';
+            rideBtn.style.background = 'transparent';
+            rideBtn.style.color = '#92400e';
+        }
+        resetDriverReviewStarPills();
+        loadDriverReviews();
+    }
+
+    function filterDriverReviewsByStar(star, btnEl) {
+        currentDriverReviewStarFilter = star;
+        document.querySelectorAll('.driver-rev-star-pill').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#334155';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (btnEl) {
+            const activeColor = currentDriverReviewService === 'RIDE' ? '#d97706' : '#ea580c';
+            btnEl.style.background = activeColor;
+            btnEl.style.color = 'white';
+            btnEl.style.borderColor = activeColor;
+        }
+        loadDriverReviews();
+    }
+
+    function resetDriverReviewStarPills() {
+        const pills = document.querySelectorAll('.driver-rev-star-pill');
+        const activeColor = currentDriverReviewService === 'RIDE' ? '#d97706' : '#ea580c';
+        pills.forEach((p, idx) => {
+            if (idx === 0) {
+                p.style.background = activeColor;
+                p.style.color = 'white';
+                p.style.borderColor = activeColor;
+            } else {
+                p.style.background = 'white';
+                p.style.color = '#334155';
+                p.style.borderColor = '#cbd5e1';
+            }
+        });
+    }
+
+    function renderDriverReviewsSummary(avgScore, totalCount) {
+        const scoreEl = document.getElementById('rev-avg-score');
+        const starsEl = document.getElementById('rev-stars-display');
+        const countEl = document.getElementById('rev-total-count');
+
+        const score = Number(avgScore || 5.0).toFixed(1);
+        if (scoreEl) scoreEl.textContent = score;
+        if (countEl) countEl.textContent = totalCount || 0;
+
+        if (starsEl) {
+            const fullStars = Math.round(Number(avgScore || 5.0));
+            starsEl.textContent = '⭐'.repeat(Math.max(1, Math.min(5, fullStars)));
+        }
+    }
+
+    function renderReviewEmptyOrError(message) {
+        const listEl = document.getElementById('driver-reviews-list');
+        listEl.innerHTML = `
+            <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                <div style="font-size:36px; margin-bottom:8px;">💬</div>
+                <div style="font-weight:600;">${escapeHtml(message)}</div>
+            </div>
+        `;
+    }
+
+    async function loadDriverReviews() {
+        const listEl = document.getElementById('driver-reviews-list');
+        listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu đánh giá...</div>';
+
+        const driverId = DRIVER_ID || 1;
+        const starParam = currentDriverReviewStarFilter ? `?rating=${currentDriverReviewStarFilter}` : '';
+
+        if (currentDriverReviewService === 'RIDE') {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/${driverId}/reviews${starParam}`);
+                if (!res.ok) {
+                    renderReviewEmptyOrError('Chưa có đánh giá nào cho các chuyến xe.');
+                    renderDriverReviewsSummary(5.0, 0);
+                    return;
+                }
+                const data = await res.json();
+                const summary = data.data || data || {};
+                renderDriverReviewsSummary(summary.averageRating || 5.0, summary.totalReviews || 0);
+                renderDriverReviewsList(summary.reviews || [], 'RIDE');
+            } catch (e) {
+                renderReviewEmptyOrError('Lỗi kết nối đánh giá đặt xe: ' + e.message);
+            }
+        } else {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-reviews/driver/${driverId}${starParam}`);
+                if (!res.ok) {
+                    renderReviewEmptyOrError('Chưa có đánh giá nào cho các đơn giao đồ ăn.');
+                    renderDriverReviewsSummary(5.0, 0);
+                    return;
+                }
+                const data = await res.json();
+                const summary = data.data || data || {};
+                renderDriverReviewsSummary(summary.averageRating || 5.0, summary.totalReviews || 0);
+
+                let reviews = [];
+                if (summary.reviews && Array.isArray(summary.reviews.content)) {
+                    reviews = summary.reviews.content;
+                } else if (Array.isArray(summary.reviews)) {
+                    reviews = summary.reviews;
+                }
+                renderDriverReviewsList(reviews, 'FOOD');
+            } catch (e) {
+                renderReviewEmptyOrError('Lỗi kết nối đánh giá giao đồ ăn: ' + e.message);
+            }
+        }
+    }
+
+    function renderDriverReviewsList(reviews, serviceType) {
+        const listEl = document.getElementById('driver-reviews-list');
+
+        if (!Array.isArray(reviews) || reviews.length === 0) {
+            listEl.innerHTML = `
+                <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                    <div style="font-size:36px; margin-bottom:8px;">${serviceType === 'RIDE' ? '🚕' : '🛵'}</div>
+                    <div style="font-weight:600;">Chưa có đánh giá nào ${currentDriverReviewStarFilter ? 'với số sao này' : 'từ khách hàng'}</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Các nhận xét sau khi khách hoàn thành ${serviceType === 'RIDE' ? 'chuyến đi' : 'đơn hàng'} sẽ xuất hiện tại đây.</div>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = reviews.map(r => {
+            const rating = Number(r.driverRating || r.rating || 5);
+            const comment = (serviceType === 'RIDE' ? r.comment : (r.driverComment || r.comment)) || '';
+            const customerName = r.customerName || 'Khách hàng';
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0284c7&color=fff&size=64`;
+            const avatarUrl = r.customerAvatarUrl || defaultAvatar;
+            const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Gần đây';
+            const contextTag = serviceType === 'RIDE' ? `Cuốc xe #${r.bookingId || r.id}` : `Đơn đồ ăn #${r.orderId || r.id}`;
+
+            return `
+                <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img src="${avatarUrl}" onerror="this.src='${defaultAvatar}'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #e2e8f0;">
+                            <div>
+                                <b style="color:#0f172a; font-size:13px;">${escapeHtml(customerName)}</b>
+                                <div style="font-size:11px; color:#64748b;">🕒 ${dateStr} • <span style="color:#0284c7; font-weight:600;">${contextTag}</span></div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#f59e0b; font-size:14px; letter-spacing:1px;">${'⭐'.repeat(Math.max(1, Math.min(5, rating)))}</div>
+                            <span style="font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:10px;">${rating} / 5</span>
+                        </div>
+                    </div>
+                    ${comment ? `<div style="background:#f8fafc; border-radius:6px; padding:8px 12px; font-size:13px; color:#334155; border-left:3px solid #f59e0b; margin-top:6px;">"${escapeHtml(comment)}"</div>` : `<div style="font-size:12px; color:#94a3b8; font-style:italic;">Khách hàng không để lại nhận xét bằng lời.</div>`}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     const customerInfoCache = {};
