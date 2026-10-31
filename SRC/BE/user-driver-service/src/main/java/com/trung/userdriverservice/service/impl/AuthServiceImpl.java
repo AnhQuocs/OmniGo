@@ -1,9 +1,12 @@
 package com.trung.userdriverservice.service.impl;
 
+import com.trung.userdriverservice.dto.request.ChangePasswordRequest;
 import com.trung.userdriverservice.dto.request.LoginRequest;
+import com.trung.userdriverservice.dto.request.ResetPasswordRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.LoginResponse;
 import com.trung.userdriverservice.entity.User;
+import com.trung.userdriverservice.exception.BadRequestException;
 import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
@@ -12,15 +15,18 @@ import com.trung.userdriverservice.security.JwtTokenProvider;
 import com.trung.userdriverservice.security.RefreshTokenService;
 import com.trung.userdriverservice.security.UserPrincipal;
 import com.trung.userdriverservice.service.AuthService;
+import com.trung.userdriverservice.service.EmailService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -28,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
@@ -35,6 +42,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
     private final StringRedisTemplate redisTemplate;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Override
     public ApiResponse<LoginResponse> login(LoginRequest request) throws ResourceNotFoundException, InvalidCredentialsException {
@@ -47,6 +56,9 @@ public class AuthServiceImpl implements AuthService {
                         ? u.getLockedReason()
                         : "Vi phạm quy định hệ thống";
                 throw new InvalidCredentialsException("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Lý do: " + reasonMsg);
+            }
+            if (Boolean.TRUE.equals(u.getIsDeleted())) {
+                throw new InvalidCredentialsException("Tài khoản của bạn đã bị xóa khỏi hệ thống.");
             }
         }
 
@@ -135,6 +147,89 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public ApiResponse<Void> resetPassword(ResetPasswordRequest request) throws BadRequestException, ResourceNotFoundException {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Mật khẩu xác nhận không khớp.");
+        }
+
+        String verifiedKey = "otp:verified:" + request.getVerificationToken().trim();
+        String verifiedEmail = redisTemplate.opsForValue().get(verifiedKey);
+
+        if (verifiedEmail == null || verifiedEmail.isBlank()) {
+            throw new BadRequestException("Phiên xác thực đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng gửi lại mã OTP.");
+        }
+
+        User user = userRepository.findByEmail(verifiedEmail.trim().toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + verifiedEmail));
+
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
+            throw new BadRequestException("Tài khoản đã bị xóa khỏi hệ thống.");
+        }
+        if (Boolean.TRUE.equals(user.getIsLocked())) {
+            throw new BadRequestException("Tài khoản đã bị khóa bởi Quản trị viên.");
+        }
+
+        // Cập nhật mật khẩu mới đã mã hóa BCrypt
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Hủy bỏ verificationToken để chống replay
+        redisTemplate.delete(verifiedKey);
+
+        // Thu hồi refresh token cũ
+        refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
+
+        // Gửi email cảnh báo bảo mật
+        emailService.sendPasswordChangedAlert(user.getEmail(), user.getFullName(), LocalDateTime.now());
+        log.info("Đặt lại mật khẩu thành công cho người dùng ID: {}, email: {}", user.getId(), user.getEmail());
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> changePassword(Long userId, ChangePasswordRequest request) throws BadRequestException, ResourceNotFoundException {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Mật khẩu xác nhận không khớp.");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BadRequestException("Mật khẩu mới không được trùng với mật khẩu hiện tại.");
+        }
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Thu hồi refresh token cũ
+        refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
+
+        // Gửi email thông báo bảo mật
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            emailService.sendPasswordChangedAlert(user.getEmail(), user.getFullName(), LocalDateTime.now());
+        }
+        log.info("Đổi mật khẩu thành công cho người dùng ID: {}", user.getId());
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đổi mật khẩu thành công.")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     private void blacklistAccessToken(String token) {
         try {
             Claims claims = jwtTokenProvider.getClaimsFromToken(token);
@@ -150,6 +245,7 @@ public class AuthServiceImpl implements AuthService {
                 );
             }
         } catch (Exception e) {
+            log.warn("Không thể blacklist access token: {}", e.getMessage());
         }
     }
 }

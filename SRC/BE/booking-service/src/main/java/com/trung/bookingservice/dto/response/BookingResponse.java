@@ -26,4 +26,5 @@ public class BookingResponse {
     private String paymentMethod;
     private String pickupAddress;
     private String dropoffAddress;
+    private java.time.LocalDateTime createdAt;
 }

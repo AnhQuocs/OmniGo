@@ -304,11 +304,11 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 foodEventPublisher.publishFindDriverDirect(event);
                 log.info("Đã phát trực tiếp sự kiện tìm tài xế giao đồ ăn lên Kafka cho đơn hàng ID {}", saved.getId());
 
-                // Timeout 60s: Kiểm tra tài xế nhận đơn
+                // Timeout 25s: Kiểm tra tài xế nhận đơn
                 final Long targetOrderId = saved.getId();
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Thread.sleep(60000);
+                        Thread.sleep(25000);
                         foodOrderRepository.findById(targetOrderId).ifPresent(o -> {
                             if (o.getStatus() == OrderStatus.READY_FOR_PICKUP) {
                                 int retryCount = o.getDriverRetryCount() != null ? o.getDriverRetryCount() : 0;
@@ -514,6 +514,95 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         return foodOrderMapper.toResponse(saved);
     }
 
+    @Override
+    @Transactional
+    public FoodOrderResponse retryDriverByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        FoodOrder order = foodOrderRepository.findById(orderId)
+                .orElseThrow(() -> {
+                    log.warn("Không tìm thấy đơn hàng ID {}", orderId);
+                    return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
+                });
+
+        if (!order.getCustomerId().equals(customerId)) {
+            log.warn("Khách hàng ID {} không sở hữu đơn hàng ID {}", customerId, orderId);
+            throw new UnauthorizedException("Bạn không sở hữu đơn hàng này");
+        }
+
+        OrderStatus current = order.getStatus();
+        if (current != OrderStatus.NO_DRIVER_FOUND && current != OrderStatus.READY_FOR_PICKUP) {
+            throw new BadRequestException("Chỉ có thể tìm lại tài xế khi đơn hàng đang ở trạng thái Tìm tài xế thất bại (NO_DRIVER_FOUND) hoặc Đang tìm tài xế. Hiện tại: " + current);
+        }
+
+        int retryCount = order.getDriverRetryCount() != null ? order.getDriverRetryCount() : 0;
+        if (retryCount >= 3) {
+            throw new BadRequestException("Đã đạt giới hạn số lần quét tìm lại tài xế (tối đa 3 lần).");
+        }
+
+        int nextRetry = retryCount + 1;
+        order.setDriverRetryCount(nextRetry);
+        order.setStatus(OrderStatus.READY_FOR_PICKUP);
+        order.setCancelReason(null);
+        order.setCancelReasonCode(null);
+        order.setCancelledBy(null);
+
+        FoodOrder saved = saveAndNotifyStatus(order);
+        log.info("Khách hàng ID {} chủ động quét tìm lại tài xế cho đơn #{} (lần thử thứ {})", customerId, orderId, nextRetry);
+
+        FindDriverForFoodOrderEvent event = FindDriverForFoodOrderEvent.builder()
+                .orderId(saved.getId())
+                .customerId(saved.getCustomerId())
+                .restaurantId(order.getRestaurant().getId())
+                .restaurantName(order.getRestaurant().getName())
+                .restaurantAddress(order.getRestaurant().getAddress())
+                .restaurantLatitude(order.getRestaurant().getLatitude())
+                .restaurantLongitude(order.getRestaurant().getLongitude())
+                .dropOffAddress(saved.getDeliveryAddress())
+                .dropOffLatitude(saved.getDeliveryLatitude())
+                .dropOffLongitude(saved.getDeliveryLongitude())
+                .totalPrice(saved.getTotalPrice())
+                .deliveryFee(saved.getDeliveryFee())
+                .paymentMethod(saved.getPaymentMethod())
+                .isPaid(saved.getIsPaid())
+                .build();
+        foodEventPublisher.publishFindDriverDirect(event);
+        log.info("Đã phát sự kiện tìm tài xế giao đồ ăn lên Kafka cho đơn hàng ID {}", saved.getId());
+
+        // Timeout 25s: Kiểm tra tài xế nhận đơn
+        final Long targetOrderId = saved.getId();
+        CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(25000);
+                foodOrderRepository.findById(targetOrderId).ifPresent(o -> {
+                    if (o.getStatus() == OrderStatus.READY_FOR_PICKUP) {
+                        int rCount = o.getDriverRetryCount() != null ? o.getDriverRetryCount() : 0;
+                        if (rCount < 3) {
+                            log.warn("Đơn hàng ID {} không có tài xế nhận sau khi thử tìm lại lần {}, chuyển sang NO_DRIVER_FOUND", targetOrderId, rCount);
+                            o.setStatus(OrderStatus.NO_DRIVER_FOUND);
+                            saveAndNotifyStatus(o);
+                        } else {
+                            log.warn("Đơn hàng ID {} không có tài xế nhận sau 3 lần quét, tự động hủy CANCELLED", targetOrderId);
+                            o.setStatus(OrderStatus.CANCELLED);
+                            o.setCancelledBy(OrderCancelledBy.SYSTEM);
+                            o.setCancelReason("Không tìm thấy tài xế sau nhiều lần tìm kiếm");
+                            o.setCancelReasonCode(OrderCancelReason.SYSTEM_NO_DRIVER_FOUND);
+                            FoodOrder savedCancelled = saveAndNotifyStatus(o);
+                            if (Boolean.TRUE.equals(savedCancelled.getIsPaid())) {
+                                triggerRefund(savedCancelled.getCustomerId(), savedCancelled.getId(), savedCancelled.getTotalPrice(), "Hệ thống hủy đơn do không tìm thấy tài xế");
+                            }
+                            triggerVoucherRollback(savedCancelled.getCustomerId(), savedCancelled.getId());
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Lỗi trong quá trình kiểm tra timeout tìm xế của đơn #{}: {}", targetOrderId, e.getMessage());
+            }
+        });
+
+        FoodOrderResponse response = foodOrderMapper.toResponse(saved);
+        enrichDriverDetails(response);
+        return response;
+    }
+
     private FoodOrder saveAndNotifyStatus(FoodOrder order) {
         FoodOrder saved = foodOrderRepository.save(order);
         foodEventPublisher.publishOrderStatusAfterCommit(saved);
@@ -533,6 +622,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
                 targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/food-order-payout");
             }
+            targetUrls.add("http://payment-service:8085/api/v1/payments/internal/food-order-payout");
+            targetUrls.add("http://api-gateway:8080/api/v1/payments/internal/food-order-payout");
             targetUrls.add("http://localhost:8085/api/v1/payments/internal/food-order-payout");
             targetUrls.add("http://localhost:8080/api/v1/payments/internal/food-order-payout");
 
@@ -569,6 +660,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
                 targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/refund-order");
             }
+            targetUrls.add("http://payment-service:8085/api/v1/payments/internal/refund-order");
+            targetUrls.add("http://api-gateway:8080/api/v1/payments/internal/refund-order");
             targetUrls.add("http://localhost:8085/api/v1/payments/internal/refund-order");
             targetUrls.add("http://localhost:8080/api/v1/payments/internal/refund-order");
 
@@ -596,6 +689,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             if (pricingServiceBaseUrl != null && !pricingServiceBaseUrl.isBlank()) {
                 targetUrls.add(pricingServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/pricing/vouchers/rollback" + paramStr);
             }
+            targetUrls.add("http://pricing-service:8084/api/v1/pricing/vouchers/rollback" + paramStr);
+            targetUrls.add("http://api-gateway:8080/api/v1/pricing/vouchers/rollback" + paramStr);
             targetUrls.add("http://localhost:8084/api/v1/pricing/vouchers/rollback" + paramStr);
             targetUrls.add("http://localhost:8080/api/v1/pricing/vouchers/rollback" + paramStr);
 

@@ -13,25 +13,25 @@ import java.io.Serializable;
 public class PricingConfig implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // 1. Cước cơ bản chuyến xe
+   // 1. Cước cơ bản chuyến xe
     @Builder.Default
-    private double baseFare = 15000.0;
+    private double baseFare = 10000.0;
 
     @Builder.Default
-    private double pricePerKm = 15000.0;
+    private double pricePerKm = 3600.0;
 
     @Builder.Default
-    private double pricePerMinute = 1000.0;
+    private double pricePerMinute = 250.0;
 
     // 2. Hệ số theo loại phương tiện
     @Builder.Default
     private double bikeMultiplier = 1.0;
 
     @Builder.Default
-    private double car4SeatMultiplier = 1.5;
+    private double car4SeatMultiplier = 1.95;
 
     @Builder.Default
-    private double car7SeatMultiplier = 2.0;
+    private double car7SeatMultiplier = 2.3;
 
     // 3. Phí giao hàng đồ ăn
     @Builder.Default
@@ -59,4 +59,4 @@ public class PricingConfig implements Serializable {
 
     @Builder.Default
     private double surgeSevereMultiplier = 2.0;
-}
+}

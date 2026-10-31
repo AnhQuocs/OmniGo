@@ -33,6 +33,9 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
     private static final List<String> EXCLUDE_URLS = List.of(
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
+            "/api/v1/auth/otp/send",
+            "/api/v1/auth/otp/verify",
+            "/api/v1/auth/reset-password",
             "/api/v1/users/register/customer",
             "/api/v1/drivers/register",
             "/api/v1/restaurants/partner"
@@ -64,7 +67,7 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
         }
 
         boolean isPublicGet = request.getMethod().equals(HttpMethod.GET)
-                && (path.startsWith("/api/v1/restaurants") || path.startsWith("/api/v1/items"))
+                && (path.startsWith("/api/v1/restaurants") || path.startsWith("/api/v1/items") || path.startsWith("/api/v1/pricing/vouchers"))
                 && !path.equals("/api/v1/restaurants/my-restaurant");
 
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);

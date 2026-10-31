@@ -116,6 +116,14 @@ public class FoodOrderController {
         return ResponseEntity.ok(ApiResponse.success(response, "Đã chuyển đổi sang phương thức thanh toán tiền mặt thành công"));
     }
 
+    @PostMapping("/{orderId}/retry-driver")
+    public ResponseEntity<ApiResponse<FoodOrderResponse>> retryDriver(
+            @PathVariable Long orderId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
+        Long customerId = SecurityUtils.getCurrentUserId();
+        FoodOrderResponse response = foodOrderService.retryDriverByCustomer(orderId, customerId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hệ thống đang quét tìm lại tài xế giao hàng"));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<FoodOrderResponse>>> getAllOrders() {
         List<FoodOrderResponse> list = foodOrderService.getAllOrders();
