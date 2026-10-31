@@ -624,12 +624,97 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    @Override
+    public ApiResponse<BookingResponse> getBookingDetails(Long bookingId, Long currentUserId, String currentUserRole) throws ResourceNotFoundException, BadRequestException {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến xe với ID: " + bookingId));
+
+        boolean isAdmin = currentUserRole != null && (currentUserRole.contains("ADMIN") || currentUserRole.contains("ROLE_ADMIN"));
+        boolean isCustomer = booking.getCustomerId() != null && booking.getCustomerId().equals(currentUserId);
+        boolean isDriver = booking.getDriverId() != null && booking.getDriverId().equals(currentUserId);
+
+        if (!isAdmin && !isCustomer && !isDriver) {
+            throw new BadRequestException("Bạn không có quyền xem thông tin chi tiết chuyến xe này.");
+        }
+
+        double distance = booking.getDistanceInKm() != null ? booking.getDistanceInKm() :
+                LocationUtils.calculateDistance(
+                        booking.getStartLatitude(), booking.getStartLongitude(),
+                        booking.getEndLatitude(), booking.getEndLongitude()
+                );
+
+        BookingResponse response = convertToResponse(booking, distance);
+
+        return ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message("Lấy thông tin chi tiết chuyến xe thành công")
+                .data(response)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    public ApiResponse<List<BookingResponse>> getDriverBookings(Long driverId, BookingStatus status) {
+        List<Booking> list;
+        if (status != null) {
+            list = bookingRepository.findByDriverIdAndStatusOrderByCreatedAtDesc(driverId, status);
+        } else {
+            list = bookingRepository.findByDriverIdOrderByCreatedAtDesc(driverId);
+        }
+
+        List<BookingResponse> dtoList = list.stream().map(b -> {
+            double distance = b.getDistanceInKm() != null ? b.getDistanceInKm() :
+                    LocationUtils.calculateDistance(
+                            b.getStartLatitude(), b.getStartLongitude(),
+                            b.getEndLatitude(), b.getEndLongitude()
+                    );
+            return convertToResponse(b, distance);
+        }).toList();
+
+        return ApiResponse.<List<BookingResponse>>builder()
+                .success(true)
+                .message("Lấy lịch sử cuốc xe của tài xế thành công")
+                .data(dtoList)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     private BookingResponse convertToResponse(Booking booking, double distance) {
+        String customerName = booking.getCustomerName();
+        if ((customerName == null || customerName.isBlank()) && booking.getCustomerId() != null) {
+            try {
+                customerName = bookingCustomerService.getName(booking.getCustomerId());
+            } catch (Exception ignored) {}
+        }
+
+        String customerAvatar = booking.getCustomerAvatarUrl();
+        if ((customerAvatar == null || customerAvatar.isBlank()) && booking.getCustomerId() != null) {
+            try {
+                customerAvatar = bookingAvatarService.getAvatar(booking.getCustomerId());
+            } catch (Exception ignored) {}
+        }
+
+        String pickup = booking.getPickupAddress();
+        if (pickup == null || pickup.isBlank()) {
+            if (booking.getStartLatitude() != null && booking.getStartLongitude() != null) {
+                pickup = String.format("Tọa độ (%.5f, %.5f)", booking.getStartLatitude(), booking.getStartLongitude());
+            }
+        }
+
+        String dropoff = booking.getDropoffAddress();
+        if (dropoff == null || dropoff.isBlank()) {
+            if (booking.getEndLatitude() != null && booking.getEndLongitude() != null) {
+                dropoff = String.format("Tọa độ (%.5f, %.5f)", booking.getEndLatitude(), booking.getEndLongitude());
+            }
+        }
+
+        double roundedDistance = Math.round(distance * 100.0) / 100.0;
+
         return BookingResponse.builder()
                 .bookingId(booking.getId())
                 .customerId(booking.getCustomerId())
-                .customerName(booking.getCustomerName())
-                .customerAvatarUrl(booking.getCustomerAvatarUrl())
+                .customerName(customerName)
+                .customerAvatarUrl(customerAvatar)
                 .driverAvatarUrl(booking.getDriverAvatarUrl())
                 .driverId(booking.getDriverId())
                 .startLongitude(booking.getStartLongitude())
@@ -637,12 +722,13 @@ public class BookingServiceImpl implements BookingService {
                 .endLongitude(booking.getEndLongitude())
                 .endLatitude(booking.getEndLatitude())
                 .status(booking.getStatus())
-                .distanceInKm(distance)
+                .distanceInKm(roundedDistance)
                 .price(booking.getPrice())
                 .vehicleType(booking.getVehicleType())
                 .paymentMethod(booking.getPaymentMethod())
-                .pickupAddress(booking.getPickupAddress())
-                .dropoffAddress(booking.getDropoffAddress())
+                .pickupAddress(pickup)
+                .dropoffAddress(dropoff)
+                .createdAt(booking.getCreatedAt())
                 .build();
     }
 }

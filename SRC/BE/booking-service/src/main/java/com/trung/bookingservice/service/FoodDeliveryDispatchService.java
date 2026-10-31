@@ -7,6 +7,8 @@ public interface FoodDeliveryDispatchService {
 
     void dispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event);
 
+    void resetAndDispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event);
+
     void acceptFoodOrder(Long orderId, Long driverId) throws BadRequestException;
 
     void rejectFoodOrder(Long orderId, Long driverId);

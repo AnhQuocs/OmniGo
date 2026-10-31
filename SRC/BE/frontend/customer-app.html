@@ -238,18 +238,37 @@
             font-size: 13px;
         }
 
-        .radar-pulse {
+        /* Vòng tròn Radar quét tìm tài xế (Lồng inner div để không ghi đè translate3d của Leaflet) */
+        .radar-pulse-container {
             width: 30px;
             height: 30px;
-            background-color: rgba(0, 123, 255, 0.5);
-            border-radius: 50%;
-            animation: pulse 1s infinite ease-out;
-            border: 2px solid #007bff;
+            position: relative;
+            pointer-events: none;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(3); opacity: 0; }
+        .radar-pulse-circle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(2, 132, 199, 0.3);
+            border-radius: 50%;
+            border: 2px solid #0284c7;
+            animation: radar-pulse-anim 1.6s infinite ease-out;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        @keyframes radar-pulse-anim {
+            0% {
+                transform: scale(0.6);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(3.5);
+                opacity: 0;
+            }
         }
 
         .nearby-car-icon {
@@ -679,11 +698,13 @@
 
 <div class="user-header">
     <span>👋 Xin chào Khách hàng: <b id="display-user" style="color:var(--primary);">Đang tải...</b></span>
-    <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button class="btn-action" onclick="openVoucherBrowseModal()" style="background:#ffedd5; color:#c2410c; border:1px solid #fed7aa; padding:6px 12px; font-size:12px; font-weight:700;">🎁 Kho Voucher</button>
+        <button class="btn-action" onclick="openSavedAddressesModal()" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:6px 12px; font-size:12px; font-weight:700;">📍 Địa chỉ đã lưu</button>
+        <button class="btn-action" onclick="openUserProfileModal()" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:6px 12px; font-size:12px; font-weight:700;">👤 Tài khoản</button>
         <div style="background: #e2f0d9; border: 1px solid #c8e1b7; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;" onclick="toggleCustomerWalletModal()" title="Bấm để xem chi tiết ví và lịch sử hoàn tiền">
-            <span>💳 Ví của tôi:</span>
-            <span id="customer-wallet-balance" style="color: #274e13; font-weight: 700; font-size: 15px;">0 đ</span>
-            <span style="font-size: 11px; background: #28a745; color: white; padding: 2px 6px; border-radius: 4px;">Chi tiết</span>
+            <span>💳 Ví:</span>
+            <span id="customer-wallet-balance" style="color: #274e13; font-weight: 700; font-size: 14px;">0 đ</span>
         </div>
         <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
     </div>
@@ -723,11 +744,18 @@
                     <label style="font-size: 13px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 6px; margin-bottom: 0;">
                         🟢 Điểm đón (Pickup)
                     </label>
-                    <button type="button" onclick="getCurrentLocationForRidePickup()" style="background:none; border:none; color:#16a34a; font-size:11px; cursor:pointer; font-weight:600;">🎯 Vị trí hiện tại</button>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" onclick="toggleSavedAddressDropdown('pickup', this)" class="btn-saved-addr-toggle" style="background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:11px; cursor:pointer; font-weight:700; padding:2px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;" title="Chọn từ danh sách địa chỉ đã lưu">🔖 Địa chỉ đã lưu</button>
+                        <button type="button" onclick="getCurrentLocationForRidePickup()" style="background:none; border:none; color:#16a34a; font-size:11px; cursor:pointer; font-weight:600;">🎯 Vị trí hiện tại</button>
+                    </div>
                 </div>
                 <div style="position: relative;">
-                    <input type="text" id="ride-pickup-address" class="form-control" style="font-size: 13px; padding: 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội" placeholder="Nhập địa chỉ đón (VD: Bách Khoa, Cầu Giấy...)" autocomplete="off" oninput="handleAddressInputDebounced('pickup', this.value)" onfocus="handleAddressFocus('pickup', this.value)">
+                    <input type="text" id="ride-pickup-address" class="form-control" style="font-size: 13px; padding: 8px 38px 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội" placeholder="Nhập địa chỉ đón (VD: Bách Khoa, Cầu Giấy...)" autocomplete="off" oninput="handleAddressInputDebounced('pickup', this.value)" onfocus="handleAddressFocus('pickup', this.value)">
+                    <button type="button" class="btn-saved-addr-icon" onclick="toggleSavedAddressDropdown('pickup', this)" title="Chọn nhanh từ Địa chỉ đã lưu" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #16a34a; transition: all 0.2s;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+                        🔖
+                    </button>
                     <div id="pickup-autocomplete-dropdown" class="autocomplete-dropdown" style="display:none;"></div>
+                    <div id="pickup-saved-addr-dropdown" class="saved-addr-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.15); z-index:1050; max-height:260px; overflow-y:auto;"></div>
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
                     <span style="font-size:11px; color:#64748b;">Gợi ý:</span>
@@ -740,12 +768,19 @@
 
             <!-- Destination point -->
             <div style="position: relative;">
-                <label style="font-size: 13px; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                    🔴 Điểm đến (Destination)
-                </label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 6px; margin-bottom: 0;">
+                        🔴 Điểm đến (Destination)
+                    </label>
+                    <button type="button" onclick="toggleSavedAddressDropdown('dropoff', this)" class="btn-saved-addr-toggle" style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-size:11px; cursor:pointer; font-weight:700; padding:2px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;" title="Chọn từ danh sách địa chỉ đã lưu">🔖 Địa chỉ đã lưu</button>
+                </div>
                 <div style="position: relative;">
-                    <input type="text" id="ride-dropoff-address" class="form-control" style="font-size: 13px; padding: 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Tây (Phủ Tây Hồ), Quảng An, Hà Nội" placeholder="Nhập địa chỉ đến (VD: Hồ Tây, Keangnam...)" autocomplete="off" oninput="handleAddressInputDebounced('dropoff', this.value)" onfocus="handleAddressFocus('dropoff', this.value)">
+                    <input type="text" id="ride-dropoff-address" class="form-control" style="font-size: 13px; padding: 8px 38px 8px 12px; width:100%; box-sizing:border-box;" value="Hồ Tây (Phủ Tây Hồ), Quảng An, Hà Nội" placeholder="Nhập địa chỉ đến (VD: Hồ Tây, Keangnam...)" autocomplete="off" oninput="handleAddressInputDebounced('dropoff', this.value)" onfocus="handleAddressFocus('dropoff', this.value)">
+                    <button type="button" class="btn-saved-addr-icon" onclick="toggleSavedAddressDropdown('dropoff', this)" title="Chọn nhanh từ Địa chỉ đã lưu" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #dc2626; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                        🔖
+                    </button>
                     <div id="dropoff-autocomplete-dropdown" class="autocomplete-dropdown" style="display:none;"></div>
+                    <div id="dropoff-saved-addr-dropdown" class="saved-addr-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.15); z-index:1050; max-height:260px; overflow-y:auto;"></div>
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
                     <span style="font-size:11px; color:#64748b;">Gợi ý:</span>
@@ -890,8 +925,12 @@
             <!-- Input địa chỉ & Nút tìm gần nhất -->
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
                 <div style="flex: 1; min-width: 250px; position: relative;">
-                    <input type="text" id="food-delivery-address-input" class="form-control" style="width: 100%;" placeholder="Nhập địa chỉ nhận đồ ăn của bạn (gợi ý tự động)..." oninput="handleFoodDeliveryAddressChange(this.value, false)" autocomplete="off">
+                    <input type="text" id="food-delivery-address-input" class="form-control" style="width: 100%; padding-right: 38px;" placeholder="Nhập địa chỉ nhận đồ ăn của bạn (gợi ý tự động)..." oninput="handleFoodDeliveryAddressChange(this.value, false)" autocomplete="off">
+                    <button type="button" class="btn-saved-addr-icon" onclick="toggleSavedAddressDropdown('food-header', this)" title="Chọn nhanh từ Địa chỉ đã lưu" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ea580c; transition: all 0.2s;" onmouseover="this.style.background='#ffedd5'" onmouseout="this.style.background='#fff7ed'">
+                        🔖
+                    </button>
                     <div id="food-address-autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
+                    <div id="food-header-saved-addr-dropdown" class="saved-addr-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.15); z-index:1050; max-height:260px; overflow-y:auto;"></div>
                 </div>
                 <button type="button" class="btn-action" id="btn-find-nearby" style="background: var(--food-primary); color: white; padding: 10px 18px; font-size: 14px; font-weight: 700; border-radius: 6px; white-space: nowrap;" onclick="triggerFindNearbyRestaurants()">
                     🔎 Tìm nhà hàng gần nhất
@@ -1060,6 +1099,147 @@
 </div>
 
 <!-- Modal: Customer Wallet (Deposit, Withdraw, Pay, History) -->
+
+<!-- Modal: Kho Voucher Ưu Đãi (Phase 4) -->
+<div class="modal-backdrop" id="modal-voucher-browse" style="display: none; z-index: 3000;">
+    <div class="modal-card" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-head" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:14px;">
+            <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px;">
+                🎁 Kho Voucher & Khuyến Mãi OmniGo
+            </h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b;" onclick="closeModal('modal-voucher-browse')">✕</button>
+        </div>
+
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+            <button class="browse-voucher-tab active" onclick="switchBrowseVoucherTab('', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #ea580c; background:#ea580c; color:white; font-size:12px; font-weight:700; cursor:pointer;">Tất cả</button>
+            <button class="browse-voucher-tab" onclick="switchBrowseVoucherTab('BIKE', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; font-size:12px; font-weight:600; cursor:pointer;">🛵 Xe máy</button>
+            <button class="browse-voucher-tab" onclick="switchBrowseVoucherTab('CAR_4_SEAT', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; font-size:12px; font-weight:600; cursor:pointer;">🚗 Ô tô</button>
+            <button class="browse-voucher-tab" onclick="switchBrowseVoucherTab('FOOD', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; font-size:12px; font-weight:600; cursor:pointer;">🍲 Đồ ăn</button>
+        </div>
+
+        <div id="browse-voucher-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
+            <div style="text-align:center; padding:20px; color:#64748b;">Đang tải danh sách ưu đãi...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Quản Lý Địa Chỉ Đã Lưu (Phase 2) -->
+<div class="modal-backdrop" id="modal-saved-addresses" style="display: none; z-index: 3000;">
+    <div class="modal-card" style="max-width: 620px; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-head" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:14px;">
+            <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px;">
+                📍 Địa Chỉ Đã Lưu Của Tôi
+            </h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b;" onclick="closeModal('modal-saved-addresses')">✕</button>
+        </div>
+
+        <!-- Add / Edit Address Form with Autocomplete Geocoding (Không cần gõ tọa độ thủ công) -->
+        <div id="saved-addr-form-container" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:14px; transition: all 0.2s ease;">
+            <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span id="saved-addr-form-title">➕ Thêm địa chỉ mới</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" id="btn-cancel-edit-addr" onclick="cancelEditSavedAddress()" style="display:none; background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; cursor:pointer;">✕ Hủy sửa</button>
+                    <button type="button" onclick="fillCurrentLocationToAddressForm()" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:600; cursor:pointer;">🎯 Lấy từ điểm đón hiện tại</button>
+                </div>
+            </div>
+            <!-- Hidden input lưu ID khi sửa địa chỉ -->
+            <input type="hidden" id="editing-addr-id" value="">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                <input type="text" id="new-addr-label" placeholder="Tên gợi nhớ (VD: Nhà riêng, Công ty...)" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                <select id="new-addr-type" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                    <option value="HOME">🏠 Nhà riêng (HOME)</option>
+                    <option value="WORK">🏢 Cơ quan / Công ty (WORK)</option>
+                    <option value="OTHER">📍 Khác (OTHER)</option>
+                </select>
+            </div>
+            <!-- Gõ địa chỉ với gợi ý Autocomplete tự động gán tọa độ -->
+            <div style="position:relative; margin-bottom:8px;">
+                <input type="text" id="new-addr-text" placeholder="🔍 Gõ tìm địa chỉ (VD: Bách Khoa, Hồ Gươm, Keangnam...)" autocomplete="off" oninput="handleSavedAddrInputDebounced(this.value)" onfocus="handleSavedAddrFocus(this.value)" style="width:100%; box-sizing:border-box; padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                <div id="new-addr-autocomplete-dropdown" class="autocomplete-dropdown" style="display:none; z-index:9999; max-height:220px; overflow-y:auto;"></div>
+            </div>
+            <!-- Tọa độ ẩn tự động nhận giá trị khi chọn gợi ý -->
+            <input type="hidden" id="new-addr-lat" value="">
+            <input type="hidden" id="new-addr-lng" value="">
+            <!-- Huy hiệu thông báo trạng thái tọa độ -->
+            <div id="new-addr-coords-info" style="margin-bottom:8px; font-size:12px; color:#64748b; display:flex; align-items:center; gap:6px;">
+                <span id="new-addr-coords-text">💡 <i>Gõ địa chỉ và chọn từ danh sách gợi ý để hệ thống tự động lưu tọa độ chính xác.</i></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+                <label style="font-size:12px; color:#475569; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="new-addr-default"> Đặt làm địa chỉ mặc định
+                </label>
+                <button type="button" onclick="submitSaveAddress()" id="btnSaveAddress" style="background:#0284c7; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">💾 Lưu Địa Chỉ</button>
+            </div>
+        </div>
+
+        <div id="saved-addresses-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+            <div style="text-align:center; padding:20px; color:#64748b;">Đang tải danh sách địa chỉ đã lưu...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Hồ Sơ Tài Khoản, Đổi Mật Khẩu & Xóa Tài Khoản (Phase 1 & Phase 2) -->
+<div class="modal-backdrop" id="modal-user-profile" style="display: none; z-index: 3000;">
+    <div class="modal-card" style="max-width: 520px; max-height: 88vh; overflow-y: auto;">
+        <div class="modal-head" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+            <h3 style="color: #1e293b; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px;">
+                👤 Tài Khoản Của Tôi
+            </h3>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b;" onclick="closeModal('modal-user-profile')">✕</button>
+        </div>
+
+        <!-- Section 1: Thông tin cá nhân -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:16px;">
+            <div style="font-weight:700; font-size:14px; color:#0f172a; margin-bottom:10px;">📋 Thông tin cá nhân (Cập nhật hồ sơ)</div>
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Họ và tên</label>
+                <input type="text" id="cust-profile-fullname" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Email nhận thông báo / OTP</label>
+                <input type="email" id="cust-profile-email" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:4px;">Số điện thoại (Cố định tài khoản)</label>
+                <input type="text" id="cust-profile-phone" disabled style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #e2e8f0; background:#f1f5f9; border-radius:6px; font-size:13px; color:#64748b;">
+            </div>
+            <div style="text-align:right;">
+                <button type="button" onclick="submitUpdateUserProfile()" id="btnUpdateUserProfile" style="background:#0284c7; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">💾 Lưu Thay Đổi</button>
+            </div>
+        </div>
+
+        <!-- Section 2: Đổi mật khẩu -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:16px;">
+            <div style="font-weight:700; font-size:14px; color:#0f172a; margin-bottom:10px;">🔒 Đổi mật khẩu đăng nhập</div>
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Mật khẩu hiện tại</label>
+                <input type="password" id="cust-profile-old-pass" placeholder="Nhập mật khẩu cũ" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                <input type="password" id="cust-profile-new-pass" placeholder="Nhập mật khẩu mới" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Xác nhận lại mật khẩu mới</label>
+                <input type="password" id="cust-profile-confirm-pass" placeholder="Xác nhận mật khẩu mới" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+            </div>
+            <div id="cust-change-pass-error" style="color:#dc2626; font-size:12px; margin-bottom:10px; display:none;"></div>
+            <div style="text-align:right;">
+                <button type="button" onclick="submitCustomerChangePassword()" id="btnSubmitCustChangePass" style="background:#16a34a; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">🔑 Đổi Mật Khẩu</button>
+            </div>
+        </div>
+
+        <!-- Section 3: Vùng Nguy Hiểm (Xóa tài khoản) -->
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:14px;">
+            <div style="font-weight:700; font-size:14px; color:#dc2626; margin-bottom:4px;">⚠️ Vùng nguy hiểm: Xóa tài khoản</div>
+            <p style="font-size:12px; color:#7f1d1d; margin:0 0 10px 0;">Khi xóa tài khoản, toàn bộ thông tin tài khoản và địa chỉ của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống.</p>
+            <div style="text-align:right;">
+                <button type="button" onclick="submitDeleteCustomerAccount()" style="background:#dc2626; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">🗑️ Xóa Vĩnh Viễn Tài Khoản</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal-backdrop" id="customer-wallet-modal">
     <div class="modal-card" style="max-width: 520px;">
         <div class="modal-head">
@@ -1188,11 +1368,18 @@
         <div class="form-group">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                 <label class="form-label" style="margin-bottom:0;">📍 Địa chỉ nhận hàng *</label>
-                <button type="button" onclick="getCurrentLocationForFood()" style="background:none; border:none; color:var(--food-primary); cursor:pointer; font-size:12px; font-weight:600;">🎯 Lấy vị trí GPS của tôi</button>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" onclick="toggleSavedAddressDropdown('food-cart', this)" class="btn-saved-addr-toggle" style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:11px; cursor:pointer; font-weight:700; padding:2px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;" title="Chọn từ danh sách địa chỉ đã lưu">🔖 Địa chỉ đã lưu</button>
+                    <button type="button" onclick="getCurrentLocationForFood()" style="background:none; border:none; color:var(--food-primary); cursor:pointer; font-size:12px; font-weight:600;">🎯 Lấy vị trí GPS của tôi</button>
+                </div>
             </div>
             <div style="position: relative;">
-                <input type="text" id="order-delivery-address" class="form-control" value="" required oninput="onDeliveryAddressInput(this.value)" placeholder="Nhập địa chỉ nhận món (gợi ý tự động)..." autocomplete="off">
+                <input type="text" id="order-delivery-address" class="form-control" style="padding-right: 38px;" value="" required oninput="onDeliveryAddressInput(this.value)" placeholder="Nhập địa chỉ nhận món (gợi ý tự động)..." autocomplete="off">
+                <button type="button" class="btn-saved-addr-icon" onclick="toggleSavedAddressDropdown('food-cart', this)" title="Chọn nhanh từ Địa chỉ đã lưu" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ea580c; transition: all 0.2s;" onmouseover="this.style.background='#ffedd5'" onmouseout="this.style.background='#fff7ed'">
+                    🔖
+                </button>
                 <div id="cart-address-autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 2100; max-height: 250px; overflow-y: auto;"></div>
+                <div id="food-cart-saved-addr-dropdown" class="saved-addr-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.15); z-index:2200; max-height:260px; overflow-y:auto;"></div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;">
                 <span style="font-size:11px; color:#64748b;">Gợi ý nhanh:</span>
@@ -1657,6 +1844,7 @@
             document.getElementById('display-user').innerText = displayName + ' (ID: ' + customerId + ')';
             fetchCustomerWallet();
             loadCustomerProfile();
+            registerCustomerFcmToken(customerId);
         }
 
         map = L.map('map').setView([21.035, 105.835], 13);
@@ -1925,46 +2113,14 @@
         `;
 
         try {
-            let items = [];
-            // 1. Photon OpenStreetMap API
-            try {
-                const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=vi&limit=6`;
-                const res = await fetch(photonUrl);
-                if (res.ok) {
-                    const data = await res.json();
-                    items = (data.features || []).map(f => {
-                        const p = f.properties || {};
-                        const coords = f.geometry?.coordinates || [0, 0];
-                        const full = [p.name, p.street, p.district, p.city, p.country]
-                            .filter(Boolean)
-                            .filter((v, i, a) => a.indexOf(v) === i)
-                            .join(', ');
-                        return {
-                            name: p.name || full,
-                            full: full || p.name || query,
-                            lat: Number(Number(coords[1]).toFixed(6)),
-                            lng: Number(Number(coords[0]).toFixed(6))
-                        };
-                    });
-                }
-            } catch (errPhoton) {
-                console.warn("Photon autocomplete warning:", errPhoton);
-            }
-
-            // 2. Fallback to Nominatim API
-            if (!items || items.length === 0) {
-                const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=vn&addressdetails=1&limit=6`;
-                const nomRes = await fetch(nomUrl, { headers: { 'Accept-Language': 'vi' } });
-                if (nomRes.ok) {
-                    const nomData = await nomRes.json();
-                    items = (nomData || []).map(d => ({
-                        name: d.name || (d.display_name ? d.display_name.split(',')[0] : query),
-                        full: d.display_name,
-                        lat: Number(parseFloat(d.lat).toFixed(6)),
-                        lng: Number(parseFloat(d.lon).toFixed(6))
-                    }));
-                }
-            }
+            // Dùng chung bộ gợi ý vị trí thống nhất (hỗ trợ CORS và tiếng Việt không dấu)
+            const suggestions = await fetchAddressSuggestions(query);
+            const items = suggestions.map(s => ({
+                name: s.name,
+                full: s.desc ? (s.desc.includes(s.name) ? s.desc : `${s.name}, ${s.desc}`) : s.name,
+                lat: s.lat,
+                lng: s.lng
+            }));
 
             if (!items || items.length === 0) {
                 dropdown.innerHTML = `
@@ -3062,11 +3218,24 @@
                                 <button class="btn-action" style="background:#f59e0b; color:#ffffff; padding:6px 14px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="openFoodReviewModal(${order.id}, ${order.restaurantId})">⭐ Đánh giá đơn hàng</button>
                             `}
                         </div>
+                    ` : (order.status === 'NO_DRIVER_FOUND' ? `
+                        <div style="margin-top:8px; font-size:12px; color:#b45309; background:#fffbeb; padding:8px 12px; border-radius:6px; border:1px dashed #fcd34d;">
+                            ⚠️ <b>Chưa tìm thấy tài xế nhận giao món:</b> Số lần đã tìm lại: <b>${order.driverRetryCount || 0}/3</b>.
+                            ${(order.driverRetryCount || 0) < 3 
+                                ? 'Bạn có thể bấm quét tìm lại tài xế xung quanh quán ăn.' 
+                                : 'Đã đạt giới hạn tối đa 3 lần tìm lại. Đơn đã được hệ thống tự động hủy và hoàn tiền.'}
+                        </div>
+                        ${(order.driverRetryCount || 0) < 3 ? `
+                            <div style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
+                                <button class="btn-action" style="background:#f59e0b; color:white; padding:6px 14px; font-size:12px; font-weight:bold; border-radius:6px;" onclick="retryDriverForFoodOrder(${order.id})">🔄 Quét tìm lại tài xế (${order.driverRetryCount || 0}/3)</button>
+                                <button class="btn-action" style="background:#fee2e2; color:#dc2626; padding:6px 12px; font-size:12px;" onclick="cancelFoodOrder(${order.id})">❌ Hủy đơn</button>
+                            </div>
+                        ` : ''}
                     ` : (canCancel ? `
                         <div style="margin-top:10px; text-align:right;">
                             <button class="btn-action" style="background:#fee2e2; color:#dc2626; padding:6px 12px; font-size:12px;" onclick="cancelFoodOrder(${order.id})">❌ Hủy đơn hàng</button>
                         </div>
-                    ` : ''))}
+                    ` : '')))}
                 </div>
             `;
         }).join('');
@@ -3174,7 +3343,7 @@
                 let voucherNotice = "<div style='font-size:11px; color:#16a34a; font-weight:600; margin-top:2px;'>✅ Mã voucher đã được hoàn lại</div>";
                 return `<div><span class="badge-food" style="background:#fee2e2; color:#b91c1c;">🚫 Quán từ chối</span>${reasonHtml}${voucherNotice}</div>`;
             }
-            case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fef3c7; color:#b45309;">⚠️ Chưa tìm thấy xế (Quán đang tìm lại)</span>`;
+            case 'NO_DRIVER_FOUND': return `<span class="badge-food" style="background:#fef3c7; color:#b45309;">⚠️ Chưa có tài xế (${order.driverRetryCount || 0}/3)</span>`;
             default: return `<span class="badge-food">${status}</span>`;
         }
     }
@@ -3898,29 +4067,83 @@
     // ==========================================
     // ADDRESS AUTOCOMPLETE & GEOCODING SYSTEM
     // ==========================================
+    function removeVietnameseTones(str) {
+        if (!str) return '';
+        str = str.toLowerCase();
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/[\u0300\u0301\u0303\u0309\u0323]/g, "");
+        str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+        return str.trim();
+    }
+
     const POPULAR_HANOI_PLACES = [
-        { name: "Hồ Hoàn Kiếm", desc: "Hàng Trống, Hoàn Kiếm, Hà Nội", lat: 21.028511, lng: 105.854444, category: "Danh lam", icon: "🏛️" },
-        { name: "Hồ Tây (Phủ Tây Hồ)", desc: "Quảng An, Tây Hồ, Hà Nội", lat: 21.058500, lng: 105.820200, category: "Danh lam", icon: "🌊" },
-        { name: "Đại học Bách Khoa Hà Nội", desc: "Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội", lat: 21.004200, lng: 105.843700, category: "Trường ĐH", icon: "🎓" },
-        { name: "Đại học Quốc Gia Hà Nội", desc: "144 Xuân Thủy, Dịch Vọng Hậu, Cầu Giấy, Hà Nội", lat: 21.037100, lng: 105.781800, category: "Trường ĐH", icon: "🎓" },
-        { name: "Đại học Kinh tế Quốc dân (NEU)", desc: "207 Giải Phóng, Đồng Tâm, Hai Bà Trưng, Hà Nội", lat: 20.999500, lng: 105.843000, category: "Trường ĐH", icon: "🎓" },
-        { name: "Đại học Ngoại Thương (FTU)", desc: "91 Chùa Láng, Láng Thượng, Đống Đa, Hà Nội", lat: 21.022700, lng: 105.802300, category: "Trường ĐH", icon: "🎓" },
-        { name: "Bến xe Mỹ Đình", desc: "Số 20 Phạm Hùng, Mỹ Đình 2, Nam Từ Liêm, Hà Nội", lat: 21.028000, lng: 105.778000, category: "Bến xe", icon: "🚌" },
-        { name: "Bến xe Giáp Bát", desc: "Km6 Đường Giải Phóng, Giáp Bát, Hoàng Mai, Hà Nội", lat: 20.981800, lng: 105.841500, category: "Bến xe", icon: "🚌" },
+        // Tuyến Ngọc Hồi & Thanh Trì & Hoàng Mai
+        { name: "Đường Ngọc Hồi", desc: "Đường Ngọc Hồi, Thanh Trì, Hà Nội", lat: 20.954330, lng: 105.843655, category: "Đường phố", icon: "🛣️" },
+        { name: "Cầu Ngọc Hồi", desc: "Cầu Ngọc Hồi, Thanh Trì, Hà Nội", lat: 20.924541, lng: 105.851096, category: "Cầu đường", icon: "🌉" },
+        { name: "Bến xe Nước Ngầm", desc: "Số 01 Ngọc Hồi, Hoàng Liệt, Hoàng Mai, Hà Nội", lat: 20.975400, lng: 105.842700, category: "Bến xe", icon: "🚌" },
+        { name: "Bến xe Giáp Bát", desc: "Km6 Đường Giải Phóng, Hoàng Mai, Hà Nội", lat: 20.981800, lng: 105.841500, category: "Bến xe", icon: "🚌" },
+        { name: "Đường Giải Phóng", desc: "Đường Giải Phóng, Hoàng Mai, Hà Nội", lat: 20.989000, lng: 105.841200, category: "Đường phố", icon: "🛣️" },
+        { name: "Thị trấn Văn Điển", desc: "Thị trấn Văn Điển, Thanh Trì, Hà Nội", lat: 20.952500, lng: 105.844100, category: "Khu vực", icon: "📍" },
+        { name: "Huyện Thanh Trì", desc: "Huyện Thanh Trì, Thành phố Hà Nội", lat: 20.941900, lng: 105.850300, category: "Quận/Huyện", icon: "📍" },
+        { name: "Khu đô thị Linh Đàm", desc: "Bán đảo Linh Đàm, Hoàng Mai, Hà Nội", lat: 20.969700, lng: 105.828800, category: "Khu đô thị", icon: "🏙️" },
+        { name: "Đường Kim Giang", desc: "Đường Kim Giang, Thanh Xuân / Hoàng Mai, Hà Nội", lat: 20.982000, lng: 105.817500, category: "Đường phố", icon: "🛣️" },
+        { name: "Đường Trương Định", desc: "Đường Trương Định, Hoàng Mai, Hà Nội", lat: 20.991200, lng: 105.850500, category: "Đường phố", icon: "🛣️" },
+
+        // Trung tâm Hà Nội & Hoàn Kiếm & Ba Đình
+        { name: "Hồ Hoàn Kiếm (Hồ Gươm)", desc: "Hàng Trống, Hoàn Kiếm, Hà Nội", lat: 21.028511, lng: 105.854444, category: "Danh lam", icon: "🏛️" },
+        { name: "Tràng Tiền Plaza", desc: "24 Hai Bà Trưng, Tràng Tiền, Hoàn Kiếm, Hà Nội", lat: 21.025300, lng: 105.854200, category: "TTTM", icon: "🏬" },
+        { name: "Nhà hát Lớn Hà Nội", desc: "Số 1 Tràng Tiền, Hoàn Kiếm, Hà Nội", lat: 21.024400, lng: 105.857600, category: "Danh lam", icon: "🎭" },
+        { name: "Lăng Chủ tịch Hồ Chí Minh", desc: "Số 2 Hùng Vương, Ba Đình, Hà Nội", lat: 21.036800, lng: 105.834700, category: "Di tích", icon: "⭐" },
+        { name: "Văn Miếu - Quốc Tử Giám", desc: "58 Quốc Tử Giám, Đống Đa, Hà Nội", lat: 21.029400, lng: 105.836000, category: "Di tích", icon: "⛩️" },
         { name: "Ga Hà Nội", desc: "120 Lê Duẩn, Văn Miếu, Đống Đa, Hà Nội", lat: 21.024500, lng: 105.841000, category: "Nhà ga", icon: "🚆" },
-        { name: "Sân bay Quốc tế Nội Bài (Ga T1)", desc: "Xã Phú Cường, Huyện Sóc Sơn, Hà Nội", lat: 21.221200, lng: 105.807200, category: "Sân bay", icon: "✈️" },
-        { name: "Keangnam Landmark 72", desc: "Khu E6 Đô thị mới Cầu Giấy, Nam Từ Liêm, Hà Nội", lat: 21.017300, lng: 105.783900, category: "Tòa nhà", icon: "🏢" },
+        { name: "Hồ Tây (Phủ Tây Hồ)", desc: "Quảng An, Tây Hồ, Hà Nội", lat: 21.058500, lng: 105.820200, category: "Danh lam", icon: "🌊" },
         { name: "Lotte Center Liễu Giai", desc: "54 Liễu Giai, Cống Vị, Ba Đình, Hà Nội", lat: 21.033000, lng: 105.812500, category: "TTTM", icon: "🏬" },
+
+        // Cầu Giấy & Nam Từ Liêm & Bắc Từ Liêm
+        { name: "Bến xe Mỹ Đình", desc: "Số 20 Phạm Hùng, Mỹ Đình 2, Nam Từ Liêm, Hà Nội", lat: 21.028000, lng: 105.778000, category: "Bến xe", icon: "🚌" },
+        { name: "Sân vận động Quốc gia Mỹ Đình", desc: "Đường Lê Đức Thọ, Mỹ Đình, Nam Từ Liêm, Hà Nội", lat: 21.020500, lng: 105.764000, category: "Thể thao", icon: "🏟️" },
+        { name: "Keangnam Landmark 72", desc: "Khu E6 Phạm Hùng, Mễ Trì, Nam Từ Liêm, Hà Nội", lat: 21.017300, lng: 105.783900, category: "Tòa nhà", icon: "🏢" },
+        { name: "Quận Cầu Giấy (Đường Cầu Giấy)", desc: "Đường Cầu Giấy, Cầu Giấy, Hà Nội", lat: 21.033333, lng: 105.789123, category: "Đường phố", icon: "🛣️" },
+        { name: "Công viên Cầu Giấy", desc: "Phố Duy Tân, Dịch Vọng, Cầu Giấy, Hà Nội", lat: 21.031500, lng: 105.789500, category: "Công viên", icon: "🌳" },
+        { name: "Đường Trần Duy Hưng", desc: "Đường Trần Duy Hưng, Trung Hòa, Cầu Giấy, Hà Nội", lat: 21.010200, lng: 105.798700, category: "Đường phố", icon: "🛣️" },
+        { name: "Đại học Quốc Gia Hà Nội", desc: "144 Xuân Thủy, Dịch Vọng Hậu, Cầu Giấy, Hà Nội", lat: 21.037100, lng: 105.781800, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Sư phạm Hà Nội", desc: "136 Xuân Thủy, Dịch Vọng Hậu, Cầu Giấy, Hà Nội", lat: 21.037500, lng: 105.782500, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Thương Mại", desc: "79 Hồ Tùng Mậu, Mai Dịch, Cầu Giấy, Hà Nội", lat: 21.036600, lng: 105.774500, category: "Trường ĐH", icon: "🎓" },
+
+        // Hai Bà Trưng & Đống Đa & Thanh Xuân
+        { name: "Đại học Bách Khoa Hà Nội", desc: "Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội", lat: 21.004200, lng: 105.843700, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Xây Dựng Hà Nội", desc: "55 Giải Phóng, Đồng Tâm, Hai Bà Trưng, Hà Nội", lat: 21.003500, lng: 105.842000, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Kinh tế Quốc dân (NEU)", desc: "207 Giải Phóng, Đồng Tâm, Hai Bà Trưng, Hà Nội", lat: 20.999500, lng: 105.843000, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Y Hà Nội", desc: "Số 1 Tôn Thất Tùng, Kim Liên, Đống Đa, Hà Nội", lat: 21.002800, lng: 105.830500, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đại học Ngoại Thương (FTU)", desc: "91 Chùa Láng, Láng Thượng, Đống Đa, Hà Nội", lat: 21.022700, lng: 105.802300, category: "Trường ĐH", icon: "🎓" },
+        { name: "Học viện Ngân hàng", desc: "12 Chùa Bộc, Quang Trung, Đống Đa, Hà Nội", lat: 21.008900, lng: 105.827800, category: "Trường ĐH", icon: "🎓" },
+        { name: "Đường Nguyễn Trãi", desc: "Đường Nguyễn Trãi, Thanh Xuân, Hà Nội", lat: 20.994200, lng: 105.808000, category: "Đường phố", icon: "🛣️" },
         { name: "Vincom Mega Mall Royal City", desc: "72A Nguyễn Trãi, Thượng Đình, Thanh Xuân, Hà Nội", lat: 21.002800, lng: 105.815900, category: "TTTM", icon: "🏬" },
         { name: "Vincom Mega Mall Times City", desc: "458 Minh Khai, Vĩnh Tuy, Hai Bà Trưng, Hà Nội", lat: 20.995300, lng: 105.867200, category: "TTTM", icon: "🏬" },
-        { name: "Aeon Mall Long Biên", desc: "Số 27 Cổ Linh, Long Biên, Hà Nội", lat: 21.026300, lng: 105.901500, category: "TTTM", icon: "🏬" },
-        { name: "Aeon Mall Hà Đông", desc: "Khu dân cư Hoàng Văn Thụ, Dương Nội, Hà Đông, Hà Nội", lat: 20.983700, lng: 105.753300, category: "TTTM", icon: "🏬" },
+
+        // Hà Đông & Khu Vực Khác
+        { name: "Quận Hà Đông", desc: "Trung tâm Quận Hà Đông, Hà Nội", lat: 20.972300, lng: 105.776600, category: "Quận/Huyện", icon: "📍" },
+        { name: "Aeon Mall Hà Đông", desc: "Dương Nội, Hà Đông, Hà Nội", lat: 20.983700, lng: 105.753300, category: "TTTM", icon: "🏬" },
+        { name: "Bến xe Yên Nghĩa", desc: "Quốc lộ 6, Yên Nghĩa, Hà Đông, Hà Nội", lat: 20.953600, lng: 105.748500, category: "Bến xe", icon: "🚌" },
+        { name: "Học viện Bưu chính Viễn thông", desc: "Km10 Đường Nguyễn Trãi, Hà Đông, Hà Nội", lat: 20.980600, lng: 105.787600, category: "Trường ĐH", icon: "🎓" },
+
+        // Bệnh viện lớn
         { name: "Bệnh viện Bạch Mai", desc: "78 Giải Phóng, Phương Mai, Đống Đa, Hà Nội", lat: 21.001600, lng: 105.840000, category: "Bệnh viện", icon: "🏥" },
         { name: "Bệnh viện Việt Đức", desc: "40 Tràng Thi, Hàng Bông, Hoàn Kiếm, Hà Nội", lat: 21.028700, lng: 105.847900, category: "Bệnh viện", icon: "🏥" },
-        { name: "Cầu Giấy (123 Đường Cầu Giấy)", desc: "Phường Cầu Giấy, Hà Nội", lat: 21.033333, lng: 105.789123, category: "Đường phố", icon: "📍" },
-        { name: "Văn Miếu - Quốc Tử Giám", desc: "58 Quốc Tử Giám, Văn Miếu, Đống Đa, Hà Nội", lat: 21.029400, lng: 105.836000, category: "Di tích", icon: "⛩️" },
-        { name: "Lăng Chủ tịch Hồ Chí Minh", desc: "Số 2 Hùng Vương, Điện Bàn, Ba Đình, Hà Nội", lat: 21.036800, lng: 105.834700, category: "Di tích", icon: "⭐" },
-        { name: "Công viên Cầu Giấy", desc: "Phố Duy Tân, Dịch Vọng, Cầu Giấy, Hà Nội", lat: 21.031500, lng: 105.789500, category: "Công viên", icon: "🌳" }
+        { name: "Bệnh viện K (Cơ sở Tân Triều)", desc: "Số 30 Cầu Bươu, Tân Triều, Thanh Trì, Hà Nội", lat: 20.967800, lng: 105.803200, category: "Bệnh viện", icon: "🏥" },
+        { name: "Bệnh viện Trung ương Quân đội 108", desc: "Số 1 Trần Hưng Đạo, Bạch Đằng, Hai Bà Trưng, Hà Nội", lat: 21.018000, lng: 105.861000, category: "Bệnh viện", icon: "🏥" },
+        { name: "Bệnh viện Nhi Trung ương", desc: "18/879 La Thành, Láng Thượng, Đống Đa, Hà Nội", lat: 21.025500, lng: 105.811500, category: "Bệnh viện", icon: "🏥" },
+
+        // Long Biên & Sân bay
+        { name: "Sân bay Quốc tế Nội Bài (Ga T1)", desc: "Xã Phú Cường, Huyện Sóc Sơn, Hà Nội", lat: 21.221200, lng: 105.807200, category: "Sân bay", icon: "✈️" },
+        { name: "Aeon Mall Long Biên", desc: "Số 27 Cổ Linh, Long Biên, Hà Nội", lat: 21.026300, lng: 105.901500, category: "TTTM", icon: "🏬" },
+        { name: "Bến xe Gia Lâm", desc: "Số 9 Ngô Gia Khảm, Long Biên, Hà Nội", lat: 21.050700, lng: 105.877800, category: "Bến xe", icon: "🚌" }
     ];
 
     let addressSearchTimeout = null;
@@ -3953,43 +4176,52 @@
     }
 
     async function fetchAddressSuggestions(query) {
-        const qNorm = query.trim().toLowerCase();
+        if (!query || query.trim().length === 0) return [];
+        const qClean = query.trim();
+        const qNorm = removeVietnameseTones(qClean);
         
-        let localMatches = POPULAR_HANOI_PLACES.filter(p => 
-            p.name.toLowerCase().includes(qNorm) || p.desc.toLowerCase().includes(qNorm)
-        );
+        // 1. Tìm kiếm tức thì trong danh bạ offline có hỗ trợ tiếng Việt không dấu
+        let localMatches = POPULAR_HANOI_PLACES.filter(p => {
+            const nNorm = removeVietnameseTones(p.name);
+            const dNorm = removeVietnameseTones(p.desc);
+            return nNorm.includes(qNorm) || dNorm.includes(qNorm);
+        });
 
+        // 2. Tìm kiếm online qua Photon Komoot API (Hỗ trợ CORS Access-Control-Allow-Origin: *, bias tọa độ Hà Nội)
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=6&addressdetails=1`;
-            const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(qClean)}&lat=21.0285&lon=105.8544&limit=8`;
+            const res = await fetch(photonUrl);
             if (res.ok) {
                 const data = await res.json();
-                const remoteMatches = data.map(item => {
-                    let parts = (item.display_name || '').split(',');
-                    let mainName = parts[0] ? parts[0].trim() : item.display_name;
-                    let subAddress = parts.slice(1, 4).join(',').trim();
+                const remoteMatches = (data.features || []).map(f => {
+                    const p = f.properties || {};
+                    const coords = f.geometry?.coordinates || [0, 0];
+                    const name = p.name || p.street || qClean;
+                    const parts = [p.name, p.street, p.district, p.city, p.country].filter(Boolean);
+                    const uniqueParts = parts.filter((v, i, a) => a.indexOf(v) === i);
+                    const desc = uniqueParts.join(', ');
                     return {
-                        name: mainName,
-                        desc: subAddress || item.display_name,
-                        lat: parseFloat(item.lat),
-                        lng: parseFloat(item.lon),
-                        category: item.type || 'Bản đồ',
+                        name: name,
+                        desc: desc || name,
+                        lat: Number(Number(coords[1]).toFixed(6)),
+                        lng: Number(Number(coords[0]).toFixed(6)),
+                        category: p.type || 'Địa điểm',
                         icon: '📍'
                     };
                 });
-                
+
                 let combined = [...localMatches];
                 remoteMatches.forEach(rm => {
                     let exists = combined.some(c => Math.abs(c.lat - rm.lat) < 0.001 && Math.abs(c.lng - rm.lng) < 0.001);
                     if (!exists) combined.push(rm);
                 });
-                return combined.slice(0, 7);
+                if (combined.length > 0) return combined.slice(0, 8);
             }
         } catch (e) {
-            console.warn("Không kết nối được dịch vụ Geocoding:", e);
+            console.warn("Không kết nối được dịch vụ Geocoding Photon, chuyển dùng gợi ý có sẵn:", e);
         }
 
-        return localMatches.slice(0, 6);
+        return localMatches.slice(0, 8);
     }
 
     function renderAutocompleteResults(type, list, isDefault = false) {
@@ -4046,6 +4278,26 @@
         if (!e.target.closest('#ride-dropoff-address') && !e.target.closest('#dropoff-autocomplete-dropdown')) {
             const d2 = document.getElementById('dropoff-autocomplete-dropdown');
             if (d2) d2.style.display = 'none';
+        }
+                if (!e.target.closest('#pickup-saved-addr-dropdown') && !e.target.closest('.btn-saved-addr-icon') && !e.target.closest('.btn-saved-addr-toggle')) {
+            const sd1 = document.getElementById('pickup-saved-addr-dropdown');
+            if (sd1) sd1.style.display = 'none';
+        }
+        if (!e.target.closest('#dropoff-saved-addr-dropdown') && !e.target.closest('.btn-saved-addr-icon') && !e.target.closest('.btn-saved-addr-toggle')) {
+            const sd2 = document.getElementById('dropoff-saved-addr-dropdown');
+            if (sd2) sd2.style.display = 'none';
+        }
+        if (!e.target.closest('#food-cart-saved-addr-dropdown') && !e.target.closest('.btn-saved-addr-icon') && !e.target.closest('.btn-saved-addr-toggle')) {
+            const sd3 = document.getElementById('food-cart-saved-addr-dropdown');
+            if (sd3) sd3.style.display = 'none';
+        }
+        if (!e.target.closest('#food-header-saved-addr-dropdown') && !e.target.closest('.btn-saved-addr-icon') && !e.target.closest('.btn-saved-addr-toggle')) {
+            const sd4 = document.getElementById('food-header-saved-addr-dropdown');
+            if (sd4) sd4.style.display = 'none';
+        }
+        if (!e.target.closest('#new-addr-text') && !e.target.closest('#new-addr-autocomplete-dropdown')) {
+            const nDrop = document.getElementById('new-addr-autocomplete-dropdown');
+            if (nDrop) nDrop.style.display = 'none';
         }
     });
 
@@ -4182,14 +4434,33 @@
         const pickupName = document.getElementById('ride-pickup-address')?.value || 'Điểm đón';
         const dropoffName = document.getElementById('ride-dropoff-address')?.value || 'Điểm đến';
 
+        // Luôn đồng bộ vị trí Radar quét tìm tài xế theo đúng Điểm đón
+        if (radarMarker) {
+            radarMarker.setLatLng(startPoint);
+        } else if (map) {
+            const radarIcon = L.divIcon({
+                className: 'radar-pulse-container',
+                html: '<div class="radar-pulse-circle"></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            radarMarker = L.marker(startPoint, {icon: radarIcon}).addTo(map)
+                .bindTooltip("📡 <b>Radar quét tài xế rảnh</b><br>Bán kính 5 km xung quanh điểm đón", { direction: 'top' });
+        }
+
         currentStartMarker = L.marker(startPoint, {icon: greenIcon, draggable: true}).addTo(map)
             .bindPopup(`<b>🟢 Điểm đón:</b><br>${pickupName}<br><small style="color:#0284c7;">💡 Bạn có thể kéo thả marker để đổi vị trí đón</small>`);
         currentEndMarker = L.marker(endPoint, {icon: redIcon, draggable: true}).addTo(map)
             .bindPopup(`<b>🔴 Điểm đến:</b><br>${dropoffName}<br><small style="color:#0284c7;">💡 Bạn có thể kéo thả marker để đổi vị trí đến</small>`);
 
+        currentStartMarker.on('drag', function(e) {
+            if (radarMarker) radarMarker.setLatLng(e.target.getLatLng());
+        });
+
         currentStartMarker.on('dragend', function(e) {
             let pos = e.target.getLatLng();
             startPoint = [pos.lat, pos.lng];
+            if (radarMarker) radarMarker.setLatLng(pos);
             fetchReverseGeocode(pos.lat, pos.lng, 'pickup');
             updateRideRouteAndPricing();
         });
@@ -4214,8 +4485,15 @@
                 const durEl = document.getElementById('route-duration-val');
                 const srcBadge = document.getElementById('route-source-badge');
 
+                // Ước tính thời gian di chuyển sát với điều kiện giao thông đô thị Việt Nam
+                let dur = route.durationMinutes;
+                if (route.distanceKm && dur && (route.distanceKm / (dur / 60.0)) > 35) {
+                    let avgSpeed = (currentVehicleType === 'BIKE') ? 28.5 : 24.0;
+                    dur = Math.max(dur, Math.round((route.distanceKm / avgSpeed) * 60.0));
+                }
+
                 if (distEl) distEl.innerText = route.distanceKm ? route.distanceKm.toFixed(1) : '--';
-                if (durEl) durEl.innerText = route.durationMinutes || '--';
+                if (durEl) durEl.innerText = dur || '--';
                 if (srcBadge) srcBadge.innerText = route.source || 'OSRM Engine';
 
                 if (route.encodedPolyline) {
@@ -4600,11 +4878,13 @@
 
             if (radarMarker) map.removeLayer(radarMarker);
             const radarIcon = L.divIcon({
-                className: 'radar-pulse',
+                className: 'radar-pulse-container',
+                html: '<div class="radar-pulse-circle"></div>',
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
             });
-            radarMarker = L.marker(startPoint, {icon: radarIcon}).addTo(map);
+            radarMarker = L.marker(startPoint, {icon: radarIcon}).addTo(map)
+                .bindTooltip("📡 <b>Radar quét tài xế rảnh</b><br>Bán kính 5 km xung quanh điểm đón", { direction: 'top' });
 
             loadNearbyDrivers();
             clearInterval(nearbyDriversInterval);
@@ -5305,6 +5585,858 @@
             `;
         });
     }
+
+    // ==========================================
+    // ⚡ PHA 2: ĐĂNG KÝ FCM TOKEN KHÁCH HÀNG
+    // ==========================================
+    async function registerCustomerFcmToken(uid) {
+        try {
+            const token = getStoredToken();
+            if (!token || !uid) return;
+            const fakeFcm = 'fcm_customer_demo_' + uid + '_' + Math.random().toString(36).substring(2, 9);
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me/fcm-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fcmToken: fakeFcm,
+                    deviceType: 'WEB',
+                    deviceModel: navigator.userAgent ? navigator.userAgent.substring(0, 50) : 'Browser Customer'
+                })
+            });
+            if (res.ok) {
+                console.log('✅ Đã đăng ký FCM Token khách hàng:', fakeFcm);
+            }
+        } catch (e) {
+            console.warn('Lỗi đăng ký FCM Token khách hàng:', e);
+        }
+    }
+
+    // ==========================================
+    // ⚡ PHA 3: QUÉT TÌM LẠI TÀI XẾ ĐƠN MÓN (RETRY DRIVER)
+    // ==========================================
+    async function retryDriverForFoodOrder(orderId) {
+        if (!confirm('Bạn có muốn hệ thống quét tìm lại tài xế xung quanh nhà hàng cho đơn hàng #' + orderId + ' không?')) {
+            return;
+        }
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/${orderId}/retry-driver`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                alert('✅ Đã phát tín hiệu quét tìm lại tài xế thành công! Vui lòng chờ tài xế gần quán nhận đơn.');
+                fetchMyFoodOrders(false);
+            } else {
+                alert(data.message || 'Không thể tìm lại tài xế cho đơn này!');
+                fetchMyFoodOrders(false);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        }
+    }
+
+    // ==========================================
+    // ⚡ PHA 4: KHO VOUCHER KHUYẾN MÃI (BROWSE VOUCHERS)
+    // ==========================================
+    let currentBrowseVoucherService = '';
+
+    function openVoucherBrowseModal() {
+        openModal('modal-voucher-browse');
+        loadBrowseVouchers(currentBrowseVoucherService);
+    }
+
+    function switchBrowseVoucherTab(serviceType, btnEl) {
+        currentBrowseVoucherService = serviceType;
+        document.querySelectorAll('.browse-voucher-tab').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#334155';
+            b.style.borderColor = '#cbd5e1';
+            b.style.fontWeight = '600';
+        });
+        if (btnEl) {
+            btnEl.style.background = '#ea580c';
+            btnEl.style.color = 'white';
+            btnEl.style.borderColor = '#ea580c';
+            btnEl.style.fontWeight = '700';
+        }
+        loadBrowseVouchers(serviceType);
+    }
+
+    async function loadBrowseVouchers(serviceType = '') {
+        const listEl = document.getElementById('browse-voucher-list');
+        listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">⏳ Đang tải danh sách ưu đãi...</div>';
+
+        try {
+            const params = new URLSearchParams();
+            if (serviceType) params.append('serviceType', serviceType);
+            if (customerId) params.append('userId', customerId);
+
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers?${params.toString()}`);
+            if (!res.ok) {
+                listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Không thể tải kho voucher (HTTP ${res.status})</div>`;
+                return;
+            }
+
+            const data = await res.json();
+            const vouchers = data.data || data || [];
+
+            if (!Array.isArray(vouchers) || vouchers.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                        <div style="font-size:36px; margin-bottom:8px;">🎁</div>
+                        <div style="font-weight:600;">Hiện chưa có mã ưu đãi nào ${serviceType ? 'cho dịch vụ này' : ''}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = vouchers.map(v => {
+                const discountText = v.discountType === 'PERCENT'
+                    ? `Giảm ${v.discountValue}% (Tối đa ${Number(v.maxDiscountAmount || 0).toLocaleString('vi-VN')} đ)`
+                    : `Giảm ${Number(v.discountValue || 0).toLocaleString('vi-VN')} đ`;
+
+                const minOrderText = v.minOrderAmount > 0
+                    ? `Đơn tối thiểu: ${Number(v.minOrderAmount).toLocaleString('vi-VN')} đ`
+                    : 'Không yêu cầu đơn tối thiểu';
+
+                let expireText = '';
+                if (v.expireAt) {
+                    expireText = `HSD: ${new Date(v.expireAt).toLocaleDateString('vi-VN')}`;
+                }
+
+                let remainingText = '';
+                if (v.totalUsageLimit) {
+                    const rem = v.remainingCount !== undefined ? v.remainingCount : (v.totalUsageLimit - (v.usedCount || 0));
+                    remainingText = `Còn lại: ${rem}/${v.totalUsageLimit} lượt`;
+                }
+
+                return `
+                    <div style="border: 1px dashed #fdba74; background: #fffaf0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div style="flex: 1;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                <span style="font-weight:800; font-family:monospace; color:#c2410c; background:#ffedd5; padding:3px 8px; border-radius:4px; font-size:13px; border:1px solid #fed7aa;">${v.code}</span>
+                                <span style="font-weight:700; font-size:13px; color:#1e293b;">${v.title || 'Ưu đãi OmniGo'}</span>
+                            </div>
+                            <div style="font-size:12px; color:#059669; font-weight:600; margin-bottom:2px;">${discountText}</div>
+                            <div style="font-size:11px; color:#64748b;">${v.description || ''}</div>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:4px; display:flex; gap:12px; flex-wrap:wrap;">
+                                <span>📌 ${minOrderText}</span>
+                                ${expireText ? `<span>⏰ ${expireText}</span>` : ''}
+                                ${remainingText ? `<span>🎟️ ${remainingText}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="copyAndUseVoucher('${v.code}')" style="background:#ea580c; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap;">
+                            Dùng mã
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Lỗi tải dữ liệu: ${e.message}</div>`;
+        }
+    }
+
+    function copyAndUseVoucher(code) {
+        navigator.clipboard.writeText(code).catch(() => {});
+        // Pre-fill into ride voucher input or food voucher input
+        const rideVoucherInput = document.getElementById('ride-voucher-code');
+        const foodVoucherInput = document.getElementById('food-voucher-code');
+        if (rideVoucherInput) rideVoucherInput.value = code;
+        if (foodVoucherInput) foodVoucherInput.value = code;
+        closeModal('modal-voucher-browse');
+        alert('✅ Đã sao chép và tự động điền mã [' + code + '] vào ô khuyến mãi của bạn!');
+    }
+
+    // ==========================================
+    // ⚡ PHA 2: ĐỊA CHỈ ĐÃ LƯU (SAVED ADDRESSES)
+    // ==========================================
+    let savedAddressesCache = [];
+
+    function openSavedAddressesModal() {
+        openModal('modal-saved-addresses');
+        fetchSavedAddresses();
+    }
+
+    async function fetchSavedAddresses() {
+        const listEl = document.getElementById('saved-addresses-list');
+        listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">⏳ Đang tải địa chỉ đã lưu...</div>';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me/addresses`);
+            if (!res.ok) {
+                listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Không thể tải danh sách địa chỉ (HTTP ${res.status})</div>`;
+                return;
+            }
+
+            const data = await res.json();
+            savedAddressesCache = data.data || data || [];
+
+            if (!Array.isArray(savedAddressesCache) || savedAddressesCache.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                        <div style="font-size:36px; margin-bottom:8px;">📍</div>
+                        <div style="font-weight:600;">Bạn chưa lưu địa chỉ nào</div>
+                        <div style="font-size:12px; margin-top:4px;">Hãy thêm Nhà riêng hoặc Cơ quan ở trên để đặt xe nhanh hơn!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = savedAddressesCache.map(addr => {
+                let typeIcon = '📍';
+                let typeLabel = 'Khác';
+                if (addr.addressType === 'HOME') { typeIcon = '🏠'; typeLabel = 'Nhà riêng'; }
+                else if (addr.addressType === 'WORK') { typeIcon = '🏢'; typeLabel = 'Cơ quan'; }
+
+                return `
+                    <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:white; display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:16px;">${typeIcon}</span>
+                                <b style="color:#0f172a; font-size:13px;">${addr.label || typeLabel}</b>
+                                ${addr.isDefault ? '<span style="font-size:10px; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-weight:700;">Mặc định</span>' : ''}
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button onclick="startEditSavedAddress(${addr.id})" title="Chỉnh sửa địa chỉ" style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer; font-weight:600;">✏️ Sửa</button>
+                                <button onclick="deleteSavedAddress(${addr.id})" title="Xóa địa chỉ" style="background:#fee2e2; border:1px solid #fecaca; color:#dc2626; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer; font-weight:600;">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                        <div style="font-size:12px; color:#475569;">${addr.address}</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                            <button onclick="applySavedAddress(${addr.id}, 'pickup')" style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">🎯 Đón tại đây</button>
+                            <button onclick="applySavedAddress(${addr.id}, 'dropoff')" style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">🔴 Đến đây</button>
+                            <button onclick="applySavedAddress(${addr.id}, 'food')" style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">🍲 Giao món ở đây</button>
+                            ${!addr.isDefault ? `<button onclick="setDefaultSavedAddress(${addr.id})" style="background:#f8fafc; border:1px solid #cbd5e1; color:#475569; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">⭐ Đặt mặc định</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Lỗi tải địa chỉ: ${e.message}</div>`;
+        }
+    }
+
+    // ==========================================
+    // ⚡ AUTOCOMPLETE & CHỌN NHANH ĐỊA CHỈ ĐÃ LƯU
+    // ==========================================
+    let savedAddrSearchTimeout = null;
+
+    function handleSavedAddrFocus(val) {
+        if (!val || val.trim().length === 0) {
+            renderSavedAddrAutocomplete(POPULAR_HANOI_PLACES.slice(0, 5), true);
+        } else {
+            handleSavedAddrInputDebounced(val);
+        }
+    }
+
+    function handleSavedAddrInputDebounced(query) {
+        if (savedAddrSearchTimeout) clearTimeout(savedAddrSearchTimeout);
+        const dropdown = document.getElementById('new-addr-autocomplete-dropdown');
+        if (!dropdown) return;
+
+        if (!query || query.trim().length < 2) {
+            renderSavedAddrAutocomplete(POPULAR_HANOI_PLACES.slice(0, 5), true);
+            return;
+        }
+
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = `<div class="autocomplete-loading">🔍 Đang tìm kiếm tọa độ "${query}"...</div>`;
+
+        savedAddrSearchTimeout = setTimeout(async () => {
+            const results = await fetchAddressSuggestions(query);
+            renderSavedAddrAutocomplete(results, false);
+        }, 300);
+    }
+
+    function renderSavedAddrAutocomplete(list, isDefault = false) {
+        const dropdown = document.getElementById('new-addr-autocomplete-dropdown');
+        if (!dropdown) return;
+
+        if (!list || list.length === 0) {
+            dropdown.innerHTML = `<div class="autocomplete-loading" style="color:#ef4444;">Không tìm thấy địa điểm phù hợp. Vui lòng gõ thêm chi tiết!</div>`;
+            dropdown.style.display = 'block';
+            return;
+        }
+
+        let html = '';
+        if (isDefault) {
+            html += `<div style="padding:6px 12px; font-size:11px; font-weight:700; color:#64748b; background:#f8fafc; border-bottom:1px solid #e2e8f0;">⭐ ĐỊA ĐIỂM GỢI Ý PHỔ BIẾN:</div>`;
+        }
+
+        list.forEach(item => {
+            const escapedName = item.name.replace(/'/g, "\\'");
+            const escapedDesc = (item.desc || '').replace(/'/g, "\\'");
+            html += `
+                <div class="autocomplete-item" onclick="selectSavedAddrItem('${escapedName}', '${escapedDesc}', ${item.lat}, ${item.lng})">
+                    <span class="item-icon">${item.icon || '📍'}</span>
+                    <div class="item-content">
+                        <div class="item-title">${item.name}</div>
+                        <div class="item-subtitle">${item.desc || ''}</div>
+                    </div>
+                    <span class="item-tag">${item.category || 'Địa điểm'}</span>
+                </div>
+            `;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+    }
+
+    function selectSavedAddrItem(name, desc, lat, lng) {
+        const fullName = desc ? `${name}, ${desc}` : name;
+        document.getElementById('new-addr-text').value = fullName;
+        document.getElementById('new-addr-lat').value = lat;
+        document.getElementById('new-addr-lng').value = lng;
+        
+        const dropdown = document.getElementById('new-addr-autocomplete-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+
+        const coordsInfo = document.getElementById('new-addr-coords-info');
+        if (coordsInfo) {
+            coordsInfo.innerHTML = `
+                <span style="color:#15803d; background:#dcfce7; padding:3px 8px; border-radius:4px; font-weight:600; font-size:11px; border:1px solid #86efac; display:inline-flex; align-items:center; gap:4px;">
+                    ✅ Đã tự động gán tọa độ: <b>(${lat.toFixed(5)}, ${lng.toFixed(5)})</b>
+                </span>
+            `;
+        }
+    }
+
+    function fillCurrentLocationToAddressForm() {
+        const pickupAddrInput = document.getElementById('ride-pickup-address');
+        if (pickupAddrInput && pickupAddrInput.value) {
+            document.getElementById('new-addr-text').value = pickupAddrInput.value;
+        }
+        let lat = (startPoint && startPoint[0]) ? startPoint[0] : 21.028511;
+        let lng = (startPoint && startPoint[1]) ? startPoint[1] : 105.854444;
+
+        document.getElementById('new-addr-lat').value = lat;
+        document.getElementById('new-addr-lng').value = lng;
+
+        const coordsInfo = document.getElementById('new-addr-coords-info');
+        if (coordsInfo) {
+            coordsInfo.innerHTML = `
+                <span style="color:#0369a1; background:#e0f2fe; padding:3px 8px; border-radius:4px; font-weight:600; font-size:11px; border:1px solid #bae6fd; display:inline-flex; align-items:center; gap:4px;">
+                    🎯 Đã gán tọa độ điểm đón: <b>(${lat.toFixed(5)}, ${lng.toFixed(5)})</b>
+                </span>
+            `;
+        }
+    }
+
+    // ==========================================
+    // ✏️ CHỈNH SỬA & ĐẶT MẶC ĐỊNH ĐỊA CHỈ ĐÃ LƯU
+    // ==========================================
+    function startEditSavedAddress(id) {
+        const addr = savedAddressesCache.find(a => a.id === id);
+        if (!addr) {
+            alert('Không tìm thấy thông tin địa chỉ!');
+            return;
+        }
+
+        document.getElementById('editing-addr-id').value = id;
+        document.getElementById('new-addr-label').value = addr.label || '';
+        document.getElementById('new-addr-type').value = addr.addressType || 'OTHER';
+        document.getElementById('new-addr-text').value = addr.address || '';
+        document.getElementById('new-addr-lat').value = addr.latitude;
+        document.getElementById('new-addr-lng').value = addr.longitude;
+        document.getElementById('new-addr-default').checked = !!addr.isDefault;
+
+        // Đổi giao diện form sang chế độ Chỉnh Sửa
+        const titleEl = document.getElementById('saved-addr-form-title');
+        if (titleEl) titleEl.innerHTML = `✏️ Chỉnh sửa: <b style="color:#0284c7;">${addr.label || 'Địa chỉ'}</b>`;
+
+        const btnSave = document.getElementById('btnSaveAddress');
+        if (btnSave) {
+            btnSave.innerText = '💾 Cập Nhật Địa Chỉ';
+            btnSave.style.background = '#059669'; // Xanh ngọc nổi bật
+        }
+
+        const cancelBtn = document.getElementById('btn-cancel-edit-addr');
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+        const formContainer = document.getElementById('saved-addr-form-container');
+        if (formContainer) {
+            formContainer.style.background = '#f0fdf4';
+            formContainer.style.borderColor = '#86efac';
+            formContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        const coordsInfo = document.getElementById('new-addr-coords-info');
+        if (coordsInfo) {
+            coordsInfo.innerHTML = `
+                <span style="color:#059669; background:#ecfdf5; padding:3px 8px; border-radius:4px; font-weight:600; font-size:11px; border:1px solid #a7f3d0; display:inline-flex; align-items:center; gap:4px;">
+                    📍 Tọa độ hiện tại: <b>(${Number(addr.latitude).toFixed(5)}, ${Number(addr.longitude).toFixed(5)})</b> (Có thể gõ ô trên để chọn lại)
+                </span>
+            `;
+        }
+
+        document.getElementById('new-addr-label').focus();
+    }
+
+    function cancelEditSavedAddress() {
+        document.getElementById('editing-addr-id').value = '';
+        document.getElementById('new-addr-label').value = '';
+        document.getElementById('new-addr-type').value = 'HOME';
+        document.getElementById('new-addr-text').value = '';
+        document.getElementById('new-addr-lat').value = '';
+        document.getElementById('new-addr-lng').value = '';
+        document.getElementById('new-addr-default').checked = false;
+
+        const titleEl = document.getElementById('saved-addr-form-title');
+        if (titleEl) titleEl.innerHTML = '➕ Thêm địa chỉ mới';
+
+        const btnSave = document.getElementById('btnSaveAddress');
+        if (btnSave) {
+            btnSave.innerText = '💾 Lưu Địa Chỉ';
+            btnSave.style.background = '#0284c7';
+        }
+
+        const cancelBtn = document.getElementById('btn-cancel-edit-addr');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        const formContainer = document.getElementById('saved-addr-form-container');
+        if (formContainer) {
+            formContainer.style.background = '#f8fafc';
+            formContainer.style.borderColor = '#e2e8f0';
+        }
+
+        const coordsInfo = document.getElementById('new-addr-coords-info');
+        if (coordsInfo) {
+            coordsInfo.innerHTML = '<span id="new-addr-coords-text">💡 <i>Gõ địa chỉ và chọn từ danh sách gợi ý để hệ thống tự động lưu tọa độ chính xác.</i></span>';
+        }
+    }
+
+    async function setDefaultSavedAddress(id) {
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me/addresses/${id}/default`, {
+                method: 'PATCH'
+            });
+            if (res.ok) {
+                await fetchSavedAddresses();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                alert(data.message || 'Thiết lập địa chỉ mặc định thất bại!');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        }
+    }
+
+    async function submitSaveAddress() {
+        const editingId = document.getElementById('editing-addr-id').value;
+        const isEditing = Boolean(editingId);
+
+        const label = document.getElementById('new-addr-label').value.trim();
+        const addressType = document.getElementById('new-addr-type').value;
+        const address = document.getElementById('new-addr-text').value.trim();
+        let lat = parseFloat(document.getElementById('new-addr-lat').value);
+        let lng = parseFloat(document.getElementById('new-addr-lng').value);
+        const isDefault = document.getElementById('new-addr-default').checked;
+        const btn = document.getElementById('btnSaveAddress');
+
+        if (!label || !address) {
+            alert('Vui lòng điền tên gợi nhớ và địa chỉ!');
+            return;
+        }
+
+        // Tự động Geocode nếu người dùng gõ tự do mà chưa chọn từ danh sách gợi ý
+        if (isNaN(lat) || isNaN(lng)) {
+            btn.disabled = true;
+            btn.innerText = 'Đang tìm tọa độ...';
+            try {
+                const suggestions = await fetchAddressSuggestions(address);
+                if (suggestions && suggestions.length > 0) {
+                    lat = suggestions[0].lat;
+                    lng = suggestions[0].lng;
+                    document.getElementById('new-addr-lat').value = lat;
+                    document.getElementById('new-addr-lng').value = lng;
+                } else {
+                    alert('Không thể xác định tọa độ cho địa chỉ này. Vui lòng chọn một địa điểm từ danh sách gợi ý!');
+                    btn.disabled = false;
+                    btn.innerText = isEditing ? '💾 Cập Nhật Địa Chỉ' : '💾 Lưu Địa Chỉ';
+                    return;
+                }
+            } catch (err) {
+                alert('Lỗi định vị tọa độ: ' + err.message);
+                btn.disabled = false;
+                btn.innerText = isEditing ? '💾 Cập Nhật Địa Chỉ' : '💾 Lưu Địa Chỉ';
+                return;
+            }
+        }
+
+        btn.disabled = true;
+        btn.innerText = isEditing ? 'Đang cập nhật...' : 'Đang lưu vào hệ thống...';
+
+        const endpoint = isEditing 
+            ? `${API_BASE_URL}/api/v1/users/me/addresses/${editingId}`
+            : `${API_BASE_URL}/api/v1/users/me/addresses`;
+        const method = isEditing ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetchWithAuth(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    label: label,
+                    addressType: addressType,
+                    address: address,
+                    latitude: lat,
+                    longitude: lng,
+                    isDefault: isDefault
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                alert(isEditing ? '✅ Đã cập nhật địa chỉ thành công!' : '✅ Đã lưu địa chỉ thành công!');
+                cancelEditSavedAddress();
+                await fetchSavedAddresses();
+            } else {
+                alert(data.message || (isEditing ? 'Không thể cập nhật địa chỉ!' : 'Không thể lưu địa chỉ!'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = isEditing ? '💾 Cập Nhật Địa Chỉ' : '💾 Lưu Địa Chỉ';
+        }
+    }
+
+    // ==========================================
+    // ⚡ DROPDOWN CHỌN NHANH ĐỊA CHỈ ĐÃ LƯU CHO PICKUP & DROPOFF
+    // ==========================================
+    async function toggleSavedAddressDropdown(targetType, triggerEl) {
+        const dropdown = document.getElementById(`${targetType}-saved-addr-dropdown`);
+        if (!dropdown) return;
+
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        // Đóng tất cả dropdown địa chỉ đã lưu khác
+        ['pickup', 'dropoff', 'food-cart', 'food-header'].forEach(t => {
+            if (t !== targetType) {
+                const od = document.getElementById(`${t}-saved-addr-dropdown`);
+                if (od) od.style.display = 'none';
+            }
+        });
+
+        // Đóng autocomplete thông thường
+        const autoDrops = ['pickup-autocomplete-dropdown', 'dropoff-autocomplete-dropdown', 'cart-address-autocomplete-dropdown', 'food-address-autocomplete-dropdown'];
+        autoDrops.forEach(id => {
+            const ad = document.getElementById(id);
+            if (ad) ad.style.display = 'none';
+        });
+
+        dropdown.innerHTML = '<div style="padding:12px; font-size:12px; color:#64748b; text-align:center;">⏳ Đang tải địa chỉ đã lưu...</div>';
+        dropdown.style.display = 'block';
+
+        if (!savedAddressesCache || savedAddressesCache.length === 0) {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me/addresses`);
+                if (res.ok) {
+                    const data = await res.json();
+                    savedAddressesCache = data.data || data || [];
+                }
+            } catch (e) {
+                console.warn('Lỗi tải danh sách địa chỉ đã lưu:', e);
+            }
+        }
+
+        renderSavedAddressDropdownItems(targetType, savedAddressesCache);
+    }
+
+    function renderSavedAddressDropdownItems(targetType, list) {
+        const dropdown = document.getElementById(`${targetType}-saved-addr-dropdown`);
+        if (!dropdown) return;
+
+        if (!list || list.length === 0) {
+            dropdown.innerHTML = `
+                <div style="padding:14px; text-align:center;">
+                    <div style="font-size:24px; margin-bottom:4px;">📍</div>
+                    <div style="font-size:12px; color:#64748b; font-weight:600;">Bạn chưa lưu địa chỉ nào</div>
+                    <button type="button" onclick="openSavedAddressesModal()" style="margin-top:8px; background:#0284c7; color:white; border:none; padding:5px 12px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:700;">+ Thêm địa chỉ mới ngay</button>
+                </div>
+            `;
+            return;
+        }
+
+        let titleColor = '#166534';
+        let titleBg = '#f0fdf4';
+        let targetText = 'ĐIỂM ĐÓN';
+
+        if (targetType === 'dropoff') {
+            titleColor = '#991b1b';
+            titleBg = '#fef2f2';
+            targetText = 'ĐIỂM ĐẾN';
+        } else if (targetType === 'food-cart' || targetType === 'food-header') {
+            titleColor = '#c2410c';
+            titleBg = '#fff7ed';
+            targetText = 'NHẬN ĐỒ ĂN';
+        }
+
+        let html = `
+            <div style="padding:8px 12px; font-size:11px; font-weight:700; color:${titleColor}; background:${titleBg}; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                <span>🔖 CHỌN ĐỊA CHỈ ĐÃ LƯU CHO ${targetText}:</span>
+                <a href="javascript:void(0)" onclick="openSavedAddressesModal()" style="color:#0284c7; text-decoration:none; font-size:11px; font-weight:600;">⚙️ Quản lý</a>
+            </div>
+        `;
+
+        list.forEach(addr => {
+            let icon = '📍';
+            let typeBadge = '';
+            if (addr.addressType === 'HOME') {
+                icon = '🏠';
+                typeBadge = '<span style="font-size:10px; background:#e0e7ff; color:#3730a3; padding:1px 5px; border-radius:3px;">Nhà riêng</span>';
+            } else if (addr.addressType === 'WORK') {
+                icon = '🏢';
+                typeBadge = '<span style="font-size:10px; background:#fef3c7; color:#92400e; padding:1px 5px; border-radius:3px;">Cơ quan</span>';
+            }
+
+            const isDef = addr.isDefault ? '<span style="font-size:10px; background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:3px; font-weight:600;">Mặc định</span>' : '';
+            const escapedAddr = addr.address.replace(/'/g, "\\'");
+
+            html += `
+                <div class="saved-addr-item" onclick="applySavedAddressDirectly('${targetType}', ${addr.latitude}, ${addr.longitude}, '${escapedAddr}')" style="padding:9px 12px; border-bottom:1px solid #f1f5f9; cursor:pointer; display:flex; align-items:flex-start; gap:10px; transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    <span style="font-size:18px; line-height:1;">${icon}</span>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:700; font-size:12.5px; color:#1e293b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                            <span>${addr.label || 'Địa chỉ'}</span>
+                            ${typeBadge}
+                            ${isDef}
+                        </div>
+                        <div style="font-size:11.5px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${addr.address}</div>
+                    </div>
+                    <span style="font-size:11px; color:#0284c7; font-weight:600;">Áp dụng ➔</span>
+                </div>
+            `;
+        });
+
+        html += `
+            <div style="padding:8px 12px; text-align:center; background:#fafafa;">
+                <button type="button" onclick="openSavedAddressesModal()" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:600; cursor:pointer;">➕ Thêm địa chỉ mới vào danh bạ</button>
+            </div>
+        `;
+
+        dropdown.innerHTML = html;
+    }
+
+    function applySavedAddressDirectly(targetType, lat, lng, address) {
+        const dropdown = document.getElementById(`${targetType}-saved-addr-dropdown`);
+        if (dropdown) dropdown.style.display = 'none';
+
+        if (targetType === 'pickup') {
+            setRidePickup(address, lat, lng);
+        } else if (targetType === 'dropoff') {
+            setRideDropoff(address, lat, lng);
+        } else if (targetType === 'food-cart') {
+            selectFoodDeliveryLocation(address, lat, lng, false);
+            const cartAddrInput = document.getElementById('order-delivery-address');
+            if (cartAddrInput) cartAddrInput.value = address;
+            const cartLatInput = document.getElementById('order-delivery-lat');
+            if (cartLatInput) cartLatInput.value = lat;
+            const cartLngInput = document.getElementById('order-delivery-lng');
+            if (cartLngInput) cartLngInput.value = lng;
+            renderCartModalItems();
+        } else if (targetType === 'food-header') {
+            selectFoodDeliveryLocation(address, lat, lng, true);
+        }
+    }
+
+    async function deleteSavedAddress(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này không?')) return;
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me/addresses/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                const editIdEl = document.getElementById('editing-addr-id');
+                if (editIdEl && editIdEl.value === String(id)) {
+                    cancelEditSavedAddress();
+                }
+                fetchSavedAddresses();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                alert(data.message || 'Xóa địa chỉ thất bại!');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        }
+    }
+
+    function applySavedAddress(id, actionType) {
+        const addr = savedAddressesCache.find(a => a.id === id);
+        if (!addr) return;
+
+        if (actionType === 'pickup') {
+            const el = document.getElementById('ride-pickup-address');
+            if (el) el.value = addr.address;
+            ridePickupLat = addr.latitude;
+            ridePickupLng = addr.longitude;
+            updateRideRouteAndPricing();
+            alert('✅ Đã chọn làm Điểm đón: ' + addr.address);
+        } else if (actionType === 'dropoff') {
+            const el = document.getElementById('ride-dropoff-address');
+            if (el) el.value = addr.address;
+            rideDropoffLat = addr.latitude;
+            rideDropoffLng = addr.longitude;
+            updateRideRouteAndPricing();
+            alert('✅ Đã chọn làm Điểm đến: ' + addr.address);
+        } else if (actionType === 'food') {
+            const el = document.getElementById('food-delivery-address');
+            if (el) el.value = addr.address;
+            userLat = addr.latitude;
+            userLng = addr.longitude;
+            alert('✅ Đã chọn làm Địa chỉ giao món: ' + addr.address);
+        }
+        closeModal('modal-saved-addresses');
+    }
+
+    // ==========================================
+    // ⚡ PHA 1 & 2: HỒ SƠ KHÁCH HÀNG, ĐỔI MK & XÓA TK
+    // ==========================================
+    function openUserProfileModal() {
+        const u = currentCustomerProfile || {};
+        document.getElementById('cust-profile-fullname').value = u.fullName || '';
+        document.getElementById('cust-profile-email').value = u.email || '';
+        document.getElementById('cust-profile-phone').value = u.phoneNumber || '';
+        document.getElementById('cust-profile-old-pass').value = '';
+        document.getElementById('cust-profile-new-pass').value = '';
+        document.getElementById('cust-profile-confirm-pass').value = '';
+        document.getElementById('cust-change-pass-error').style.display = 'none';
+        openModal('modal-user-profile');
+    }
+
+    async function submitUpdateUserProfile() {
+        const fullName = document.getElementById('cust-profile-fullname').value.trim();
+        const email = document.getElementById('cust-profile-email').value.trim();
+        const btn = document.getElementById('btnUpdateUserProfile');
+
+        if (!fullName || !email) {
+            alert('Vui lòng điền họ và tên và email hợp lệ!');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = 'Đang lưu...';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: fullName,
+                    email: email
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                alert('✅ Cập nhật thông tin cá nhân thành công!');
+                if (currentCustomerProfile) {
+                    currentCustomerProfile.fullName = fullName;
+                    currentCustomerProfile.email = email;
+                    localStorage.setItem('user', JSON.stringify(currentCustomerProfile));
+                }
+                document.getElementById('display-user').innerText = fullName + ' (ID: ' + customerId + ')';
+                closeModal('modal-user-profile');
+            } else {
+                alert(data.message || 'Cập nhật hồ sơ thất bại!');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '💾 Lưu Thay Đổi';
+        }
+    }
+
+    async function submitCustomerChangePassword() {
+        const oldPassword = document.getElementById('cust-profile-old-pass').value.trim();
+        const newPassword = document.getElementById('cust-profile-new-pass').value.trim();
+        const confirmPassword = document.getElementById('cust-profile-confirm-pass').value.trim();
+        const errEl = document.getElementById('cust-change-pass-error');
+        const btn = document.getElementById('btnSubmitCustChangePass');
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            errEl.innerText = 'Vui lòng điền đầy đủ thông tin mật khẩu!';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            errEl.innerText = 'Mật khẩu mới phải có ít nhất 6 ký tự!';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            errEl.innerText = 'Mật khẩu xác nhận không khớp!';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.innerText = 'Đang xử lý...';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/auth/change-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    oldPassword: oldPassword,
+                    newPassword: newPassword,
+                    confirmPassword: confirmPassword
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                alert('✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.');
+                closeModal('modal-user-profile');
+                logout();
+            } else {
+                errEl.innerText = data.message || 'Đổi mật khẩu thất bại, vui lòng kiểm tra lại mật khẩu cũ!';
+                errEl.style.display = 'block';
+            }
+        } catch (e) {
+            errEl.innerText = 'Lỗi kết nối máy chủ: ' + e.message;
+            errEl.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '🔑 Đổi Mật Khẩu';
+        }
+    }
+
+    async function submitDeleteCustomerAccount() {
+        if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản của mình không?\nToàn bộ dữ liệu hồ sơ và địa chỉ sẽ bị xóa vĩnh viễn và không thể khôi phục!')) {
+            return;
+        }
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/users/me`, {
+                method: 'DELETE'
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                alert('✅ Tài khoản của bạn đã được xóa thành công khỏi hệ thống OmniGo.');
+                localStorage.clear();
+                window.location.href = 'index.html';
+            } else {
+                alert(data.message || 'Không thể xóa tài khoản!');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ: ' + e.message);
+        }
+    }
+
 </script>
 
 </body>

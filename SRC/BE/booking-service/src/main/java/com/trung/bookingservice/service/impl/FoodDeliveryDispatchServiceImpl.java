@@ -38,7 +38,24 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final DispatchConfigService dispatchConfigService;
-    private final com.trung.bookingservice.service.DriverVehicleService driverVehicleService;
+    private final DriverVehicleService driverVehicleService;
+
+    @Override
+    public void resetAndDispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event) {
+        if (event == null || event.getOrderId() == null) return;
+        Long orderId = event.getOrderId();
+        try {
+            redisTemplate.delete("food_order:rejected_drivers:" + orderId);
+            redisTemplate.delete("food_order:driver:" + orderId);
+            redisTemplate.delete("food_order:assigned:" + orderId);
+            redisTemplate.delete("food_order:last_invited:" + orderId);
+            redisTemplate.delete("food_order:no_driver_scans:" + orderId);
+            log.info("Đã làm mới danh sách rejected_drivers và trạng thái dispatch cho đơn hàng ID {}", orderId);
+        } catch (Exception e) {
+            log.error("Lỗi khi reset cache dispatch cho đơn #{}: {}", orderId, e.getMessage());
+        }
+        dispatchDriverForFoodOrder(event);
+    }
 
     @Override
     public void dispatchDriverForFoodOrder(FindDriverForFoodOrderEvent event) {
@@ -111,11 +128,11 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
                 continue;
             }
 
-            // Chiếm khóa phân tán (Distributed Lock) trong 30 giây để tài xế này không nhận trùng cuốc xe hoặc đơn khác
+            // Chiếm khóa phân tán (Distributed Lock) trong 28 giây để tài xế này không nhận trùng cuốc xe hoặc đơn khác
             Boolean isLockAcquired = redisTemplate.opsForValue().setIfAbsent(
                     "drivers:reserved:" + driverId,
                     "food_order:" + orderId,
-                    30,
+                    28,
                     TimeUnit.SECONDS
             );
 
@@ -126,9 +143,18 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
                 redisTemplate.opsForValue().set(
                         "food_order:driver:" + orderId,
                         driverId.toString(),
-                        25,
+                        23,
                         TimeUnit.SECONDS
                 );
+
+                // Ghi nhớ tài xế được gửi lời mời gần nhất để tự động blacklist nếu timeout
+                redisTemplate.opsForValue().set(
+                        "food_order:last_invited:" + orderId,
+                        driverId.toString(),
+                        1,
+                        TimeUnit.HOURS
+                );
+                redisTemplate.delete("food_order:no_driver_scans:" + orderId);
 
                 // Bắn WebSocket thông báo mời tài xế nhận đơn giao đồ ăn
                 messagingTemplate.convertAndSendToUser(
@@ -143,6 +169,17 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
         }
 
         log.warn("Đã quét tất cả tài xế lân cận nhưng chưa khóa được tài xế khả dụng cho đơn {}", orderId);
+
+        // Đếm số lần quét liên tiếp không tìm thấy tài xế khả dụng
+        Long noDriverScanCount = redisTemplate.opsForValue().increment("food_order:no_driver_scans:" + orderId);
+        redisTemplate.expire("food_order:no_driver_scans:" + orderId, 5, TimeUnit.MINUTES);
+
+        // Nếu đã quét liên tục 7 lần (~21s) mà không có tài xế mới: tạm dừng quét để chờ timeout 25s của đơn hàng
+        if (noDriverScanCount != null && noDriverScanCount >= 7) {
+            log.info("Đã quét liên tục nhưng không còn tài xế nào khả dụng cho đơn #{}. Tạm dừng quét tự động.", orderId);
+            redisTemplate.opsForSet().remove("food_order:pending_orders", orderId.toString());
+            redisTemplate.delete("food_order:no_driver_scans:" + orderId);
+        }
     }
 
     
@@ -166,6 +203,17 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
                 String currentReservedDriver = redisTemplate.opsForValue().get("food_order:driver:" + orderIdStr);
                 if (currentReservedDriver != null) {
                     continue;
+                }
+
+                // XỬ LÝ TIMEOUT TỰ ĐỘNG: Nếu tài xế được mời trước đó không nhận sau 20-25s
+                String lastInvitedDriver = redisTemplate.opsForValue().get("food_order:last_invited:" + orderIdStr);
+                if (lastInvitedDriver != null) {
+                    log.warn("Tài xế ID {} hết 20s không phản hồi đơn #{}. Tự động đưa vào danh sách từ chối (timeout)",
+                            lastInvitedDriver, orderIdStr);
+                    redisTemplate.opsForSet().add("food_order:rejected_drivers:" + orderIdStr, lastInvitedDriver);
+                    redisTemplate.expire("food_order:rejected_drivers:" + orderIdStr, 10, TimeUnit.MINUTES);
+                    redisTemplate.delete("drivers:reserved:" + lastInvitedDriver);
+                    redisTemplate.delete("food_order:last_invited:" + orderIdStr);
                 }
 
                 // Lấy thông tin event từ Redis
@@ -204,6 +252,8 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
         // Xóa key giữ chỗ tạm thời và xóa khỏi danh sách pending
         redisTemplate.delete("drivers:reserved:" + driverId);
         redisTemplate.delete("food_order:driver:" + orderId);
+        redisTemplate.delete("food_order:last_invited:" + orderId);
+        redisTemplate.delete("food_order:no_driver_scans:" + orderId);
         redisTemplate.delete("food_order:event:" + orderId);
         redisTemplate.opsForSet().remove("food_order:pending_orders", orderId.toString());
 
@@ -225,10 +275,11 @@ public class FoodDeliveryDispatchServiceImpl implements FoodDeliveryDispatchServ
         // Xóa khóa giữ chỗ của tài xế này
         redisTemplate.delete("drivers:reserved:" + driverId);
         redisTemplate.delete("food_order:driver:" + orderId);
+        redisTemplate.delete("food_order:last_invited:" + orderId);
 
-        // Lưu tài xế này vào tập danh sách từ chối đơn này (expire sau 5 phút)
+        // Lưu tài xế này vào tập danh sách từ chối đơn này (expire sau 10 phút)
         redisTemplate.opsForSet().add("food_order:rejected_drivers:" + orderId, driverId.toString());
-        redisTemplate.expire("food_order:rejected_drivers:" + orderId, 5, TimeUnit.MINUTES);
+        redisTemplate.expire("food_order:rejected_drivers:" + orderId, 10, TimeUnit.MINUTES);
 
         // Lấy lại event từ Redis và tìm tài xế tiếp theo
         String eventJson = redisTemplate.opsForValue().get("food_order:event:" + orderId);

@@ -448,6 +448,28 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    public List<VoucherResponse> getActiveVouchersForCustomer(String serviceType, String userId) {
+        return getAllVouchers().stream()
+                .filter(v -> v.getStatus() == VoucherStatus.ACTIVE)
+                .filter(v -> {
+                    if (serviceType == null || serviceType.isBlank() || "ALL".equalsIgnoreCase(serviceType)) {
+                        return true;
+                    }
+                    return v.getApplicableService() == ApplicableService.ALL
+                            || v.getApplicableService().name().equalsIgnoreCase(serviceType);
+                })
+                .filter(v -> {
+                    if (userId == null || userId.isBlank()) {
+                        return true;
+                    }
+                    int used = voucherRedisRepository.getUserUsageCount(v.getCode(), userId);
+                    return used < v.getUsageLimitPerUser();
+                })
+                .filter(v -> v.getTotalUsageLimit() <= 0 || v.getRemainingCount() > 0)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public void rollbackVoucherUsage(String code, String userId) {
         rollbackVoucherUsage(code, userId, null);

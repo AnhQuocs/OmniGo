@@ -41,6 +41,8 @@ public interface FoodOrderService {
 
     FoodOrderResponse switchToCashPayment(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
 
+    FoodOrderResponse retryDriverByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException;
+
     List<FoodOrderResponse> getAllOrders();
 
     Map<String, Object> getAdminFoodStats();

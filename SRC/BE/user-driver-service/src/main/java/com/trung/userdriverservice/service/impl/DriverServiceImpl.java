@@ -35,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.trung.userdriverservice.dto.request.RegisterFcmTokenRequest;
+import com.trung.userdriverservice.service.UserFcmTokenService;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +52,7 @@ public class DriverServiceImpl implements DriverService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final CloudinaryService cloudinaryService;
+    private final UserFcmTokenService fcmTokenService;
 
     private String resolveDocumentImage(String image) {
         return cloudinaryService.validateImageUrl(image);
@@ -96,6 +99,19 @@ public class DriverServiceImpl implements DriverService {
             log.info("Đã gửi sự kiện đăng ký Driver thành công cho ID: {} qua Kafka", savedUser.getId());
         } catch (Exception e) {
             log.error("Lỗi khi bắn sự kiện Kafka đăng ký tài xế: {}", e.getMessage());
+        }
+
+        // Tự động gán FCM Token khi đăng ký tài xế nếu có
+        if (request.getFcmToken() != null && !request.getFcmToken().trim().isEmpty()) {
+            try {
+                fcmTokenService.registerFcmToken(savedUser.getId(), RegisterFcmTokenRequest.builder()
+                        .fcmToken(request.getFcmToken().trim())
+                        .deviceType("ANDROID")
+                        .build());
+                log.info("Đã tự động gán FCM token khi đăng ký cho tài xế ID: {}", savedUser.getId());
+            } catch (Exception e) {
+                log.warn("Không thể lưu FCM token khi đăng ký cho tài xế ID {}: {}", savedUser.getId(), e.getMessage());
+            }
         }
 
         // Sinh Access Token và Refresh Token cho tài xế vừa đăng ký

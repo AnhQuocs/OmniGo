@@ -100,6 +100,25 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.cancelBookingByDriver(driverId, bookingId));
     }
 
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(
+            @PathVariable Long bookingId,
+            @RequestHeader(name = "X-User-Id", required = false) Long currentUserId,
+            @RequestHeader(name = "X-User-Role", required = false) String currentUserRole)
+            throws ResourceNotFoundException, BadRequestException {
+        if (currentUserId == null) {
+            throw new BadRequestException("Thiếu định danh người dùng (X-User-Id)");
+        }
+        return ResponseEntity.ok(bookingService.getBookingDetails(bookingId, currentUserId, currentUserRole));
+    }
+
+    @GetMapping(value = {"/driver", "/driver/history"})
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getDriverBookings(
+            @RequestHeader("X-User-Id") Long driverId,
+            @RequestParam(required = false) BookingStatus status) {
+        return ResponseEntity.ok(bookingService.getDriverBookings(driverId, status));
+    }
+
     @GetMapping("/customer")
     public ResponseEntity<ApiResponse<List<Booking>>> getCustomerBookings(@RequestHeader("X-User-Id") Long customerId) {
         return ResponseEntity.ok(bookingService.getCustomerBookings(customerId));
