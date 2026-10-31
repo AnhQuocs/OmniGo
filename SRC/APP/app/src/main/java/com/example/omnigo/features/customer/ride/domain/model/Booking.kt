@@ -16,5 +16,7 @@ data class Booking(
     val paymentMethod: String? = null,
     val pickupAddress: String = "",
     val dropoffAddress: String = "",
-    val vehicleType: String? = null
+    val vehicleType: String? = null,
+    val createdAt: String? = null,
+    val completedAt: String? = null
 )

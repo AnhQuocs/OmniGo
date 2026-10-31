@@ -38,5 +38,9 @@ data class BookingResponse(
     @SerializedName("vehicleType")
     val vehicleType: String? = null,
     @SerializedName("paymentMethod")
-    val paymentMethod: String? = null
+    val paymentMethod: String? = null,
+    @SerializedName("createdAt")
+    val createdAt: String? = null,
+    @SerializedName("completedAt")
+    val completedAt: String? = null
 )

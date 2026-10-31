@@ -8,6 +8,7 @@ import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
@@ -47,6 +48,8 @@ interface RideBookingRepository {
     fun observeDriverLiveLocation(driverId: Long): Flow<DriverLiveLocation>
 
     suspend fun getCustomerBookings(): GetCustomerBookingsResult
+
+    suspend fun getDriverBookings(): GetDriverBookingsResult
 
     suspend fun getDriverDailyReport(forceRefresh: Boolean = false, period: String? = null, date: String? = null): GetDriverDailyReportResult
 

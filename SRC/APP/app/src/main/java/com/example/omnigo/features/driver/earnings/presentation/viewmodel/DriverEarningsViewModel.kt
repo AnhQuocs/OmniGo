@@ -2,9 +2,11 @@ package com.example.omnigo.features.driver.earnings.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.repository.DriverRepository
+import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.earnings.domain.model.DriverWallet
 import com.example.omnigo.features.driver.earnings.domain.model.DriverWalletTransaction
@@ -51,7 +53,8 @@ class DriverEarningsViewModel @Inject constructor(
     private val driverWithdrawUseCase: DriverWithdrawUseCase,
     private val createDriverDepositUrlUseCase: CreateDriverDepositUrlUseCase,
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
-    private val getDriverTransactionsUseCase: GetDriverTransactionsUseCase
+    private val getDriverTransactionsUseCase: GetDriverTransactionsUseCase,
+    private val getDriverBookingsUseCase: GetDriverBookingsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriverEarningsUiState())
@@ -77,18 +80,19 @@ class DriverEarningsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             val orders = driverRepository.getDriverAllFoodOrders().getOrDefault(emptyList())
 
-            // Fetch real wallet & transactions concurrently
             val walletResult = getDriverWalletUseCase()
             val transactionsResult = getDriverTransactionsUseCase()
+            val bookingsResult = getDriverBookingsUseCase()
 
             val wallet = walletResult.getOrNull() ?: _uiState.value.wallet
             val transactions = transactionsResult.getOrDefault(emptyList())
+            val bookings = if (bookingsResult is GetDriverBookingsResult.Success) bookingsResult.bookings else emptyList()
 
             when (val result = getDriverDailyReportUseCase(forceRefresh = forceRefresh, period = apiPeriod)) {
                 is GetDriverDailyReportResult.Success -> {
                     val report = result.report
                     val points = EarningsDataHelper.generateChartPoints(_uiState.value.selectedPeriod, report, orders)
-                    val trips = EarningsDataHelper.extractTripItems(report, orders)
+                    val trips = EarningsDataHelper.extractTripItems(report, orders, bookings)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -103,7 +107,7 @@ class DriverEarningsViewModel @Inject constructor(
                 }
                 is GetDriverDailyReportResult.Error -> {
                     val points = EarningsDataHelper.generateChartPoints(_uiState.value.selectedPeriod, null, orders)
-                    val trips = EarningsDataHelper.extractTripItems(null, orders)
+                    val trips = EarningsDataHelper.extractTripItems(null, orders, bookings)
                     _uiState.update {
                         it.copy(
                             isLoading = false,

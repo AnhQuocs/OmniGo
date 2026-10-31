@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,10 +28,15 @@ import com.example.omnigo.R
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.driver.common.ui.components.DriverRefreshTitleBar
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
+import com.example.omnigo.features.driver.trips.domain.model.DriverHistoryItem
+import com.example.omnigo.features.driver.trips.domain.model.DriverTripFilter
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverActiveBookingCard
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverCockpitCapsule
+import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverCompletedRideCard
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverFoodOrderCard
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverPillTabSwitcher
+import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverTimelineSectionHeader
+import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverTripFilterChips
 import com.example.omnigo.features.driver.trips.presentation.ui.components.DriverTripsEmptyState
 import com.example.omnigo.features.driver.trips.presentation.viewmodel.DriverTripsViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -48,12 +54,19 @@ fun DriverTripsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
-    // Tách riêng 2 ScrollState độc lập cho từng tab
     val activeScrollState = rememberScrollState()
     val historyScrollState = rememberScrollState()
 
+    val todayLabel = stringResource(id = R.string.driver_trips_timeline_today)
+    val yesterdayLabel = stringResource(id = R.string.driver_trips_timeline_yesterday)
+
+    LaunchedEffect(todayLabel, yesterdayLabel) {
+        viewModel.updateDateLabels(todayLabel, yesterdayLabel)
+    }
+
     val activeCount = (if (uiState.activeBooking != null) 1 else 0) + uiState.activeFoodOrders.size
-    val completedCount = (uiState.dailyReport?.totalTrips ?: 0) + uiState.historyFoodOrders.size
+    val totalCompletedRides = maxOf(uiState.dailyReport?.totalTrips ?: 0, uiState.historyBookings.size)
+    val completedCount = totalCompletedRides + uiState.historyFoodOrders.size
 
     PullToRefreshBox(
         isRefreshing = uiState.isReportLoading,
@@ -68,7 +81,7 @@ fun DriverTripsScreen(
                 .fillMaxSize()
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM)
         ) {
-            // 1. PINNED HEADER AREA (Cố định ở trên đỉnh, không bị cuộn trôi)
+            // 1. PINNED HEADER AREA (Cố định ở trên đỉnh)
             DriverRefreshTitleBar(
                 title = stringResource(id = R.string.driver_nav_trips),
                 onRefreshClick = viewModel::refresh,
@@ -77,7 +90,7 @@ fun DriverTripsScreen(
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            // Cockpit Radar Capsule (Cố định)
+            // Cockpit Radar Capsule
             DriverCockpitCapsule(
                 activeCount = activeCount,
                 completedCount = completedCount
@@ -85,7 +98,7 @@ fun DriverTripsScreen(
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            // Floating Elevated Pill Tab Switcher (Cố định)
+            // Floating Elevated Pill Tab Switcher
             DriverPillTabSwitcher(
                 selectedTabIndex = selectedTabIndex,
                 activeCount = activeCount,
@@ -139,19 +152,45 @@ fun DriverTripsScreen(
                             .verticalScroll(historyScrollState),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
                     ) {
-                        val historyFoods = uiState.historyFoodOrders
+                        // Service Type Filter Chips
+                        DriverTripFilterChips(
+                            selectedFilter = uiState.selectedFilter,
+                            onFilterSelected = viewModel::onFilterSelected
+                        )
 
-                        if (historyFoods.isEmpty()) {
-                            DriverTripsEmptyState(
-                                message = stringResource(id = R.string.driver_no_trip_history)
-                            )
+                        val groups = uiState.groupedHistory
+
+                        if (groups.isEmpty()) {
+                            val emptyMsg = if (uiState.selectedFilter != DriverTripFilter.ALL) {
+                                stringResource(id = R.string.driver_trips_empty_filter)
+                            } else {
+                                stringResource(id = R.string.driver_no_trip_history)
+                            }
+                            DriverTripsEmptyState(message = emptyMsg)
                         } else {
-                            historyFoods.forEach { order ->
-                                DriverFoodOrderCard(
-                                    order = order,
-                                    isActive = false,
-                                    onResumeClick = {}
+                            groups.forEach { group ->
+                                DriverTimelineSectionHeader(
+                                    title = group.title,
+                                    totalTrips = group.totalTrips,
+                                    totalEarnings = group.totalEarnings
                                 )
+
+                                group.items.forEach { item ->
+                                    when (item) {
+                                        is DriverHistoryItem.Ride -> {
+                                            DriverCompletedRideCard(booking = item.booking)
+                                        }
+                                        is DriverHistoryItem.Food -> {
+                                            DriverFoodOrderCard(
+                                                order = item.order,
+                                                isActive = false,
+                                                onResumeClick = {}
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(AppSpacing.S))
                             }
                         }
 

@@ -16,6 +16,7 @@ import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.DriverLiveLocation
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.ride.domain.model.NearbyDriver
@@ -294,6 +295,36 @@ class RideBookingRepositoryImpl @Inject constructor(
             )
         } catch (e: Exception) {
             GetCustomerBookingsResult.Error(
+                error = RideError.UNKNOWN_ERROR,
+                message = e.message
+            )
+        }
+    }
+
+    override suspend fun getDriverBookings(): GetDriverBookingsResult {
+        return try {
+            val response = rideBookingApi.getDriverBookings()
+            if (response.success && response.data != null) {
+                val bookings = response.data.map { it.toDomain() }
+                GetDriverBookingsResult.Success(bookings)
+            } else {
+                GetDriverBookingsResult.Error(
+                    error = RideError.UNKNOWN_ERROR,
+                    message = response.message
+                )
+            }
+        } catch (e: HttpException) {
+            GetDriverBookingsResult.Error(
+                error = RideError.SERVER_ERROR,
+                message = e.message()
+            )
+        } catch (e: IOException) {
+            GetDriverBookingsResult.Error(
+                error = RideError.NETWORK_ERROR,
+                message = e.message
+            )
+        } catch (e: Exception) {
+            GetDriverBookingsResult.Error(
                 error = RideError.UNKNOWN_ERROR,
                 message = e.message
             )

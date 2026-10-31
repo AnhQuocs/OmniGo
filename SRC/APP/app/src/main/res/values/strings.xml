@@ -1087,6 +1087,21 @@
     <string name="driver_trips_cockpit_active">In Progress</string>
     <string name="driver_trips_cockpit_completed">Completed</string>
     <string name="driver_trips_tab_active_fmt">Active (%1$d)</string>
+    <!-- Driver Trips Timeline & Filters -->
+    <string name="driver_trips_filter_all">All</string>
+    <string name="driver_trips_filter_ride">Rides</string>
+    <string name="driver_trips_filter_food">Food Delivery</string>
+    <string name="driver_trips_timeline_today">Today</string>
+    <string name="driver_trips_timeline_yesterday">Yesterday</string>
+    <string name="driver_trips_timeline_trips_count">%1$d trips</string>
+    <string name="driver_trips_history_ride_completed">Completed</string>
+    <string name="driver_trips_history_ride_cancelled">Cancelled</string>
+    <string name="driver_trips_completed_ride_title">Ride</string>
+    <string name="driver_trips_pickup_label">Pickup</string>
+    <string name="driver_trips_dropoff_label">Dropoff</string>
+    <string name="driver_trips_empty_filter">No trips found matching the selected filter</string>
+    <string name="driver_trips_fare_label">Fare</string>
+    <string name="driver_trips_net_earnings_label">Earnings</string>
     <!-- Driver Earnings Redesign 2026 -->
     <string name="driver_earnings_subtitle">Track your earnings and manage your wallets</string>
     <string name="driver_earnings_total_today">Total Earnings Today</string>

@@ -1,9 +1,10 @@
 package com.example.omnigo.features.driver.earnings.domain.util
 
+import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
-import java.util.Locale
+import com.example.omnigo.features.driver.trips.domain.util.DriverTripsTimelineHelper
 
 data class EarningsChartPoint(
     val label: String,
@@ -64,7 +65,6 @@ object EarningsDataHelper {
         val maxScale = 300_000.0.coerceAtLeast(totalRevenue)
         return when (period) {
             EarningsPeriod.TODAY -> {
-                // Distribute revenue across active work hours
                 val p8h = totalRevenue * 0.25
                 val p12h = totalRevenue * 0.40
                 val p16h = totalRevenue * 0.20
@@ -83,9 +83,9 @@ object EarningsDataHelper {
                 val dailyAvg = totalRevenue / 7.0
                 listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN").mapIndexed { index, day ->
                     val weight = when (index) {
-                        4 -> 1.4 // Friday peak
-                        5 -> 1.6 // Saturday peak
-                        6 -> 1.3 // Sunday peak
+                        4 -> 1.4
+                        5 -> 1.6
+                        6 -> 1.3
                         else -> 0.8
                     }
                     val amount = (dailyAvg * weight).coerceAtLeast(0.0)
@@ -103,47 +103,45 @@ object EarningsDataHelper {
 
     fun extractTripItems(
         report: DriverDailyReport?,
-        orders: List<DriverDeliveryOrder>
+        orders: List<DriverDeliveryOrder>,
+        bookings: List<Booking> = emptyList()
     ): List<EarningsTripItem> {
+        val items = mutableListOf<EarningsTripItem>()
+
+        // 1. Chuyến xe chở khách thực tế từ cơ sở dữ liệu
+        if (bookings.isNotEmpty()) {
+            val rideItems = bookings.map { b ->
+                val timeStr = DriverTripsTimelineHelper.parseTime(b.completedAt ?: b.createdAt)
+                EarningsTripItem(
+                    id = b.bookingId,
+                    title = "Chuyến xe #${b.bookingId}",
+                    time = timeStr,
+                    grossAmount = b.price,
+                    netAmount = b.price * 0.80,
+                    isCash = b.paymentMethod?.uppercase() == "CASH"
+                )
+            }
+            items.addAll(rideItems)
+        }
+
+        // 2. Đơn giao món thực tế từ cơ sở dữ liệu
         val completedOrders = orders.filter { !it.status.isActive }
         if (completedOrders.isNotEmpty()) {
-            return completedOrders.mapIndexed { index, order ->
-                val gross = order.deliveryFee ?: 25_000.0
-                val hour = (10 + index) % 24
-                val minute = ((index + 1) * 15) % 60
-                val timeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+            val foodItems = completedOrders.map { order ->
+                val gross = if (order.deliveryFee > 0) order.deliveryFee else order.totalPrice
+                val timeStr = DriverTripsTimelineHelper.parseTime(order.createdAt)
                 EarningsTripItem(
                     id = order.orderId,
                     title = "Giao món #${order.orderId}",
                     time = timeStr,
                     grossAmount = gross,
                     netAmount = gross * 0.80,
-                    isCash = index % 2 == 0
+                    isCash = order.paymentMethod.uppercase() == "CASH"
                 )
             }
+            items.addAll(foodItems)
         }
 
-        // If daily report has completed trips but no order entity list, create trip placeholders
-        val tripsCount = report?.totalTrips ?: 0
-        if (tripsCount > 0) {
-            val totalRev = report?.totalRevenue ?: 0.0
-            val avgFare = if (tripsCount > 0) totalRev / tripsCount else 0.0
-            return (1..tripsCount).map { i ->
-                val hour = (8 + i) % 24
-                val minute = 15
-                val timeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                EarningsTripItem(
-                    id = i.toLong(),
-                    title = "Cuốc xe hoàn thành #$i",
-                    time = timeStr,
-                    grossAmount = avgFare,
-                    netAmount = avgFare * 0.80,
-                    isCash = i % 2 == 0
-                )
-            }
-        }
-
-        return emptyList()
+        return items
     }
 }
-

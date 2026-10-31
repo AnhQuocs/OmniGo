@@ -46,6 +46,17 @@ sealed interface GetBookingDriverResult {
     ) : GetBookingDriverResult
 }
 
+sealed interface GetDriverBookingsResult {
+    data class Success(
+        val bookings: List<Booking>
+    ) : GetDriverBookingsResult
+
+    data class Error(
+        val error: RideError,
+        val message: String? = null
+    ) : GetDriverBookingsResult
+}
+
 sealed interface GetCustomerBookingsResult {
     data class Success(
         val bookings: List<Booking>

@@ -1087,6 +1087,21 @@
     <string name="driver_trips_cockpit_active">Đang chạy</string>
     <string name="driver_trips_cockpit_completed">Hoàn thành</string>
     <string name="driver_trips_tab_active_fmt">Đang chạy (%1$d)</string>
+    <!-- Driver Trips Timeline & Filters -->
+    <string name="driver_trips_filter_all">Tất cả</string>
+    <string name="driver_trips_filter_ride">Chở khách</string>
+    <string name="driver_trips_filter_food">Giao đồ ăn</string>
+    <string name="driver_trips_timeline_today">Hôm nay</string>
+    <string name="driver_trips_timeline_yesterday">Hôm qua</string>
+    <string name="driver_trips_timeline_trips_count">%1$d cuốc</string>
+    <string name="driver_trips_history_ride_completed">Hoàn thành</string>
+    <string name="driver_trips_history_ride_cancelled">Đã hủy</string>
+    <string name="driver_trips_completed_ride_title">Chuyến xe</string>
+    <string name="driver_trips_pickup_label">Điểm đón</string>
+    <string name="driver_trips_dropoff_label">Điểm trả</string>
+    <string name="driver_trips_empty_filter">Không có chuyến đi nào phù hợp bộ lọc</string>
+    <string name="driver_trips_fare_label">Cước phí</string>
+    <string name="driver_trips_net_earnings_label">Thực nhận</string>
     <!-- Driver Earnings Redesign 2026 -->
     <string name="driver_earnings_subtitle">Theo dõi thu nhập và quản lý ví của bạn</string>
     <string name="driver_earnings_total_today">Tổng thu nhập hôm nay</string>

@@ -27,6 +27,8 @@ fun BookingResponse.toDomain(): Booking {
         distanceInKm = distanceInKm ?: 0.0,
         price = price ?: 0.0,
         vehicleType = vehicleType,
-        paymentMethod = paymentMethod
+        paymentMethod = paymentMethod,
+        createdAt = createdAt,
+        completedAt = completedAt
     )
 }
