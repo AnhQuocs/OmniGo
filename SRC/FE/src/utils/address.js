@@ -20,9 +20,22 @@ export const KNOWN_LOCATIONS = {
  */
 export const isRawGpsPlaceholder = (addr) => {
   if (!addr) return true;
-  const s = String(addr).trim();
-  if (!s || s === '—') return true;
-  return /^vị trí (gps|hiện tại|của bạn|của tôi)/i.test(s) || /^tọa độ/i.test(s) || /^vị trí \(\d/i.test(s);
+  const s = String(addr).trim().toLowerCase();
+  if (!s || s === '—' || s === 'n/a') return true;
+  if (/^vị trí (gps|hiện tại|của bạn|của tôi)/i.test(s)) return true;
+  if (/^vị trí\s*\(?\d/i.test(s)) return true;
+  if (/^tọa độ/i.test(s)) return true;
+  if (
+    s.includes('vị trí gps') ||
+    s.includes('gps của bạn') ||
+    s.includes('gps hiện tại') ||
+    s.includes('điểm đón gps') ||
+    s.includes('hiện tại của tôi') ||
+    s.includes('vị trí hiện tại')
+  ) {
+    return true;
+  }
+  return false;
 };
 
 /**

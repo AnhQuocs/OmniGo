@@ -20,6 +20,23 @@ public class VoucherController {
 
     private final VoucherService voucherService;
 
+    @GetMapping({"", "/browse"})
+    public ResponseEntity<ApiResponse<List<VoucherResponse>>> getBrowseVouchers(
+            @RequestParam(required = false, defaultValue = "ALL") String serviceType,
+            @RequestHeader(value = "X-User-Id", required = false) String headerUserId,
+            @RequestParam(required = false) String userId) {
+
+        String effectiveUserId = (userId != null && !userId.isBlank()) ? userId : headerUserId;
+        List<VoucherResponse> vouchers = voucherService.getActiveVouchersForCustomer(serviceType, effectiveUserId);
+
+        return ResponseEntity.ok(ApiResponse.<List<VoucherResponse>>builder()
+                .success(true)
+                .message("Lấy danh sách mã khuyến mãi thành công")
+                .data(vouchers)
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+
     @PostMapping("/apply")
     public ResponseEntity<ApiResponse<ApplyVoucherResponse>> applyVoucher(
             @Valid @RequestBody ApplyVoucherRequest request,

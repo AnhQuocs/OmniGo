@@ -14,6 +14,8 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByCustomerIdAndStatusIn(Long customerId, List<BookingStatus> status);
     List<Booking> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+    List<Booking> findByDriverIdOrderByCreatedAtDesc(Long driverId);
+    List<Booking> findByDriverIdAndStatusOrderByCreatedAtDesc(Long driverId, BookingStatus status);
 
     @Query("SELECT b FROM Booking b WHERE b.driverId = :driverId AND b.status = 'COMPLETED' AND b.completedAt >= :startOfDay AND b.completedAt < :endOfDay")
     List<Booking> findCompletedBookingsByDriverToday(

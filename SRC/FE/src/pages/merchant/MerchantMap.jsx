@@ -404,7 +404,8 @@ export const MerchantMap = () => {
       longitude: parseFloat(longitude),
       openTime: restaurant.openTime || '08:00',
       closeTime: restaurant.closeTime || '22:00',
-      imageUrl: restaurant.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500',
+      imageUrl: restaurant.imageUrl || '',
+      licenseImageUrl: restaurant.licenseImageUrl || null,
     };
 
     try {

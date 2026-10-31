@@ -1,6 +1,8 @@
 package com.trung.userdriverservice.service.impl;
 
 import com.trung.userdriverservice.dto.request.PageRequestDTO;
+import com.trung.userdriverservice.dto.request.RegisterFcmTokenRequest;
+import com.trung.userdriverservice.dto.request.UpdateUserProfileRequest;
 import com.trung.userdriverservice.dto.request.UserLockRequest;
 import com.trung.userdriverservice.dto.request.UserRegisterRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
@@ -13,12 +15,15 @@ import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceConflictException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.mapper.UserMapper;
+import com.trung.userdriverservice.repository.UserFcmTokenRepository;
 import com.trung.userdriverservice.repository.UserRepository;
 import com.trung.userdriverservice.security.JwtTokenProvider;
 import com.trung.userdriverservice.security.RefreshTokenService;
 import com.trung.userdriverservice.service.FirebaseAuthService;
+import com.trung.userdriverservice.service.UserFcmTokenService;
 import com.trung.userdriverservice.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +37,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -39,20 +45,12 @@ public class UserServiceImpl implements UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final StringRedisTemplate redisTemplate;
+    private final UserFcmTokenRepository userFcmTokenRepository;
+    private final UserFcmTokenService fcmTokenService;
 
     @Override
     @Transactional
     public ApiResponse<LoginResponse> registerCustomer(UserRegisterRequest request) throws ResourceConflictException, BadRequestException, InvalidCredentialsException {
-    
-        /*
-        if (request.getFirebaseToken() != null && !request.getFirebaseToken().trim().isEmpty()) {
-            String verifiedPhoneNumber = firebaseAuthService.verifyTokenAndExtractPhoneNumber(request.getFirebaseToken());
-            request.setPhoneNumber(verifiedPhoneNumber);
-        } else if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
-            throw new BadRequestException("Vui lòng cung cấp Firebase ID Token hoặc số điện thoại để đăng ký.");
-        }
-        */
-
         if (request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty()) {
             throw new BadRequestException("Vui lòng cung cấp số điện thoại để đăng ký.");
         }
@@ -65,8 +63,20 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = userMapper.toCustomerEntity(request);
-
         User savedUser = userRepository.save(user);
+
+        // Tự động gán fcmToken nếu client gửi kèm trong request đăng ký
+        if (request.getFcmToken() != null && !request.getFcmToken().trim().isEmpty()) {
+            try {
+                fcmTokenService.registerFcmToken(savedUser.getId(), RegisterFcmTokenRequest.builder()
+                        .fcmToken(request.getFcmToken().trim())
+                        .deviceType("ANDROID")
+                        .build());
+                log.info("Đã tự động gán FCM token khi đăng ký cho user ID: {}", savedUser.getId());
+            } catch (Exception e) {
+                log.warn("Không thể lưu FCM token khi đăng ký cho user ID {}: {}", savedUser.getId(), e.getMessage());
+            }
+        }
 
         // Sinh Access Token và Refresh Token cho người dùng vừa đăng ký
         String accessToken = jwtTokenProvider.generateAccessToken(savedUser);
@@ -124,7 +134,6 @@ public class UserServiceImpl implements UserService {
         if (isLocked) {
             user.setLockedReason(request.getReason() != null ? request.getReason().trim() : "Tài khoản bị khóa bởi Admin");
             user.setLockedAt(LocalDateTime.now());
-            // Invalidate token & store lock flag in Redis
             try {
                 refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
                 redisTemplate.opsForValue().set("user_locked:" + userId, "true", Duration.ofDays(30));
@@ -161,5 +170,70 @@ public class UserServiceImpl implements UserService {
         } catch (Exception ignored) {
         }
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<UserResponse> updateUserProfile(Long userId, UpdateUserProfileRequest request) throws ResourceNotFoundException, ResourceConflictException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
+
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String newEmail = request.getEmail().trim().toLowerCase();
+            if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+                if (userRepository.existsByEmail(newEmail)) {
+                    throw new ResourceConflictException("Email " + newEmail + " đã được sử dụng bởi tài khoản khác.");
+                }
+                user.setEmail(newEmail);
+            }
+        }
+
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            user.setFullName(request.getFullName().trim());
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("Đã cập nhật thông tin hồ sơ cho User ID: {}", userId);
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Cập nhật thông tin tài khoản thành công.")
+                .data(userMapper.toUserResponse(updatedUser))
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> deleteAccount(Long userId) throws ResourceNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + userId));
+
+        user.setIsDeleted(true);
+        userRepository.save(user);
+
+        // Thu hồi token đăng nhập và thêm cờ khóa vào Redis
+        try {
+            refreshTokenService.deleteRefreshToken(user.getPhoneNumber());
+            redisTemplate.opsForValue().set("user_locked:" + userId, "deleted", Duration.ofDays(30));
+        } catch (Exception e) {
+            log.warn("Lỗi khi xóa refresh token của user ID {}: {}", userId, e.getMessage());
+        }
+
+        // Xóa toàn bộ FCM token đã liên kết
+        try {
+            userFcmTokenRepository.deleteByUserId(userId);
+            redisTemplate.delete("user:fcm:" + userId);
+        } catch (Exception e) {
+            log.warn("Lỗi khi xóa FCM tokens của user ID {}: {}", userId, e.getMessage());
+        }
+
+        log.info("Người dùng ID {} đã xóa tài khoản thành công (soft delete)", userId);
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Tài khoản của bạn đã được xóa thành công khỏi hệ thống.")
+                .timestamp(LocalDateTime.now())
+                .build();
     }
 }

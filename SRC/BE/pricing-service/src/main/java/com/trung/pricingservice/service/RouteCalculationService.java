@@ -83,6 +83,21 @@ public class RouteCalculationService {
         return isCar(normalizedVehicle) ? "driving" : "driving";
     }
 
+    public static int calculateRealisticDuration(double distanceKm, double osrmDurationSec, String normalizedVehicle) {
+        if (distanceKm <= 0.05) {
+            return 1;
+        }
+        boolean car = isCar(normalizedVehicle);
+        double osrmMin = osrmDurationSec / 60.0;
+        // Vận tốc thực tế đô thị (Hà Nội): Xe máy ~28.5 km/h, Ô tô ~24.0 km/h
+        double realisticSpeedKmH = car ? 24.0 : 28.5;
+        double speedDurationMin = (distanceKm / realisticSpeedKmH) * 60.0;
+
+        // Kết hợp: lấy giá trị lớn hơn giữa (thời gian OSRM nhân hệ số đô thị 1.8x) và thời gian theo vận tốc thực tế
+        double adjustedMin = Math.max(osrmMin * 1.8, speedDurationMin);
+        return Math.max(1, (int) Math.round(adjustedMin));
+    }
+
     public RouteResult getRouteInfo(double startLat, double startLng, double endLat, double endLng, String vehicleType) {
         String normalizedVehicle = normalizeVehicleType(vehicleType);
 
@@ -174,8 +189,12 @@ public class RouteCalculationService {
 
                         double distanceKm = Math.round((distanceMeters / 1000.0) * 100.0) / 100.0;
 
-                        // Lấy thời gian di chuyển (duration) do OSRM tự động tính toán từ đồ thị đường đi thực tế:
-                        int durationMinutes = Math.max(1, (int) Math.round(osrmDurationSec / 60.0));
+                        // Hiệu chỉnh thời gian di chuyển thực tế theo điều kiện giao thông đô thị Việt Nam:
+                        // OSRM Public trả về thời gian lý thuyết (free-flow) theo chuẩn cao tốc châu Âu (tốc độ ~55-80 km/h),
+                        // Trong khi thực tế đô thị (đèn đỏ, nút giao, mật độ xe đông):
+                        // - Xe máy: trung bình khoảng 28.5 km/h
+                        // - Ô tô: trung bình khoảng 24.0 km/h
+                        int durationMinutes = calculateRealisticDuration(distanceKm, osrmDurationSec, normalizedVehicle);
 
 
                         log.info("[RouteService] {} thành công | Xe: {} | {} km | {} phút | Polyline len: {}",
@@ -210,7 +229,7 @@ public class RouteCalculationService {
         double haversine = calculateHaversineDistance(startLat, startLng, endLat, endLng);
         double fallbackMultiplier = configRepository != null ? configRepository.getBasePricingConfig().getHaversineFallbackMultiplier() : 1.35;
         double fallbackKm = Math.round((haversine * fallbackMultiplier) * 100.0) / 100.0;
-        double speedKmH = isCar(normalizedVehicle) ? 23.0 : 30.0;
+        double speedKmH = isCar(normalizedVehicle) ? 24.0 : 28.5;
         int fallbackMinutes = Math.max(1, (int) Math.ceil((fallbackKm / speedKmH) * 60.0));
 
         return RouteResult.builder()

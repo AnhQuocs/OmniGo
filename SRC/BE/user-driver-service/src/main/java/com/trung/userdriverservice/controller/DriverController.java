@@ -5,6 +5,7 @@ import com.trung.userdriverservice.dto.request.DriverApprovalRequest;
 import com.trung.userdriverservice.dto.request.DriverRegisterRequest;
 import com.trung.userdriverservice.dto.request.DriverResubmitRequest;
 import com.trung.userdriverservice.dto.request.DriverUpdateRequest;
+import com.trung.userdriverservice.dto.request.RegisterFcmTokenRequest;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import com.trung.userdriverservice.dto.response.DriverInternalResponse;
 import com.trung.userdriverservice.dto.response.LoginResponse;
@@ -18,6 +19,7 @@ import com.trung.userdriverservice.mapper.UserMapper;
 import com.trung.userdriverservice.repository.DriverProfileRepository;
 import com.trung.userdriverservice.service.CloudinaryService;
 import com.trung.userdriverservice.service.DriverService;
+import com.trung.userdriverservice.service.UserFcmTokenService;
 import com.trung.userdriverservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class DriverController {
     private final UserMapper userMapper;
     private final UserService userService;
     private final CloudinaryService cloudinaryService;
+    private final UserFcmTokenService fcmTokenService;
 
     @PostMapping(value = "/upload-document", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadDriverDocument(@RequestParam("file") MultipartFile file) throws BadRequestException {
@@ -135,5 +138,38 @@ public class DriverController {
         ApiResponse<UserResponse> response = driverService.adminUpdateDriver(driverId, request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-}
 
+    @PostMapping("/me/fcm-token")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> registerDriverFcmToken(
+            @RequestHeader(name = "X-User-Id", required = false) Long currentDriverId,
+            @Valid @RequestBody RegisterFcmTokenRequest request) throws BadRequestException {
+        if (currentDriverId == null) {
+            throw new BadRequestException("Không tìm thấy thông tin định danh người dùng (X-User-Id)");
+        }
+        fcmTokenService.registerFcmToken(currentDriverId, request);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Đăng ký FCM Token cho tài xế thành công")
+                .data("OK")
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+
+    @DeleteMapping("/me/fcm-token")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> removeDriverFcmToken(
+            @RequestHeader(name = "X-User-Id", required = false) Long currentDriverId,
+            @RequestParam(required = false) String fcmToken) throws BadRequestException {
+        if (currentDriverId == null) {
+            throw new BadRequestException("Không tìm thấy thông tin định danh người dùng (X-User-Id)");
+        }
+        fcmTokenService.removeFcmToken(currentDriverId, fcmToken);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Đã hủy đăng ký FCM Token tài xế thành công")
+                .data("OK")
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+}

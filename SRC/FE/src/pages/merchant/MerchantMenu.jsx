@@ -23,6 +23,7 @@ import {
   CheckCircle as AvailableIcon,
   Block as UnavailableIcon,
   Restaurant as DishIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
@@ -30,7 +31,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import MenuItemImageField from '../../components/food/MenuItemImageField';
 
 export const MerchantMenu = () => {
-  const { restaurant } = useOutletContext();
+  const { restaurant, loadingRes } = useOutletContext();
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,7 +59,8 @@ export const MerchantMenu = () => {
     try {
       setLoading(true);
       const res = await foodService.getMenuItems(restaurant.id);
-      setMenuItems(Array.isArray(res) ? res : res?.data || []);
+      const items = Array.isArray(res) ? res : res?.data || [];
+      setMenuItems(items);
     } catch (err) {
       console.warn('Lỗi tải thực đơn:', err.message);
     } finally {
@@ -67,21 +69,12 @@ export const MerchantMenu = () => {
   };
 
   useEffect(() => {
-    let active = true;
-    async function init() {
-      if (!restaurant?.id) return;
-      try {
-        const data = await foodService.getMerchantMenu(restaurant.id);
-        if (active) setMenuItems(data || []);
-      } catch (err) {
-        console.warn('Lỗi tải menu:', err.message);
-      } finally {
-        if (active) setLoading(false);
-      }
+    if (restaurant?.id) {
+      fetchMenu();
+    } else if (!loadingRes) {
+      setLoading(false);
     }
-    init();
-    return () => { active = false; };
-  }, [restaurant?.id]);
+  }, [restaurant?.id, loadingRes]);
 
   const handleOpenAdd = () => {
     setImageFile(null);
@@ -198,6 +191,33 @@ export const MerchantMenu = () => {
     (item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loadingRes) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 12 }}>
+        <CircularProgress sx={{ color: '#F97316', mb: 2 }} />
+        <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 600 }}>
+          Đang tải thông tin quán ăn và thực đơn...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!restaurant) {
+    return (
+      <Box sx={{ maxWidth: 640, mx: 'auto', py: 6, px: 2 }}>
+        <Card sx={{ textAlign: 'center', p: 4, borderRadius: 3.5, border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+          <DishIcon sx={{ fontSize: 56, mb: 1.5, color: '#F97316' }} />
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
+            Bạn chưa đăng ký Nhà Hàng
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B', maxWidth: 460, mx: 'auto' }}>
+            Vui lòng đăng ký quán ăn để bắt đầu thiết lập thực đơn và mở bán món ăn trực tuyến.
+          </Typography>
+        </Card>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* Header */}
@@ -219,6 +239,20 @@ export const MerchantMenu = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             sx={{ flex: { xs: 1, sm: 'none' }, minWidth: { xs: 140, sm: 220 } }}
           />
+          <IconButton
+            onClick={fetchMenu}
+            disabled={loading}
+            title="Làm mới thực đơn"
+            sx={{
+              bgcolor: '#F1F5F9',
+              border: '1px solid #E2E8F0',
+              borderRadius: 2.5,
+              p: 1,
+              '&:hover': { bgcolor: '#E2E8F0' },
+            }}
+          >
+            <RefreshIcon fontSize="small" sx={{ color: '#475569' }} />
+          </IconButton>
           <Button
             variant="contained"
             startIcon={<AddIcon />}

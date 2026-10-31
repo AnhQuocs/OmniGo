@@ -19,7 +19,7 @@ public class FoodOrderKafkaConsumer {
         log.info("Nhận được yêu cầu tìm tài xế giao đồ ăn từ Kafka: orderId={}, restaurant={}",
                 event.getOrderId(), event.getRestaurantName());
         try {
-            foodDeliveryDispatchService.dispatchDriverForFoodOrder(event);
+            foodDeliveryDispatchService.resetAndDispatchDriverForFoodOrder(event);
         } catch (Exception e) {
             log.error("Lỗi khi xử lý điều phối tài xế giao đồ ăn cho đơn {}: {}", event.getOrderId(), e.getMessage(), e);
         }

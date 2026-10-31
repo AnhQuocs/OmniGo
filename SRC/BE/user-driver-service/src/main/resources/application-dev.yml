@@ -24,6 +24,21 @@ spring:
     redis:
       host: localhost
       port: 6379
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: trung8d2005@gmail.com
+    password: wmksksnsaoycrpcq
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   kafka:
     bootstrap-servers: localhost:9092

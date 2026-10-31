@@ -29,6 +29,8 @@ public interface VoucherService {
 
     List<VoucherResponse> getApplicableVouchers(double orderAmount, String serviceType, String userId);
 
+    List<VoucherResponse> getActiveVouchersForCustomer(String serviceType, String userId);
+
     void rollbackVoucherUsage(String code, String userId);
 
     void rollbackVoucherUsage(String code, String userId, String orderId);

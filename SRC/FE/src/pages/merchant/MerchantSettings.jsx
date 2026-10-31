@@ -67,8 +67,8 @@ export const MerchantSettings = () => {
       longitude: parseFloat(formData.longitude) || 105.789123,
       openTime: formData.openTime || '08:00',
       closeTime: formData.closeTime || '22:00',
-      imageUrl: formData.imageUrl.trim() || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500',
-      licenseImageUrl: formData.licenseImageUrl ? formData.licenseImageUrl.trim() : null,
+      imageUrl: formData.imageUrl.trim() || restaurant?.imageUrl || '',
+      licenseImageUrl: formData.licenseImageUrl ? formData.licenseImageUrl.trim() : (restaurant?.licenseImageUrl || null),
     };
 
     try {
