@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -56,7 +57,9 @@ fun DriverSwipeButton(
     enabled: Boolean = true,
     trackColor: Color = PrimaryColor,
     thumbColor: Color = SurfaceLight,
-    contentColor: Color = OnPrimaryColor
+    contentColor: Color = OnPrimaryColor,
+    thumbIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+    thumbIconTint: Color? = null
 ) {
     val density = LocalDensity.current
     val thumbSize = Dimen.SizeXLPlus
@@ -158,9 +161,9 @@ fun DriverSwipeButton(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    imageVector = thumbIcon,
                     contentDescription = text,
-                    tint = if (enabled) trackColor else DisabledButtonContent,
+                    tint = thumbIconTint ?: if (enabled) trackColor else DisabledButtonContent,
                     modifier = Modifier.size(Dimen.SizeM)
                 )
             }

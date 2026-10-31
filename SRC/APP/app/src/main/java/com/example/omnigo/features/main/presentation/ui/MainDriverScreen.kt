@@ -1,12 +1,20 @@
 package com.example.omnigo.features.main.presentation.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -23,7 +31,9 @@ import com.example.omnigo.features.driver.profile.presentation.ui.DriverAccountS
 import com.example.omnigo.features.driver.ride.presentation.ui.DriverActiveTripScreen
 import com.example.omnigo.features.driver.trips.presentation.ui.DriverTripsScreen
 import com.example.omnigo.features.main.presentation.navigation.DriverBottomNavDestination
+import com.example.omnigo.features.main.presentation.ui.components.BottomNavVisibilityState
 import com.example.omnigo.features.main.presentation.ui.components.DriverBottomNavBar
+import com.example.omnigo.features.main.presentation.ui.components.LocalBottomNavVisibility
 import com.example.omnigo.features.main.presentation.viewmodel.DriverMainViewModel
 import com.example.omnigo.ui.theme.BackgroundLight
 
@@ -34,21 +44,39 @@ fun MainDriverScreen(
     viewModel: DriverMainViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
+    val visibilityState = remember { BottomNavVisibilityState() }
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: DriverBottomNavDestination.Home.route
     val isTripOrDeliveryActive = currentRoute.startsWith("driver_active_delivery") || currentRoute.startsWith("driver_active_trip")
     val hasActiveTask by viewModel.hasActiveTask.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-    ) {
-        NavHost(
-            navController = navController,
-            startDestination = DriverBottomNavDestination.Home.route,
-            modifier = Modifier.fillMaxSize()
+    // Always keep BottomNavBar visible on Home (interactive map screen)
+    val isHomeScreen = currentRoute == DriverBottomNavDestination.Home.route
+    LaunchedEffect(currentRoute) {
+        if (isHomeScreen) {
+            visibilityState.visible = true
+        }
+    }
+
+    val isBottomNavVisible = if (isHomeScreen) true else visibilityState.visible
+    val bottomNavOffsetY by animateDpAsState(
+        targetValue = if (isBottomNavVisible) 0.dp else 120.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "driverBottomNavOffset"
+    )
+
+    CompositionLocalProvider(LocalBottomNavVisibility provides visibilityState) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(BackgroundLight)
         ) {
+            NavHost(
+                navController = navController,
+                startDestination = DriverBottomNavDestination.Home.route,
+                modifier = Modifier.fillMaxSize()
+            ) {
             composable(DriverBottomNavDestination.Home.route) {
                 DriverHomeScreen(
                     onNavigateToActiveDelivery = { orderId, restaurantLat, restaurantLng ->
@@ -193,8 +221,11 @@ fun MainDriverScreen(
                     }
                 },
                 hasActiveTask = hasActiveTask,
-                modifier = Modifier.align(Alignment.BottomCenter)
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset { IntOffset(0, bottomNavOffsetY.roundToPx()) }
             )
         }
     }
+}
 }

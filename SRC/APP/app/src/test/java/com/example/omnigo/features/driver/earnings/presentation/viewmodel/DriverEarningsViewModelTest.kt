@@ -5,6 +5,13 @@ import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyRepo
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
 import com.example.omnigo.features.driver.earnings.domain.model.EarningsPeriod
+import com.example.omnigo.features.driver.domain.repository.DriverRepository
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
+import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.CreateDriverDepositUrlUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.DriverWithdrawUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverTransactionsUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -28,6 +35,12 @@ class DriverEarningsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var getDriverDailyReportUseCase: GetDriverDailyReportUseCase
+    private val driverRepository: DriverRepository = mockk(relaxed = true)
+    private val driverWithdrawUseCase: DriverWithdrawUseCase = mockk(relaxed = true)
+    private val createDriverDepositUrlUseCase: CreateDriverDepositUrlUseCase = mockk(relaxed = true)
+    private val getDriverWalletUseCase: GetDriverWalletUseCase = mockk(relaxed = true)
+    private val getDriverTransactionsUseCase: GetDriverTransactionsUseCase = mockk(relaxed = true)
+    private val getDriverBookingsUseCase: GetDriverBookingsUseCase = mockk(relaxed = true)
 
     private val sampleReport = DriverDailyReport(
         totalTrips = 8,
@@ -42,6 +55,10 @@ class DriverEarningsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         getDriverDailyReportUseCase = mockk()
+        coEvery { getDriverWalletUseCase() } returns Result.success(mockk(relaxed = true))
+        coEvery { getDriverTransactionsUseCase() } returns Result.success(emptyList())
+        coEvery { getDriverBookingsUseCase() } returns GetDriverBookingsResult.Success(emptyList())
+        coEvery { driverRepository.getDriverAllFoodOrders() } returns Result.success(emptyList())
     }
 
     @After
@@ -55,7 +72,7 @@ class DriverEarningsViewModelTest {
             getDriverDailyReportUseCase(forceRefresh = false, period = "DAY", date = null)
         } returns GetDriverDailyReportResult.Success(sampleReport)
 
-        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
+        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase, driverRepository, driverWithdrawUseCase, createDriverDepositUrlUseCase, getDriverWalletUseCase, getDriverTransactionsUseCase, getDriverBookingsUseCase)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -75,7 +92,7 @@ class DriverEarningsViewModelTest {
             getDriverDailyReportUseCase(forceRefresh = any(), period = any(), date = any())
         } returns GetDriverDailyReportResult.Success(sampleReport)
 
-        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
+        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase, driverRepository, driverWithdrawUseCase, createDriverDepositUrlUseCase, getDriverWalletUseCase, getDriverTransactionsUseCase, getDriverBookingsUseCase)
         advanceUntilIdle()
 
         viewModel.onPeriodSelected(EarningsPeriod.THIS_WEEK)
@@ -95,27 +112,27 @@ class DriverEarningsViewModelTest {
     }
 
     @Test
-    fun `setShowCashoutDialog and setShowTopupDialog update states correctly`() = runTest {
+    fun `setShowCashoutSheet and setShowTopupSheet update states correctly`() = runTest {
         coEvery {
             getDriverDailyReportUseCase(forceRefresh = any(), period = any(), date = any())
         } returns GetDriverDailyReportResult.Success(sampleReport)
 
-        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase)
+        val viewModel = DriverEarningsViewModel(getDriverDailyReportUseCase, driverRepository, driverWithdrawUseCase, createDriverDepositUrlUseCase, getDriverWalletUseCase, getDriverTransactionsUseCase, getDriverBookingsUseCase)
         advanceUntilIdle()
 
-        assertFalse(viewModel.uiState.value.showCashoutDialog)
-        assertFalse(viewModel.uiState.value.showTopupDialog)
+        assertFalse(viewModel.uiState.value.showCashoutSheet)
+        assertFalse(viewModel.uiState.value.showTopupSheet)
 
-        viewModel.setShowCashoutDialog(true)
-        assertTrue(viewModel.uiState.value.showCashoutDialog)
+        viewModel.setShowCashoutSheet(true)
+        assertTrue(viewModel.uiState.value.showCashoutSheet)
 
-        viewModel.setShowCashoutDialog(false)
-        assertFalse(viewModel.uiState.value.showCashoutDialog)
+        viewModel.setShowCashoutSheet(false)
+        assertFalse(viewModel.uiState.value.showCashoutSheet)
 
-        viewModel.setShowTopupDialog(true)
-        assertTrue(viewModel.uiState.value.showTopupDialog)
+        viewModel.setShowTopupSheet(true)
+        assertTrue(viewModel.uiState.value.showTopupSheet)
 
-        viewModel.setShowTopupDialog(false)
-        assertFalse(viewModel.uiState.value.showTopupDialog)
+        viewModel.setShowTopupSheet(false)
+        assertFalse(viewModel.uiState.value.showTopupSheet)
     }
 }

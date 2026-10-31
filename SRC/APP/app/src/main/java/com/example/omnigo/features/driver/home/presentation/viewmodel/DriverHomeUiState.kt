@@ -37,5 +37,9 @@ data class DriverHomeUiState(
     val rideOfferCountdownProgress: Float = 1f,
     val isRideOfferAccepting: Boolean = false,
     val isRideOfferRejecting: Boolean = false,
-    val acceptedRideBookingId: Long? = null
+    val acceptedRideBookingId: Long? = null,
+    val rating: Double = 4.9,
+    val totalTrips: Int = 0,
+    val joinedMonths: Int = 0,
+    val joinedDays: Long = 0
 )

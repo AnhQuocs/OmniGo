@@ -1,4 +1,4 @@
-package com.example.omnigo.features.customer.profile.presentation.viewmodel
+﻿package com.example.omnigo.features.customer.profile.presentation.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -11,7 +11,12 @@ import com.example.omnigo.features.auth.domain.usecase.GetMeUseCase
 import com.example.omnigo.features.auth.domain.usecase.LogoutUseCase
 import com.example.omnigo.features.auth.domain.usecase.UpdateAvatarUseCase
 import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
+import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
 import com.example.omnigo.features.driver.domain.usecase.GetDriverProfileUseCase
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import com.example.omnigo.utils.ImageCompressor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +38,11 @@ data class AccountUiState(
     val avatarUrl: String? = null,
     val vehiclePlate: String? = null,
     val approvalStatus: DriverApprovalStatus = DriverApprovalStatus.APPROVED,
+    val rating: Double = 4.9,
+    val totalTrips: Int = 256,
+    val joinedMonths: Int = 0,
+    val joinedDays: Long = 0,
+    val registrationDate: String = "15/04/2024",
     val isLoading: Boolean = false,
     val isUploadingAvatar: Boolean = false,
     val showLogoutDialog: Boolean = false,
@@ -54,6 +64,7 @@ class AccountViewModel @Inject constructor(
     private var updateAvatarUseCase: UpdateAvatarUseCase? = null
     private var getMeUseCase: GetMeUseCase? = null
     private var getDriverProfileUseCase: GetDriverProfileUseCase? = null
+    private var getDriverBookingsUseCase: GetDriverBookingsUseCase? = null
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
@@ -69,13 +80,16 @@ class AccountViewModel @Inject constructor(
     fun injectProfileDependencies(
         updateAvatarUseCase: UpdateAvatarUseCase,
         getMeUseCase: GetMeUseCase,
-        driverProfileUseCase: GetDriverProfileUseCase
+        driverProfileUseCase: GetDriverProfileUseCase,
+        driverBookingsUseCase: GetDriverBookingsUseCase
     ) {
         this.updateAvatarUseCase = updateAvatarUseCase
         this.getMeUseCase = getMeUseCase
         this.getDriverProfileUseCase = driverProfileUseCase
+        this.getDriverBookingsUseCase = driverBookingsUseCase
         syncWithRemoteProfile()
         loadDriverProfileInfo()
+        loadDriverBookingsCount()
     }
 
     fun loadDriverProfileInfo() {
@@ -88,11 +102,25 @@ class AccountViewModel @Inject constructor(
                         userName = driverProfile.fullName?.ifBlank { null } ?: it.userName,
                         userPhone = driverProfile.phoneNumber?.ifBlank { null } ?: it.userPhone,
                         avatarUrl = driverProfile.avatarUrl ?: it.avatarUrl,
-                        vehiclePlate = driverProfile.vehiclePlate,
+                        vehiclePlate = driverProfile.vehiclePlate ?: it.vehiclePlate,
                         approvalStatus = driverProfile.approvalStatus
                     )
                 }
             }
+        }
+    }
+
+    fun loadDriverBookingsCount() {
+        val useCase = getDriverBookingsUseCase ?: return
+        viewModelScope.launch {
+            try {
+                val result = useCase()
+                if (result is GetDriverBookingsResult.Success) {
+                    _uiState.update {
+                        it.copy(totalTrips = result.bookings.size)
+                    }
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -120,13 +148,34 @@ class AccountViewModel @Inject constructor(
             useCase()
                 .catch { /* Network or auth error, fallback to local session */ }
                 .collect { user ->
+                    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                    val regDate = try {
+                        user.createdAt.format(formatter)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    val months = try {
+                        ChronoUnit.MONTHS.between(user.createdAt.toLocalDate(), LocalDate.now()).toInt()
+                    } catch (_: Exception) {
+                        0
+                    }
+                    val days = try {
+                        ChronoUnit.DAYS.between(user.createdAt.toLocalDate(), LocalDate.now()).coerceAtLeast(1)
+                    } catch (_: Exception) {
+                        1L
+                    }
+
                     _uiState.update {
                         it.copy(
                             userName = if (user.fullName.isNotBlank()) user.fullName else it.userName,
                             userPhone = if (user.phoneNumber.isNotBlank()) user.phoneNumber else it.userPhone,
                             userEmail = user.email.orEmpty(),
                             userRole = user.role.name,
-                            avatarUrl = user.avatarUrl ?: it.avatarUrl
+                            avatarUrl = user.avatarUrl ?: it.avatarUrl,
+                            vehiclePlate = user.driverInfo?.licensePlate ?: it.vehiclePlate,
+                            registrationDate = regDate ?: it.registrationDate,
+                            joinedMonths = months,
+                            joinedDays = days
                         )
                     }
                     if (!user.avatarUrl.isNullOrBlank()) {

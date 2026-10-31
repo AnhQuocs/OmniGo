@@ -4,7 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.core.location.tracker.LocationTracker
+import com.example.omnigo.features.auth.domain.usecase.GetMeUseCase
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
+import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
+import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
+import kotlinx.coroutines.flow.catch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
 import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
 import com.example.omnigo.features.driver.domain.model.DriverFoodOffer
@@ -43,6 +49,8 @@ class DriverHomeViewModel @Inject constructor(
 
     private var getDriverDailyReportUseCase: GetDriverDailyReportUseCase? = null
     private var driverTripSessionManager: DriverTripSessionManager? = null
+    private var getDriverBookingsUseCase: GetDriverBookingsUseCase? = null
+    private var getMeUseCase: GetMeUseCase? = null
 
     private val _uiState = MutableStateFlow(DriverHomeUiState())
     val uiState: StateFlow<DriverHomeUiState> = _uiState.asStateFlow()
@@ -67,6 +75,51 @@ class DriverHomeViewModel @Inject constructor(
         this.driverTripSessionManager = tripSessionManager
         loadDailyReport()
         observeActiveRideSession()
+    }
+
+    @Inject
+    fun injectStatsDependencies(
+        bookingsUseCase: GetDriverBookingsUseCase,
+        meUseCase: GetMeUseCase
+    ) {
+        this.getDriverBookingsUseCase = bookingsUseCase
+        this.getMeUseCase = meUseCase
+        loadDriverStats()
+    }
+
+    fun loadDriverStats() {
+        val bookingsUseCase = getDriverBookingsUseCase
+        val meUseCase = getMeUseCase
+        viewModelScope.launch {
+            if (bookingsUseCase != null) {
+                try {
+                    val result = bookingsUseCase()
+                    if (result is GetDriverBookingsResult.Success) {
+                        _uiState.update { it.copy(totalTrips = result.bookings.size) }
+                    }
+                } catch (_: Exception) {}
+            }
+            if (meUseCase != null) {
+                try {
+                    meUseCase()
+                        .catch { }
+                        .collect { user ->
+                            val months = try {
+                                ChronoUnit.MONTHS.between(user.createdAt.toLocalDate(), LocalDate.now()).toInt()
+                            } catch (_: Exception) { 0 }
+                            val days = try {
+                                ChronoUnit.DAYS.between(user.createdAt.toLocalDate(), LocalDate.now()).coerceAtLeast(1)
+                            } catch (_: Exception) { 1L }
+                            _uiState.update {
+                                it.copy(
+                                    joinedMonths = months,
+                                    joinedDays = days
+                                )
+                            }
+                        }
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun observeActiveRideSession() {

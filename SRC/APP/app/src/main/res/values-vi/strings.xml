@@ -1149,4 +1149,41 @@
     <string name="driver_wallet_income_subtitle">Tổng thu nhập thực nhận trong kỳ</string>
     <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ 20% chiết khấu sàn.</string>
     <string name="driver_wallet_note_success_only">Chỉ giao dịch đã thành công mới được cộng/trừ vào số dư ví.</string>
+
+    <!-- Driver Account Redesign -->
+    <string name="driver_account_subtitle">Quản lý thông tin và cài đặt cá nhân</string>
+    <string name="driver_account_partner_badge">Tài xế đối tác</string>
+    <string name="driver_account_stat_rating_label">Đánh giá</string>
+    <string name="driver_account_stat_trips_label">Chuyến xe</string>
+    <string name="driver_account_stat_joined_label">Đã đồng hành</string>
+    <string name="driver_account_stat_joined_val">%1$d tháng</string>
+    <string name="driver_account_stat_joined_days_val">%1$d ngày</string>
+    <string name="driver_account_vehicle_service_name">OmniBike</string>
+    <string name="driver_account_reg_date_label">Ngày đăng ký</string>
+    <string name="driver_account_menu_profile_title">Hồ sơ cá nhân</string>
+    <string name="driver_account_menu_profile_sub">Xem và cập nhật thông tin cá nhân</string>
+    <string name="driver_account_menu_lang_title">Ngôn ngữ</string>
+    <string name="driver_account_menu_lang_sub">Thay đổi ngôn ngữ ứng dụng</string>
+    <string name="driver_account_menu_terms_title">Điều khoản &amp; Chính sách bảo mật</string>
+    <string name="driver_account_menu_terms_sub">Xem điều khoản, chính sách của OmniGo</string>
+    <string name="driver_account_menu_support_title">Trung tâm trợ giúp</string>
+    <string name="driver_account_menu_support_sub">Câu hỏi thường gặp và hỗ trợ</string>
+    <string name="notifications_title">Thông báo</string>
+    <string name="settings_title">Cài đặt</string>
+    <string name="account_logout_cancel">Hủy</string>
+
+    <!-- Driver Home Redesign -->
+    <string name="driver_home_pill_offline">Bạn đang ngoại tuyến</string>
+    <string name="driver_home_pill_online">Bạn đang trực tuyến</string>
+    <string name="driver_home_support_tooltip">Hỗ trợ tài xế</string>
+    <string name="driver_home_compass_tooltip">Đặt lại hướng bản đồ</string>
+    <string name="driver_home_btn_online">Bật trực tuyến</string>
+    <string name="driver_home_btn_offline">Tắt trực tuyến</string>
+    <string name="driver_support_sheet_title">Trung tâm hỗ trợ tài xế</string>
+    <string name="driver_support_sheet_subtitle">Đội ngũ OmniGo sẵn sàng hỗ trợ bạn 24/7</string>
+    <string name="driver_support_hotline_title">Tổng đài hỗ trợ 24/7</string>
+    <string name="driver_support_hotline_desc">1900 6868 (Miễn phí cước gọi)</string>
+    <string name="driver_support_email_title">Gửi email hỗ trợ</string>
+    <string name="driver_support_email_desc">support@omnigo.vn</string>
+    <string name="driver_map_compass_aligned">Bản đồ đã ở hướng chính Bắc</string>
 </resources>

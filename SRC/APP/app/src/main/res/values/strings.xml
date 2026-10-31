@@ -1149,4 +1149,41 @@
     <string name="driver_wallet_income_subtitle">Net Earnings in Period</string>
     <string name="driver_wallet_income_note">Earnings after 20% platform commission fee deduction.</string>
     <string name="driver_wallet_note_success_only">Only successful transactions affect your wallet balance.</string>
+
+    <!-- Driver Account Redesign -->
+    <string name="driver_account_subtitle">Manage personal info and settings</string>
+    <string name="driver_account_partner_badge">Partner Driver</string>
+    <string name="driver_account_stat_rating_label">Rating</string>
+    <string name="driver_account_stat_trips_label">Trips</string>
+    <string name="driver_account_stat_joined_label">Joined</string>
+    <string name="driver_account_stat_joined_val">%1$d months</string>
+    <string name="driver_account_stat_joined_days_val">%1$d days</string>
+    <string name="driver_account_vehicle_service_name">OmniBike</string>
+    <string name="driver_account_reg_date_label">Registration Date</string>
+    <string name="driver_account_menu_profile_title">Personal Profile</string>
+    <string name="driver_account_menu_profile_sub">View and update personal info</string>
+    <string name="driver_account_menu_lang_title">Language</string>
+    <string name="driver_account_menu_lang_sub">Change application language</string>
+    <string name="driver_account_menu_terms_title">Terms &amp; Privacy Policy</string>
+    <string name="driver_account_menu_terms_sub">View OmniGo terms and privacy policy</string>
+    <string name="driver_account_menu_support_title">Help Center</string>
+    <string name="driver_account_menu_support_sub">FAQ and customer support</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="settings_title">Settings</string>
+    <string name="account_logout_cancel">Cancel</string>
+
+    <!-- Driver Home Redesign -->
+    <string name="driver_home_pill_offline">You are offline</string>
+    <string name="driver_home_pill_online">You are online</string>
+    <string name="driver_home_support_tooltip">Driver Support</string>
+    <string name="driver_home_compass_tooltip">Reset Orientation</string>
+    <string name="driver_home_btn_online">Go Online</string>
+    <string name="driver_home_btn_offline">Go Offline</string>
+    <string name="driver_support_sheet_title">Driver Support Center</string>
+    <string name="driver_support_sheet_subtitle">OmniGo team is ready to support you 24/7</string>
+    <string name="driver_support_hotline_title">24/7 Hotline Support</string>
+    <string name="driver_support_hotline_desc">1900 6868 (Toll-free)</string>
+    <string name="driver_support_email_title">Send Support Email</string>
+    <string name="driver_support_email_desc">support@omnigo.vn</string>
+    <string name="driver_map_compass_aligned">Map is already facing North</string>
 </resources>

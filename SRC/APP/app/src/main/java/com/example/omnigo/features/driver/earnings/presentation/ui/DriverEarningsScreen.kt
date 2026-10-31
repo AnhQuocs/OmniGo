@@ -19,8 +19,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.omnigo.core.components.OmniGoMainLayout
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverCashoutBottomSheet
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverQuestDetailDialog
 import com.example.omnigo.features.driver.earnings.presentation.ui.components.DriverTopupBottomSheet
@@ -78,24 +80,23 @@ fun DriverEarningsScreen(
         }
     }
 
-    PullToRefreshBox(
+    OmniGoMainLayout(
+        modifier = modifier,
+        headerHeight = 60.dp,
         isRefreshing = uiState.isLoading,
         onRefresh = viewModel::refresh,
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-            .statusBarsPadding()
-    ) {
+        header = {
+            EarningsHeaderSection(
+                modifier = Modifier.background(BackgroundLight)
+            )
+        }
+    ) { contentModifier ->
         Column(
-            modifier = Modifier
+            modifier = contentModifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS)
         ) {
-            EarningsHeaderSection()
-
-            Spacer(modifier = Modifier.height(AppSpacing.S))
-
             EarningsPillTabSwitcher(
                 selectedPeriod = uiState.selectedPeriod,
                 onPeriodSelected = viewModel::onPeriodSelected

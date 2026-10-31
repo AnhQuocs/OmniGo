@@ -1,4 +1,4 @@
-package com.example.omnigo.features.driver.trips.presentation.viewmodel
+﻿package com.example.omnigo.features.driver.trips.presentation.viewmodel
 
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
@@ -7,6 +7,7 @@ import com.example.omnigo.features.customer.ride.domain.error.RideError
 import com.example.omnigo.features.driver.domain.model.DriverDailyReport
 import com.example.omnigo.features.driver.domain.repository.DriverRepository
 import com.example.omnigo.features.driver.domain.usecase.GetDriverDailyReportUseCase
+import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
 import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,6 +34,7 @@ class DriverTripsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var getDriverDailyReportUseCase: GetDriverDailyReportUseCase
+    private lateinit var getDriverBookingsUseCase: GetDriverBookingsUseCase
     private lateinit var driverRepository: DriverRepository
     private lateinit var driverTripSessionManager: DriverTripSessionManager
 
@@ -62,6 +64,7 @@ class DriverTripsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         getDriverDailyReportUseCase = mockk()
+        getDriverBookingsUseCase = mockk(relaxed = true)
         driverRepository = mockk()
         driverTripSessionManager = mockk()
         every { driverTripSessionManager.activeBooking } returns activeBookingFlow
@@ -81,6 +84,7 @@ class DriverTripsViewModelTest {
 
         val viewModel = DriverTripsViewModel(
             getDriverDailyReportUseCase,
+            getDriverBookingsUseCase,
             driverRepository,
             driverTripSessionManager
         )
@@ -113,6 +117,7 @@ class DriverTripsViewModelTest {
 
         val viewModel = DriverTripsViewModel(
             getDriverDailyReportUseCase,
+            getDriverBookingsUseCase,
             driverRepository,
             driverTripSessionManager
         )

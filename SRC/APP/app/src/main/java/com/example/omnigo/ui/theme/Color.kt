@@ -79,3 +79,16 @@ val BackgroundAppBar = Color(0xFFFFFFFF)
 // Shimmer Effect Colors
 val ShimmerBase = Color(0xFFE2E8F0)
 val ShimmerHighlight = Color(0xFFF8FAFC)
+
+// Driver Account & Stats Colors
+val SkyBlueContainer = Color(0xFFE0F2FE)
+val SkyBluePrimary = Color(0xFF0284C7)
+val PurpleContainer = Color(0xFFF3E8FF)
+val PurplePrimary = Color(0xFF9333EA)
+val MintGreenContainer = Color(0xFFDCFCE7)
+val MintGreenPrimary = Color(0xFF16A34A)
+val PeachOrangeContainer = Color(0xFFFFEDD5)
+val PeachOrangePrimary = Color(0xFFEA580C)
+val RatingGold = Color(0xFFFBBF24)
+val ShieldBadgeColor = Color(0xFFF97316)
+val CrownGold = Color(0xFFEAB308)

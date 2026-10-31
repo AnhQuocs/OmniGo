@@ -22,9 +22,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.core.components.OmniGoMainLayout
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.driver.common.ui.components.DriverRefreshTitleBar
 import com.example.omnigo.features.driver.food.domain.model.DriverDeliveryOrder
@@ -68,27 +70,28 @@ fun DriverTripsScreen(
     val totalCompletedRides = maxOf(uiState.dailyReport?.totalTrips ?: 0, uiState.historyBookings.size)
     val completedCount = totalCompletedRides + uiState.historyFoodOrders.size
 
-    PullToRefreshBox(
+    OmniGoMainLayout(
+        modifier = modifier,
+        headerHeight = 56.dp,
         isRefreshing = uiState.isReportLoading,
         onRefresh = viewModel::refresh,
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-            .statusBarsPadding()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingM)
-        ) {
-            // 1. PINNED HEADER AREA (Cố định ở trên đỉnh)
+        header = {
             DriverRefreshTitleBar(
                 title = stringResource(id = R.string.driver_nav_trips),
                 onRefreshClick = viewModel::refresh,
-                isRefreshEnabled = !uiState.isReportLoading
+                isRefreshEnabled = !uiState.isReportLoading,
+                modifier = Modifier
+                    .background(BackgroundLight)
+                    .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingXS)
             )
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
+        }
+    ) { contentModifier ->
+        Column(
+            modifier = contentModifier
+                .fillMaxSize()
+                .padding(horizontal = Dimen.PaddingM)
+        ) {
+            Spacer(modifier = Modifier.height(AppSpacing.S))
 
             // Cockpit Radar Capsule
             DriverCockpitCapsule(
