@@ -30,6 +30,17 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const userRaw = localStorage.getItem('omni_user');
+    if (userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        if (u?.id) {
+          config.headers['X-User-Id'] = u.id;
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)

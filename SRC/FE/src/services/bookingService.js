@@ -40,6 +40,22 @@ export const bookingService = {
       return { totalBookings: 0, completedBookings: 0, inProgressBookings: 0, cancelledBookings: 0, pendingBookings: 0, totalGmv: 0 };
     }
   },
+
+  /**
+   * Lấy đánh giá của khách hàng cho chuyến xe
+   * Endpoint BE: GET /api/v1/bookings/:bookingId/review
+   */
+  getBookingReview: async (bookingId) => {
+    try {
+      const res = await get(`/api/v1/bookings/${bookingId}/review`);
+      if (res && res.data) {
+        return res.data;
+      }
+      return res || null;
+    } catch {
+      return null;
+    }
+  },
 };
 
 export default bookingService;

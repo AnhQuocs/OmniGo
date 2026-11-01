@@ -28,6 +28,8 @@ import {
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import UndoDeleteSnackbar from '../../components/common/UndoDeleteSnackbar';
+import useUndoDelete from '../../hooks/useUndoDelete';
 import MenuItemImageField from '../../components/food/MenuItemImageField';
 
 export const MerchantMenu = () => {
@@ -51,6 +53,26 @@ export const MerchantMenu = () => {
   const [imageFile, setImageFile] = useState(null);
 
   // Confirm Delete Dialog State
+    // Undo Delete Hook (5s countdown)
+  const {
+    pendingItem: pendingDeleteFood,
+    secondsLeft: deleteSecondsLeft,
+    startDeleteWithUndo,
+    handleUndo: handleUndoDeleteFood,
+    handleDismiss: handleDismissDeleteFood,
+  } = useUndoDelete({
+    itemType: 'món ăn',
+    onCommitDelete: async (item) => {
+      await foodService.deleteMenuItem(item.id);
+    },
+    onRestoreItem: (item) => {
+      setMenuItems((prev) => {
+        if (prev.some((m) => m.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+    },
+  });
+
   const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -129,19 +151,14 @@ export const MerchantMenu = () => {
     setDeleteConfirmItem(item);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deleteConfirmItem) return;
-    try {
-      setDeleting(true);
-      await foodService.deleteMenuItem(deleteConfirmItem.id);
-      toast.success('Đã xóa món ăn thành công!');
-      setMenuItems((prev) => prev.filter((m) => m.id !== deleteConfirmItem.id));
-      setDeleteConfirmItem(null);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi xóa món ăn');
-    } finally {
-      setDeleting(false);
-    }
+    const itemToDelete = deleteConfirmItem;
+    // Ẩn ngay thẻ món ăn khỏi danh sách
+    setMenuItems((prev) => prev.filter((m) => m.id !== itemToDelete.id));
+    setDeleteConfirmItem(null);
+    // Kích hoạt thanh đếm ngược 5s để hoàn tác
+    startDeleteWithUndo(itemToDelete);
   };
 
   const handleSubmitForm = async (e) => {
@@ -463,16 +480,26 @@ export const MerchantMenu = () => {
         content={
           deleteConfirmItem ? (
             <span>
-              Bạn có chắc chắn muốn xóa món <b>"{deleteConfirmItem.name}"</b> khỏi thực đơn không? Thao tác này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa món <b>"{deleteConfirmItem.name}"</b> khỏi thực đơn không? Thẻ món ăn sẽ được ẩn ngay và bạn có 5 giây để hoàn tác nếu đổi ý.
             </span>
           ) : ''
         }
         confirmText="Xác nhận xóa"
         cancelText="Hủy"
         confirmColor="error"
-        loading={deleting}
-        onClose={() => !deleting && setDeleteConfirmItem(null)}
+        loading={false}
+        onClose={() => setDeleteConfirmItem(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Thanh Hoàn tác 5s sau khi xóa */}
+      <UndoDeleteSnackbar
+        open={Boolean(pendingDeleteFood)}
+        itemName={pendingDeleteFood?.name}
+        itemType="món ăn"
+        secondsLeft={deleteSecondsLeft}
+        onUndo={handleUndoDeleteFood}
+        onDismiss={handleDismissDeleteFood}
       />
     </Box>
   );

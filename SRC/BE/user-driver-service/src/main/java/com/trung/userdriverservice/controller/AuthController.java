@@ -14,6 +14,8 @@ import com.trung.userdriverservice.exception.InvalidCredentialsException;
 import com.trung.userdriverservice.exception.ResourceNotFoundException;
 import com.trung.userdriverservice.service.AuthService;
 import com.trung.userdriverservice.service.OtpService;
+import com.trung.userdriverservice.security.JwtTokenProvider;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -35,6 +37,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final OtpService otpService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenDurationMs;
@@ -124,8 +127,23 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @RequestHeader(name = "X-User-Id", required = false) Long currentUserId,
+            HttpServletRequest servletRequest,
             @Valid @RequestBody ChangePasswordRequest request)
             throws BadRequestException, ResourceNotFoundException {
+        if (currentUserId == null && servletRequest != null) {
+            String authHeader = servletRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String token = authHeader.substring(7);
+                    Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+                    Object uidObj = claims.get("userId");
+                    if (uidObj != null) {
+                        currentUserId = Long.valueOf(uidObj.toString());
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
         if (currentUserId == null) {
             throw new BadRequestException("Không tìm thấy thông tin định danh người dùng (X-User-Id). Vui lòng đăng nhập lại.");
         }

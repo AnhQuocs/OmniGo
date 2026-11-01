@@ -57,6 +57,8 @@ import toast from 'react-hot-toast';
 import voucherService from '../services/voucherService';
 import { useColorMode } from '../context/ThemeContext';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import UndoDeleteSnackbar from '../components/common/UndoDeleteSnackbar';
+import useUndoDelete from '../hooks/useUndoDelete';
 
 export const Vouchers = () => {
   const { mode } = useColorMode();
@@ -67,6 +69,26 @@ export const Vouchers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [serviceFilter, setServiceFilter] = useState('ALL');
+
+    // Undo Delete Hook (5s countdown)
+  const {
+    pendingItem: pendingDeleteVoucher,
+    secondsLeft: voucherSecondsLeft,
+    startDeleteWithUndo: startDeleteVoucherWithUndo,
+    handleUndo: handleUndoDeleteVoucher,
+    handleDismiss: handleDismissDeleteVoucher,
+  } = useUndoDelete({
+    itemType: 'voucher',
+    onCommitDelete: async (item) => {
+      await voucherService.deleteVoucher(item.code);
+    },
+    onRestoreItem: (item) => {
+      setVouchers((prev) => {
+        if (prev.some((v) => v.code === item.code)) return prev;
+        return [item, ...prev];
+      });
+    },
+  });
 
   // Confirm Delete Dialog state
   const [deleteDialog, setDeleteDialog] = useState({
@@ -205,19 +227,15 @@ export const Vouchers = () => {
     });
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     const code = deleteDialog.voucherCode;
     if (!code) return;
-    try {
-      setDeleteDialog((prev) => ({ ...prev, loading: true }));
-      await voucherService.deleteVoucher(code);
-      toast.success(`Đã xóa voucher ${code} thành công`);
-      handleCloseDeleteDialog();
-      fetchVouchers();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi xóa voucher');
-      setDeleteDialog((prev) => ({ ...prev, loading: false }));
-    }
+    const voucherToDelete = vouchers.find((v) => v.code === code) || { code, name: code };
+    // Ẩn ngay thẻ / dòng voucher khỏi danh sách
+    setVouchers((prev) => prev.filter((v) => v.code !== code));
+    handleCloseDeleteDialog();
+    // Kích hoạt thanh đếm ngược 5s để hoàn tác
+    startDeleteVoucherWithUndo(voucherToDelete);
   };
 
   // View usages history
@@ -1033,14 +1051,24 @@ export const Vouchers = () => {
       <ConfirmDialog
         open={deleteDialog.open}
         title="Xác nhận xóa Voucher"
-        content={`Bạn có chắc muốn xóa vĩnh viễn voucher '${deleteDialog.voucherCode}' không? Thao tác này không thể hoàn tác.`}
-        confirmText="Xóa vĩnh viễn"
+        content={`Bạn có chắc muốn xóa voucher '${deleteDialog.voucherCode}' không? Thẻ voucher sẽ được ẩn ngay và bạn có 5 giây để hoàn tác nếu đổi ý.`}
+        confirmText="Xác nhận xóa"
         cancelText="Hủy"
         confirmColor="error"
-        loading={deleteDialog.loading}
+        loading={false}
         onConfirm={handleConfirmDelete}
         onClose={handleCloseDeleteDialog}
         iconType="delete"
+      />
+
+      {/* Thanh Hoàn tác 5s sau khi xóa */}
+      <UndoDeleteSnackbar
+        open={Boolean(pendingDeleteVoucher)}
+        itemName={pendingDeleteVoucher?.code || pendingDeleteVoucher?.name}
+        itemType="voucher"
+        secondsLeft={voucherSecondsLeft}
+        onUndo={handleUndoDeleteVoucher}
+        onDismiss={handleDismissDeleteVoucher}
       />
     </Box>
   );

@@ -1667,6 +1667,163 @@
     let currentFoodDistanceKm = 0;
     let currentActiveServiceForVoucher = 'RIDE_HAILING';
 
+    // ===== TIỆN ÍCH ĐỊNH DẠNG NGÀY GIỜ CHUẨN VIỆT NAM (UTC+7, Asia/Ho_Chi_Minh) =====
+    function parseToVietnamDate(dateVal) {
+        if (!dateVal) return null;
+        if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+        if (typeof dateVal === 'number') {
+            const d = new Date(dateVal > 1e11 ? dateVal : dateVal * 1000);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        let s = String(dateVal).trim();
+        if (!s || s === '—' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
+
+        if (Array.isArray(dateVal)) {
+            const [y, m, d = 1, h = 0, min = 0, sec = 0] = dateVal;
+            return new Date(Date.UTC(y, m - 1, d, h, min, sec));
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) {
+            s = s.replace(/\s+/, 'T');
+        }
+
+        // Nếu chuỗi ISO không có múi giờ, server lưu UTC nên thêm 'Z' để chuyển đổi chính xác
+        if (s.includes('T') && !s.endsWith('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(s)) {
+            s = s + 'Z';
+        }
+
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatVietnamDateTime(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return dateVal && String(dateVal).trim() ? String(dateVal) : '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour12: false
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('hour')}:${get('minute')} ${get('day')}/${get('month')}/${get('year')}`;
+        } catch (e) {
+            return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+    }
+
+    function formatVietnamShortTime(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+                hour12: false
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('hour')}:${get('minute')} ${get('day')}-${get('month')}`;
+        } catch (e) {
+            return formatVietnamDateTime(dateVal);
+        }
+    }
+
+    function formatVietnamDate(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('day')}/${get('month')}/${get('year')}`;
+        } catch (e) {
+            return d.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+    }
+
+    // ===== TIỆN ÍCH CHUẨN HÓA VÀ ĐỊNH DẠNG ĐỊA CHỈ CUỐC XE & ĐƠN HÀNG =====
+    const KNOWN_LOCATIONS_MAP = {
+        '21.0245,105.8574': 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+        '21.0585,105.8202': 'Hồ Tây, Phường Quảng An, Tây Hồ, Hà Nội',
+        '21.0285,105.8542': 'Đinh Tiên Hoàng, Hoàn Kiếm, Hà Nội',
+        '21.0285,105.8544': 'Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội',
+        '21.0031,105.8431': 'Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+        '21.0042,105.8437': 'Đại học Bách Khoa, Hai Bà Trưng, Hà Nội',
+        '21.0378,105.7836': 'Duy Tân, Cầu Giấy, Hà Nội',
+        '21.0135,105.7988': 'Trung Hòa, Cầu Giấy, Hà Nội',
+        '21.0333,105.7891': 'Cầu Giấy, 123 Đường Cầu Giấy, Hà Nội',
+        '21.0333,105.8500': 'Điện Biên Phủ, Ba Đình, Hà Nội',
+        '21.0307,105.7845': 'Trần Thái Tông, Cầu Giấy, Hà Nội',
+        '21.0175,105.8540': 'Phố Huế, Hai Bà Trưng, Hà Nội',
+        '21.0185,105.8266': 'Hoàng Cầu, Đống Đa, Hà Nội',
+        '21.0280,105.7780': 'Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội',
+        '21.0173,105.7839': 'Keangnam Landmark 72, Nam Từ Liêm, Hà Nội',
+        '21.0028,105.8159': 'Royal City, 72A Nguyễn Trãi, Thanh Xuân, Hà Nội',
+        '21.2212,105.8072': 'Sân bay Nội Bài (Ga T1), Sóc Sơn, Hà Nội'
+    };
+
+    function formatBookingAddress(addr, lat, lng, defaultLabel = 'Địa chỉ') {
+        let s = (addr || '').trim();
+        const isHouseNumberOnly = /^\s*(số\s*)?\d{1,5}[a-zA-Z]?\s*$/i.test(s);
+        const isPlusCode = /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}(\s*.*)?$/i.test(s);
+        const isPlaceholder = !s || s === '—' || s === 'N/A' || s === 'null' || s === 'undefined' ||
+            /^vị trí\s*(gps|hiện tại|của bạn|của tôi|\(?\d)/i.test(s) ||
+            /^tọa độ/i.test(s) ||
+            s.toLowerCase().includes('vị trí gps') ||
+            s.toLowerCase().includes('gps của bạn') ||
+            s.toLowerCase().includes('gps hiện tại');
+
+        // Nếu địa chỉ đầy đủ (không phải chỉ có số nhà, không phải plus code, không phải placeholder)
+        if (!isHouseNumberOnly && !isPlusCode && !isPlaceholder && s.length >= 8) {
+            return s;
+        }
+
+        // Phân giải thông tin khu vực/quận huyện dựa trên tọa độ
+        let areaInfo = '';
+        const nLat = Number(lat);
+        const nLng = Number(lng);
+        if (!isNaN(nLat) && !isNaN(nLng) && nLat !== 0 && nLng !== 0) {
+            const key = `${nLat.toFixed(4)},${nLng.toFixed(4)}`;
+            if (KNOWN_LOCATIONS_MAP[key]) {
+                areaInfo = KNOWN_LOCATIONS_MAP[key];
+            } else if (nLat >= 20.8 && nLat <= 21.4 && nLng >= 105.6 && nLng <= 106.1) {
+                if (nLat > 21.05) areaInfo = 'Tây Hồ, Hà Nội';
+                else if (nLat > 21.03 && nLng >= 105.81) areaInfo = 'Ba Đình, Hà Nội';
+                else if (nLng <= 105.78 && nLat >= 21.01) areaInfo = 'SVĐ QG Mỹ Đình, Quận Nam Từ Liêm, Hà Nội';
+                else if (nLng < 105.805 && nLat >= 21.02) areaInfo = 'Cầu Giấy, Hà Nội';
+                else if (nLng >= 105.815 && nLng <= 105.845 && nLat >= 21.005 && nLat <= 21.030) areaInfo = 'Hoàng Cầu, Đống Đa, Hà Nội';
+                else if (nLat < 20.99 && nLng < 105.79) areaInfo = 'Hà Đông, Hà Nội';
+                else if (nLat < 21.01 && nLng >= 105.84) areaInfo = 'Hai Bà Trưng, Hà Nội';
+                else if (nLat >= 21.015 && nLat <= 21.04 && nLng >= 105.84) areaInfo = 'Hoàn Kiếm, Hà Nội';
+                else areaInfo = 'Hà Nội';
+            } else {
+                areaInfo = `Tọa độ (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
+            }
+        }
+
+        if (isHouseNumberOnly) {
+            const num = s.replace(/^[^\d]*/, '').trim();
+            return areaInfo ? `Số ${num}, ${areaInfo}` : `Số ${num}, Hà Nội`;
+        }
+
+        if (areaInfo) {
+            return areaInfo;
+        }
+
+        return s || defaultLabel;
+    }
+
     // ==========================================
     // ⭐ ĐÁNH GIÁ CHUYẾN ĐI (RIDE-HAILING REVIEW)
     // ==========================================
@@ -2336,7 +2493,7 @@
                 return `
                     <div style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; transition: background 0.15s;"
                          onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'"
-                         onclick="selectAutocompleteAddress(decodeURIComponent('${escapedFull}'), ${item.lat}, ${item.lng}, '${dropdownId}')">
+                         onclick="selectFoodAutocompleteAddress(decodeURIComponent('${escapedFull}'), ${item.lat}, ${item.lng}, '${dropdownId}')">
                         <span style="font-size: 15px; margin-top: 1px;">📍</span>
                         <div style="flex: 1; overflow: hidden;">
                             <div style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -2360,13 +2517,22 @@
         }
     }
 
-    function selectAutocompleteAddress(address, lat, lng, dropdownId) {
+    function selectFoodAutocompleteAddress(address, lat, lng, dropdownId) {
         const drop = document.getElementById(dropdownId);
         if (drop) {
             drop.style.display = 'none';
             drop.innerHTML = '';
         }
         selectFoodDeliveryLocation(address, lat, lng, true);
+        const cartAddr = document.getElementById('order-delivery-address');
+        const cartLat = document.getElementById('order-delivery-lat');
+        const cartLng = document.getElementById('order-delivery-lng');
+        if (cartAddr) cartAddr.value = address;
+        if (cartLat) cartLat.value = lat;
+        if (cartLng) cartLng.value = lng;
+        if (typeof renderCartModalItems === 'function') {
+            renderCartModalItems();
+        }
     }
 
     function getCurrentLocationForFoodDelivery() {
@@ -3365,7 +3531,7 @@
         }
 
         container.innerHTML = myFoodOrders.map(order => {
-            const dateStr = new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            const dateStr = formatVietnamDateTime(order.createdAt);
             const statusBadge = getFoodOrderStatusBadge(order.status, order);
             const isAwaitingPayment = (order.status === 'AWAITING_PAYMENT');
             const canCancel = (order.status === 'PENDING');
@@ -3376,7 +3542,7 @@
             const customerDisplay = order.customerName || ('Khách #' + (order.customerId || ''));
             const phoneDisplay = order.customerPhone ? ` • 📞 ${order.customerPhone}` : '';
 
-            const orderTime = order.updatedAt ? new Date(order.updatedAt).getTime() : (order.createdAt ? new Date(order.createdAt).getTime() : 0);
+            const orderTime = order.updatedAt ? (parseToVietnamDate(order.updatedAt)?.getTime() || 0) : (order.createdAt ? (parseToVietnamDate(order.createdAt)?.getTime() || 0) : 0);
             const isOrderOverOneWeek = orderTime > 0 && (Date.now() - orderTime > 7 * 24 * 60 * 60 * 1000);
 
             return `
@@ -3441,7 +3607,7 @@
         // Cập nhật trạng thái đánh giá và phản hồi của quán cho các đơn đã hoàn thành
         (myFoodOrders || []).filter(o => o.status === 'COMPLETED').forEach(async (order) => {
             const actionBox = document.getElementById(`review-action-box-${order.id}`);
-            const orderTime = order.updatedAt ? new Date(order.updatedAt).getTime() : (order.createdAt ? new Date(order.createdAt).getTime() : 0);
+            const orderTime = order.updatedAt ? (parseToVietnamDate(order.updatedAt)?.getTime() || 0) : (order.createdAt ? (parseToVietnamDate(order.createdAt)?.getTime() || 0) : 0);
             const isOrderOverOneWeek = orderTime > 0 && (Date.now() - orderTime > 7 * 24 * 60 * 60 * 1000);
             try {
                 const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-reviews/order/${order.id}`);
@@ -3453,13 +3619,13 @@
                         const hasReply = Boolean(rev.merchantReply || rev.restaurantReply);
                         let isExpired = false;
                         if (rev.createdAt) {
-                            const createdTime = new Date(rev.createdAt).getTime();
+                            const createdTime = parseToVietnamDate(rev.createdAt)?.getTime() || 0;
                             if (Date.now() - createdTime > 48 * 60 * 60 * 1000) {
                                 isExpired = true;
                             }
                         }
                         if (!isExpired && rev.editableUntil) {
-                            isExpired = new Date(rev.editableUntil).getTime() <= Date.now();
+                            isExpired = (parseToVietnamDate(rev.editableUntil)?.getTime() || 0) <= Date.now();
                         }
                         if (!isExpired && rev.canEdit === false) {
                             isExpired = true;
@@ -3796,7 +3962,7 @@
             `;
         } else {
             reviewsListHtml = reviews.map(rev => {
-                const dateStr = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                const dateStr = rev.createdAt ? formatVietnamDateTime(rev.createdAt) : '';
                 const starsText = '⭐'.repeat(rev.restaurantRating || 5);
                 const customerName = rev.customerName || 'Khách hàng OmniGo';
 
@@ -3816,7 +3982,7 @@
                 const replyText = rev.restaurantReply || rev.merchantReply;
                 if (replyText) {
                     const rawDate = rev.restaurantReplyAt || rev.merchantRepliedAt;
-                    const replyDate = rawDate ? new Date(rawDate).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                    const replyDate = rawDate ? formatVietnamDateTime(rawDate) : '';
                     replyHtml = `
                         <div style="background:#eff6ff; border-left:4px solid #2563eb; border-radius:6px; padding:10px 14px; margin-top:12px; font-size:13px; border:1px solid #dbeafe;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -4116,20 +4282,20 @@
                 const replyTextEl = document.getElementById('review-merchant-reply-text');
                 if (replyMsg && replyBox && replyTextEl) {
                     const rawReplyDate = rev.merchantRepliedAt || rev.restaurantReplyAt;
-                    const replyDateStr = rawReplyDate ? new Date(rawReplyDate).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                    const replyDateStr = rawReplyDate ? formatVietnamDateTime(rawReplyDate) : '';
                     replyTextEl.innerHTML = `<div style="font-weight:600; font-size:13px; color:#1e293b;">"${replyMsg}"</div><div style="font-size:11px; color:#64748b; margin-top:4px;">🕒 ${replyDateStr}</div>`;
                     replyBox.style.display = 'block';
                 }
 
                 let isExpired = false;
                 if (rev.createdAt) {
-                    const createdTime = new Date(rev.createdAt).getTime();
+                    const createdTime = parseToVietnamDate(rev.createdAt)?.getTime() || 0;
                     if (Date.now() - createdTime > 48 * 60 * 60 * 1000) {
                         isExpired = true;
                     }
                 }
                 if (!isExpired && rev.editableUntil) {
-                    isExpired = new Date(rev.editableUntil).getTime() <= Date.now();
+                    isExpired = (parseToVietnamDate(rev.editableUntil)?.getTime() || 0) <= Date.now();
                 }
                 if (!isExpired && rev.canEdit === false) {
                     isExpired = true;
@@ -4174,7 +4340,7 @@
         // Khóa đánh giá nếu chưa từng đánh giá và đơn hàng đã hoàn thành quá 1 tuần
         const hasExistingReview = Boolean(document.getElementById('review-existing-id').value);
         const currentOrder = (myFoodOrders || []).find(o => o.id === orderId);
-        const orderTime = (currentOrder && currentOrder.updatedAt) ? new Date(currentOrder.updatedAt).getTime() : ((currentOrder && currentOrder.createdAt) ? new Date(currentOrder.createdAt).getTime() : 0);
+        const orderTime = (currentOrder && currentOrder.updatedAt) ? (parseToVietnamDate(currentOrder.updatedAt)?.getTime() || 0) : ((currentOrder && currentOrder.createdAt) ? (parseToVietnamDate(currentOrder.createdAt)?.getTime() || 0) : 0);
         const isOrderTooOldForReview = orderTime > 0 && (Date.now() - orderTime > 7 * 24 * 60 * 60 * 1000);
 
         if (!hasExistingReview && isOrderTooOldForReview) {
@@ -4201,7 +4367,7 @@
         const existingId = document.getElementById('review-existing-id').value;
 
         const currentOrder = (myFoodOrders || []).find(o => o.id === parseInt(orderId));
-        const orderTime = (currentOrder && currentOrder.updatedAt) ? new Date(currentOrder.updatedAt).getTime() : ((currentOrder && currentOrder.createdAt) ? new Date(currentOrder.createdAt).getTime() : 0);
+        const orderTime = (currentOrder && currentOrder.updatedAt) ? (parseToVietnamDate(currentOrder.updatedAt)?.getTime() || 0) : ((currentOrder && currentOrder.createdAt) ? (parseToVietnamDate(currentOrder.createdAt)?.getTime() || 0) : 0);
         const isOrderTooOldForReview = orderTime > 0 && (Date.now() - orderTime > 7 * 24 * 60 * 60 * 1000);
 
         if (!existingId && isOrderTooOldForReview) {
@@ -4438,10 +4604,24 @@
                 const remoteMatches = (data.features || []).map(f => {
                     const p = f.properties || {};
                     const coords = f.geometry?.coordinates || [0, 0];
-                    const name = p.name || p.street || qClean;
-                    const parts = [p.name, p.street, p.district, p.city, p.country].filter(Boolean);
+                    let name = p.name || p.street || qClean;
+                    if (/^\d{1,5}[a-zA-Z]?$/.test(name) && p.street) {
+                        name = `Số ${name} ${p.street}`;
+                    } else if (/^\d{1,5}[a-zA-Z]?$/.test(name)) {
+                        name = `Số ${name}`;
+                    }
+                    const parts = [
+                        name,
+                        p.street && !name.includes(p.street) ? p.street : null,
+                        p.district || p.suburb,
+                        p.city || p.state,
+                        p.country || 'Việt Nam'
+                    ].filter(Boolean);
                     const uniqueParts = parts.filter((v, i, a) => a.indexOf(v) === i);
-                    const desc = uniqueParts.join(', ');
+                    let desc = uniqueParts.join(', ');
+                    if (/^\s*(số\s*)?\d{1,5}[a-zA-Z]?\s*$/i.test(desc) || desc === name) {
+                        desc = formatBookingAddress(desc, coords[1], coords[0], name);
+                    }
                     return {
                         name: name,
                         desc: desc || name,
@@ -4501,7 +4681,8 @@
     }
 
     function selectAutocompleteAddress(type, name, desc, lat, lng) {
-        const fullName = desc ? `${name}, ${desc}` : name;
+        let fullName = desc ? (desc.includes(name) ? desc : `${name}, ${desc}`) : name;
+        fullName = formatBookingAddress(fullName, lat, lng, name);
         const dropdown = document.getElementById(`${type}-autocomplete-dropdown`);
         if (dropdown) dropdown.style.display = 'none';
 
@@ -4554,6 +4735,8 @@
                 parts.push(`${a.house_number} ${a.road}`);
             } else if (a.road) {
                 parts.push(a.road);
+            } else if (a.house_number) {
+                parts.push(`Số ${a.house_number}`);
             }
             if (a.suburb || a.quarter || a.neighbourhood) {
                 parts.push(a.suburb || a.quarter || a.neighbourhood);
@@ -4569,24 +4752,15 @@
             }
         }
         if (data && data.display_name) {
-            return data.display_name
+            let dn = data.display_name
                 .replace(/,?\s*\d{5,6},?\s*/g, '')
                 .replace(/,?\s*Việt Nam\s*$/i, '')
                 .trim();
-        }
-        const nLat = Number(lat);
-        const nLng = Number(lng);
-        if (nLat >= 20.9 && nLat <= 21.2 && nLng >= 105.7 && nLng <= 106.0) {
-            if (nLat > 21.05) return 'Tây Hồ, Hà Nội';
-            if (nLat > 21.03) return 'Ba Đình, Hà Nội';
-            if (nLng < 105.80) return 'Cầu Giấy, Hà Nội';
-            if (nLng >= 105.815 && nLng <= 105.845 && nLat >= 21.005 && nLat <= 21.030) {
-                return 'Hoàng Cầu, Đống Đa, Hà Nội';
+            if (dn && !/^\s*(số\s*)?\d{1,5}[a-zA-Z]?\s*$/i.test(dn) && dn.length >= 8) {
+                return dn;
             }
-            if (nLat < 21.01) return 'Hai Bà Trưng, Hà Nội';
-            return 'Hoàn Kiếm, Hà Nội';
         }
-        return `Tọa độ (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
+        return formatBookingAddress('', lat, lng, `Tọa độ (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`);
     }
 
     async function fetchReverseGeocode(lat, lng, type) {
@@ -5305,6 +5479,8 @@
 
         let pickupAddr = (document.getElementById('ride-pickup-address')?.value || '').trim();
         let dropoffAddr = (document.getElementById('ride-dropoff-address')?.value || '').trim();
+        pickupAddr = formatBookingAddress(pickupAddr, startPoint[0], startPoint[1], 'Điểm đón');
+        dropoffAddr = formatBookingAddress(dropoffAddr, endPoint[0], endPoint[1], 'Điểm đến');
 
         let payload = {
             startLatitude: startPoint[0],
@@ -5568,18 +5744,29 @@
                 return;
             }
             bookings.forEach(b => {
-                let statusColor = b.status === 'COMPLETED' ? 'green' : (b.status === 'CANCELLED' ? 'red' : '#ed6c02');
-                let displayPrice = b.price ? b.price.toLocaleString('vi-VN') : 0;
+                let statusColor = b.status === 'COMPLETED' ? '#16a34a' : (b.status === 'CANCELLED' ? '#dc2626' : '#ed6c02');
+                let statusBg = b.status === 'COMPLETED' ? '#dcfce7' : (b.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7');
+                let statusVi = b.status === 'COMPLETED' ? 'Hoàn thành' : (b.status === 'CANCELLED' ? 'Đã hủy' : (b.status === 'IN_PROGRESS' ? 'Đang thực hiện' : (b.status === 'ACCEPTED' ? 'Đã nhận' : b.status)));
+                let displayPrice = b.price ? Number(b.price).toLocaleString('vi-VN') : 0;
+                let dateStr = formatVietnamDateTime(b.createdAt || b.startTime);
+                let pickupStr = formatBookingAddress(b.pickupAddress, b.startLatitude, b.startLongitude, 'Điểm đón');
+                let dropoffStr = formatBookingAddress(b.dropoffAddress, b.endLatitude, b.endLongitude, 'Điểm đến');
+
                 listEl.innerHTML += `
-                    <li style="border-bottom: 1px solid #eee; padding: 12px 0; line-height: 1.6;">
-                        <div style="font-weight: bold; color: #333;">Mã chuyến: #${b.id || b.bookingId}</div>
-                        ${b.pickupAddress ? `<div style="font-size:12px; color:#16a34a;">🟢 <b>Đón:</b> ${b.pickupAddress}</div>` : ''}
-                        ${b.dropoffAddress ? `<div style="font-size:12px; color:#dc2626;">🔴 <b>Đến:</b> ${b.dropoffAddress}</div>` : ''}
-                        <div>Quãng đường: <b>${b.distanceInKm ? b.distanceInKm.toFixed(2) : '?'} km</b> - Thành tiền: <b style="color: #d32f2f;">${displayPrice} đ</b></div>
-                        <div>Trạng thái: <span style="color: ${statusColor}; font-weight: bold;">${b.status}</span></div>
+                    <li style="border-bottom: 1px solid #e2e8f0; padding: 14px 0; line-height: 1.6;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <div>
+                                <b style="font-size:14px; color:#1e293b;">Mã chuyến: #${b.id || b.bookingId}</b>
+                                <span style="font-size:12px; color:#64748b; margin-left:8px;">🕒 ${dateStr}</span>
+                            </div>
+                            <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; background:${statusBg}; color:${statusColor};">${statusVi}</span>
+                        </div>
+                        <div style="font-size:13px; color:#16a34a; margin-bottom:3px; word-break:break-word;">🟢 <b>Đón:</b> ${pickupStr}</div>
+                        <div style="font-size:13px; color:#dc2626; margin-bottom:4px; word-break:break-word;">🔴 <b>Đến:</b> ${dropoffStr}</div>
+                        <div style="font-size:12px; color:#475569;">Quãng đường: <b>${b.distanceInKm ? Number(b.distanceInKm).toFixed(2) : '?'} km</b> • Thành tiền: <b style="color: #d32f2f; font-size:13px;">${displayPrice} đ</b></div>
                         ${b.status === 'COMPLETED' ? `
-                            <div style="margin-top:6px; text-align:right;">
-                                <button class="btn-action" style="background:#f59e0b; color:white; padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="openRideReviewModal(${b.id || b.bookingId})">⭐ Đánh giá chuyến đi</button>
+                            <div style="margin-top:8px; text-align:right;">
+                                <button class="btn-action" style="background:#f59e0b; color:white; padding:5px 14px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer; box-shadow:0 1px 2px rgba(245,158,11,0.2);" onclick="openRideReviewModal(${b.id || b.bookingId})">⭐ Đánh giá chuyến đi</button>
                             </div>
                         ` : ''}
                     </li>
@@ -5596,6 +5783,7 @@
             `;
         });
     }
+    window.fetchCustomerBookings = fetchBookingHistory;
 
     let customerRawBalance = 0;
 
@@ -5801,12 +5989,7 @@
                     desc = tx.transactionType;
                 }
 
-                let dateStr = '';
-                if (tx.createdAt) {
-                    let utcTime = tx.createdAt.endsWith('Z') ? tx.createdAt : tx.createdAt + 'Z';
-                    let dateObj = new Date(utcTime);
-                    dateStr = dateObj.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'});
-                }
+                let dateStr = tx.createdAt ? formatVietnamDateTime(tx.createdAt) : '';
 
                 return `
                     <div style="border-bottom: 1px solid #e2e8f0; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
@@ -5951,7 +6134,7 @@
 
                 let expireText = '';
                 if (v.expireAt) {
-                    expireText = `HSD: ${new Date(v.expireAt).toLocaleDateString('vi-VN')}`;
+                    expireText = `HSD: ${formatVietnamDate(v.expireAt)}`;
                 }
 
                 let remainingText = '';
