@@ -98,43 +98,24 @@ export default function FoodOrderReviewModal({
   const handleImageUpload = (e) => {
     if (readOnly) return;
     const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    if (!files.length) return;
 
-    const allowedExtensions = /\.(png|jpe?g|webp)$/i;
-    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
-
-    for (const file of files) {
-      const hasValidExt = allowedExtensions.test(file.name || '');
-      const hasValidMime = !file.type || allowedMimeTypes.includes(file.type.toLowerCase());
-      if (!hasValidExt || !hasValidMime) {
-        toast.error(`File "${file.name}" không hợp lệ! Chỉ cho phép định dạng PNG, JPG, WEBP.`);
-        e.target.value = '';
-        return;
-      }
-    }
-
-    const remainingSlots = 5 - restaurantImages.length;
-    if (remainingSlots <= 0) {
-      toast.error('Tối đa 5 ảnh cho mỗi đánh giá');
-      e.target.value = '';
+    if (restaurantImages.length + files.length > 5) {
+      toast.error('Chỉ được tải lên tối đa 5 hình ảnh!');
       return;
     }
 
-    const filesToProcess = files.slice(0, remainingSlots);
-    if (files.length > remainingSlots) {
-      toast.warning(`Chỉ cho phép tối đa 5 ảnh. Đã nhận ${remainingSlots} ảnh!`);
-    }
-
-    filesToProcess.forEach((file) => {
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`Ảnh ${file.name} vượt quá 5MB`);
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (reader.result) {
-          setRestaurantImages((prev) => (prev.length < 5 ? [...prev, reader.result] : prev));
-        }
+        setRestaurantImages((prev) => [...prev, reader.result]);
       };
       reader.readAsDataURL(file);
     });
-    e.target.value = '';
   };
 
   const handleRemoveImage = (index) => {
@@ -144,8 +125,13 @@ export default function FoodOrderReviewModal({
 
   const handleSubmit = async () => {
     if (readOnly) return;
+
     if (!restaurantRating || restaurantRating < 1) {
       toast.error('Vui lòng chọn số sao đánh giá quán ăn');
+      return;
+    }
+    if (!driverRating || driverRating < 1) {
+      toast.error('Vui lòng chọn số sao đánh giá tài xế');
       return;
     }
 
@@ -261,7 +247,7 @@ export default function FoodOrderReviewModal({
             <Rating
               value={restaurantRating}
               readOnly={readOnly}
-              onChange={(_, val) => setRestaurantRating(val || 1)}
+              onChange={readOnly ? undefined : (_, val) => setRestaurantRating(val || 1)}
               size="large"
               emptyIcon={<StarIcon style={{ opacity: 0.3 }} fontSize="inherit" />}
             />
@@ -294,16 +280,35 @@ export default function FoodOrderReviewModal({
             </Box>
           )}
 
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            InputProps={{ readOnly: Boolean(readOnly) }}
-            placeholder={readOnly ? 'Khách hàng không để lại nhận xét bằng lời.' : 'Chia sẻ cảm nhận chi tiết của bạn về món ăn, hương vị, cách đóng gói...'}
-            value={restaurantComment}
-            onChange={(e) => setRestaurantComment(e.target.value)}
-            sx={{ mt: 1 }}
-          />
+          {readOnly ? (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1.8,
+                bgcolor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 2,
+                color: restaurantComment ? '#1E293B' : '#94A3B8',
+                fontSize: '0.88rem',
+                lineHeight: 1.5,
+                minHeight: 48,
+                fontStyle: restaurantComment ? 'normal' : 'italic',
+                userSelect: 'text',
+              }}
+            >
+              {restaurantComment || '(Khách hàng không để lại nhận xét bằng lời)'}
+            </Box>
+          ) : (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Chia sẻ cảm nhận chi tiết của bạn về món ăn, hương vị, cách đóng gói..."
+              value={restaurantComment}
+              onChange={(e) => setRestaurantComment(e.target.value)}
+              sx={{ mt: 1 }}
+            />
+          )}
 
           {/* Upload hình ảnh món ăn */}
           <Box sx={{ mt: 2 }}>
@@ -396,7 +401,7 @@ export default function FoodOrderReviewModal({
             <Rating
               value={driverRating}
               readOnly={readOnly}
-              onChange={(_, val) => setDriverRating(val || 1)}
+              onChange={readOnly ? undefined : (_, val) => setDriverRating(val || 1)}
               size="large"
               emptyIcon={<StarIcon style={{ opacity: 0.3 }} fontSize="inherit" />}
             />
@@ -429,14 +434,33 @@ export default function FoodOrderReviewModal({
             </Box>
           )}
 
-          <TextField
-            fullWidth
-            size="small"
-            InputProps={{ readOnly: Boolean(readOnly) }}
-            placeholder={readOnly ? 'Khách hàng không để lại ghi chú cho tài xế.' : 'Nhận xét thêm về thái độ hoặc tốc độ giao hàng của tài xế...'}
-            value={driverComment}
-            onChange={(e) => setDriverComment(e.target.value)}
-          />
+          {readOnly ? (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1.8,
+                bgcolor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 2,
+                color: driverComment ? '#1E293B' : '#94A3B8',
+                fontSize: '0.88rem',
+                lineHeight: 1.5,
+                minHeight: 40,
+                fontStyle: driverComment ? 'normal' : 'italic',
+                userSelect: 'text',
+              }}
+            >
+              {driverComment || '(Khách hàng không để lại ghi chú cho tài xế)'}
+            </Box>
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Nhận xét thêm về thái độ hoặc tốc độ giao hàng của tài xế..."
+              value={driverComment}
+              onChange={(e) => setDriverComment(e.target.value)}
+            />
+          )}
         </Box>
       </DialogContent>
 

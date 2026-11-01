@@ -22,6 +22,7 @@ import {
   ShoppingBagOutlined as BagIcon,
   AppsOutlined as GridIcon,
   LogoutOutlined as LogoutIcon,
+  LockReset as LockResetIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ import { logoutUser, logout } from '../redux/authSlice';
 import { useColorMode } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import ConfirmDialog from './common/ConfirmDialog';
+import ChangePasswordModal from './common/ChangePasswordModal';
 
 const DRAWER_WIDTH = 250;
 
@@ -41,6 +43,7 @@ export const Header = ({ handleDrawerToggle }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const openMenu = Boolean(anchorEl);
 
   const handleOpenUserMenu = (event) => {
@@ -49,6 +52,11 @@ export const Header = ({ handleDrawerToggle }) => {
 
   const handleCloseUserMenu = () => {
     setAnchorEl(null);
+  };
+
+  const handleOpenChangePassword = () => {
+    handleCloseUserMenu();
+    setChangePasswordOpen(true);
   };
 
   const handleOpenLogoutConfirm = () => {
@@ -212,6 +220,12 @@ export const Header = ({ handleDrawerToggle }) => {
               </Typography>
             </Box>
             <Divider />
+            <MenuItem onClick={handleOpenChangePassword} sx={{ py: 1.2 }}>
+              <ListItemIcon sx={{ minWidth: 28 }}>
+                <LockResetIcon fontSize="small" />
+              </ListItemIcon>
+              Đổi mật khẩu
+            </MenuItem>
             <MenuItem onClick={handleOpenLogoutConfirm} sx={{ py: 1.2, color: 'error.main' }}>
               <ListItemIcon sx={{ color: 'error.main', minWidth: 28 }}>
                 <LogoutIcon fontSize="small" />
