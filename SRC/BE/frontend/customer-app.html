@@ -1954,29 +1954,33 @@
         }
     }
 
-    // ⚡ CAO CẤP: Tải Tile Map mượt mà, chống xám bản đồ và tự động phục hồi nếu OSM quá tải
+    // ⚡ CAO CẤP: Tải Tile Map OpenStreetMap chuẩn, hoàn toàn miễn phí & không có watermark / API key
     function createRobustTileLayer() {
-        const primaryTemplate = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-        const fallbackTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const primaryTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const fallbackMirrors = [
+            'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+            'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
+        ];
 
         const RobustTileLayer = L.TileLayer.extend({
             createTile: function(coords, done) {
                 const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
-                let retried = false;
+                let retryStep = 0;
 
                 tile.onerror = () => {
-                    if (!retried) {
-                        retried = true;
+                    if (retryStep < fallbackMirrors.length) {
+                        const mirror = fallbackMirrors[retryStep];
+                        retryStep++;
                         const subdomains = ['a', 'b', 'c'];
                         const s = subdomains[Math.floor(Math.random() * subdomains.length)];
-                        const nextUrl = fallbackTemplate
+                        const nextUrl = mirror
                             .replace('{s}', s)
                             .replace('{z}', coords.z)
                             .replace('{x}', coords.x)
                             .replace('{y}', coords.y);
                         setTimeout(() => {
                             tile.src = nextUrl;
-                        }, 200);
+                        }, 150 * retryStep);
                     }
                 };
                 return tile;
@@ -1984,9 +1988,9 @@
         });
 
         return new RobustTileLayer(primaryTemplate, {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            subdomains: ['a', 'b', 'c'],
+            maxZoom: 19,
             minZoom: 3,
             keepBuffer: 8,
             updateWhenIdle: false,
