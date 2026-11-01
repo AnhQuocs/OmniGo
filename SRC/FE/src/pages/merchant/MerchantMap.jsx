@@ -86,31 +86,111 @@ export const MerchantMap = () => {
     }
   }, [restaurant]);
 
-  // Custom Leaflet DivIcon for Restaurant Marker
-  const createMarkerIcon = () => {
+  // ⚡ CAO CẤP: Tải Tile Map OpenStreetMap chuẩn với Fallback Mirrors chống lỗi ô đen/xám
+  const createRobustTileLayer = () => {
+    const primaryTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const fallbackMirrors = [
+      'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+      'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+    ];
+
+    const RobustTileLayer = L.TileLayer.extend({
+      createTile: function (coords, done) {
+        const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
+        let retryStep = 0;
+
+        tile.onerror = () => {
+          if (retryStep < fallbackMirrors.length) {
+            const mirror = fallbackMirrors[retryStep];
+            retryStep++;
+            const subdomains = ['a', 'b', 'c'];
+            const s = subdomains[Math.floor(Math.random() * subdomains.length)];
+            const nextUrl = mirror
+              .replace('{s}', s)
+              .replace('{z}', coords.z)
+              .replace('{x}', coords.x)
+              .replace('{y}', coords.y);
+            setTimeout(() => {
+              tile.src = nextUrl;
+            }, 150 * retryStep);
+          }
+        };
+        return tile;
+      },
+    });
+
+    return new RobustTileLayer(primaryTemplate, {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      subdomains: ['a', 'b', 'c'],
+      maxZoom: 19,
+      minZoom: 3,
+      keepBuffer: 8,
+      updateWhenIdle: false,
+      updateWhenZooming: false,
+      updateInterval: 100,
+      crossOrigin: true,
+    });
+  };
+
+  // Tự động invalidateSize() đa nhịp & lắng nghe ResizeObserver tránh vỡ/thiếu tile bản đồ
+  const setupMapAutoResize = (mapInstance, containerEl) => {
+    if (!mapInstance || !containerEl) return () => {};
+
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 50);
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 600);
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 1200);
+
+    const handleResize = () => {
+      if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+    };
+    window.addEventListener('resize', handleResize);
+
+    let ro = null;
+    if (typeof window !== 'undefined' && window.ResizeObserver) {
+      ro = new ResizeObserver(() => {
+        if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+      });
+      ro.observe(containerEl);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (ro) ro.disconnect();
+    };
+  };
+
+  // 📍 Ghim vị trí hiển thị Avatar chính thức của Quán ăn (Kèm chữ cái viết tắt fallback nếu thiếu ảnh)
+  const createMarkerIcon = (res) => {
+    const avatarUrl = res?.imageUrl || res?.avatarUrl || '';
+    const resName = (res?.name || 'Quán ăn').trim();
+    const initial = resName.charAt(0).toUpperCase() || 'Q';
+
+    const avatarHtml = avatarUrl
+      ? `<img src="${avatarUrl}" alt="${resName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#FFF7ED;color:#EA580C;font-weight:900;font-size:18px;border-radius:50%;\\'>${initial}</div>';" />`
+      : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #FFF7ED; color: #EA580C; font-weight: 900; font-size: 18px; border-radius: 50%;">${initial}</div>`;
+
     return L.divIcon({
-      className: 'custom-res-pin',
+      className: 'custom-res-avatar-pin',
       html: `
-        <div style="position: relative; width: 44px; height: 50px; transform: translate(-50%, -100%);">
-          <div style="
-            width: 44px;
-            height: 44px;
-            background: #F97316;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid #FFFFFF;
-          ">
-            <span style="transform: rotate(45deg); font-size: 20px;">🏪</span>
+        <div style="position: relative; width: 50px; height: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.32)); cursor: grab;">
+          <!-- Soft Ground Shadow -->
+          <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 22px; height: 6px; background: rgba(0,0,0,0.28); border-radius: 50%; filter: blur(1.5px);"></div>
+          <!-- Pointer Pin Needle / Tip -->
+          <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 14px; height: 14px; background: #F97316; border-bottom-right-radius: 3px; z-index: 1;"></div>
+          <!-- Circular Pin Head with Restaurant Avatar -->
+          <div style="position: absolute; top: 0; left: 0; width: 50px; height: 50px; border-radius: 50%; background: #FFFFFF; border: 3.5px solid #F97316; box-sizing: border-box; overflow: hidden; z-index: 2; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);">
+            ${avatarHtml}
+          </div>
+          <!-- Food Badge Indicator -->
+          <div style="position: absolute; top: -3px; right: -3px; width: 20px; height: 20px; background: #EA580C; border: 2px solid #FFFFFF; border-radius: 50%; z-index: 3; display: flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 1px 3px rgba(0,0,0,0.25);">
+            🍲
           </div>
         </div>
       `,
-      iconSize: [0, 0],
-      iconAnchor: [0, 0],
-      popupAnchor: [0, -48],
+      iconSize: [50, 60],
+      iconAnchor: [25, 60],
+      popupAnchor: [0, -60],
     });
   };
 
@@ -139,9 +219,12 @@ export const MerchantMap = () => {
     if (markerRef.current) {
       markerRef.current.setLatLng([lat, lng]);
       markerRef.current.setPopupContent(`
-        <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
-          <b style="color: #F97316; font-size: 14px;">${restaurant?.name || 'Vị trí Quán ăn'}</b><br/>
-          <span>Tọa độ: ${latFixed}, ${lngFixed}</span>
+        <div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 2px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <b style="color: #F97316; font-size: 14px;">${restaurant?.name || 'Vị trí Quán ăn'}</b>
+          </div>
+          <div style="color: #475569; font-size: 12px; margin-bottom: 2px;">📍 Tọa độ GPS: ${latFixed}, ${lngFixed}</div>
+          <div style="color: #0284C7; font-size: 11px; font-weight: 600;">✨ Kéo ghim thả vị trí chính xác</div>
         </div>
       `);
     }
@@ -151,6 +234,13 @@ export const MerchantMap = () => {
     }
   }, [restaurant?.name]);
 
+  // Cập nhật biểu tượng avatar của quán ăn khi restaurant context cập nhật ảnh hoặc tên
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setIcon(createMarkerIcon(restaurant));
+    }
+  }, [restaurant?.imageUrl, restaurant?.avatarUrl, restaurant?.name]);
+
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -158,23 +248,34 @@ export const MerchantMap = () => {
     const initialLat = restaurant?.latitude ? Number(restaurant.latitude) : latitude;
     const initialLng = restaurant?.longitude ? Number(restaurant.longitude) : longitude;
 
+    let cleanupResize = null;
+
     if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], 15);
+      if (mapContainerRef.current._leaflet_id) {
+        delete mapContainerRef.current._leaflet_id;
+      }
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-      }).addTo(map);
+      const map = L.map(mapContainerRef.current, {
+        preferCanvas: true,
+      }).setView([initialLat, initialLng], 15);
 
-      // Add Draggable Marker
+      // Thêm tile layer cao cấp chống lỗi ô xám / ô đen (đồng bộ như tài xế & khách hàng)
+      const robustLayer = createRobustTileLayer();
+      robustLayer.addTo(map);
+
+      // Add Draggable Marker with Restaurant Avatar
       const marker = L.marker([initialLat, initialLng], {
-        icon: createMarkerIcon(),
+        icon: createMarkerIcon(restaurant),
         draggable: true,
       }).addTo(map);
 
       marker.bindPopup(`
-        <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
-          <b style="color: #F97316; font-size: 14px;">${restaurant?.name || 'Vị trí Quán ăn'}</b><br/>
-          <span>${restaurant?.address || 'Kéo ghim hoặc nhấp vào bản đồ để chọn vị trí'}</span>
+        <div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 2px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <b style="color: #F97316; font-size: 14px;">${restaurant?.name || 'Vị trí Quán ăn'}</b>
+          </div>
+          <div style="color: #475569; font-size: 12px; margin-bottom: 2px;">${restaurant?.address || address || 'Kéo ghim hoặc nhấp vào bản đồ để chọn vị trí'}</div>
+          <div style="color: #0284C7; font-size: 11px; font-weight: 600;">✨ Kéo ghim thả vị trí chính xác</div>
         </div>
       `);
 
@@ -193,18 +294,26 @@ export const MerchantMap = () => {
 
       markerRef.current = marker;
       mapInstanceRef.current = map;
+
+      // Khởi động lắng nghe co giãn tự động đa nhịp
+      cleanupResize = setupMapAutoResize(map, mapContainerRef.current);
     } else {
       mapInstanceRef.current.setView([initialLat, initialLng], 15);
       if (markerRef.current) {
         markerRef.current.setLatLng([initialLat, initialLng]);
+        markerRef.current.setIcon(createMarkerIcon(restaurant));
       }
       mapInstanceRef.current.invalidateSize();
     }
+
+    return () => {
+      if (cleanupResize) cleanupResize();
+    };
   }, [restaurant?.id]);
 
   // Autocomplete Search Debounce using Photon API (OpenStreetMap) with fallback
-  const handleSearchChange = (e) => {
-    const val = e.target.value;
+  const handleSearchChange = (valOrEvent) => {
+    const val = typeof valOrEvent === 'string' ? valOrEvent : valOrEvent?.target?.value || '';
     setSearchQuery(val);
 
     if (searchTimeoutRef.current) {
@@ -220,21 +329,28 @@ export const MerchantMap = () => {
     setSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        // 1. First try Photon API (Fast OpenStreetMap Autocomplete)
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`;
+        // 1. First try Photon API (Fast OpenStreetMap Autocomplete với tọa độ bias Hà Nội/VN)
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(val.trim())}&lat=21.0285&lon=105.8544&limit=7`;
         const res = await fetch(photonUrl);
         if (res.ok) {
           const data = await res.json();
           const items = (data.features || []).map((f) => {
             const p = f.properties || {};
             const coords = f.geometry?.coordinates || [0, 0];
-            const full = [p.name, p.street, p.district, p.city].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ');
+            const parts = [
+              p.housenumber ? `Số ${p.housenumber}` : null,
+              p.name,
+              p.street && p.name !== p.street ? p.street : null,
+              p.district || p.suburb,
+              p.city || p.state,
+            ].filter(Boolean);
+            const full = parts.filter((v, i, a) => a.indexOf(v) === i).join(', ');
             return {
               id: p.osm_id || Math.random(),
-              name: p.name || full,
+              name: p.name || full || val,
               full: full || p.name || val,
-              lat: coords[1],
-              lon: coords[0],
+              lat: Number(coords[1]),
+              lon: Number(coords[0]),
             };
           });
           if (items.length > 0) {
@@ -245,7 +361,7 @@ export const MerchantMap = () => {
         }
 
         // 2. Fallback to Nominatim API
-        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&countrycodes=vn&addressdetails=1&limit=6`;
+        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val.trim())}&format=json&countrycodes=vn&addressdetails=1&limit=7`;
         const nomRes = await fetch(nomUrl, { headers: { 'Accept-Language': 'vi' } });
         if (nomRes.ok) {
           const nomData = await nomRes.json();
@@ -271,7 +387,8 @@ export const MerchantMap = () => {
   const handleSelectSuggestion = (item) => {
     const lat = Number(item.lat);
     const lon = Number(item.lon);
-    setAddress(item.full || item.name);
+    const chosenAddress = item.full || item.name;
+    setAddress(chosenAddress);
     setSearchQuery(item.name || '');
     setSuggestions([]);
     setShowSuggestions(false);
@@ -281,6 +398,13 @@ export const MerchantMap = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo([lat, lon], 16, { duration: 1.2 });
     }
+    toast.success(`Đã chọn: ${item.name}`);
+  };
+
+  const handleAddressInputChange = (e) => {
+    const val = e.target.value;
+    setAddress(val);
+    handleSearchChange(val);
   };
 
   // Geocode address string (locate by restaurant address)
@@ -487,57 +611,138 @@ export const MerchantMap = () => {
         }}
       >
         <Stack spacing={2}>
-          {/* Row 1: Address, Coordinates & Save Button */}
+          {/* Hàng điều khiển duy nhất: Ô nhập vị trí tự động gợi ý + Tọa độ GPS + Nút GPS + Nút Lưu */}
           <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems={{ xs: 'stretch', md: 'center' }}
+            direction={{ xs: 'column', lg: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', lg: 'center' }}
             justifyContent="space-between"
           >
-            {/* Address Field with Locate Button */}
-            <TextField
-              label="Địa chỉ chi nhánh quán ăn"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              maxRows={2}
-              helperText="Có thể chỉnh sửa chi tiết số nhà/ngõ, hoặc tìm kiếm / kéo ghim trên bản đồ để đổi vị trí"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationIcon sx={{ color: '#F97316' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="Định vị bản đồ theo địa chỉ này">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleGeocodeAddress(address)}
-                          disabled={locating || !address}
-                          sx={{ color: '#0284C7' }}
-                        >
-                          <SearchIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ flex: 2 }}
-            />
+            {/* Ô nhập Địa chỉ Quán ăn - Tự động gợi ý vị trí ngay bên dưới */}
+            <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
+              <Box ref={searchInputRef} sx={{ position: 'relative', flex: { xs: '1 1 auto', lg: 2.2 } }}>
+                <TextField
+                  label="Địa chỉ chi nhánh quán ăn (Gõ để tự động gợi ý vị trí)"
+                  placeholder="Nhập tên trường, địa danh hoặc đường phố (VD: Phenikaa, Cầu Giấy)..."
+                  value={address}
+                  onChange={handleAddressInputChange}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  size="small"
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        {searching ? (
+                          <CircularProgress size={18} sx={{ color: '#F97316' }} />
+                        ) : (
+                          <LocationIcon sx={{ color: '#F97316' }} />
+                        )}
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        {address && (
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setAddress('');
+                              setSuggestions([]);
+                              setShowSuggestions(false);
+                            }}
+                            title="Xóa địa chỉ"
+                            sx={{ mr: 0.5 }}
+                          >
+                            <ClearIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                        <Tooltip title="Định vị bản đồ theo địa chỉ này">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleGeocodeAddress(address)}
+                              disabled={locating || !address}
+                              sx={{ color: '#0284C7' }}
+                            >
+                              <SearchIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="Gõ địa chỉ để hiển thị gợi ý tự động hoặc kéo avatar quán 🍽️ trên bản đồ để đổi vị trí"
+                />
 
-            {/* Coordinates Fields */}
-            <Stack direction="row" spacing={1.5} sx={{ flex: 1 }}>
+                {/* Autocomplete Suggestions Dropdown List - Gắn trực tiếp dưới ô nhập địa chỉ */}
+                <Popper
+                  open={Boolean(showSuggestions && suggestions.length > 0)}
+                  anchorEl={searchInputRef.current}
+                  placement="bottom-start"
+                  style={{
+                    zIndex: 9999,
+                    width: searchInputRef.current ? searchInputRef.current.clientWidth : 'auto',
+                  }}
+                >
+                  <Paper
+                    elevation={8}
+                    sx={{
+                      mt: 0.8,
+                      borderRadius: 2.5,
+                      overflow: 'hidden',
+                      border: '1px solid #CBD5E1',
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      bgcolor: '#FFFFFF',
+                      boxShadow: '0 16px 36px rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    <List disablePadding>
+                      {suggestions.map((item, idx) => (
+                        <ListItem key={item.id || idx} disablePadding>
+                          <ListItemButton
+                            onClick={() => handleSelectSuggestion(item)}
+                            sx={{
+                              py: 1.2,
+                              px: 2,
+                              borderBottom: '1px solid #F1F5F9',
+                              '&:hover': { bgcolor: '#FFF7ED' },
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 34, color: '#F97316' }}>
+                              <PlaceIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={item.name}
+                              secondary={item.full !== item.name ? item.full : null}
+                              primaryTypographyProps={{
+                                fontSize: '0.86rem',
+                                fontWeight: 700,
+                                color: '#0F172A',
+                              }}
+                              secondaryTypographyProps={{
+                                fontSize: '0.78rem',
+                                color: '#64748B',
+                                noWrap: true,
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Paper>
+                </Popper>
+              </Box>
+            </ClickAwayListener>
+
+            {/* Tọa độ GPS tự động cập nhật (Không cần nhập tay) */}
+            <Stack direction="row" spacing={1} sx={{ flex: { xs: '1 1 auto', lg: 1 } }}>
               <TextField
                 label="Vĩ độ (Lat)"
                 value={latitude}
                 size="small"
                 fullWidth
                 InputProps={{ readOnly: true }}
+                helperText="Tự động"
                 sx={{ bgcolor: '#F8FAFC' }}
               />
               <TextField
@@ -546,159 +751,57 @@ export const MerchantMap = () => {
                 size="small"
                 fullWidth
                 InputProps={{ readOnly: true }}
+                helperText="Tự động"
                 sx={{ bgcolor: '#F8FAFC' }}
               />
             </Stack>
 
-            {/* Save Button */}
-            <Button
-              variant="contained"
-              onClick={handleSaveLocation}
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
-              sx={{
-                minWidth: { xs: '100%', md: 170 },
-                height: 40,
-                borderRadius: 2.5,
-                bgcolor: '#F97316',
-                fontWeight: 700,
-                textTransform: 'none',
-                boxShadow: 'none',
-                '&:hover': { bgcolor: '#EA580C' },
-              }}
-            >
-              {saving ? 'Đang lưu...' : 'Lưu vị trí quán'}
-            </Button>
-          </Stack>
-
-          <Divider sx={{ my: 0.5 }} />
-
-          {/* Row 2: Ô tìm kiếm gợi ý Autocomplete & Nút Vị trí hiện tại (Nằm ở TRÊN HẲN BẢN ĐỒ, DƯỚI phần địa chỉ) */}
-          <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
-            <Box sx={{ position: 'relative' }}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
-                <Box ref={searchInputRef} sx={{ flex: 1, width: '100%' }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Nhập tên địa điểm, trường học, đường phố để gợi ý tự động (VD: Phenikaa, Cầu Giấy)..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          {searching ? <CircularProgress size={18} color="primary" /> : <SearchIcon color="action" />}
-                        </InputAdornment>
-                      ),
-                      endAdornment: searchQuery ? (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSearchQuery('');
-                              setSuggestions([]);
-                              setShowSuggestions(false);
-                            }}
-                          >
-                            <ClearIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ) : null,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2.5,
-                        bgcolor: '#F8FAFC',
-                      },
-                    }}
-                  />
-                </Box>
-
-                <Tooltip title="Lấy vị trí GPS hiện tại của thiết bị">
-                  <Button
-                    variant="outlined"
-                    onClick={handleGetCurrentLocation}
-                    disabled={locating}
-                    startIcon={locating ? <CircularProgress size={16} color="inherit" /> : <MyLocationIcon />}
-                    sx={{
-                      minWidth: { xs: '100%', sm: 175 },
-                      height: 40,
-                      borderRadius: 2.5,
-                      textTransform: 'none',
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      borderColor: '#38BDF8',
-                      color: '#0284C7',
-                      bgcolor: '#F0F9FF',
-                      '&:hover': { bgcolor: '#E0F2FE', borderColor: '#0284C7' },
-                    }}
-                  >
-                    {locating ? 'Đang định vị...' : 'Vị trí hiện tại'}
-                  </Button>
-                </Tooltip>
-              </Stack>
-
-              {/* Autocomplete Suggestions Dropdown List via Portal Popper (Never hidden under Leaflet map) */}
-              <Popper
-                open={Boolean(showSuggestions && suggestions.length > 0)}
-                anchorEl={searchInputRef.current}
-                placement="bottom-start"
-                style={{
-                  zIndex: 9999,
-                  width: searchInputRef.current ? searchInputRef.current.clientWidth : 'auto',
-                }}
-              >
-                <Paper
-                  elevation={8}
+            {/* Nút Vị trí hiện tại (GPS) & Nút Lưu vị trí */}
+            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+              <Tooltip title="Lấy vị trí GPS hiện tại của thiết bị">
+                <Button
+                  variant="outlined"
+                  onClick={handleGetCurrentLocation}
+                  disabled={locating}
+                  startIcon={locating ? <CircularProgress size={16} color="inherit" /> : <MyLocationIcon />}
                   sx={{
-                    mt: 0.8,
+                    height: 40,
                     borderRadius: 2.5,
-                    overflow: 'hidden',
-                    border: '1px solid #CBD5E1',
-                    maxHeight: 320,
-                    overflowY: 'auto',
-                    bgcolor: '#FFFFFF',
-                    boxShadow: '0 16px 36px rgba(0,0,0,0.22)',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    borderColor: '#38BDF8',
+                    color: '#0284C7',
+                    bgcolor: '#F0F9FF',
+                    '&:hover': { bgcolor: '#E0F2FE', borderColor: '#0284C7' },
+                    px: 1.8,
                   }}
                 >
-                  <List disablePadding>
-                    {suggestions.map((item, idx) => (
-                      <ListItem key={item.id || idx} disablePadding>
-                        <ListItemButton
-                          onClick={() => handleSelectSuggestion(item)}
-                          sx={{
-                            py: 1.2,
-                            px: 2,
-                            borderBottom: '1px solid #F1F5F9',
-                            '&:hover': { bgcolor: '#FFF7ED' },
-                          }}
-                        >
-                          <ListItemIcon sx={{ minWidth: 34, color: '#F97316' }}>
-                            <PlaceIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={item.name}
-                            secondary={item.full !== item.name ? item.full : null}
-                            primaryTypographyProps={{
-                              fontSize: '0.86rem',
-                              fontWeight: 700,
-                              color: '#0F172A',
-                            }}
-                            secondaryTypographyProps={{
-                              fontSize: '0.78rem',
-                              color: '#64748B',
-                              noWrap: true,
-                            }}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
-                  </List>
-                </Paper>
-              </Popper>
-            </Box>
-          </ClickAwayListener>
+                  {locating ? 'Đang dò GPS...' : 'Vị trí hiện tại'}
+                </Button>
+              </Tooltip>
+
+              <Button
+                variant="contained"
+                onClick={handleSaveLocation}
+                disabled={saving}
+                startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
+                sx={{
+                  height: 40,
+                  borderRadius: 2.5,
+                  bgcolor: '#F97316',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  boxShadow: 'none',
+                  '&:hover': { bgcolor: '#EA580C' },
+                  px: 2.4,
+                }}
+              >
+                {saving ? 'Đang lưu...' : 'Lưu vị trí quán'}
+              </Button>
+            </Stack>
+          </Stack>
         </Stack>
       </Card>
 
@@ -712,6 +815,16 @@ export const MerchantMap = () => {
           position: 'relative',
         }}
       >
+        <style>{`
+          .custom-res-avatar-pin {
+            background: transparent !important;
+            border: none !important;
+          }
+          .leaflet-container {
+            background-color: #f8fafc !important;
+          }
+        `}</style>
+
         {/* Mẹo góc trên bên phải trên bản đồ */}
         <Box
           sx={{
@@ -732,7 +845,7 @@ export const MerchantMap = () => {
           }}
         >
           <Typography variant="caption" sx={{ fontWeight: 700, color: '#334155' }}>
-            💡 Mẹo: Nhấp vào điểm bất kỳ hoặc kéo ghim 🏪 để đổi vị trí
+            💡 Mẹo: Nhấp vào điểm bất kỳ hoặc kéo avatar quán 🍽️ để đổi vị trí
           </Typography>
         </Box>
 
@@ -743,7 +856,16 @@ export const MerchantMap = () => {
             width: '100%',
             height: '640px',
             minHeight: '480px',
-            bgcolor: '#E2E8F0',
+            bgcolor: '#F8FAFC',
+            '& .leaflet-container': {
+              width: '100%',
+              height: '100%',
+              bgcolor: '#F8FAFC !important',
+              fontFamily: 'inherit',
+            },
+            '& .leaflet-tile': {
+              filter: 'none !important',
+            },
           }}
         />
       </Card>
