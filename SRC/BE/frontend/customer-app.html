@@ -1577,12 +1577,12 @@
 
 <!-- Modal: Đánh Giá Chuyến Xe (Ride-Hailing) -->
 <div class="modal-backdrop" id="modal-ride-review" style="display: none;">
-    <div class="modal-content" style="max-width: 500px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px;">
+    <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-head">
             <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0;">
                 ⭐ Đánh Giá Chuyến Đi #<span id="review-ride-id-display"></span>
             </h3>
-            <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="closeModal('modal-ride-review')">✕</button>
+            <button style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b;" onclick="closeModal('modal-ride-review')">✕</button>
         </div>
 
         <input type="hidden" id="review-ride-booking-id">
@@ -1939,7 +1939,11 @@
             btnFood.className = 'service-tab';
             secRide.style.display = 'block';
             secFood.style.display = 'none';
-            if (map) setTimeout(() => map.invalidateSize(), 100);
+            if (map) {
+                setTimeout(() => map.invalidateSize(), 50);
+                setTimeout(() => map.invalidateSize(), 250);
+                setTimeout(() => map.invalidateSize(), 600);
+            }
         } else {
             btnRide.className = 'service-tab';
             btnFood.className = 'service-tab active-food';
@@ -1947,6 +1951,70 @@
             secFood.style.display = 'block';
             fetchRestaurants();
             fetchMyFoodOrders();
+        }
+    }
+
+    // ⚡ CAO CẤP: Tải Tile Map mượt mà, chống xám bản đồ và tự động phục hồi nếu OSM quá tải
+    function createRobustTileLayer() {
+        const primaryTemplate = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        const fallbackTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+        const RobustTileLayer = L.TileLayer.extend({
+            createTile: function(coords, done) {
+                const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
+                let retried = false;
+
+                tile.onerror = () => {
+                    if (!retried) {
+                        retried = true;
+                        const subdomains = ['a', 'b', 'c'];
+                        const s = subdomains[Math.floor(Math.random() * subdomains.length)];
+                        const nextUrl = fallbackTemplate
+                            .replace('{s}', s)
+                            .replace('{z}', coords.z)
+                            .replace('{x}', coords.x)
+                            .replace('{y}', coords.y);
+                        setTimeout(() => {
+                            tile.src = nextUrl;
+                        }, 200);
+                    }
+                };
+                return tile;
+            }
+        });
+
+        return new RobustTileLayer(primaryTemplate, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20,
+            minZoom: 3,
+            keepBuffer: 8,
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            updateInterval: 100,
+            crossOrigin: true
+        });
+    }
+
+    function setupMapAutoResize(mapInstance, mapElementId = 'map') {
+        if (!mapInstance) return;
+        const el = document.getElementById(mapElementId);
+        if (!el) return;
+
+        // Kích hoạt nhiều nhịp để đảm bảo layout reflow hoàn tất
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 50);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 600);
+
+        window.addEventListener('resize', () => {
+            if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+        });
+
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+            });
+            ro.observe(el);
         }
     }
 
@@ -1969,8 +2037,12 @@
             registerCustomerFcmToken(customerId);
         }
 
-        map = L.map('map').setView([21.035, 105.835], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(map);
+        map = L.map('map', {
+            zoomControl: true,
+            fadeAnimation: true
+        }).setView([21.035, 105.835], 13);
+        createRobustTileLayer().addTo(map);
+        setupMapAutoResize(map, 'map');
 
         connectNotification();
         updateRideRouteAndPricing();

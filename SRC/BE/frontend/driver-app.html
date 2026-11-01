@@ -889,7 +889,14 @@
             }
         } else {
             // APPROVED
-            if (workingArea) workingArea.style.display = 'block';
+            if (workingArea) {
+                workingArea.style.display = 'block';
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 50);
+                    setTimeout(() => map.invalidateSize(), 250);
+                    setTimeout(() => map.invalidateSize(), 600);
+                }
+            }
         }
     }
 
@@ -1196,10 +1203,81 @@
         }, { enableHighAccuracy: true, timeout: 8000 });
     }
 
+    // ⚡ CAO CẤP: Tải Tile Map mượt mà, chống xám bản đồ và tự động phục hồi nếu OSM quá tải
+    function createRobustTileLayer() {
+        const primaryTemplate = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        const fallbackTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+        const RobustTileLayer = L.TileLayer.extend({
+            createTile: function(coords, done) {
+                const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
+                let retried = false;
+
+                tile.onerror = () => {
+                    if (!retried) {
+                        retried = true;
+                        const subdomains = ['a', 'b', 'c'];
+                        const s = subdomains[Math.floor(Math.random() * subdomains.length)];
+                        const nextUrl = fallbackTemplate
+                            .replace('{s}', s)
+                            .replace('{z}', coords.z)
+                            .replace('{x}', coords.x)
+                            .replace('{y}', coords.y);
+                        setTimeout(() => {
+                            tile.src = nextUrl;
+                        }, 200);
+                    }
+                };
+                return tile;
+            }
+        });
+
+        return new RobustTileLayer(primaryTemplate, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20,
+            minZoom: 3,
+            keepBuffer: 8,
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            updateInterval: 100,
+            crossOrigin: true
+        });
+    }
+
+    function setupMapAutoResize(mapInstance, mapElementId = 'map') {
+        if (!mapInstance) return;
+        const el = document.getElementById(mapElementId);
+        if (!el) return;
+
+        // Kích hoạt nhiều nhịp để đảm bảo layout reflow hoàn tất
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 50);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 600);
+
+        window.addEventListener('resize', () => {
+            if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+        });
+
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+            });
+            ro.observe(el);
+        }
+    }
+
     function initMap() {
-        if (map) map.remove();
-        map = L.map('map').setView([currentDriverLat, currentDriverLng], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(map);
+        if (map) {
+            try { map.remove(); } catch(e) {}
+            map = null;
+        }
+        map = L.map('map', {
+            zoomControl: true,
+            fadeAnimation: true
+        }).setView([currentDriverLat, currentDriverLng], 14);
+        createRobustTileLayer().addTo(map);
+        setupMapAutoResize(map, 'map');
 
         const carIcon = L.divIcon({
             className: 'car-icon',
@@ -1267,6 +1345,10 @@
         }).then(async res => {
             if (!res.ok) throw new Error("Lỗi hệ thống, không thể bật app!");
             initMap();
+            if (map) {
+                setTimeout(() => map.invalidateSize(), 100);
+                setTimeout(() => map.invalidateSize(), 400);
+            }
 
             let locSocket = new SockJS(`${WS_BASE_URL}/ws-location`);
             stompLocationClient = Stomp.over(locSocket);
