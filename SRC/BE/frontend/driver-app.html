@@ -1408,11 +1408,18 @@
                     currentFoodRestaurantName = foodOrder.restaurantName || 'Quán ăn';
                     currentFoodRestaurantAddress = foodOrder.restaurantAddress || '';
                     currentFoodDropOffAddress = foodOrder.dropOffAddress || '';
+                    currentFoodCustomerName = foodOrder.customerName || '';
+                    currentFoodCustomerPhone = foodOrder.customerPhone || '';
+                    currentFoodItemsSummary = foodOrder.itemsSummary || '';
+
+                    let custHead = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                    let itemsHtml = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
 
                     document.getElementById('box-title').innerText = "🍲 CÓ ĐƠN GIAO ĐỒ ĂN MỚI!";
                     document.getElementById('match-info').innerHTML = `
                         <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                        ${itemsHtml}
+                        <b>Giao đến:</b> ${custHead}${currentFoodDropOffAddress}<br>
                         <b>Thanh toán:</b> <b style="color:${currentFoodPaymentMethod === 'CASH' ? '#d97706' : '#0284c7'};">${currentFoodPaymentMethod === 'CASH' ? '💵 Tiền mặt khi nhận (COD)' : '💳 Đã thanh toán online trước'}</b><br>
                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b><br>
                         <span style="color:#64748b; font-size:11px;">(Đang tính toán tuyến đường OSRM Engine...)</span>
@@ -1442,9 +1449,12 @@
                                 let durStr = route.durationMinutes || 10;
                                 let matchInfoEl = document.getElementById('match-info');
                                 if (matchInfoEl) {
+                                    let cHead = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                                    let itmHtml = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
                                     matchInfoEl.innerHTML = `
                                         <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                                        ${itmHtml}
+                                        <b>Giao đến:</b> ${cHead}${currentFoodDropOffAddress}<br>
                                         <b>Lộ trình OSRM:</b> <span style="color:#f97316; font-weight:700;">${distStr} km (~${durStr} phút)</span> [${route.source || 'OSRM'}]<br>
                                         <b>Thanh toán:</b> <b style="color:${currentFoodPaymentMethod === 'CASH' ? '#d97706' : '#0284c7'};">${currentFoodPaymentMethod === 'CASH' ? '💵 Tiền mặt khi nhận (COD)' : '💳 Đã thanh toán online trước'}</b><br>
                                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b>
@@ -1465,6 +1475,9 @@
     let currentFoodRestaurantName = '';
     let currentFoodRestaurantAddress = '';
     let currentFoodDropOffAddress = '';
+    let currentFoodCustomerName = '';
+    let currentFoodCustomerPhone = '';
+    let currentFoodItemsSummary = '';
 
     function driverCancelFoodOrder(orderId) {
         clearInterval(driverTimerInterval);
@@ -1521,10 +1534,14 @@
                     }
                 }
 
-                document.getElementById('box-title').innerText = `🍲 ĐANG GIAO ĐƠN #${orderId}`;
+                let cHeadAcc = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                let itmAcc = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
+
+                document.getElementById('box-title').innerText = `🍲 ĐANG LẤY MÓN ĐƠN #${orderId}`;
                 document.getElementById('match-info').innerHTML = `
                     <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                    <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                    ${itmAcc}
+                    <b>Giao đến:</b> ${cHeadAcc}${currentFoodDropOffAddress}<br>
                     <b>Hình thức:</b> <b style="color:${currentFoodPaymentMethod==='CASH'?'#d97706':'#0284c7'};">${currentFoodPaymentMethod==='CASH' ? '💵 TIỀN MẶT (Thu khách: ' + Math.round(currentFoodTotalPrice).toLocaleString('vi-VN') + ' đ)' : '💳 ĐÃ TRẢ TRƯỚC (Không thu tiền)'}</b><br>
                     <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b>
                 `;
@@ -1609,9 +1626,13 @@
                         }
                     }
 
+                    let cHeadDel = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                    let itmDel = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
+
                     document.getElementById('box-title').innerText = `🚀 ĐANG GIAO ĐƠN #${orderId}`;
                     document.getElementById('match-info').innerHTML = `
-                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                        ${itmDel}
+                        <b>Giao đến:</b> ${cHeadDel}${currentFoodDropOffAddress}<br>
                         <b>Hình thức:</b> <b style="color:${currentFoodPaymentMethod==='CASH'?'#d97706':'#0284c7'};">${currentFoodPaymentMethod==='CASH' ? '💵 TIỀN MẶT (Thu khách: ' + Math.round(currentFoodTotalPrice).toLocaleString('vi-VN') + ' đ)' : '💳 ĐÃ TRẢ TRƯỚC (Không thu tiền)'}</b><br>
                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b><br>
                         <span style="color:#0284c7; font-weight:bold;">🚀 Đang di chuyển giao món cho khách hàng theo lộ trình OSRM...</span>
@@ -2152,8 +2173,8 @@
     function normalizeDriverVehicleType(type) {
         if (!type) return 'BIKE';
         const upper = type.toString().trim().toUpperCase();
-        if (upper.includes('4')) return 'CAR_4_SEAT';
-        if (upper.includes('7')) return 'CAR_7_SEAT';
+        if (upper.includes('4') || upper.includes('CAR_4') || upper === 'CAR') return 'CAR_4_SEAT';
+        if (upper.includes('7') || upper.includes('CAR_7')) return 'CAR_7_SEAT';
         return 'BIKE';
     }
 
@@ -2187,7 +2208,13 @@
 
         // Vehicle info
         const vType = normalizeDriverVehicleType(profile.vehicleType);
-        document.getElementById('driver-profile-vehicle-type').value = vType;
+        const selVType = document.getElementById('driver-profile-vehicle-type');
+        if (selVType) {
+            selVType.value = vType;
+            if (selVType.selectedIndex === -1) {
+                selVType.value = 'BIKE';
+            }
+        }
         document.getElementById('driver-profile-license-plate').value = profile.licensePlate || '';
         document.getElementById('driver-profile-vehicle-model').value = profile.vehicleModel || '';
 
@@ -2371,6 +2398,9 @@
                 currentDriverProfile.vehicleModel = vehicleModel;
                 if (updated && typeof updated === 'object') {
                     currentDriverProfile = { ...currentDriverProfile, ...updated };
+                    if (!currentDriverProfile.vehicleType) {
+                        currentDriverProfile.vehicleType = vehicleType;
+                    }
                 }
                 localStorage.setItem('user', JSON.stringify(currentDriverProfile));
 
@@ -2608,7 +2638,7 @@
                 // Danh sách món ăn
                 let itemsSummary = 'Món đặt theo đơn';
                 if (Array.isArray(o.orderItems) && o.orderItems.length > 0) {
-                    itemsSummary = o.orderItems.map(it => `${it.dishName || 'Món'} x${it.quantity || 1}`).join(', ');
+                    itemsSummary = o.orderItems.map(it => `${it.itemName || it.dishName || it.name || 'Món'} x${it.quantity || 1}`).join(', ');
                 }
 
                 return `
@@ -2636,7 +2666,7 @@
                         <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; line-height:1.5;">
                             <span style="font-size:16px;">📍</span>
                             <div style="flex:1;">
-                                <b style="color:#0f172a;">Giao đến: ${escapeHtml(o.customerName || 'Khách hàng')} ${o.customerPhone ? '(' + escapeHtml(o.customerPhone) + ')' : ''}</b>
+                                <b style="color:#0f172a;">Giao đến: ${escapeHtml(o.customerName || ('Khách hàng #' + (o.customerId || '')))} ${o.customerPhone ? '<span style="color:#2563eb; font-weight:600;">(' + escapeHtml(o.customerPhone) + ')</span>' : ''}</b>
                                 <div style="font-size:12px; color:#475569;">${escapeHtml(o.deliveryAddress || 'Địa chỉ khách')}</div>
                             </div>
                         </div>

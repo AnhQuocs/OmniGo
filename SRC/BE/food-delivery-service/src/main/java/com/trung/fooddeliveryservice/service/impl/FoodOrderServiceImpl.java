@@ -108,10 +108,24 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             initialStatus = OrderStatus.AWAITING_PAYMENT;
         }
 
+        String custName = request.getCustomerName();
+        String custPhone = request.getCustomerPhone();
+        if ((custName == null || custName.isBlank()) || (custPhone == null || custPhone.isBlank())) {
+            Map<?, ?> userProfile = fetchUserProfileInternal(customerId);
+            if (userProfile != null) {
+                if ((custName == null || custName.isBlank()) && userProfile.get("fullName") != null) {
+                    custName = String.valueOf(userProfile.get("fullName"));
+                }
+                if ((custPhone == null || custPhone.isBlank()) && userProfile.get("phoneNumber") != null) {
+                    custPhone = String.valueOf(userProfile.get("phoneNumber"));
+                }
+            }
+        }
+
         FoodOrder order = FoodOrder.builder()
                 .customerId(customerId)
-                .customerName(request.getCustomerName())
-                .customerPhone(request.getCustomerPhone())
+                .customerName(custName)
+                .customerPhone(custPhone)
                 .restaurant(restaurant)
                 .status(initialStatus)
                 .deliveryAddress(request.getDeliveryAddress())
@@ -164,7 +178,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         FoodOrder savedOrder = saveAndNotifyStatus(order);
         log.info("Tạo thành công đơn hàng ID {} cho khách hàng ID {}, tổng tiền: {} đ (chờ nhà hàng duyệt)", savedOrder.getId(), customerId, savedOrder.getTotalPrice());
 
-        return foodOrderMapper.toResponse(savedOrder);
+        return enrichOrderDetails(foodOrderMapper.toResponse(savedOrder));
     }
 
     @Override
@@ -176,7 +190,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
                 });
         FoodOrderResponse response = foodOrderMapper.toResponse(order);
-        enrichDriverDetails(response);
+        enrichOrderDetails(response);
         return response;
     }
 
@@ -184,7 +198,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getCustomerOrders(Long customerId) {
         List<FoodOrder> orders = foodOrderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
-        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
+        return enrichOrderDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -205,14 +219,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .stream()
                 .filter(o -> o.getStatus() != OrderStatus.AWAITING_PAYMENT)
                 .collect(Collectors.toList());
-        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
+        return enrichOrderDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getDriverOrders(Long driverId) {
         List<FoodOrder> orders = foodOrderRepository.findByDriverIdOrderByCreatedAtDesc(driverId);
-        return enrichDriverDetails(foodOrderMapper.toResponseList(orders));
+        return enrichOrderDetails(foodOrderMapper.toResponseList(orders));
     }
 
     @Override
@@ -285,9 +299,31 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             log.info("Chủ nhà hàng ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", ownerId, orderId, newStatus);
 
             if (newStatus == OrderStatus.READY_FOR_PICKUP) {
+                String itemsSummary = (saved.getOrderItems() != null && !saved.getOrderItems().isEmpty())
+                        ? saved.getOrderItems().stream()
+                            .map(it -> (it.getItemName() != null ? it.getItemName() : "Món") + " x" + (it.getQuantity() != null ? it.getQuantity() : 1))
+                            .collect(Collectors.joining(", "))
+                        : "";
+                String eventCustName = saved.getCustomerName();
+                String eventCustPhone = saved.getCustomerPhone();
+                if ((eventCustName == null || eventCustName.isBlank()) || (eventCustPhone == null || eventCustPhone.isBlank())) {
+                    Map<?, ?> uData = fetchUserProfileInternal(saved.getCustomerId());
+                    if (uData != null) {
+                        if ((eventCustName == null || eventCustName.isBlank()) && uData.get("fullName") != null) {
+                            eventCustName = String.valueOf(uData.get("fullName"));
+                        }
+                        if ((eventCustPhone == null || eventCustPhone.isBlank()) && uData.get("phoneNumber") != null) {
+                            eventCustPhone = String.valueOf(uData.get("phoneNumber"));
+                        }
+                    }
+                }
+
                 FindDriverForFoodOrderEvent event = FindDriverForFoodOrderEvent.builder()
                         .orderId(saved.getId())
                         .customerId(saved.getCustomerId())
+                        .customerName(eventCustName)
+                        .customerPhone(eventCustPhone)
+                        .itemsSummary(itemsSummary)
                         .restaurantId(order.getRestaurant().getId())
                         .restaurantName(order.getRestaurant().getName())
                         .restaurantAddress(order.getRestaurant().getAddress())
@@ -349,7 +385,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 triggerVoucherRollback(saved.getCustomerId(), saved.getId());
             }
 
-            return foodOrderMapper.toResponse(saved);
+            return enrichOrderDetails(foodOrderMapper.toResponse(saved));
         } finally {
             redisTemplate.delete(lockKey);
         }
@@ -399,7 +435,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 triggerRefund(saved.getCustomerId(), saved.getId(), saved.getTotalPrice(), "Khách hàng tự hủy đơn #" + saved.getId() + (reason != null ? ": " + reason : ""));
             }
 
-            return foodOrderMapper.toResponse(saved);
+            return enrichOrderDetails(foodOrderMapper.toResponse(saved));
         } finally {
             redisTemplate.delete(lockKey);
         }
@@ -421,7 +457,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
         FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã gán thành công tài xế ID {} cho đơn hàng ID {}", driverId, orderId);
-        return foodOrderMapper.toResponse(saved);
+        return enrichOrderDetails(foodOrderMapper.toResponse(saved));
     }
 
     @Override
@@ -472,7 +508,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             triggerVoucherRollback(saved.getCustomerId(), saved.getId());
         }
 
-        return foodOrderMapper.toResponse(saved);
+        return enrichOrderDetails(foodOrderMapper.toResponse(saved));
     }
 
     @Override
@@ -487,7 +523,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
         FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã đánh dấu đơn hàng #{} là ĐÃ THANH TOÁN (isPaid = true)", orderId);
-        return foodOrderMapper.toResponse(saved);
+        return enrichOrderDetails(foodOrderMapper.toResponse(saved));
     }
 
     @Override
@@ -511,7 +547,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setStatus(OrderStatus.PENDING);
         FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Khách hàng ID {} đã chuyển đơn hàng #{} sang thanh toán TIỀN MẶT (CASH), chuyển trạng thái sang PENDING để quán nhận đơn", customerId, orderId);
-        return foodOrderMapper.toResponse(saved);
+        return enrichOrderDetails(foodOrderMapper.toResponse(saved));
     }
 
     @Override
@@ -548,9 +584,31 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Khách hàng ID {} chủ động quét tìm lại tài xế cho đơn #{} (lần thử thứ {})", customerId, orderId, nextRetry);
 
+        String itemsSummary2 = (saved.getOrderItems() != null && !saved.getOrderItems().isEmpty())
+                ? saved.getOrderItems().stream()
+                    .map(it -> (it.getItemName() != null ? it.getItemName() : "Món") + " x" + (it.getQuantity() != null ? it.getQuantity() : 1))
+                    .collect(Collectors.joining(", "))
+                : "";
+        String eventCustName2 = saved.getCustomerName();
+        String eventCustPhone2 = saved.getCustomerPhone();
+        if ((eventCustName2 == null || eventCustName2.isBlank()) || (eventCustPhone2 == null || eventCustPhone2.isBlank())) {
+            Map<?, ?> uData = fetchUserProfileInternal(saved.getCustomerId());
+            if (uData != null) {
+                if ((eventCustName2 == null || eventCustName2.isBlank()) && uData.get("fullName") != null) {
+                    eventCustName2 = String.valueOf(uData.get("fullName"));
+                }
+                if ((eventCustPhone2 == null || eventCustPhone2.isBlank()) && uData.get("phoneNumber") != null) {
+                    eventCustPhone2 = String.valueOf(uData.get("phoneNumber"));
+                }
+            }
+        }
+
         FindDriverForFoodOrderEvent event = FindDriverForFoodOrderEvent.builder()
                 .orderId(saved.getId())
                 .customerId(saved.getCustomerId())
+                .customerName(eventCustName2)
+                .customerPhone(eventCustPhone2)
+                .itemsSummary(itemsSummary2)
                 .restaurantId(order.getRestaurant().getId())
                 .restaurantName(order.getRestaurant().getName())
                 .restaurantAddress(order.getRestaurant().getAddress())
@@ -599,7 +657,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         });
 
         FoodOrderResponse response = foodOrderMapper.toResponse(saved);
-        enrichDriverDetails(response);
+        enrichOrderDetails(response);
         return response;
     }
 
@@ -722,6 +780,79 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     @SuppressWarnings("rawtypes")
+    private Map<?, ?> fetchUserProfileInternal(Long userId) {
+        if (userId == null) return null;
+        try {
+            String baseUrl = (driverServiceBaseUrl != null && !driverServiceBaseUrl.isBlank()) 
+                    ? driverServiceBaseUrl : "http://localhost:8081";
+            String url = baseUrl + "/api/v1/internal/users/" + userId;
+            ResponseEntity<Map> resp = directRestTemplate.getForEntity(url, Map.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().containsKey("data")) {
+                Object dataObj = resp.getBody().get("data");
+                if (dataObj instanceof Map<?, ?> data) {
+                    return data;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Không thể lấy thông tin user ID {} từ user-driver-service: {}", userId, e.getMessage());
+        }
+        return null;
+    }
+
+    private void enrichCustomerDetails(FoodOrderResponse response) {
+        if (response == null || response.getCustomerId() == null) return;
+        boolean missingName = response.getCustomerName() == null || response.getCustomerName().isBlank();
+        boolean missingPhone = response.getCustomerPhone() == null || response.getCustomerPhone().isBlank();
+        if (!missingName && !missingPhone) return;
+
+        Map<?, ?> user = fetchUserProfileInternal(response.getCustomerId());
+        if (user != null) {
+            if (missingName && user.get("fullName") != null) {
+                response.setCustomerName(String.valueOf(user.get("fullName")));
+            }
+            if (missingPhone && user.get("phoneNumber") != null) {
+                response.setCustomerPhone(String.valueOf(user.get("phoneNumber")));
+            }
+        }
+    }
+
+    private List<FoodOrderResponse> enrichCustomerDetails(List<FoodOrderResponse> responses) {
+        if (responses == null || responses.isEmpty()) return responses;
+        Map<Long, Map<?, ?>> cache = new HashMap<>();
+        for (FoodOrderResponse r : responses) {
+            if (r.getCustomerId() == null) continue;
+            boolean missingName = r.getCustomerName() == null || r.getCustomerName().isBlank();
+            boolean missingPhone = r.getCustomerPhone() == null || r.getCustomerPhone().isBlank();
+            if (!missingName && !missingPhone) continue;
+
+            Map<?, ?> user = cache.computeIfAbsent(r.getCustomerId(), this::fetchUserProfileInternal);
+            if (user != null) {
+                if (missingName && user.get("fullName") != null) {
+                    r.setCustomerName(String.valueOf(user.get("fullName")));
+                }
+                if (missingPhone && user.get("phoneNumber") != null) {
+                    r.setCustomerPhone(String.valueOf(user.get("phoneNumber")));
+                }
+            }
+        }
+        return responses;
+    }
+
+    private FoodOrderResponse enrichOrderDetails(FoodOrderResponse response) {
+        if (response == null) return null;
+        enrichDriverDetails(response);
+        enrichCustomerDetails(response);
+        return response;
+    }
+
+    private List<FoodOrderResponse> enrichOrderDetails(List<FoodOrderResponse> responses) {
+        if (responses == null) return null;
+        enrichDriverDetails(responses);
+        enrichCustomerDetails(responses);
+        return responses;
+    }
+
+    @SuppressWarnings("rawtypes")
     private void enrichDriverDetails(FoodOrderResponse response) {
         if (response == null || response.getDriverId() == null) return;
         try {
@@ -801,7 +932,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Transactional(readOnly = true)
     public List<FoodOrderResponse> getAllOrders() {
         List<FoodOrder> list = foodOrderRepository.findAllByOrderByCreatedAtDesc();
-        return enrichDriverDetails(foodOrderMapper.toResponseList(list));
+        return enrichOrderDetails(foodOrderMapper.toResponseList(list));
     }
 
     @Override

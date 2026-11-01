@@ -215,6 +215,7 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<UserResponse> updateDriverVehicle(Long driverId, DriverUpdateRequest request) throws ResourceNotFoundException, ResourceConflictException, BadRequestException {
         DriverProfile profile = driverProfileRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ tài xế."));
