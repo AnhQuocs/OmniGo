@@ -45,6 +45,19 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         if (input == null) return null;
         String url = input.trim();
         if (url.isEmpty()) return null;
+
+        // Tự động nhận diện và upload ảnh Base64 Data URL nếu client gửi trực tiếp chuỗi data:image/...
+        if (url.startsWith("data:image/") && url.contains(";base64,")) {
+            try {
+                String base64Data = url.substring(url.indexOf(";base64,") + 8);
+                byte[] decoded = Base64.getDecoder().decode(base64Data);
+                return upload(decoded);
+            } catch (Exception e) {
+                log.error("Không thể upload ảnh Base64 lên Cloudinary: {}", e.getMessage());
+                throw new ImageUploadException("Không thể tải ảnh base64 lên Cloudinary. Vui lòng thử lại.", HttpStatus.BAD_REQUEST);
+            }
+        }
+
         if (!isCloudinaryImageUrl(url)) {
             if (url.startsWith("http://") || url.startsWith("https://")) {
                 return url;

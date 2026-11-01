@@ -3865,7 +3865,7 @@
         }
     }
 
-    function handleReviewImageUpload(event) {
+    async function handleReviewImageUpload(event) {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
@@ -3894,23 +3894,67 @@
             alert(`Chỉ được tải lên tối đa 5 ảnh. Hệ thống chỉ nhận ${remainingSlots} ảnh đầu tiên!`);
         }
 
-        let pendingCount = filesToProcess.length;
-        filesToProcess.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (currentReviewImages.length < 5) {
-                    currentReviewImages.push(e.target.result);
-                }
-                pendingCount--;
-                if (pendingCount === 0) {
-                    if (currentReviewImages.length > 5) {
-                        currentReviewImages = currentReviewImages.slice(0, 5);
-                    }
+        const previewContainer = document.getElementById('review-images-preview');
+        const submitBtn = document.getElementById('btn-submit-review');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = '⏳ Đang tải ảnh lên...';
+        }
+
+        for (const file of filesToProcess) {
+            if (currentReviewImages.length >= 5) break;
+
+            const loadingId = 'img-loading-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+            if (previewContainer) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = loadingId;
+                loadingDiv.style.cssText = 'width:56px; height:56px; border-radius:6px; border:1px dashed #fdba74; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ea580c; background:#fff7ed; text-align:center; padding:2px; font-weight:600;';
+                loadingDiv.innerText = '⏳ Tải ảnh...';
+                previewContainer.appendChild(loadingDiv);
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-reviews/upload-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json().catch(() => ({}));
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                if (res.ok && data.success && data.data && data.data.url) {
+                    currentReviewImages.push(data.data.url);
                     renderReviewImageThumbnails();
+                } else {
+                    // Fallback sang đọc base64 nếu endpoint upload lỗi (server backend tự động xử lý base64)
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        currentReviewImages.push(e.target.result);
+                        renderReviewImageThumbnails();
+                    };
+                    reader.readAsDataURL(file);
                 }
-            };
-            reader.readAsDataURL(file);
-        });
+            } catch (err) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                // Fallback sang đọc base64
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentReviewImages.push(e.target.result);
+                    renderReviewImageThumbnails();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            const existingId = document.getElementById('review-existing-id')?.value;
+            submitBtn.innerText = existingId ? '💾 Lưu Thay Đổi Đánh Giá' : '🚀 Gửi Đánh Giá';
+        }
         event.target.value = '';
     }
 
