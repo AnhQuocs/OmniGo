@@ -74,6 +74,7 @@ export const Vouchers = () => {
   const {
     pendingItem: pendingDeleteVoucher,
     secondsLeft: voucherSecondsLeft,
+    progressPercent: voucherProgressPercent,
     startDeleteWithUndo: startDeleteVoucherWithUndo,
     handleUndo: handleUndoDeleteVoucher,
     handleDismiss: handleDismissDeleteVoucher,
@@ -1067,6 +1068,7 @@ export const Vouchers = () => {
         itemName={pendingDeleteVoucher?.code || pendingDeleteVoucher?.name}
         itemType="voucher"
         secondsLeft={voucherSecondsLeft}
+        progressPercent={voucherProgressPercent}
         onUndo={handleUndoDeleteVoucher}
         onDismiss={handleDismissDeleteVoucher}
       />

@@ -57,6 +57,7 @@ export const MerchantMenu = () => {
   const {
     pendingItem: pendingDeleteFood,
     secondsLeft: deleteSecondsLeft,
+    progressPercent: deleteProgressPercent,
     startDeleteWithUndo,
     handleUndo: handleUndoDeleteFood,
     handleDismiss: handleDismissDeleteFood,
@@ -498,6 +499,7 @@ export const MerchantMenu = () => {
         itemName={pendingDeleteFood?.name}
         itemType="món ăn"
         secondsLeft={deleteSecondsLeft}
+        progressPercent={deleteProgressPercent}
         onUndo={handleUndoDeleteFood}
         onDismiss={handleDismissDeleteFood}
       />

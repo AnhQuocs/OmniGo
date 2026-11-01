@@ -8,10 +8,12 @@ export const useUndoDelete = ({
 }) => {
   const [pendingItem, setPendingItem] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(5);
+  const [progressPercent, setProgressPercent] = useState(100);
 
   const timerRef = useRef(null);
   const intervalRef = useRef(null);
   const pendingItemRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   pendingItemRef.current = pendingItem;
 
@@ -29,6 +31,7 @@ export const useUndoDelete = ({
   const commitPending = useCallback(async (itemToCommit) => {
     clearTimers();
     setPendingItem(null);
+    setProgressPercent(100);
     if (!itemToCommit) return;
 
     try {
@@ -52,32 +55,40 @@ export const useUndoDelete = ({
 
     setPendingItem(item);
     setSecondsLeft(5);
+    setProgressPercent(100);
 
-    // 1-second interval to update countdown display
+    const DURATION = 5000;
+    startTimeRef.current = Date.now();
+
+    // High frequency interval (40ms ~ 25fps) for ultra-smooth circular countdown animation
     intervalRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          return 0;
+      const elapsed = Date.now() - startTimeRef.current;
+      const remaining = Math.max(0, DURATION - elapsed);
+      const percent = (remaining / DURATION) * 100;
+
+      setProgressPercent(percent);
+      setSecondsLeft(Math.max(1, Math.ceil(remaining / 1000)));
+
+      if (remaining <= 0) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
-        return prev - 1;
-      });
-    }, 1000);
+      }
+    }, 40);
 
     // 5-second timer to execute the actual delete
     timerRef.current = setTimeout(() => {
       const itemToCommit = pendingItemRef.current;
       commitPending(itemToCommit);
-    }, 5000);
+    }, DURATION);
   }, [commitPending]);
 
   const handleUndo = useCallback(() => {
     const itemToRestore = pendingItemRef.current;
     clearTimers();
     setPendingItem(null);
+    setProgressPercent(100);
 
     if (itemToRestore) {
       if (onRestoreItem) {
@@ -107,6 +118,7 @@ export const useUndoDelete = ({
   return {
     pendingItem,
     secondsLeft,
+    progressPercent,
     startDeleteWithUndo,
     handleUndo,
     handleDismiss,
@@ -118,4 +130,3 @@ export const useUndoDelete = ({
 };
 
 export default useUndoDelete;
-

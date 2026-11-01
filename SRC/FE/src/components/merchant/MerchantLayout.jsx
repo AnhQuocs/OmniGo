@@ -740,6 +740,12 @@ export const MerchantLayout = () => {
         iconType="logout"
         loading={loggingOut}
       />
+          {/* CHANGE PASSWORD MODAL */}
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        user={user}
+      />
     </Box>
   );
 };
