@@ -5,6 +5,7 @@ import com.trung.paymentservice.entity.*;
 import com.trung.paymentservice.dto.request.FoodOrderPayoutRequest;
 import com.trung.paymentservice.util.enums.*;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.util.*;
@@ -17,8 +18,8 @@ class WalletCommissionTest {
         WalletRepository wallets = mock(WalletRepository.class);
         TransactionRepository transactions = mock(TransactionRepository.class);
         PlatformFeeConfigRepository configs = mock(PlatformFeeConfigRepository.class);
-        PlatformFeeConfig config = new PlatformFeeConfig(); config.setPercentage(new BigDecimal("12.5"));
-        when(configs.findById(1L)).thenReturn(Optional.of(config));
+        StringRedisTemplate redis = mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
+        when(redis.opsForValue().get(PlatformFeeService.REDIS_KEY)).thenReturn("12.5");
         Wallet driver = Wallet.builder().id(1L).userId(11L).userType(UserType.DRIVER).balance(BigDecimal.ZERO).build();
         Wallet restaurant = Wallet.builder().id(2L).userId(22L).userType(UserType.RESTAURANT).balance(BigDecimal.ZERO).build();
         when(wallets.findByUserIdAndUserTypeWithLock(11L, UserType.DRIVER)).thenReturn(Optional.of(driver));
@@ -28,7 +29,7 @@ class WalletCommissionTest {
         when(transactions.save(any())).thenAnswer(inv -> { Transaction tx = inv.getArgument(0); ledger.add(tx); return tx; });
         when(transactions.findByOrderId(anyString())).thenAnswer(inv -> ledger.stream().filter(t -> t.getOrderId().equals(inv.getArgument(0))).findFirst());
         when(transactions.findByWalletIdOrderByCreatedAtDesc(1L)).thenAnswer(inv -> ledger.stream().filter(t -> t.getWalletId().equals(1L)).toList());
-        WalletServiceImpl service = new WalletServiceImpl(new PlatformFeeService(configs), wallets, transactions, mock(RestTemplate.class));
+        WalletServiceImpl service = new WalletServiceImpl(new PlatformFeeService(configs, redis), wallets, transactions, mock(RestTemplate.class));
         FoodOrderPayoutRequest request = FoodOrderPayoutRequest.builder().driverId(11L).restaurantOwnerId(22L).orderId(99L)
                 .foodAmount(new BigDecimal("100000")).deliveryFee(new BigDecimal("20000")).paymentMethod(method).build();
         service.processFoodOrderPayout(request);
@@ -38,7 +39,7 @@ class WalletCommissionTest {
                 .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         assertEquals(0, totalFees.compareTo(new BigDecimal("15000")));
         int count = ledger.size();
-        config.setPercentage(new BigDecimal("30"));
+        when(redis.opsForValue().get(PlatformFeeService.REDIS_KEY)).thenReturn("30");
         service.processFoodOrderPayout(request);
         assertEquals(count, ledger.size());
         assertEquals(0, restaurant.getBalance().compareTo(new BigDecimal(expectedRestaurantBalance)));
