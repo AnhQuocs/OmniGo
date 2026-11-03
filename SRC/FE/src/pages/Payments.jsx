@@ -206,6 +206,7 @@ export const Payments = () => {
     return formatVietnamDateTime(dateStr);
   };
 
+  const netRevenue = transactions.filter((t) => t.status === 'SUCCESS' && t.transactionType === 'COMMISSION_FEE').reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const totalCount = transactions.length;
   const successCount = transactions.filter((t) => t.status === 'SUCCESS').length;
   const totalVolume = transactions
@@ -308,8 +309,9 @@ export const Payments = () => {
               <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Cuốc đã trả</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{tripPaymentsCount}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Doanh thu thực nhận</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{netRevenue.toLocaleString('vi-VN')} đ</Typography>
+              <Typography variant="caption">Tổng phí sàn đã ghi nhận</Typography>
             </Box>
           </Card>
         </Grid>

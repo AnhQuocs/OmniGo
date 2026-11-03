@@ -9,6 +9,7 @@ export const TRANSACTION_TYPE_MAP = {
   TRIP_INCOME: 'Thu nhập cuốc xe',
   FOOD_PAYMENT: 'Thanh toán đơn món',
   FOOD_DELIVERY_INCOME: 'Thu nhập giao món',
+  FOOD_RESTAURANT_INCOME: 'Thu nhập quán ăn',
   WITHDRAWAL: 'Rút tiền ví',
   REFUND: 'Hoàn tiền',
 };

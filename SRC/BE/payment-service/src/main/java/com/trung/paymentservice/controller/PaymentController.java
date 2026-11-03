@@ -18,8 +18,10 @@ import com.trung.paymentservice.strategy.PaymentStrategy;
 import com.trung.paymentservice.util.enums.TransactionStatus;
 import com.trung.paymentservice.util.enums.TransactionType;
 import com.trung.paymentservice.util.enums.UserType;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +31,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.trung.paymentservice.service.PlatformFeeService;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentController {
+
+    private final PlatformFeeService platformFeeService;
+
+    @GetMapping("/admin/platform-fee")
+    public Map<String, BigDecimal> getPlatformFee() {
+        return Map.of("percentage", platformFeeService.getPercentage());
+    }
+
+    @PutMapping("/admin/platform-fee")
+    public Map<String, BigDecimal> updatePlatformFee(@RequestBody Map<String, BigDecimal> request) {
+        return Map.of("percentage", platformFeeService.update(request.get("percentage")));
+    }
 
     private final WalletService walletService;
     private final PaymentMapper paymentMapper;
@@ -42,6 +58,17 @@ public class PaymentController {
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final PaymentFactory paymentFactory;
+
+    @PostMapping("/internal/drivers/{driverId}/booking-fees")
+    public BigDecimal getBookingFees(@PathVariable Long driverId, @RequestBody List<Long> bookingIds) {
+        return walletRepository.findByUserIdAndUserType(driverId, UserType.DRIVER)
+                .map(wallet -> transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId()).stream()
+                        .filter(t -> t.getStatus() == TransactionStatus.SUCCESS
+                                && t.getTransactionType() == TransactionType.COMMISSION_FEE
+                                && t.getOrderId().startsWith("FEE_KAFKA_") && bookingIds.contains(t.getBookingId()))
+                        .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
+                .orElse(BigDecimal.ZERO);
+    }
 
     @GetMapping("/admin/wallets")
     public ResponseEntity<List<Wallet>> getAllWalletsAdmin() {
@@ -207,6 +234,9 @@ public class PaymentController {
         map.put("totalTransactions", total);
         map.put("successTransactions", successCount);
         map.put("totalVolume", totalVolume);
+        map.put("netRevenue", all.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.COMMISSION_FEE)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
 
         return ResponseEntity.ok(map);
     }

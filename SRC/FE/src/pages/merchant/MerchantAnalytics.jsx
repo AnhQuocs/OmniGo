@@ -33,6 +33,7 @@ import {
   CalendarMonth as CalendarIcon,
   DateRange as DateRangeIcon,
 } from '@mui/icons-material';
+import paymentService from '../../services/paymentService';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
 
@@ -40,6 +41,7 @@ export const MerchantAnalytics = () => {
   const { restaurant, loadingRes } = useOutletContext();
   const navigate = useNavigate();
 
+  const [fees, setFees] = useState({});
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('ALL'); // 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM'
@@ -99,7 +101,12 @@ export const MerchantAnalytics = () => {
     if (!restaurant?.id) return;
     if (showLoading) setLoading(true);
     try {
-      const res = await foodService.getRestaurantOrders(restaurant.id);
+      const [res, transactions] = await Promise.all([
+        foodService.getRestaurantOrders(restaurant.id), paymentService.getMyTransactions(),
+      ]);
+      setFees(Object.fromEntries((Array.isArray(transactions) ? transactions : []).filter((t) =>
+        t.status === 'SUCCESS' && t.transactionType === 'COMMISSION_FEE' && t.orderId?.startsWith('FOOD_RESTAURANT_FEE_')
+      ).map((t) => [t.bookingId, Number(t.amount)])));
       // foodService.getRestaurantOrders returns array directly or inside data
       const orderList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
       setOrders(orderList);
@@ -165,7 +172,7 @@ export const MerchantAnalytics = () => {
   // 1. Food Revenue from Completed Orders (Excludes delivery fee)
   const totalCompletedRevenue = completedOrders.reduce((sum, o) => {
     const foodPrice = (Number(o.totalPrice) || 0) - (Number(o.deliveryFee) || 0);
-    return sum + (foodPrice > 0 ? foodPrice : (Number(o.totalPrice) || 0));
+    return sum + Math.max(0, foodPrice) - (fees[o.id] || 0);
   }, 0);
 
   // 2. Success Rate (%)
@@ -222,10 +229,10 @@ export const MerchantAnalytics = () => {
     const foodPrice = Math.max(0, (Number(o.totalPrice) || 0) - (Number(o.deliveryFee) || 0));
     if (paymentBreakdown[m]) {
       paymentBreakdown[m].count++;
-      paymentBreakdown[m].amount += foodPrice;
+      paymentBreakdown[m].amount += foodPrice - (fees[o.id] || 0);
     } else {
       paymentBreakdown.CASH.count++;
-      paymentBreakdown.CASH.amount += foodPrice;
+      paymentBreakdown.CASH.amount += foodPrice - (fees[o.id] || 0);
     }
   });
 
@@ -561,7 +568,7 @@ export const MerchantAnalytics = () => {
               Thực nhận từ <b>{completedOrders.length}</b> đơn hoàn thành
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.72rem' }}>
-              (Đã loại trừ phí vận chuyển của tài xế)
+              (Đã trừ phí vận chuyển và phí sàn đã ghi nhận)
             </Typography>
           </Box>
         </Card>
@@ -718,7 +725,7 @@ export const MerchantAnalytics = () => {
             Giải thích chỉ số TB / Đơn (Average Order Value - AOV):
           </Typography>
           <Typography variant="body2" sx={{ color: '#6B21A8', fontSize: '0.85rem' }}>
-            <b>TB / Đơn</b> là số tiền trung bình một khách hàng chi trả cho mỗi đơn món ăn thành công ({formatPrice(totalCompletedRevenue)} ÷ {completedOrders.length} đơn = <b>{formatPrice(avgOrderValue)}</b>/đơn). 
+            <b>TB / Đơn</b> là doanh thu thực nhận trung bình cho mỗi đơn món ăn thành công ({formatPrice(totalCompletedRevenue)} ÷ {completedOrders.length} đơn = <b>{formatPrice(avgOrderValue)}</b>/đơn).
             Quán có thể tăng doanh thu nhanh chóng bằng cách tạo combo món, kèm nước uống hoặc gợi ý món ăn thêm để nâng cao giá trị trung bình mỗi đơn!
           </Typography>
         </Box>

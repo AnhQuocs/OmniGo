@@ -498,7 +498,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         log.info("Tài xế ID {} đã cập nhật đơn hàng ID {} sang trạng thái {}", driverId, orderId, newStatus);
 
         if (newStatus == OrderStatus.COMPLETED) {
-            triggerFoodDeliveryPayout(driverId, saved.getId(), saved.getDeliveryFee(), saved.getPaymentMethod());
+            triggerFoodDeliveryPayout(driverId, saved.getId(), saved.getDeliveryFee(), saved.getPaymentMethod(),
+                    saved.getRestaurant().getOwnerId(), saved.getTotalPrice().subtract(saved.getDeliveryFee()).max(BigDecimal.ZERO));
             updateDriverStatusOnline(driverId);
         } else if (newStatus == OrderStatus.CANCELLED) {
             if (Boolean.TRUE.equals(saved.getIsPaid())) {
@@ -667,9 +668,11 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         return saved;
     }
 
-    private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal deliveryFee, String paymentMethod) {
+    private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal deliveryFee, String paymentMethod, Long restaurantOwnerId, BigDecimal foodAmount) {
         try {
             Map<String, Object> payoutReq = Map.of(
+                    "restaurantOwnerId", restaurantOwnerId,
+                    "foodAmount", foodAmount,
                     "driverId", driverId,
                     "orderId", orderId,
                     "deliveryFee", deliveryFee != null ? deliveryFee : BigDecimal.valueOf(15000),
