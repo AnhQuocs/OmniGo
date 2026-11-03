@@ -46,6 +46,7 @@ export const Payments = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [platformFeeRate, setPlatformFeeRate] = useState(null);
 
   // Sync filter from URL query param
   useEffect(() => {
@@ -63,6 +64,17 @@ export const Payments = () => {
     setPage(0);
   }, [location.search]);
 
+  const fetchPlatformFeeRate = async () => {
+    try {
+      const data = await paymentService.getPlatformFee();
+      if (data && data.percentage != null) {
+        setPlatformFeeRate(data.percentage);
+      }
+    } catch (err) {
+      console.warn('Không thể tải tỷ lệ sàn:', err);
+    }
+  };
+
   const fetchTransactions = async () => {
     setLoading(true);
     setError(null);
@@ -78,8 +90,13 @@ export const Payments = () => {
     }
   };
 
-  useEffect(() => {
+  const loadAllData = () => {
     fetchTransactions();
+    fetchPlatformFeeRate();
+  };
+
+  useEffect(() => {
+    loadAllData();
   }, []);
 
   const handleTabChange = (val) => {
@@ -260,7 +277,7 @@ export const Payments = () => {
         <Button
           variant="contained"
           startIcon={<RefreshIcon />}
-          onClick={fetchTransactions}
+          onClick={loadAllData}
           disabled={loading}
           sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
         >
@@ -460,7 +477,15 @@ export const Payments = () => {
         </Grid>
 
         <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
-          <Tooltip title="Tổng phí sàn (20%) đã ghi nhận từ các giao dịch thành công" arrow placement="top">
+          <Tooltip
+            title={
+              platformFeeRate != null
+                ? `Tổng phí sàn (${platformFeeRate}%) đã ghi nhận từ các giao dịch thành công`
+                : 'Tổng phí sàn đã ghi nhận từ các giao dịch thành công'
+            }
+            arrow
+            placement="top"
+          >
             <Card
               sx={{
                 p: { xs: 1.5, sm: 2 },
