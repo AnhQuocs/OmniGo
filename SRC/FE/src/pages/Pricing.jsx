@@ -37,9 +37,10 @@ import {
   Edit as EditIcon,
   TwoWheeler as BikeIcon,
   RestartAlt as ResetIcon,
+  Percent as PercentIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
-import PlatformFeeSettings from '../components/PlatformFeeSettings';
+import PlatformFeeModal from '../components/PlatformFeeModal';
 import pricingService from '../services/pricingService';
 import dispatchConfigService from '../services/dispatchConfigService';
 import { useColorMode } from '../context/ThemeContext';
@@ -48,6 +49,7 @@ export const Pricing = () => {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
   const [activeTab, setActiveTab] = useState(0);
+  const [platformFeeOpen, setPlatformFeeOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -356,7 +358,29 @@ export const Pricing = () => {
             Quản lý giá cước, phí giao đồ ăn, tỷ lệ sàn và bán kính điều phối
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1.5} sx={{ display: activeTab === 2 ? 'none' : 'flex', width: { xs: '100%', sm: 'auto' } }}>
+        <Stack direction="row" spacing={1.5} sx={{ display: 'flex', width: { xs: '100%', sm: 'auto' }, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<PercentIcon />}
+            onClick={() => setPlatformFeeOpen(true)}
+            sx={{
+              borderRadius: 2,
+              flex: { xs: 1, sm: 'none' },
+              fontSize: { xs: '0.78rem', sm: '0.875rem' },
+              py: { xs: 0.8, sm: 1 },
+              fontWeight: 700,
+              textTransform: 'none',
+              color: '#ea580c',
+              borderColor: '#fdba74',
+              bgcolor: 'rgba(249, 115, 22, 0.04)',
+              '&:hover': {
+                bgcolor: 'rgba(249, 115, 22, 0.1)',
+                borderColor: '#ea580c',
+              },
+            }}
+          >
+            Tỷ Lệ Sàn
+          </Button>
           <Button
             variant="outlined"
             startIcon={<ResetIcon />}
@@ -440,11 +464,14 @@ export const Pricing = () => {
             iconPosition="start"
             label="Cấu Hình Bán Kính Điều Phối"
           />
-          <Tab label="Tỷ lệ sàn" />
         </Tabs>
       </Paper>
 
-      {activeTab === 2 && <PlatformFeeSettings />}
+      {/* Modal Cấu hình Tỷ Lệ Sàn */}
+      <PlatformFeeModal
+        open={platformFeeOpen}
+        onClose={() => setPlatformFeeOpen(false)}
+      />
 
       {/* TAB 1: Cấu hình giá cước & thuật toán */}
       {activeTab === 0 && (
