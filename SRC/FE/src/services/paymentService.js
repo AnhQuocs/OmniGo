@@ -1,6 +1,9 @@
-import { get } from './api';
+import { get, put } from './api';
 
 export const paymentService = {
+  getPlatformFee: () => get('/api/v1/payments/admin/platform-fee'),
+  updatePlatformFee: (percentage) => put('/api/v1/payments/admin/platform-fee', { percentage }),
+  getMyTransactions: () => get('/api/v1/payments/transactions'),
   /**
    * Lấy toàn bộ danh sách giao dịch & thanh toán từ payment-service
    * Endpoint BE: GET /api/v1/payments/admin/transactions

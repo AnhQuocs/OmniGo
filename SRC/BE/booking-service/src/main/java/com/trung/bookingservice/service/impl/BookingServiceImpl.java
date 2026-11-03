@@ -1,5 +1,7 @@
 package com.trung.bookingservice.service.impl;
 
+import java.math.BigDecimal;
+
 import com.trung.bookingservice.dto.request.BookingRequest;
 import com.trung.bookingservice.dto.request.PricingRequest;
 import com.trung.bookingservice.dto.response.ApiResponse;
@@ -22,8 +24,10 @@ import com.trung.bookingservice.service.client.UserDriverClient;
 import com.trung.bookingservice.util.LocationUtils;
 import com.trung.bookingservice.util.enums.BookingStatus;
 import com.trung.bookingservice.util.enums.DriverStatus;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +42,22 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
+
 import com.trung.bookingservice.util.enums.ReportPeriod;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.trung.bookingservice.service.client.PaymentClient;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BookingServiceImpl implements BookingService {
 
+    private final PaymentClient paymentClient;
     private final BookingRepository bookingRepository;
     private final LocationClient locationClient;
     private final SimpMessagingTemplate messagingTemplate;
@@ -581,7 +590,10 @@ public class BookingServiceImpl implements BookingService {
         report.put("totalRevenue", totalRevenue);
         report.put("cashCollected", cashCollected);
         report.put("appCollected", appCollected);
-        report.put("commissionFee", totalRevenue * 0.20);
+        BigDecimal commissionFee = todayBookings.isEmpty() ? BigDecimal.ZERO
+                : paymentClient.getBookingFees(driverId, todayBookings.stream().map(Booking::getId).toList());
+        report.put("commissionFee", commissionFee);
+        report.put("driverEarnings", BigDecimal.valueOf(totalRevenue).subtract(commissionFee));
 
         return ApiResponse.<Map<String, Object>>builder()
                 .success(true)

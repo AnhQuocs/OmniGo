@@ -39,6 +39,7 @@ import {
   RestartAlt as ResetIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
+import PlatformFeeSettings from '../components/PlatformFeeSettings';
 import pricingService from '../services/pricingService';
 import dispatchConfigService from '../services/dispatchConfigService';
 import { useColorMode } from '../context/ThemeContext';
@@ -352,10 +353,10 @@ export const Pricing = () => {
             Cấu Hình Hệ Thống
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
-            Quản lý bảng giá cước, hệ số xe, biểu phí ship đồ ăn, OSRM Routing Engine và bán kính điều phối trong Redis theo thời gian thực
+            Quản lý giá cước, phí giao đồ ăn, tỷ lệ sàn và bán kính điều phối
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+        <Stack direction="row" spacing={1.5} sx={{ display: activeTab === 2 ? 'none' : 'flex', width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"
             startIcon={<ResetIcon />}
@@ -439,8 +440,11 @@ export const Pricing = () => {
             iconPosition="start"
             label="Cấu Hình Bán Kính Điều Phối"
           />
+          <Tab label="Tỷ lệ sàn" />
         </Tabs>
       </Paper>
+
+      {activeTab === 2 && <PlatformFeeSettings />}
 
       {/* TAB 1: Cấu hình giá cước & thuật toán */}
       {activeTab === 0 && (

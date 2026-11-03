@@ -24,6 +24,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/payments/admin/platform-fee").hasRole("ADMIN")
                         .requestMatchers("/api/v1/payments/momo/ipn",
                                 "/api/v1/payments/momo/return",
                                 "/api/v1/payments/vnpay/return",

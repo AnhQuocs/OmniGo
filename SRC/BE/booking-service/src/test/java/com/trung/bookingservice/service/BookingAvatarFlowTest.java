@@ -20,7 +20,7 @@ class BookingAvatarFlowTest {
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     private final BookingAvatarService avatars = mock(BookingAvatarService.class);
-    private final BookingServiceImpl service = new BookingServiceImpl(repository, null, messaging, redis,
+    private final BookingServiceImpl service = new BookingServiceImpl(null, repository, null, messaging, redis,
             mock(UserDriverClient.class), null, null, null, null, null, avatars, mock(BookingCustomerService.class), mock(DriverVehicleService.class));
 
     private Booking booking(BookingStatus status) {
