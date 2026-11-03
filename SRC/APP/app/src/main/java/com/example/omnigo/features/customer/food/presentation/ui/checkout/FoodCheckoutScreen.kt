@@ -78,6 +78,19 @@ fun FoodCheckoutScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.openPaymentUrl) {
+        val url = uiState.openPaymentUrl
+        if (!url.isNullOrBlank()) {
+            runCatching {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            }
+            viewModel.clearOpenPaymentUrl()
+        }
+    }
+
     LaunchedEffect(uiState.createdOrderId) {
         val orderId = uiState.createdOrderId
         if (orderId != null) {
@@ -139,7 +152,7 @@ fun FoodCheckoutScreen(
                             color = TextSecondary
                         )
                         Text(
-                            text = com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice(uiState.totalAmount),
+                            text = com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice(uiState.finalTotalAmount),
                             style = MaterialTheme.typography.s18.bold(),
                             color = PrimaryColor
                         )
@@ -190,8 +203,61 @@ fun FoodCheckoutScreen(
                     items = uiState.items,
                     itemsSubtotal = uiState.itemsSubtotal,
                     deliveryFee = uiState.deliveryFee,
-                    totalAmount = uiState.totalAmount
+                    totalAmount = uiState.totalAmount,
+                    voucherCode = uiState.appliedVoucher?.voucherCode,
+                    discountAmount = uiState.discountAmount
                 )
+            }
+
+            // 2.5 Voucher Selection Card
+            item {
+                ElevatedCard(
+                    onClick = { viewModel.openVoucherSheet() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(AppShape.ShapeM),
+                    colors = CardDefaults.elevatedCardColors(containerColor = SurfaceLight),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = AppSpacing.XXS)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimen.PaddingM),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(id = R.string.checkout_voucher_title),
+                                style = MaterialTheme.typography.s15.bold(),
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                            val applied = uiState.appliedVoucher
+                            if (applied != null && applied.discountAmount > 0) {
+                                Text(
+                                    text = stringResource(
+                                        id = R.string.voucher_applied_badge,
+                                        applied.voucherCode,
+                                        com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice(applied.discountAmount)
+                                    ),
+                                    style = MaterialTheme.typography.s13.bold(),
+                                    color = PrimaryColor
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(id = R.string.checkout_voucher_select_hint),
+                                    style = MaterialTheme.typography.s13.normal(),
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                        Text(
+                            text = ">",
+                            style = MaterialTheme.typography.s16.bold(),
+                            color = PrimaryColor
+                        )
+                    }
+                }
             }
 
             // 3. Driver Note Input Section
@@ -245,5 +311,17 @@ fun FoodCheckoutScreen(
                 )
             }
         }
+    }
+
+    if (uiState.showVoucherSheet) {
+        com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherSelectionBottomSheet(
+            vouchers = uiState.applicableVouchers,
+            orderAmount = uiState.totalAmount,
+            appliedVoucherCode = uiState.appliedVoucher?.voucherCode,
+            isLoading = uiState.isApplyingVoucher,
+            onApplyCode = { code -> viewModel.applyVoucherCode(code) },
+            onRemoveVoucher = { viewModel.removeVoucher() },
+            onDismiss = { viewModel.dismissVoucherSheet() }
+        )
     }
 }

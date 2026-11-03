@@ -13,6 +13,8 @@ import com.example.omnigo.features.customer.food.domain.model.RestaurantAvailabi
 import com.example.omnigo.features.customer.food.domain.usecase.CreateFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
 import com.example.omnigo.features.customer.food.domain.util.GeoDistance
+import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideVoucherReviewCoordinator
+import com.example.omnigo.features.driver.earnings.domain.usecase.CreateOrderPaymentUseCase
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +30,9 @@ class FoodCheckoutViewModel @Inject constructor(
     private val cartManager: CartManager,
     private val userLocationManager: UserLocationManager,
     private val createFoodOrderUseCase: CreateFoodOrderUseCase,
-    private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase
+    private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
+    private val voucherCoordinator: RideVoucherReviewCoordinator? = null,
+    private val createOrderPaymentUseCase: CreateOrderPaymentUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FoodCheckoutUiState())
@@ -128,6 +132,52 @@ class FoodCheckoutViewModel @Inject constructor(
         }
     }
 
+    fun openVoucherSheet() {
+        val amount = _uiState.value.totalAmount
+        _uiState.update { it.copy(showVoucherSheet = true, isApplyingVoucher = true) }
+        viewModelScope.launch {
+            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD") ?: emptyList()
+            _uiState.update { it.copy(applicableVouchers = list, isApplyingVoucher = false) }
+        }
+    }
+
+    fun dismissVoucherSheet() {
+        _uiState.update { it.copy(showVoucherSheet = false) }
+    }
+
+    fun applyVoucherCode(code: String) {
+        val amount = _uiState.value.totalAmount
+        viewModelScope.launch {
+            _uiState.update { it.copy(isApplyingVoucher = true) }
+            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD")
+                ?.onSuccess { res ->
+                    _uiState.update {
+                        it.copy(
+                            appliedVoucher = res,
+                            isApplyingVoucher = false,
+                            showVoucherSheet = false
+                        )
+                    }
+                }
+                ?.onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isApplyingVoucher = false,
+                            errorMessage = UiText.DynamicString(err.message ?: "Invalid voucher")
+                        )
+                    }
+                } ?: _uiState.update { it.copy(isApplyingVoucher = false) }
+        }
+    }
+
+    fun removeVoucher() {
+        _uiState.update { it.copy(appliedVoucher = null, showVoucherSheet = false) }
+    }
+
+    fun clearOpenPaymentUrl() {
+        _uiState.update { it.copy(openPaymentUrl = null) }
+    }
+
     fun onPlaceOrder() {
         var canProceed = false
         _uiState.update { current ->
@@ -176,10 +226,29 @@ class FoodCheckoutViewModel @Inject constructor(
 
             when (result) {
                 is CreateFoodOrderResult.Success -> {
+                    val applied = state.appliedVoucher
+                    if (applied != null && applied.voucherCode.isNotBlank()) {
+                        voucherCoordinator?.commitVoucher(
+                            code = applied.voucherCode,
+                            orderAmount = state.totalAmount,
+                            serviceType = "FOOD",
+                            orderId = result.order.id.toString()
+                        )
+                    }
+                    var payUrl: String? = null
+                    if (state.selectedPaymentMethod != PaymentMethod.CASH) {
+                        payUrl = createOrderPaymentUseCase?.invoke(
+                            bookingId = result.order.id,
+                            amount = state.finalTotalAmount,
+                            method = state.selectedPaymentMethod.name,
+                            type = "FOOD_PAYMENT"
+                        )?.getOrNull()
+                    }
                     cartManager.clearCart()
                     _uiState.update {
                         it.copy(
                             isPlacingOrder = false,
+                            openPaymentUrl = payUrl,
                             createdOrderId = result.order.id
                         )
                     }

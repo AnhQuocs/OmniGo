@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -65,6 +66,10 @@ fun MainCustomerScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: BottomNavDestination.Home.route
 
+    LaunchedEffect(currentRoute) {
+        visibilityState.visible = true
+    }
+
     CompositionLocalProvider(LocalBottomNavVisibility provides visibilityState) {
         Box(
             modifier = modifier
@@ -95,6 +100,9 @@ fun MainCustomerScreen(
                         },
                         onNavigateToNotifications = {
                             // Future: Navigate to Notifications Screen
+                        },
+                        onOpenWallet = {
+                            navController.navigate("customer_wallet")
                         }
                     )
                 }
@@ -104,12 +112,47 @@ fun MainCustomerScreen(
                 }
 
                 composable(BottomNavDestination.Promos.route) {
-                    PromosScreen()
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    PromosScreen(
+                        onNavigateToRide = { promoCode ->
+                            val intent = android.content.Intent(context, com.example.omnigo.features.customer.ride.presentation.ui.activity.RideActivity::class.java)
+                            if (promoCode.isNotBlank()) {
+                                intent.putExtra("EXTRA_PROMO_CODE", promoCode)
+                            }
+                            context.startActivity(intent)
+                        },
+                        onNavigateToFood = { promoCode ->
+                            val intent = android.content.Intent(context, com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity::class.java)
+                            if (promoCode.isNotBlank()) {
+                                intent.putExtra("EXTRA_PROMO_CODE", promoCode)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
                 }
 
                 composable(BottomNavDestination.Account.route) {
                     AccountScreen(
-                        onNavigateToLogin = onNavigateToLogin
+                        onNavigateToLogin = onNavigateToLogin,
+                        walletBalanceText = homeUiState.walletBalanceFormatted,
+                        onOpenWallet = {
+                            navController.navigate("customer_wallet")
+                        },
+                        onOpenPromos = {
+                            navController.navigate(BottomNavDestination.Promos.route)
+                        },
+                        onOpenActivity = {
+                            navController.navigate(BottomNavDestination.Activity.route)
+                        }
+                    )
+                }
+
+                composable("customer_wallet") {
+                    com.example.omnigo.features.customer.wallet.presentation.ui.CustomerWalletScreen(
+                        onNavigateBack = {
+                            homeViewModel.onResume()
+                            navController.popBackStack()
+                        }
                     )
                 }
             }
@@ -133,6 +176,7 @@ fun MainCustomerScreen(
                 OmniBottomNavBar(
                     currentRoute = currentRoute,
                     onNavigateToDestination = { destination ->
+                        visibilityState.visible = true
                         navController.navigate(destination.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true

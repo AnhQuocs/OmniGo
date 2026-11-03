@@ -58,7 +58,9 @@ fun FoodOrderDetailBottomBar(
     onRetryDriverClick: () -> Unit,
     onReorderClick: (FoodOrder) -> Unit,
     onReviewClick: (FoodOrder) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPayOnlineClick: () -> Unit = {},
+    onCheckPaymentStatusClick: () -> Unit = {}
 ) {
     val upperStatus = order.status.uppercase(Locale.ROOT)
     val isDelivered = upperStatus in setOf("DELIVERED", "COMPLETED")
@@ -238,6 +240,41 @@ fun FoodOrderDetailBottomBar(
                         }
 
                         if (canSwitchToCash) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
+                            ) {
+                                Button(
+                                    onClick = onPayOnlineClick,
+                                    enabled = !isActionLoading,
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                                    shape = RoundedCornerShape(AppShape.ShapeM),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(Dimen.HeightDefault)
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.order_pay_now_btn),
+                                        style = MaterialTheme.typography.s14.bold(),
+                                        color = TextWhite
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = onCheckPaymentStatusClick,
+                                    enabled = !isActionLoading,
+                                    shape = RoundedCornerShape(AppShape.ShapeM),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(Dimen.HeightDefault)
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.order_check_payment_btn),
+                                        style = MaterialTheme.typography.s14.bold(),
+                                        color = PrimaryColor
+                                    )
+                                }
+                            }
+
                             OutlinedButton(
                                 onClick = onSwitchToCashClick,
                                 enabled = !isActionLoading,

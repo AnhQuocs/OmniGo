@@ -65,9 +65,11 @@ import java.util.Locale
 fun DriverActiveBookingCard(
     booking: Booking,
     onResumeClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDetailClick: () -> Unit = {}
 ) {
     Card(
+        onClick = onDetailClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = modifier
@@ -149,7 +151,8 @@ fun DriverFoodOrderCard(
     order: DriverDeliveryOrder,
     isActive: Boolean,
     onResumeClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDetailClick: () -> Unit = {}
 ) {
     val isCancelled = order.status == DriverDeliveryStatus.CANCELLED
     val badgeBg = when {
@@ -169,6 +172,7 @@ fun DriverFoodOrderCard(
     }
 
     Card(
+        onClick = onDetailClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = modifier
@@ -280,9 +284,11 @@ fun DriverFoodOrderCard(
 @Composable
 fun DriverTripsEmptyState(
     message: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDetailClick: () -> Unit = {}
 ) {
     Card(
+        onClick = onDetailClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = modifier

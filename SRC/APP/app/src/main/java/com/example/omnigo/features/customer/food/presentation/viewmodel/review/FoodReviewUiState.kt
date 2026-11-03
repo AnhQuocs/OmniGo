@@ -24,11 +24,15 @@ data class FoodReviewUiState(
     val isSubmitting: Boolean = false,
     val isSubmittedSuccess: Boolean = false,
     val isReadOnly: Boolean = false,
+    val isEditingExisting: Boolean = false,
     val isExpired: Boolean = false,
     val existingReview: FoodReview? = null,
     val errorMessage: UiText? = null,
     val successMessage: UiText? = null
 ) {
+    val canEditExisting: Boolean
+        get() = existingReview != null && existingReview.canEdit && !isEditingExisting && !isExpired
+
     val canAddMorePhotos: Boolean
         get() = uploadedImageUrls.size < 5 && !isReadOnly && !isExpired
 

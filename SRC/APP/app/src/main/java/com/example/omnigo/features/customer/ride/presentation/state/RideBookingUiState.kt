@@ -2,6 +2,8 @@ package com.example.omnigo.features.customer.ride.presentation.state
 
 import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.features.customer.home.domain.model.SavedAddress
+import com.example.omnigo.features.customer.promos.domain.model.AppliedVoucherResult
+import com.example.omnigo.features.customer.promos.domain.model.Voucher
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingDriverProfile
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
@@ -86,7 +88,12 @@ data class RideBookingUiState(
     val routeCoordinates: List<Pair<Double, Double>> = emptyList(),
     val showTripCompletedReceipt: Boolean = false,
     val completedBooking: Booking? = null,
-    val activeTripRouteCoordinates: List<Pair<Double, Double>> = emptyList()
+    val activeTripRouteCoordinates: List<Pair<Double, Double>> = emptyList(),
+    val showVoucherSheet: Boolean = false,
+    val isLoadingVouchers: Boolean = false,
+    val applicableVouchers: List<Voucher> = emptyList(),
+    val appliedVoucher: AppliedVoucherResult? = null,
+    val pendingPromoCode: String? = null
 ) {
     val isDualLocationReady: Boolean
         get() = pickupLocation != null && dropoffLocation != null

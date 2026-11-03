@@ -47,6 +47,7 @@ fun HomeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenWallet: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,7 +116,11 @@ fun HomeScreen(
             ) {
                 Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-                HomeQuickWalletSection()
+                HomeQuickWalletSection(
+                    balanceText = uiState.walletBalanceFormatted,
+                    onTopUpClick = onOpenWallet,
+                    onScanQrClick = onOpenWallet
+                )
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))
 

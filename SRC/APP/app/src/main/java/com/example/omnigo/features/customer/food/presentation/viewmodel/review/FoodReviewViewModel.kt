@@ -11,10 +11,10 @@ import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetail
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetFoodReviewByOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.SubmitFoodReviewUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.UpdateFoodReviewUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.UploadReviewImageUseCase
 import com.example.omnigo.utils.ImageUploadUtils
 import com.example.omnigo.utils.UiText
-import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +31,8 @@ class FoodReviewViewModel @Inject constructor(
     private val getFoodReviewByOrderUseCase: GetFoodReviewByOrderUseCase,
     private val uploadReviewImageUseCase: UploadReviewImageUseCase,
     private val submitFoodReviewUseCase: SubmitFoodReviewUseCase,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val updateFoodReviewUseCase: UpdateFoodReviewUseCase? = null
 ) : ViewModel() {
 
     private val orderId: Long = savedStateHandle.get<Long>("orderId") ?: 0L
@@ -58,7 +59,6 @@ class FoodReviewViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // 1. Fetch Order Details (Restaurant name, driver name, completion time)
             var isExpired = false
             when (val orderResult = getFoodOrderDetailUseCase(orderId)) {
                 is GetFoodOrderDetailResult.Success -> {
@@ -72,12 +72,9 @@ class FoodReviewViewModel @Inject constructor(
                         )
                     }
                 }
-                is GetFoodOrderDetailResult.Error -> {
-                    // Non-fatal, continue checking review
-                }
+                is GetFoodOrderDetailResult.Error -> Unit
             }
 
-            // 2. Fetch existing review for this order
             val reviewResult = getFoodReviewByOrderUseCase(orderId)
             reviewResult.fold(
                 onSuccess = { review ->
@@ -91,7 +88,8 @@ class FoodReviewViewModel @Inject constructor(
                                 driverRating = review.driverRating,
                                 selectedDriverTags = review.driverTags.toSet(),
                                 uploadedImageUrls = review.reviewPhotos,
-                                isReadOnly = review.isReadOnly || isExpired
+                                isReadOnly = true,
+                                isEditingExisting = false
                             )
                         }
                     } else {
@@ -112,6 +110,18 @@ class FoodReviewViewModel @Inject constructor(
                         )
                     }
                 }
+            )
+        }
+    }
+
+    fun onStartEditingExistingReview() {
+        val review = _uiState.value.existingReview ?: return
+        if (!review.canEdit) return
+        _uiState.update {
+            it.copy(
+                isReadOnly = false,
+                isEditingExisting = true,
+                isSubmittedSuccess = false
             )
         }
     }
@@ -220,15 +230,25 @@ class FoodReviewViewModel @Inject constructor(
                 reviewPhotos = currentState.uploadedImageUrls
             )
 
-            val result = submitFoodReviewUseCase(command)
+            val existing = currentState.existingReview
+            val isUpdating = currentState.isEditingExisting && existing != null && updateFoodReviewUseCase != null
+            val result = if (isUpdating) {
+                updateFoodReviewUseCase.invoke(existing.id, command)
+            } else {
+                submitFoodReviewUseCase(command)
+            }
             result.fold(
                 onSuccess = { review ->
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             isSubmittedSuccess = true,
+                            isEditingExisting = false,
+                            isReadOnly = true,
                             existingReview = review,
-                            successMessage = UiText.StringResource(R.string.food_review_submit_success)
+                            successMessage = UiText.StringResource(
+                                if (isUpdating) R.string.food_review_updated_msg else R.string.food_review_submit_success
+                            )
                         )
                     }
                 },

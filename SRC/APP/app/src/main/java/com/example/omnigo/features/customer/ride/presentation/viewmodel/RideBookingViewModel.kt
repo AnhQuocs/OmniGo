@@ -2,10 +2,13 @@ package com.example.omnigo.features.customer.ride.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.omnigo.features.customer.home.domain.model.SavedAddress
+import com.example.omnigo.R
+import com.example.omnigo.core.location.tracker.OsrmRoutingService
+import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.home.domain.repository.SavedAddressRepository
 import com.example.omnigo.features.customer.home.domain.usecase.DetectCurrentLocationUseCase
 import com.example.omnigo.features.customer.home.domain.usecase.DetectLocationResult
+import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.features.customer.ride.domain.model.CalculateRidePricingResult
@@ -14,15 +17,14 @@ import com.example.omnigo.features.customer.ride.domain.model.CreateRideBookingR
 import com.example.omnigo.features.customer.ride.domain.usecase.CalculateRidePricingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.CreateRideBookingUseCase
-import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
-import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
-import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
-import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
-import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.ride.domain.usecase.GetNearbyDriversUseCase
+import com.example.omnigo.features.customer.ride.presentation.state.LocationPoint
 import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
+import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
+import com.example.omnigo.utils.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,14 +36,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-import com.example.omnigo.core.location.tracker.OsrmRoutingService
-import kotlinx.coroutines.async
-import com.example.omnigo.R
-import com.example.omnigo.utils.UiText
-
 @HiltViewModel
 class RideBookingViewModel @Inject constructor(
-    private val calculateRidePricingUseCase: CalculateRidePricingUseCase,
+    private val ridePricingHelper: RidePricingHelper,
     private val createRideBookingUseCase: CreateRideBookingUseCase,
     private val cancelRideBookingUseCase: CancelRideBookingUseCase,
     private val detectCurrentLocationUseCase: DetectCurrentLocationUseCase,
@@ -50,7 +47,8 @@ class RideBookingViewModel @Inject constructor(
     private val rideTrackingSessionManager: RideTrackingSessionManager,
     private val getNearbyDriversUseCase: GetNearbyDriversUseCase,
     private val ridePlaceSearchCoordinator: RidePlaceSearchCoordinator,
-    private val osrmRoutingService: OsrmRoutingService
+    private val osrmRoutingService: OsrmRoutingService,
+    private val rideVoucherReviewCoordinator: RideVoucherReviewCoordinator? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RideBookingUiState())
@@ -156,6 +154,22 @@ class RideBookingViewModel @Inject constructor(
         }
     }
 
+    fun openVoucherSheet() = rideVoucherReviewCoordinator?.openVoucherSheet(viewModelScope, _uiState.value) { _uiState.update(it) }
+    fun closeVoucherSheet() = _uiState.update { it.copy(showVoucherSheet = false) }
+    fun applyVoucherCode(code: String) = rideVoucherReviewCoordinator?.applyVoucherCode(viewModelScope, code, _uiState.value) { _uiState.update(it) }
+    fun removeAppliedVoucher() = _uiState.update { it.copy(appliedVoucher = null, showVoucherSheet = false) }
+
+    fun submitCompletedTripReview(rating: Int, comment: String?) {
+        val bookingId = _uiState.value.completedBooking?.bookingId ?: _uiState.value.currentBooking?.bookingId ?: 0L
+        if (bookingId <= 0L || rideVoucherReviewCoordinator == null) {
+            dismissCompletedTrip()
+            return
+        }
+        rideVoucherReviewCoordinator.submitTripReview(viewModelScope, bookingId, rating, comment, { _uiState.update(it) }) {
+            dismissCompletedTrip()
+        }
+    }
+
     fun openPlaceSearch(target: LocationTarget) = ridePlaceSearchCoordinator.openPlaceSearch(target) { _uiState.update(it) }
     fun closePlaceSearch() = ridePlaceSearchCoordinator.closePlaceSearch { _uiState.update(it) }
     fun updateSearchQuery(query: String) {
@@ -257,39 +271,19 @@ class RideBookingViewModel @Inject constructor(
         priceCalculationJob?.cancel()
         priceCalculationJob = viewModelScope.launch {
             _uiState.update { it.copy(isCalculatingPrice = true, pricingError = null) }
-            val bikeDeferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "BIKE") }
-            val car4Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "CAR_4_SEAT") }
-            val car7Deferred = async { calculateRidePricingUseCase(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, nearbyDriversCount = nearbyCount, vehicleType = "CAR_7_SEAT") }
-            val routeDeferred = async { osrmRoutingService.getRouteCoordinates(pickup.latitude, pickup.longitude, dropoff.latitude, dropoff.longitude, selectedType.name) }
-
-            val bikeRes = bikeDeferred.await()
-            val car4Res = car4Deferred.await()
-            val car7Res = car7Deferred.await()
-            val routeCoords = routeDeferred.await()
-
-            val estimates = buildMap {
-                if (bikeRes is CalculateRidePricingResult.Success) put(VehicleType.BIKE, bikeRes.estimate)
-                if (car4Res is CalculateRidePricingResult.Success) put(VehicleType.CAR_4_SEAT, car4Res.estimate)
-                if (car7Res is CalculateRidePricingResult.Success) put(VehicleType.CAR_7_SEAT, car7Res.estimate)
-            }
-            val selectedResult = when (selectedType) {
-                VehicleType.BIKE -> bikeRes
-                VehicleType.CAR_4_SEAT -> car4Res
-                VehicleType.CAR_7_SEAT -> car7Res
-                else -> null
-            }
-            val errorUiText: UiText? = when {
-                estimates.isEmpty() -> (bikeRes as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
-                    ?: (car4Res as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
-                    ?: (car7Res as? CalculateRidePricingResult.Error)?.message?.let { UiText.DynamicString(it) }
-                    ?: UiText.StringResource(R.string.ride_pricing_failed)
-                selectedResult is CalculateRidePricingResult.Error -> selectedResult.message?.let { UiText.DynamicString(it) }
-                    ?: UiText.StringResource(R.string.ride_pricing_failed)
-                else -> null
-            }
-
+            val result = ridePricingHelper.calculate(this, pickup, dropoff, selectedType, nearbyCount)
             _uiState.update {
-                it.copy(isCalculatingPrice = false, pricingEstimate = estimates[selectedType], vehicleEstimates = estimates, pricingError = errorUiText, routeCoordinates = routeCoords)
+                it.copy(
+                    isCalculatingPrice = false,
+                    pricingEstimate = result.selectedEstimate,
+                    vehicleEstimates = result.estimates,
+                    pricingError = result.error,
+                    routeCoordinates = result.routeCoordinates
+                )
+            }
+            val pendingCode = _uiState.value.pendingPromoCode
+            if (!pendingCode.isNullOrBlank() && _uiState.value.appliedVoucher == null && result.selectedEstimate != null) {
+                rideVoucherReviewCoordinator?.applyPendingVoucherIfEligible(viewModelScope, pendingCode, result.selectedEstimate.totalPrice) { _uiState.update(it) }
             }
         }
     }
@@ -316,6 +310,7 @@ class RideBookingViewModel @Inject constructor(
                     if (booking.status == BookingStatus.CANCELLED) {
                         _uiState.update { it.copy(isCreatingBooking = false, isSearchingDriver = false, currentBooking = null, errorMessage = UiText.StringResource(R.string.ride_error_no_driver_found)) }
                     } else {
+                        rideVoucherReviewCoordinator?.commitAppliedVoucherIfPresent(viewModelScope, _uiState.value, booking.bookingId)
                         _uiState.update { it.copy(isCreatingBooking = false, currentBooking = booking, isSearchingDriver = booking.status == BookingStatus.PENDING, searchCountdownSeconds = 60) }
                         _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
                         rideTrackingSessionManager.startSession(booking, pickup.name.ifBlank { pickup.address }, dropoff.name.ifBlank { dropoff.address })
@@ -349,11 +344,13 @@ class RideBookingViewModel @Inject constructor(
     fun cancelBooking() {
         val booking = _uiState.value.currentBooking ?: run { resetBookingState(); return }
         if (_uiState.value.isCancellingBooking) return
+        val voucherCode = _uiState.value.appliedVoucher?.voucherCode
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCancellingBooking = true, errorMessage = null) }
             when (val result = cancelRideBookingUseCase(booking.bookingId)) {
                 is CancelRideBookingResult.Success -> {
+                    rideVoucherReviewCoordinator?.rollbackVoucherIfPresent(viewModelScope, voucherCode, booking.bookingId)
                     resetBookingState(UiText.StringResource(R.string.ride_booking_cancelled_success))
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
                 }
@@ -368,7 +365,7 @@ class RideBookingViewModel @Inject constructor(
     fun dismissRadar() { cancelSearchCountdown(); _uiState.update { it.copy(isSearchingDriver = false) } }
     fun dismissCompletedTrip() {
         resetBookingState()
-        _uiState.update { it.copy(dropoffLocation = null, pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null, routeCoordinates = emptyList()) }
+        _uiState.update { it.copy(dropoffLocation = null, pricingEstimate = null, vehicleEstimates = emptyMap(), pricingError = null, routeCoordinates = emptyList(), appliedVoucher = null) }
         _uiState.value.pickupLocation?.let { loadNearbyDrivers(it.latitude, it.longitude) }
     }
 

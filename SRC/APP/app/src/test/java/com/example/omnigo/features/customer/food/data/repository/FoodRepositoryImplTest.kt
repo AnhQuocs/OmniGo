@@ -24,6 +24,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
 class FoodRepositoryImplTest {
@@ -178,6 +182,33 @@ class FoodRepositoryImplTest {
                 }
             )
         }
+    }
+
+    @Test
+    fun `createFoodOrder returns ServerError with backend message when HttpException 400 is thrown`() = runTest {
+        val errorJson = """{"success":false,"message":"Món ăn 'Tôm hùm' hiện tại đã hết hàng","error":"BAD_REQUEST"}"""
+        val responseBody = errorJson.toResponseBody("application/json".toMediaType())
+        val httpResponse = Response.error<FoodOrderResponse>(400, responseBody)
+        val httpException = HttpException(httpResponse)
+
+        coEvery { foodApi.createFoodOrder(any()) } throws httpException
+
+        val command = FoodOrderCreateCommand(
+            restaurantId = 7L,
+            dropOffAddress = "Ngõ 34",
+            dropOffLatitude = 20.9,
+            dropOffLongitude = 105.7,
+            items = emptyList(),
+            note = null,
+            paymentMethod = PaymentMethod.CASH
+        )
+
+        val result = repository.createFoodOrder(command)
+
+        assertTrue(result is CreateFoodOrderResult.Error)
+        val error = result as CreateFoodOrderResult.Error
+        assertEquals(FoodError.SERVER_ERROR, error.error)
+        assertEquals("Món ăn 'Tôm hùm' hiện tại đã hết hàng", error.message)
     }
 
     @Test

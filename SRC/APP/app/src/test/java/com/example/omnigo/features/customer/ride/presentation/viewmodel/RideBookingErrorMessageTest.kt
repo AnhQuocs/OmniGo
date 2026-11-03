@@ -61,7 +61,7 @@ class RideBookingErrorMessageTest {
             coEvery { getRouteCoordinates(any(), any(), any(), any(), any()) } returns emptyList()
         }
         viewModel = RideBookingViewModel(
-            calculateRidePricingUseCase = pricing,
+            ridePricingHelper = RidePricingHelper(pricing, osrm),
             createRideBookingUseCase = createUseCase,
             cancelRideBookingUseCase = cancelUseCase,
             detectCurrentLocationUseCase = detect,

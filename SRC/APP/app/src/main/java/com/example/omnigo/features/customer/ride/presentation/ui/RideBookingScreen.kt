@@ -41,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -51,6 +50,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherSelectionBottomSheet
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 import com.example.omnigo.features.customer.ride.presentation.state.LocationTarget
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideActiveTripSheet
@@ -59,12 +59,12 @@ import com.example.omnigo.features.customer.ride.presentation.ui.components.Ride
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideMapPinPicker
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RidePlaceSearchOverlay
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSearchingRadarDialog
+import com.example.omnigo.features.customer.ride.presentation.ui.components.RideSearchTimeoutDialog
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideTripReceiptDialog
 import com.example.omnigo.features.customer.ride.presentation.ui.components.RideVehicleSelectionSheet
 import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideBookingEvent
 import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideBookingViewModel
 import com.example.omnigo.ui.dimens.AppShape
-import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.TextPrimary
@@ -73,17 +73,24 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s18
 import com.example.omnigo.utils.semiBold
+import kotlinx.coroutines.launch
 
 @Composable
 fun RideBookingScreen(
     onBackClick: () -> Unit,
+    initialPromoCode: String? = null,
     viewModel: RideBookingViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // 0. Mandatory Location & GPS Enforcement
+    LaunchedEffect(initialPromoCode) {
+        if (!initialPromoCode.isNullOrBlank()) {
+            viewModel.applyVoucherCode(initialPromoCode)
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -157,7 +164,6 @@ fun RideBookingScreen(
         }
     }
 
-    // 1. Center-Pin Map Mode
     if (uiState.isMapPinPicking) {
         val target = uiState.pinPickingTarget ?: LocationTarget.PICKUP
         val initialPoint = uiState.pinPickedLocation
@@ -172,9 +178,7 @@ fun RideBookingScreen(
         return
     }
 
-    // 2. Map-First Root Canvas & Layer Controls
     Box(modifier = modifier.fillMaxSize()) {
-        // Layer 0: Full Screen Interactive Map Canvas
         val isTripFinished = uiState.showTripCompletedReceipt || uiState.currentBooking?.status == BookingStatus.COMPLETED
         val activeRoute = when {
             isTripFinished -> emptyList()
@@ -201,7 +205,6 @@ fun RideBookingScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Layer 1: Floating Header or In-trip Back button
         if (!uiState.isTripActive) {
             RideFloatingHeader(
                 pickupLocation = uiState.pickupLocation,
@@ -214,7 +217,6 @@ fun RideBookingScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         } else {
-            // Minimal back button when in-trip
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
@@ -235,7 +237,6 @@ fun RideBookingScreen(
             }
         }
 
-        // Layer 2: Floating MyLocation FAB
         val fabBottomPadding = if (uiState.isTripActive || uiState.isDualLocationReady) {
             Dimen.HeightRideBottomSheetOffset
         } else {
@@ -268,7 +269,6 @@ fun RideBookingScreen(
             }
         }
 
-        // Layer 3: Modern Xanh SM Vehicle Selection Bottom Sheet (Before Booking)
         AnimatedVisibility(
             visible = !uiState.isTripActive && !isTripFinished && uiState.isDualLocationReady && !uiState.isSearchingDriver,
             enter = slideInVertically { it } + fadeIn(),
@@ -281,13 +281,15 @@ fun RideBookingScreen(
                 selectedType = uiState.selectedVehicleType,
                 estimates = uiState.vehicleEstimates,
                 isCalculating = uiState.isCalculatingPrice,
+                appliedVoucher = uiState.appliedVoucher,
+                pendingPromoCode = uiState.pendingPromoCode,
                 onSelectVehicle = viewModel::selectVehicleType,
+                onOpenVoucherSheet = viewModel::openVoucherSheet,
                 onConfirmBooking = viewModel::createBooking,
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
-        // Layer 4: Modern Xanh SM Active Trip Sheet (In-Trip Tracking)
         if (uiState.isTripActive && uiState.currentBooking != null) {
             AnimatedVisibility(
                 visible = true,
@@ -312,7 +314,6 @@ fun RideBookingScreen(
             }
         }
 
-        // Layer 5: Place Search Overlay
         AnimatedVisibility(
             visible = uiState.isSearchingPlaces,
             enter = fadeIn() + slideInVertically { it / 6 },
@@ -337,7 +338,6 @@ fun RideBookingScreen(
         }
     }
 
-    // 3. Radar Pulse Searching Dialog
     if (uiState.isSearchingDriver && !uiState.showSearchTimeoutDialog) {
         RideSearchingRadarDialog(
             countdownSeconds = uiState.searchCountdownSeconds,
@@ -346,49 +346,30 @@ fun RideBookingScreen(
         )
     }
 
-    // 4. Timeout Retry Dialog
     if (uiState.showSearchTimeoutDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissSearchTimeoutDialog() },
-            title = {
-                Text(
-                    text = stringResource(id = R.string.ride_search_timeout_dialog_title),
-                    style = MaterialTheme.typography.s18.bold(),
-                    color = TextPrimary
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(id = R.string.ride_search_timeout_dialog_message),
-                    style = MaterialTheme.typography.s14.normal(),
-                    color = TextPrimary
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.retrySearchDriver() },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                    shape = RoundedCornerShape(AppShape.ShapeM)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.ride_search_timeout_btn_retry),
-                        style = MaterialTheme.typography.s14.semiBold()
-                    )
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { viewModel.dismissSearchTimeoutDialog() },
-                    shape = RoundedCornerShape(AppShape.ShapeM)
-                ) {
-                    Text(text = stringResource(id = R.string.ride_search_timeout_btn_cancel), style = MaterialTheme.typography.s14.normal())
-                }
-            }
+        RideSearchTimeoutDialog(
+            onRetry = viewModel::retrySearchDriver,
+            onCancel = viewModel::dismissSearchTimeoutDialog
         )
     }
 
-    // 5. Trip Completed Receipt & 5-Star Rating Dialog
     if (uiState.showTripCompletedReceipt && uiState.completedBooking != null) {
-        RideTripReceiptDialog(booking = uiState.completedBooking!!, onDismiss = viewModel::dismissCompletedTrip)
+        RideTripReceiptDialog(
+            booking = uiState.completedBooking!!,
+            onDismiss = viewModel::dismissCompletedTrip,
+            onSubmitReview = viewModel::submitCompletedTripReview
+        )
+    }
+
+    if (uiState.showVoucherSheet) {
+        VoucherSelectionBottomSheet(
+            vouchers = uiState.applicableVouchers,
+            orderAmount = uiState.pricingEstimate?.totalPrice ?: 50000.0,
+            appliedVoucherCode = uiState.appliedVoucher?.voucherCode,
+            isLoading = uiState.isLoadingVouchers,
+            onApplyCode = viewModel::applyVoucherCode,
+            onRemoveVoucher = viewModel::removeAppliedVoucher,
+            onDismiss = viewModel::closeVoucherSheet
+        )
     }
 }

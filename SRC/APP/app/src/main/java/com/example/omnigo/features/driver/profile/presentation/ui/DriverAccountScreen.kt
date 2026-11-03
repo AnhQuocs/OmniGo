@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun DriverAccountScreen(
     onNavigateToLogin: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToReviews: () -> Unit = {},
     viewModel: AccountViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,7 +143,8 @@ fun DriverAccountScreen(
                 joinedMonths = uiState.joinedMonths,
                 joinedDays = uiState.joinedDays,
                 isUploadingAvatar = uiState.isUploadingAvatar,
-                onAvatarClick = { viewModel.onAvatarClick() }
+                onAvatarClick = { viewModel.onAvatarClick() },
+                onRatingClick = onNavigateToReviews
             )
 
         Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
@@ -152,9 +154,10 @@ fun DriverAccountScreen(
             vehiclePlate = uiState.vehiclePlate,
             approvalStatus = uiState.approvalStatus,
             registrationDate = uiState.registrationDate,
-            onPlateClick = {
-                context.startActivity(PersonalProfileActivity.createIntent(context))
-            }
+            vehicleType = uiState.vehicleType,
+            vehicleBrand = uiState.vehicleBrand,
+            onPlateClick = { viewModel.onOpenUpdateVehicleDialog() },
+            onResubmitClick = { viewModel.onOpenResubmitSheet() }
         )
 
         Spacer(modifier = Modifier.height(AppSpacing.MediumLarge))
@@ -176,7 +179,8 @@ fun DriverAccountScreen(
                     context.getString(R.string.driver_account_menu_support_title),
                     Toast.LENGTH_SHORT
                 ).show()
-            }
+            },
+            onOpenReviews = onNavigateToReviews
         )
 
         Spacer(modifier = Modifier.height(AppSpacing.L))
@@ -228,6 +232,34 @@ fun DriverAccountScreen(
             onViewAvatar = {
                 viewModel.onDismissAvatarPicker()
                 context.startActivity(PersonalProfileActivity.createIntent(context))
+            }
+        )
+    }
+
+    if (uiState.showUpdateVehicleDialog) {
+        com.example.omnigo.features.driver.profile.presentation.ui.components.DriverUpdateVehicleDialog(
+            currentVehicleType = uiState.vehicleType,
+            currentPlate = uiState.vehiclePlate.orEmpty(),
+            currentBrand = uiState.vehicleBrand,
+            isLoading = uiState.isUpdatingDriverVehicle,
+            onDismiss = { viewModel.onDismissUpdateVehicleDialog() },
+            onSave = { type, plate, brand ->
+                viewModel.updateDriverVehicle(type, plate, brand)
+            }
+        )
+    }
+
+    if (uiState.showResubmitSheet) {
+        com.example.omnigo.features.driver.profile.presentation.ui.components.DriverResubmitBottomSheet(
+            currentFullName = uiState.userName,
+            currentLicenseNumber = uiState.licenseNumber,
+            currentVehicleType = uiState.vehicleType,
+            currentPlate = uiState.vehiclePlate.orEmpty(),
+            currentBrand = uiState.vehicleBrand,
+            isLoading = uiState.isUpdatingDriverVehicle,
+            onDismiss = { viewModel.onDismissResubmitSheet() },
+            onSubmit = { fullName, licenseNumber, type, plate, brand ->
+                viewModel.resubmitDriverProfile(fullName, licenseNumber, type, plate, brand)
             }
         )
     }

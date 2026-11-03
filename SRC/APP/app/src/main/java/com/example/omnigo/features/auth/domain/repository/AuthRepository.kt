@@ -25,6 +25,15 @@ interface AuthRepository {
         otpCode: String
     ): VerifyOtpResult
 
+    suspend fun sendServerOtp(
+        phoneNumber: String
+    ): Result<String> = Result.success("")
+
+    suspend fun verifyServerOtp(
+        phoneNumber: String,
+        otpCode: String
+    ): Result<String> = Result.success("DEFAULT_TOKEN")
+
     suspend fun registerCustomer(
         user: RegisterUser
     ): RegisterResult
@@ -50,4 +59,27 @@ interface AuthRepository {
     suspend fun uploadAvatar(
         file: MultipartBody.Part
     ): Result<String>
+
+    suspend fun resetPassword(
+        phoneNumber: String?,
+        email: String?,
+        verificationToken: String,
+        newPassword: String,
+        confirmPassword: String
+    ): Result<String>
+
+    suspend fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ): Result<String>
+
+    suspend fun updateProfile(
+        fullName: String,
+        email: String?
+    ): Result<AuthUser>
+
+    suspend fun deleteMyAccount(): Result<String> = Result.success("")
+
+    suspend fun updateFcmToken(fcmToken: String): Result<String> = Result.success("")
 }

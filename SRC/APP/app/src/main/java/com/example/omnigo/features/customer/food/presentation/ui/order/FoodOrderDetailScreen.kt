@@ -65,6 +65,19 @@ fun FoodOrderDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.openPaymentUrl) {
+        val url = uiState.openPaymentUrl
+        if (!url.isNullOrBlank()) {
+            runCatching {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            }
+            viewModel.clearOpenPaymentUrl()
+        }
+    }
+
     LaunchedEffect(uiState.errorMessage) {
         val err = uiState.errorMessage
         if (err != null && uiState.order != null) {
@@ -130,7 +143,9 @@ fun FoodOrderDetailScreen(
                     onSwitchToCashClick = { viewModel.onSwitchToCash() },
                     onRetryDriverClick = { viewModel.onRetryDriver() },
                     onReorderClick = { onReorderClick?.invoke(it) },
-                    onReviewClick = { onReviewClick?.invoke(it) }
+                    onReviewClick = { onReviewClick?.invoke(it) },
+                    onPayOnlineClick = { viewModel.onPayOnlineNow() },
+                    onCheckPaymentStatusClick = { viewModel.onCheckPaymentStatus() }
                 )
             }
         },

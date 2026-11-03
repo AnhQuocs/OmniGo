@@ -63,7 +63,10 @@ fun DriverVehicleInfoCard(
     vehiclePlate: String?,
     approvalStatus: DriverApprovalStatus,
     registrationDate: String,
+    vehicleType: String = "MOTORBIKE",
+    vehicleBrand: String = "Honda",
     onPlateClick: () -> Unit = {},
+    onResubmitClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val badgeBg = when (approvalStatus) {
@@ -85,6 +88,7 @@ fun DriverVehicleInfoCard(
     Card(
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS),
         modifier = modifier
             .fillMaxWidth()
             .border(
@@ -160,7 +164,7 @@ fun DriverVehicleInfoCard(
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
 
-            // Row 1: Loại xe (OmniBike)
+            // Row 1: Loại xe & Hãng xe
             VehicleDetailRow(
                 icon = {
                     Icon(
@@ -172,11 +176,21 @@ fun DriverVehicleInfoCard(
                 },
                 label = stringResource(id = R.string.driver_vehicle_type),
                 value = {
-                    Text(
-                        text = stringResource(id = R.string.driver_account_vehicle_service_name),
-                        style = MaterialTheme.typography.s13.semiBold(),
-                        color = TextPrimary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable(onClick = onPlateClick)
+                    ) {
+                        val displayType = if (vehicleBrand.isNotBlank()) {
+                            "$vehicleType • $vehicleBrand"
+                        } else {
+                            vehicleType.ifBlank { stringResource(id = R.string.driver_account_vehicle_service_name) }
+                        }
+                        Text(
+                            text = displayType,
+                            style = MaterialTheme.typography.s13.semiBold(),
+                            color = TextPrimary
+                        )
+                    }
                 }
             )
 
@@ -242,6 +256,26 @@ fun DriverVehicleInfoCard(
                     )
                 }
             )
+
+            if (approvalStatus == DriverApprovalStatus.REJECTED) {
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+                androidx.compose.material3.Button(
+                    onClick = onResubmitClick,
+                    shape = RoundedCornerShape(AppShape.ShapeM),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = PrimaryColor
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Dimen.HeightDefault)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.driver_resubmit_btn),
+                        style = MaterialTheme.typography.s13.bold(),
+                        color = com.example.omnigo.ui.theme.TextWhite
+                    )
+                }
+            }
         }
     }
 }

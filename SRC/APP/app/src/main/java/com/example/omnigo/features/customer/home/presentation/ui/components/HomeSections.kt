@@ -169,11 +169,13 @@ fun HomeHeaderSection(
 
 @Composable
 fun HomeQuickWalletSection(
+    balanceText: String? = null,
     onTopUpClick: () -> Unit = {},
     onScanQrClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onTopUpClick,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimen.PaddingM),
@@ -214,7 +216,7 @@ fun HomeQuickWalletSection(
                         color = TextSecondary
                     )
                     Text(
-                        text = stringResource(id = R.string.home_wallet_balance_mock),
+                        text = balanceText ?: stringResource(id = R.string.home_wallet_balance_mock),
                         style = MaterialTheme.typography.s16.bold(),
                         color = TextPrimary
                     )

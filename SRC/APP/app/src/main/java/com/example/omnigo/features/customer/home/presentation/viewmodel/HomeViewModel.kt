@@ -52,7 +52,8 @@ data class HomeUiState(
     val showActiveTripSheet: Boolean = false,
     val isCancellingActiveTrip: Boolean = false,
     val showCancelTripConfirmDialog: Boolean = false,
-    val cancelTripErrorMessage: String? = null
+    val cancelTripErrorMessage: String? = null,
+    val walletBalanceFormatted: String? = null
 )
 
 sealed interface HomeUiEvent {
@@ -69,7 +70,8 @@ class HomeViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val homeAddressCoordinator: HomeAddressCoordinator,
     private val rideTrackingSessionManager: RideTrackingSessionManager,
-    private val cancelRideBookingUseCase: CancelRideBookingUseCase
+    private val cancelRideBookingUseCase: CancelRideBookingUseCase,
+    private val getWalletUseCase: com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -85,10 +87,21 @@ class HomeViewModel @Inject constructor(
         loadProvinces()
         observeActiveRideSession()
         restoreActiveRideSession()
+        loadWalletBalance()
     }
 
     fun onResume() {
         restoreActiveRideSession()
+        loadWalletBalance()
+    }
+
+    private fun loadWalletBalance() {
+        viewModelScope.launch {
+            getWalletUseCase?.invoke()?.onSuccess { wallet ->
+                val formatted = "${java.text.NumberFormat.getNumberInstance(java.util.Locale("vi", "VN")).format(wallet.balance.toLong())}đ"
+                _uiState.update { it.copy(walletBalanceFormatted = formatted) }
+            }
+        }
     }
 
     private fun restoreActiveRideSession() {

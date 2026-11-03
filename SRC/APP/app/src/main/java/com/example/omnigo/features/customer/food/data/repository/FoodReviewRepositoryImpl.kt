@@ -5,6 +5,7 @@ import com.example.omnigo.features.customer.food.data.mapper.toDomain
 import com.example.omnigo.features.customer.food.data.mapper.toRequest
 import com.example.omnigo.features.customer.food.data.remote.api.FoodReviewApi
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodReviewCommand
+import com.example.omnigo.features.customer.food.domain.model.DriverFoodReviewsSummary
 import com.example.omnigo.features.customer.food.domain.model.FoodReview
 import com.example.omnigo.features.customer.food.domain.repository.FoodReviewRepository
 import okhttp3.MultipartBody
@@ -56,6 +57,23 @@ class FoodReviewRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateFoodReview(
+        reviewId: Long,
+        command: CreateFoodReviewCommand
+    ): Result<FoodReview> {
+        return try {
+            val response = foodReviewApi.updateFoodReview(reviewId, command.toRequest())
+            if (response.success && response.data != null) {
+                Result.success(response.data.toDomain())
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to update food review"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateFoodReview: failed", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getFoodReviewByOrderId(orderId: Long): Result<FoodReview?> {
         return try {
             val response = foodReviewApi.getFoodReviewByOrderId(orderId)
@@ -77,6 +95,30 @@ class FoodReviewRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getDriverFoodReviews(driverId: Long): Result<DriverFoodReviewsSummary> {
+        return try {
+            val response = foodReviewApi.getDriverFoodReviews(driverId)
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true && body.data != null) {
+                val data = body.data
+                val reviews = data.reviews?.map { it.toDomain() } ?: emptyList()
+                Result.success(
+                    DriverFoodReviewsSummary(
+                        driverId = data.driverId ?: driverId,
+                        totalReviews = data.totalReviews ?: reviews.size,
+                        averageRating = data.averageRating ?: 0.0,
+                        reviews = reviews
+                    )
+                )
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to load driver food reviews"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getDriverFoodReviews: failed", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getRestaurantReviews(
         restaurantId: Long,
         page: Int,
@@ -91,7 +133,7 @@ class FoodReviewRepositoryImpl @Inject constructor(
                 rating = rating
             )
             if (response.success) {
-                val reviews = response.data?.content?.map { it.toDomain() } ?: emptyList()
+                val reviews = response.data?.reviews?.map { it.toDomain() } ?: emptyList()
                 Result.success(reviews)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to load restaurant reviews"))

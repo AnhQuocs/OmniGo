@@ -5,7 +5,11 @@ import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingDriverResponse
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingRequest
 import com.example.omnigo.features.customer.ride.data.remote.dto.BookingResponse
+import com.example.omnigo.features.customer.ride.data.remote.dto.BookingReviewRequestDto
+import com.example.omnigo.features.customer.ride.data.remote.dto.BookingReviewResponseDto
+import com.example.omnigo.features.customer.ride.data.remote.dto.DriverBookingReviewsEnvelopeDto
 import com.example.omnigo.features.driver.data.remote.dto.DriverDailyReportDto
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -19,6 +23,27 @@ interface RideBookingApi {
     suspend fun createBooking(
         @Body request: BookingRequest
     ): BookingResponse
+
+    @GET(ApiEndpoints.BOOKING_DETAIL)
+    suspend fun getBookingDetail(
+        @Path("bookingId") bookingId: Long
+    ): Response<ApiResponse<BookingResponse>>
+
+    @POST(ApiEndpoints.BOOKING_REVIEWS)
+    suspend fun submitBookingReview(
+        @Path("bookingId") bookingId: Long,
+        @Body request: BookingReviewRequestDto
+    ): Response<ApiResponse<BookingReviewResponseDto>>
+
+    @GET(ApiEndpoints.BOOKING_REVIEWS)
+    suspend fun getBookingReview(
+        @Path("bookingId") bookingId: Long
+    ): Response<ApiResponse<BookingReviewResponseDto>>
+
+    @GET(ApiEndpoints.BOOKING_DRIVER_REVIEWS)
+    suspend fun getDriverBookingReviews(
+        @Path("driverId") driverId: Long
+    ): Response<ApiResponse<DriverBookingReviewsEnvelopeDto>>
 
     @PUT(ApiEndpoints.BOOKING_CANCEL)
     suspend fun cancelBooking(

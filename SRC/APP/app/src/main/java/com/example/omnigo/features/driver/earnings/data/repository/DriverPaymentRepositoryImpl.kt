@@ -2,6 +2,7 @@ package com.example.omnigo.features.driver.earnings.data.repository
 
 import com.example.omnigo.features.driver.earnings.data.mapper.DriverPaymentMapper
 import com.example.omnigo.features.driver.earnings.data.remote.api.DriverPaymentApi
+import com.example.omnigo.features.driver.earnings.data.remote.dto.PaymentStatusResponseDto
 import com.example.omnigo.features.driver.earnings.domain.model.DriverWallet
 import com.example.omnigo.features.driver.earnings.domain.model.DriverWalletTransaction
 import com.example.omnigo.features.driver.earnings.domain.repository.DriverPaymentRepository
@@ -51,6 +52,43 @@ class DriverPaymentRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun depositCustomerWallet(amount: Double, method: String): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = paymentApi.depositWallet(amount = amount, method = method)
+                val url = response.paymentUrl
+                if (!url.isNullOrBlank()) {
+                    Result.success(url)
+                } else {
+                    Result.failure(Exception("Không lấy được đường dẫn thanh toán"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun createOrderPayment(
+        bookingId: Long,
+        amount: Double,
+        method: String,
+        type: String
+    ): Result<String?> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = paymentApi.createPayment(
+                    method = method,
+                    type = type,
+                    amount = amount,
+                    bookingId = bookingId
+                )
+                Result.success(response.paymentUrl)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
     override suspend fun getWallet(): Result<DriverWallet> {
         return withContext(Dispatchers.IO) {
             try {
@@ -73,5 +111,24 @@ class DriverPaymentRepositoryImpl @Inject constructor(
             }
         }
     }
-}
 
+    override suspend fun getBookingPaymentStatus(bookingId: Long): Result<PaymentStatusResponseDto> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Result.success(paymentApi.getBookingPaymentStatus(bookingId))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun getFoodOrderPaymentStatus(orderId: Long): Result<PaymentStatusResponseDto> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Result.success(paymentApi.getFoodOrderPaymentStatus(orderId))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+}

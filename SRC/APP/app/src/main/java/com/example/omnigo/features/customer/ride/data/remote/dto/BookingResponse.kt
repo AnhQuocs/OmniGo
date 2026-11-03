@@ -17,6 +17,14 @@ data class BookingResponse(
     val customerPhone: String? = null,
     @SerializedName("driverAvatarUrl")
     val driverAvatarUrl: String? = null,
+    @SerializedName("driverName")
+    val driverName: String? = null,
+    @SerializedName("driverPhone")
+    val driverPhone: String? = null,
+    @SerializedName("driverVehiclePlate")
+    val driverVehiclePlate: String? = null,
+    @SerializedName("driverRating")
+    val driverRating: Double? = null,
     @SerializedName("pickupAddress")
     val pickupAddress: String? = null,
     @SerializedName("dropoffAddress")

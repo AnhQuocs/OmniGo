@@ -4,6 +4,8 @@ import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.features.driver.data.mapper.DriverMapper
 import com.example.omnigo.features.driver.data.remote.api.DriverApi
 import com.example.omnigo.features.driver.data.remote.dto.DriverLocationRequest
+import com.example.omnigo.features.driver.data.remote.dto.DriverResubmitRequestDto
+import com.example.omnigo.features.driver.data.remote.dto.DriverUpdateVehicleRequestDto
 import com.example.omnigo.features.driver.domain.model.DriverAccountProfile
 import com.example.omnigo.features.driver.domain.model.DriverLocationUpdate
 import com.example.omnigo.features.driver.domain.repository.DriverRepository
@@ -25,9 +27,7 @@ class DriverRepositoryImpl @Inject constructor(
                 if (targetId == null || targetId <= 0L) {
                     return@withContext Result.failure(Exception("Driver ID not found"))
                 }
-
                 val response = driverApi.updateDriverStatus(targetId, isActive = isOnline)
-
                 if (response.success) {
                     Result.success(true)
                 } else {
@@ -52,13 +52,89 @@ class DriverRepositoryImpl @Inject constructor(
                 } else {
                     driverApi.getMyProfile()
                 }
-
                 val data = response.data
                 if (data != null) {
-                    val domainProfile = DriverMapper.mapToDomain(data, fallbackId = targetId)
-                    Result.success(domainProfile)
+                    Result.success(DriverMapper.mapToDomain(data, fallbackId = targetId))
                 } else {
                     Result.failure(Exception(response.message ?: "Driver profile response empty"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateDriverVehicle(
+        driverId: Long?,
+        vehicleType: String,
+        licensePlate: String,
+        vehicleBrand: String
+    ): Result<DriverAccountProfile> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val targetId = driverId ?: sessionManager.getUserId() ?: 0L
+                if (targetId <= 0L) {
+                    return@withContext Result.failure(Exception("Driver ID not found"))
+                }
+                val response = driverApi.updateDriverVehicle(
+                    driverId = targetId,
+                    request = DriverUpdateVehicleRequestDto(
+                        vehicleType = vehicleType,
+                        licensePlate = licensePlate,
+                        vehicleBrand = vehicleBrand
+                    )
+                )
+                val data = response.data
+                if (response.success && data != null) {
+                    Result.success(DriverMapper.mapToDomain(data, fallbackId = targetId))
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to update vehicle information"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun resubmitDriverProfile(
+        driverId: Long?,
+        fullName: String,
+        email: String?,
+        licenseNumber: String,
+        vehicleType: String,
+        licensePlate: String,
+        vehicleBrand: String,
+        idCardFrontUrl: String?,
+        idCardBackUrl: String?,
+        licenseImageUrl: String?,
+        vehicleRegImageUrl: String?
+    ): Result<DriverAccountProfile> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val targetId = driverId ?: sessionManager.getUserId() ?: 0L
+                if (targetId <= 0L) {
+                    return@withContext Result.failure(Exception("Driver ID not found"))
+                }
+                val response = driverApi.resubmitDriverProfile(
+                    driverId = targetId,
+                    request = DriverResubmitRequestDto(
+                        fullName = fullName,
+                        email = email,
+                        licenseNumber = licenseNumber,
+                        vehicleType = vehicleType,
+                        licensePlate = licensePlate,
+                        vehicleBrand = vehicleBrand,
+                        idCardFrontUrl = idCardFrontUrl,
+                        idCardBackUrl = idCardBackUrl,
+                        licenseImageUrl = licenseImageUrl,
+                        vehicleRegImageUrl = vehicleRegImageUrl
+                    )
+                )
+                val data = response.data
+                if (response.success && data != null) {
+                    Result.success(DriverMapper.mapToDomain(data, fallbackId = targetId))
+                } else {
+                    Result.failure(Exception(response.message ?: "Failed to resubmit driver profile"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -76,12 +152,11 @@ class DriverRepositoryImpl @Inject constructor(
                     speed = locationUpdate.speed,
                     timestamp = locationUpdate.timestamp
                 )
-
                 val response = driverApi.sendDriverLocation(request)
-                if (response.success) {
+                if (response.isSuccessful) {
                     Result.success(true)
                 } else {
-                    Result.failure(Exception(response.message ?: "Failed to send driver location"))
+                    Result.failure(Exception("Failed to send driver location (${response.code()})"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -93,11 +168,8 @@ class DriverRepositoryImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 val response = driverApi.acceptFoodOrder(orderId)
-                if (response.success) {
-                    Result.success(true)
-                } else {
-                    Result.failure(Exception(response.message ?: "Failed to accept food order"))
-                }
+                if (response.success) Result.success(true)
+                else Result.failure(Exception(response.message ?: "Failed to accept food order"))
             } catch (e: Exception) {
                 Result.failure(e)
             }
@@ -108,11 +180,8 @@ class DriverRepositoryImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 val response = driverApi.rejectFoodOrder(orderId)
-                if (response.success) {
-                    Result.success(true)
-                } else {
-                    Result.failure(Exception(response.message ?: "Failed to reject food order"))
-                }
+                if (response.success) Result.success(true)
+                else Result.failure(Exception(response.message ?: "Failed to reject food order"))
             } catch (e: Exception) {
                 Result.failure(e)
             }
@@ -126,11 +195,8 @@ class DriverRepositoryImpl @Inject constructor(
                 val body = response.data
                 if (response.success && body != null) {
                     val domainOrder = com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(body)
-                    if (domainOrder != null) {
-                        Result.success(domainOrder)
-                    } else {
-                        Result.failure(Exception("Failed to parse delivery order data"))
-                    }
+                    if (domainOrder != null) Result.success(domainOrder)
+                    else Result.failure(Exception("Failed to parse delivery order data"))
                 } else {
                     Result.failure(Exception(response.message ?: "Failed to get delivery order detail"))
                 }
@@ -195,11 +261,8 @@ class DriverRepositoryImpl @Inject constructor(
                 val body = response.data
                 if (response.success && body != null) {
                     val domainOrder = com.example.omnigo.features.driver.food.data.mapper.DriverDeliveryOrderMapper.mapToDomain(body)
-                    if (domainOrder != null) {
-                        Result.success(domainOrder)
-                    } else {
-                        Result.failure(Exception("Failed to parse updated delivery order data"))
-                    }
+                    if (domainOrder != null) Result.success(domainOrder)
+                    else Result.failure(Exception("Failed to parse updated delivery order data"))
                 } else {
                     Result.failure(Exception(response.message ?: "Failed to update driver order status"))
                 }

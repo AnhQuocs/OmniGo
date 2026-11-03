@@ -20,8 +20,11 @@ import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingR
 import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverResult
 import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
 import com.example.omnigo.features.customer.ride.domain.usecase.CancelRideBookingUseCase
+import com.example.omnigo.features.customer.ride.domain.usecase.GetBookingDetailUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.GetBookingDriverUseCase
+import com.example.omnigo.features.customer.ride.domain.usecase.GetBookingReviewUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.GetCustomerBookingsUseCase
+import com.example.omnigo.features.customer.ride.domain.usecase.SubmitBookingReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -40,7 +43,10 @@ class ActivityViewModel @Inject constructor(
     private val rideTrackingSessionManager: RideTrackingSessionManager,
     private val getMyFoodOrdersUseCase: GetMyFoodOrdersUseCase,
     private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
-    private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase
+    private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase,
+    private val getBookingDetailUseCase: GetBookingDetailUseCase? = null,
+    private val getBookingReviewUseCase: GetBookingReviewUseCase? = null,
+    private val submitBookingReviewUseCase: SubmitBookingReviewUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ActivityUiState())
@@ -70,8 +76,62 @@ class ActivityViewModel @Inject constructor(
         _uiState.update { it.copy(selectedHistoryService = service) }
     }
 
-    fun loadBookings() {
-        loadActivities()
+    fun loadBookings() = loadActivities()
+
+    fun openHistoryBookingDetail(booking: Booking) {
+        _uiState.update {
+            it.copy(
+                selectedHistoryBooking = booking,
+                selectedBookingReview = null,
+                isLoadingRideDetail = true
+            )
+        }
+        viewModelScope.launch {
+            val detail = getBookingDetailUseCase?.invoke(booking.bookingId)?.getOrNull() ?: booking
+            val review = getBookingReviewUseCase?.invoke(booking.bookingId)?.getOrNull()
+            _uiState.update {
+                it.copy(
+                    selectedHistoryBooking = detail,
+                    selectedBookingReview = review,
+                    isLoadingRideDetail = false
+                )
+            }
+        }
+    }
+
+    fun dismissHistoryBookingDetail() {
+        _uiState.update {
+            it.copy(
+                selectedHistoryBooking = null,
+                selectedBookingReview = null,
+                isLoadingRideDetail = false,
+                isSubmittingRideReview = false
+            )
+        }
+    }
+
+    fun submitHistoryBookingReview(rating: Int, comment: String?) {
+        val bookingId = _uiState.value.selectedHistoryBooking?.bookingId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingRideReview = true) }
+            submitBookingReviewUseCase?.invoke(bookingId, rating, comment)
+                ?.onSuccess { review ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingRideReview = false,
+                            selectedBookingReview = review
+                        )
+                    }
+                }
+                ?.onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingRideReview = false,
+                            errorMessage = err.message
+                        )
+                    }
+                }
+        }
     }
 
     fun loadActivities(isSilent: Boolean = false) {
@@ -106,9 +166,7 @@ class ActivityViewModel @Inject constructor(
                                 it.status == BookingStatus.CANCELLED
                         }
                     }
-                    is GetCustomerBookingsResult.Error -> {
-                        errorMsg = bookingsResult.message
-                    }
+                    is GetCustomerBookingsResult.Error -> errorMsg = bookingsResult.message
                 }
 
                 var allEnrichedFoodOrders: List<FoodOrder> = emptyList()
@@ -119,9 +177,7 @@ class ActivityViewModel @Inject constructor(
                         historyFoodList = allEnrichedFoodOrders.filter(ActivityHistoryHelper::isHistoryFoodOrder)
                     }
                     is GetMyFoodOrdersResult.Error -> {
-                        if (errorMsg == null) {
-                            errorMsg = foodOrdersResult.message
-                        }
+                        if (errorMsg == null) errorMsg = foodOrdersResult.message
                     }
                 }
 
@@ -136,23 +192,14 @@ class ActivityViewModel @Inject constructor(
                     )
                 }
 
-                if (ongoingRideList.isNotEmpty()) {
-                    fetchOngoingDriverProfiles(ongoingRideList)
-                }
-                if (allEnrichedFoodOrders.isNotEmpty()) {
-                    enrichOrdersWithRestaurantData(allEnrichedFoodOrders)
-                }
+                if (ongoingRideList.isNotEmpty()) fetchOngoingDriverProfiles(ongoingRideList)
+                if (allEnrichedFoodOrders.isNotEmpty()) enrichOrdersWithRestaurantData(allEnrichedFoodOrders)
             }
         }
     }
 
-    fun promptCancelBooking(bookingId: Long) {
-        _uiState.update { it.copy(cancelConfirmBookingId = bookingId) }
-    }
-
-    fun dismissCancelBookingDialog() {
-        _uiState.update { it.copy(cancelConfirmBookingId = null) }
-    }
+    fun promptCancelBooking(bookingId: Long) = _uiState.update { it.copy(cancelConfirmBookingId = bookingId) }
+    fun dismissCancelBookingDialog() = _uiState.update { it.copy(cancelConfirmBookingId = null) }
 
     fun confirmCancelBooking() {
         val bookingId = _uiState.value.cancelConfirmBookingId ?: return
@@ -163,22 +210,11 @@ class ActivityViewModel @Inject constructor(
                     if (rideTrackingSessionManager.activeRideState.value?.bookingId == bookingId) {
                         rideTrackingSessionManager.clearSession()
                     }
-                    _uiState.update {
-                        it.copy(
-                            isCancellingBooking = false,
-                            cancelConfirmBookingId = null
-                        )
-                    }
+                    _uiState.update { it.copy(isCancellingBooking = false, cancelConfirmBookingId = null) }
                     loadActivities(isSilent = true)
                 }
                 is CancelRideBookingResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isCancellingBooking = false,
-                            cancelConfirmBookingId = null,
-                            errorMessage = result.message
-                        )
-                    }
+                    _uiState.update { it.copy(isCancellingBooking = false, cancelConfirmBookingId = null, errorMessage = result.message) }
                 }
             }
         }
@@ -194,9 +230,7 @@ class ActivityViewModel @Inject constructor(
             val newProfiles = _uiState.value.driverProfiles.toMutableMap()
             for (booking in bookingsWithDrivers) {
                 when (val res = getBookingDriverUseCase(booking.bookingId)) {
-                    is GetBookingDriverResult.Success -> {
-                        newProfiles[booking.bookingId] = res.driverProfile
-                    }
+                    is GetBookingDriverResult.Success -> newProfiles[booking.bookingId] = res.driverProfile
                     is GetBookingDriverResult.Error -> Unit
                 }
             }
@@ -210,9 +244,7 @@ class ActivityViewModel @Inject constructor(
             val catalog = menuCatalogCache[order.restaurantId].orEmpty()
             if (restaurant != null || catalog.isNotEmpty()) {
                 FoodOrderHistoryHelper.enrichOrder(order, restaurant, catalog)
-            } else {
-                order
-            }
+            } else order
         }
     }
 
@@ -250,20 +282,16 @@ class ActivityViewModel @Inject constructor(
                 val currentCatalog = menuCatalogCache[restaurantId].orEmpty()
                 if (currentCatalog.isEmpty() || currentCatalog.none { it.imageUrl.isNotBlank() }) {
                     when (val menuRes = getRestaurantItemsUseCase(restaurantId, availableOnly = false)) {
-                        is GetMenuItemsResult.Success -> {
-                            menuCatalogCache[restaurantId] = menuRes.items
-                        }
+                        is GetMenuItemsResult.Success -> menuCatalogCache[restaurantId] = menuRes.items
                         else -> Unit
                     }
                 }
             }
 
             _uiState.update { current ->
-                val enrichedOngoing = applyCachedEnrichment(current.ongoingFoodOrders)
-                val enrichedHistory = applyCachedEnrichment(current.historyFoodOrders)
                 current.copy(
-                    ongoingFoodOrders = enrichedOngoing,
-                    historyFoodOrders = enrichedHistory
+                    ongoingFoodOrders = applyCachedEnrichment(current.ongoingFoodOrders),
+                    historyFoodOrders = applyCachedEnrichment(current.historyFoodOrders)
                 )
             }
         }
