@@ -40,7 +40,7 @@
             display: none;
         }
 
-        .momo-btn {
+        .payment-btn {
             background-color: #a50064;
             color: white;
             padding: 8px 15px;
@@ -524,7 +524,7 @@
             VND
             <button onclick="fetchWallet()" style="margin-left:10px; cursor:pointer;">🔄 Làm mới</button>
         </p>
-        <button class="momo-btn" onclick="depositMoney()">+ Nạp tiền</button>
+        <button class="payment-btn" onclick="depositMoney()">+ Nạp tiền qua VNPay</button>
         <button class="history-btn" onclick="withdrawMoney()" style="background-color: #007bff;">- Rút tiền</button>
         <button class="history-btn" onclick="fetchTransactions()">Xem lịch sử giao dịch</button>
         <ul id="tx-list"
@@ -2081,7 +2081,7 @@
                 <div style="margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 5px; text-align: center;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; color: #dc3545;">Thu tiền cước từ khách:</p>
                     <button onclick="finishTrip('CASH')" style="background-color: #28a745; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💵 TIỀN MẶT</button>
-                    <button onclick="finishTrip('APP')" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💳 TRẢ QUA APP</button>
+                    <button onclick="finishTrip('APP')" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💳 VÍ OMNIPAY</button>
                 </div>
             `;
         }
@@ -2096,7 +2096,7 @@
 
         let confirmMsg = paymentMethod === 'CASH'
             ? "Xác nhận ĐÃ THU TIỀN MẶT từ khách hàng?"
-            : "Xác nhận hoàn thành cuốc và YÊU CẦU KHÁCH THANH TOÁN QUA APP (MoMo/VNPay)?";
+            : "Xác nhận hoàn thành cuốc và YÊU CẦU KHÁCH THANH TOÁN QUA APP (OmniPay)?";
 
         if (!confirm(confirmMsg)) return;
 
@@ -2128,7 +2128,7 @@
                 watchDriverPayment(paymentBookingId);
                 actionButtons.innerHTML = `
                     <div id="waiting-payment-alert" style="margin-top: 10px; padding: 10px; background-color: #fff3cd; color: #856404; font-weight: bold; border-radius: 5px; border: 1px solid #ffeeba;">
-                        ⏳ Đang chờ khách thanh toán qua Ví MoMo/VNPay...
+                        ⏳ Đang chờ khách thanh toán qua Ví OmniPay...
                     </div>
                 `;
 
@@ -2275,13 +2275,9 @@
     }
 
     function depositMoney() {
-        let method = prompt("Nhập cổng muốn nạp (MOMO hoặc VNPAY):", "MOMO");
-        if (!method || (method.toUpperCase() !== 'MOMO' && method.toUpperCase() !== 'VNPAY')) {
-            alert("Phương thức thanh toán không hợp lệ!");
-            return;
-        }
+        const method = 'VNPAY';
 
-        let amountStr = prompt("Nhập số tiền muốn nạp vào ví (VND):", "50000");
+        let amountStr = prompt("Nhập số tiền muốn nạp vào ví OmniPay qua VNPay (VND):", "50000");
         if (!amountStr) return;
         let amount = parseFloat(amountStr);
         if (isNaN(amount) || amount <= 0) {
