@@ -1617,6 +1617,8 @@
     </div>
 </div>
 
+<script src="payment-flow.js"></script>
+<script src="request-idempotency.js"></script>
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
@@ -1676,20 +1678,27 @@
             return isNaN(d.getTime()) ? null : d;
         }
         let s = String(dateVal).trim();
-        if (!s || s === '—' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
+        if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
 
         if (Array.isArray(dateVal)) {
             const [y, m, d = 1, h = 0, min = 0, sec = 0] = dateVal;
-            return new Date(Date.UTC(y, m - 1, d, h, min, sec));
+            return new Date(Date.UTC(y, m - 1, d, h - 7, min, sec));
         }
 
         if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) {
             s = s.replace(/\s+/, 'T');
         }
 
-        // Nếu chuỗi ISO không có múi giờ, server lưu UTC nên thêm 'Z' để chuyển đổi chính xác
-        if (s.includes('T') && !s.endsWith('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(s)) {
-            s = s + 'Z';
+        if (s.endsWith('Z') || /[+-]\d{2}(:?\d{2})?$/.test(s)) {
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        const localMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?/);
+        if (localMatch) {
+            const [, y, m, d, h, min, sec = 0, ms = 0] = localMatch;
+            const msNum = Number(String(ms).padEnd(3, '0').slice(0, 3));
+            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(h) - 7, Number(min), Number(sec), msNum));
         }
 
         const d = new Date(s);
@@ -2003,7 +2012,9 @@
         }
     }
 
+    const requestIntents = DemoRequestIdempotency.create(localStorage, () => crypto.randomUUID());
     async function fetchWithAuth(url, options = {}) {
+        const requestIntent = requestIntents.prepare('CUSTOMER:' + customerId, url, options);
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = 'Bearer ' + getStoredToken();
         if (customerId && !options.headers['X-User-Id']) {
@@ -2032,6 +2043,7 @@
                 throw new Error("Phiên đăng nhập đã hết hạn hoàn toàn. Vui lòng đăng nhập lại!");
             }
         }
+        await requestIntents.completeResponse(requestIntent, response);
         return response;
     }
 
@@ -3284,7 +3296,7 @@
         }
     }
 
-    async function submitFoodOrder() {
+    async function submitFoodOrderUnchecked() {
         if (cart.length === 0) return alert("Giỏ hàng đang trống!");
 
         const resId = cart[0].restaurantId;
@@ -3392,64 +3404,10 @@
                 switchFoodSubTab('orders');
                 fetchMyFoodOrders();
 
-                if (chosenPaymentMethod === 'WALLET') {
-                    // Thanh toán trực tiếp qua Ví OmniPay
-                    try {
-                        let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=WALLET&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
-                            method: 'POST',
-                            headers: { 'X-User-Id': customerId ? customerId.toString() : '1', 'X-User-Role': 'CUSTOMER' }
-                        });
-                        let payData = await payRes.json().catch(() => ({}));
-                        if (payRes.ok && (payData.status === 'SUCCESS' || payData.paymentUrl === 'WALLET_SUCCESS' || payData.success)) {
-                            alert(`🎉 Đặt món và thanh toán qua Ví OmniPay thành công cho đơn #${orderId}! Nhà hàng đang chuẩn bị món ăn.`);
-                            if (typeof fetchCustomerWallet === 'function') fetchCustomerWallet(true);
-                            fetchMyFoodOrders();
-                        } else {
-                            let errMsg = payData.message || 'Số dư ví không đủ hoặc giao dịch bị lỗi';
-                            let switchCash = confirm(`⚠️ Thanh toán ví thất bại (${errMsg}).\n\nBạn có muốn chuyển đơn #${orderId} sang thanh toán bằng TIỀN MẶT (CASH) để quán bắt đầu làm món không?`);
-                            if (switchCash) {
-                                await switchToCashOrder(orderId);
-                            } else {
-                                await cancelUnpaidOrder(orderId, 'Ví không đủ tiền hoặc lỗi thanh toán');
-                            }
-                        }
-                    } catch (payErr) {
-                        let switchCash = confirm(`⚠️ Lỗi kết nối ví: ${payErr.message}.\n\nBạn có muốn chuyển đơn #${orderId} sang thanh toán TIỀN MẶT (CASH) không?`);
-                        if (switchCash) {
-                            await switchToCashOrder(orderId);
-                        } else {
-                            await cancelUnpaidOrder(orderId, 'Lỗi kết nối cổng thanh toán ví');
-                        }
-                    }
-                } else if (chosenPaymentMethod === 'MOMO' || chosenPaymentMethod === 'VNPAY') {
-                    // Mở cổng thanh toán Online
-                    try {
-                        let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${chosenPaymentMethod}&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
-                            method: 'POST'
-                        });
-                        let payData = await payRes.json().catch(() => ({}));
-                        if (payRes.ok && payData.paymentUrl) {
-                            window.open(payData.paymentUrl, '_blank');
-                            alert(`🎉 Đã tạo đơn hàng #${orderId} (Chờ thanh toán)!\nVui lòng thanh toán qua ${chosenPaymentMethod} trên tab vừa mở để quán bắt đầu chuẩn bị món ăn.\n\nNếu muốn, bạn có thể chuyển sang trả bằng Tiền mặt bất kỳ lúc nào.`);
-                            startFoodOrderPaymentPolling(orderId);
-                        } else {
-                            let switchCash = confirm(`⚠️ Cổng thanh toán ${chosenPaymentMethod} chưa mở được: ${payData.message || ''}.\n\nBạn có muốn chuyển đơn #${orderId} sang trả TIỀN MẶT (CASH) không?`);
-                            if (switchCash) {
-                                await switchToCashOrder(orderId);
-                            } else {
-                                await cancelUnpaidOrder(orderId, 'Lỗi mở cổng thanh toán trực tuyến');
-                            }
-                        }
-                    } catch (payErr) {
-                        let switchCash = confirm(`⚠️ Lỗi kết nối cổng thanh toán: ${payErr.message}.\n\nBạn có muốn chuyển đơn #${orderId} sang trả TIỀN MẶT (CASH) không?`);
-                        if (switchCash) {
-                            await switchToCashOrder(orderId);
-                        } else {
-                            await cancelUnpaidOrder(orderId, 'Lỗi kết nối cổng thanh toán trực tuyến');
-                        }
-                    }
+                if (chosenPaymentMethod !== 'CASH') {
+                    await retryOnlinePayment(orderId, chosenPaymentMethod, totalPrice);
                 } else {
-                    alert(`🎉 Đặt món thành công đơn #${orderId}! Nhà hàng đang chuẩn bị món ăn.`);
+                    alert(`Đã tạo đơn #${orderId}. Vui lòng thanh toán tiền mặt khi nhận hàng trước khi đặt đơn tiếp theo.`);
                 }
             } else {
                 alert("❌ Lỗi: " + (data.message || "Không thể tạo đơn đặt món"));
@@ -3466,7 +3424,7 @@
         foodPaymentCheckInterval = setInterval(() => {
             pollCount++;
             fetchWithAuth(`${API_BASE_URL}/api/v1/payments/food-order/${orderId}/payment-status`)
-                .then(res => res.text())
+                .then(res => { if (!res.ok) throw new Error('Chưa kiểm tra được thanh toán'); return res.text(); })
                 .then(status => {
                     if (status === 'SUCCESS') {
                         clearInterval(foodPaymentCheckInterval);
@@ -3569,7 +3527,6 @@
                         </div>
                         <div style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
                             <button class="btn-action" style="background:#7e22ce; color:#ffffff; padding:6px 12px; font-size:12px;" onclick="retryOnlinePayment(${order.id}, '${order.paymentMethod}', ${finalPrice})">💳 Tiếp tục thanh toán</button>
-                            <button class="btn-action" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:6px 12px; font-size:12px;" onclick="switchToCashOrder(${order.id})">💵 Đổi sang Tiền mặt</button>
                             <button class="btn-action" style="background:#fee2e2; color:#dc2626; padding:6px 12px; font-size:12px;" onclick="cancelFoodOrder(${order.id})">❌ Hủy đơn</button>
                         </div>
                     ` : (order.status === 'COMPLETED' ? `
@@ -3747,43 +3704,7 @@
     }
 
     async function retryOnlinePayment(orderId, payMethod, totalPrice) {
-        if (payMethod === 'WALLET') {
-            try {
-                let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=WALLET&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
-                    method: 'POST',
-                    headers: { 'X-User-Id': customerId ? customerId.toString() : '1', 'X-User-Role': 'CUSTOMER' }
-                });
-                let payData = await payRes.json().catch(() => ({}));
-                if (payRes.ok && (payData.status === 'SUCCESS' || payData.paymentUrl === 'WALLET_SUCCESS' || payData.success)) {
-                    alert(`🎉 Thanh toán qua Ví OmniPay thành công cho đơn #${orderId}! Nhà hàng đang bắt đầu chuẩn bị món ăn.`);
-                    if (typeof fetchCustomerWallet === 'function') fetchCustomerWallet(true);
-                    fetchMyFoodOrders();
-                } else {
-                    let errMsg = payData.message || 'Số dư ví không đủ';
-                    let switchCash = confirm(`⚠️ Thanh toán ví thất bại: ${errMsg}.\n\nBạn có muốn đổi đơn hàng này sang thanh toán TIỀN MẶT (CASH) không?`);
-                    if (switchCash) await switchToCashOrder(orderId);
-                }
-            } catch (payErr) {
-                let switchCash = confirm(`⚠️ Lỗi kết nối ví: ${payErr.message}.\n\nBạn có muốn chuyển sang thanh toán TIỀN MẶT (CASH) không?`);
-                if (switchCash) await switchToCashOrder(orderId);
-            }
-        } else {
-            try {
-                let payRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${payMethod || 'VNPAY'}&type=FOOD_PAYMENT&bookingId=${orderId}&amount=${totalPrice}`, {
-                    method: 'POST'
-                });
-                let payData = await payRes.json().catch(() => ({}));
-                if (payRes.ok && payData.paymentUrl) {
-                    window.open(payData.paymentUrl, '_blank');
-                    alert(`Vui lòng hoàn tất thanh toán trên tab ${payMethod || 'VNPAY'} vừa mở!`);
-                    startFoodOrderPaymentPolling(orderId);
-                } else {
-                    alert("Không thể mở cổng thanh toán: " + (payData.message || 'Lỗi'));
-                }
-            } catch (e) {
-                alert("Lỗi kết nối cổng thanh toán: " + e.message);
-            }
-        }
+        await payExistingOrder({ kind: 'FOOD', id: orderId, amount: totalPrice }, payMethod);
     }
 
     async function cancelFoodOrder(orderId) {
@@ -5472,7 +5393,7 @@
         }
     }
 
-    function bookRide() {
+    function bookRideUnchecked() {
         isClientCanceling = false;
         hasInitiatedPayment = false;
         assignedDriverId = null;
@@ -5509,7 +5430,7 @@
         btnVnpay.style.display = "none";
         if (btnWallet) btnWallet.style.display = "none";
 
-        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings`, {
+        return fetchWithAuth(`${API_BASE_URL}/api/v1/bookings`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
@@ -5629,51 +5550,10 @@
         });
     }
 
-    function payTrip(method) {
-        if (!currentBookingId) return alert("Không tìm thấy mã chuyến đi!");
-        hasInitiatedPayment = true;
-        let driverParam = assignedDriverId ? `&driverId=${assignedDriverId}` : '';
-
-        let effectiveTripPrice = currentTripPrice;
-        if (appliedRideVoucher && appliedRideVoucher.valid) {
-            effectiveTripPrice = Math.max(0, currentTripPrice - (appliedRideVoucher.discountAmount || 0));
-        }
-
-        let url = `${API_BASE_URL}/api/v1/payments/payment/create?method=${method.toUpperCase()}&type=TRIP_PAYMENT&bookingId=${currentBookingId}&amount=${effectiveTripPrice}${driverParam}`;
-
-        fetchWithAuth(url, {
-            method: 'POST',
-            headers: { 'X-User-Id': customerId ? customerId.toString() : '1', 'X-User-Role': 'CUSTOMER' }
-        })
-        .then(async res => {
-            let data = await res.json();
-            if (res.ok) {
-                if (method.toUpperCase() === 'WALLET') {
-                    // Thanh toán trực tiếp qua ví hoàn tất
-                    if (document.getElementById('btnPayWallet')) document.getElementById('btnPayWallet').style.display = "none";
-                    if (document.getElementById('btnPayMomo')) document.getElementById('btnPayMomo').style.display = "none";
-                    if (document.getElementById('btnPayVnpay')) document.getElementById('btnPayVnpay').style.display = "none";
-                    document.getElementById('trip-status-text').innerHTML = `🎉 <b>THANH TOÁN BẰNG VÍ OMNIPAY THÀNH CÔNG!</b> Cảm ơn bạn đã sử dụng dịch vụ.`;
-                    logSystem(currentBookingId, 'PAID', 'Thanh toán cước chuyến đi bằng Ví OmniPay thành công.');
-                    alert("🎉 Thanh toán chuyến đi bằng Ví OmniPay thành công!");
-                    fetchCustomerWallet(true);
-                    setTimeout(() => {
-                        document.getElementById('trip-card').style.display = 'none';
-                        currentBookingId = null;
-                        assignedDriverId = null;
-                        hasInitiatedPayment = false;
-                    }, 2500);
-                } else if (data.paymentUrl) {
-                    window.open(data.paymentUrl, '_blank');
-                    startCustomerPaymentPolling(currentBookingId);
-                }
-            } else {
-                alert(data.message || "Không thể thực hiện thanh toán!");
-            }
-        })
-        .catch(err => {
-            alert("Lỗi khi kết nối tới cổng thanh toán: " + err.message);
-        });
+    async function payTrip(method) {
+        if (!currentBookingId) return alert('Không tìm thấy chuyến đi. Hãy kiểm tra đơn cần thanh toán.');
+        // Use the server's final price, never apply the voucher a second time.
+        await payExistingOrder({ kind: 'RIDE', id: currentBookingId, amount: currentTripPrice }, method.toUpperCase());
     }
 
     function startCustomerPaymentPolling(bookingId) {
@@ -5684,7 +5564,7 @@
         paymentCheckInterval = setInterval(() => {
             pollCount++;
             fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${bookingId}/payment-status`)
-                .then(res => res.text())
+                .then(res => { if (!res.ok) throw new Error('Chưa kiểm tra được thanh toán'); return res.text(); })
                 .then(status => {
                     if (status === 'SUCCESS') {
                         clearInterval(paymentCheckInterval);
@@ -6869,5 +6749,6 @@
 
 </script>
 
+<script src="customer-payment-flow.js"></script>
 </body>
 </html>

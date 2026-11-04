@@ -48,6 +48,14 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionStatus status;
 
+    private Long driverId;
+    @Column(length = 4096)
+    private String paymentUrl;
+    private String requestId;
+    private boolean fulfillmentDone;
+    private LocalDateTime fulfillmentNextAttemptAt;
+    private int fulfillmentAttempts;
+
     @Column(name = "gateway_trans_id")
     private String gatewayTransId;
 

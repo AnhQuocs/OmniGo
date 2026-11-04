@@ -210,7 +210,7 @@ export const foodService = {
    */
   markOrderPaid: async (orderId) => {
     try {
-      const res = await post(`/api/v1/food-orders/${orderId}/paid`);
+      const res = await post(`/api/v1/payments/admin/food-orders/${orderId}/sync-payment`);
       return res?.data || res;
     } catch (error) {
       console.warn(`Lỗi xác nhận thanh toán đơn #${orderId}:`, error.message);

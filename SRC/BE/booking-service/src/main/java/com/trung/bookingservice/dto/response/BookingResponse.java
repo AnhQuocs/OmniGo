@@ -4,8 +4,11 @@ import com.trung.bookingservice.util.enums.BookingStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.LocalDateTime;
 
 @Getter
+@lombok.NoArgsConstructor
+@lombok.AllArgsConstructor
 @Builder
 @Setter
 public class BookingResponse {
@@ -26,5 +29,5 @@ public class BookingResponse {
     private String paymentMethod;
     private String pickupAddress;
     private String dropoffAddress;
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 }

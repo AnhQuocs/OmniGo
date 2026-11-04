@@ -1178,9 +1178,9 @@ export const FoodOrders = () => {
       {/* Confirm Mark Paid Dialog */}
       <ConfirmDialog
         open={Boolean(confirmPaidOrderId)}
-        title="Xác nhận thanh toán"
-        content={`Bạn có chắc chắn muốn xác nhận đơn hàng #${confirmPaidOrderId} đã được thanh toán đầy đủ?`}
-        confirmText="Xác nhận"
+        title="Đồng bộ thanh toán"
+        content={`Đồng bộ đơn #${confirmPaidOrderId} từ giao dịch thanh toán đã được hệ thống xác thực. Thao tác này không tự đánh dấu đơn chưa trả tiền là đã thanh toán.`}
+        confirmText="Đồng bộ"
         cancelText="Hủy"
         confirmColor="success"
         iconType="question"

@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class MenuItemController {
             @Valid @RequestBody MenuItemRequest request) throws ResourceNotFoundException, UnauthorizedException {
         Long ownerId = SecurityUtils.getCurrentUserId();
         if (request.getRestaurantId() == null) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId không được để trống khi tạo món");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId không được để trống khi tạo món");
         }
         MenuItemResponse response = menuItemService.addMenuItem(request.getRestaurantId(), request, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED)

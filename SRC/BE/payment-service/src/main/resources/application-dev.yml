@@ -2,6 +2,13 @@ server:
   port: 8085
 
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 5
+      connect-timeout: 2s
+      timeout: 2s
   datasource:
     url: jdbc:postgresql://localhost:5432/payment_db
     username: postgres
@@ -78,4 +85,4 @@ logging:
     org.apache.kafka: INFO
 
 app:
-  food-delivery-url: http://localhost:8086
+  food-delivery-url: http://localhost:8086

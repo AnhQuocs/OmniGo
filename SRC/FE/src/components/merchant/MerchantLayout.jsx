@@ -30,6 +30,7 @@ import {
   BarChart as AnalyticsIcon,
   Star as StarIcon,
   LockReset as LockResetIcon,
+  AccountBalanceWallet as WalletIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/authSlice';
@@ -179,6 +180,7 @@ export const MerchantLayout = () => {
   const navItems = [
     { label: 'Đơn hàng', path: '/merchant/orders', icon: <OrderIcon fontSize="small" /> },
     { label: 'Thống kê', path: '/merchant/analytics', icon: <AnalyticsIcon fontSize="small" /> },
+    { label: 'Ví doanh thu', path: '/merchant/wallet', icon: <WalletIcon fontSize="small" /> },
     { label: 'Thực đơn', path: '/merchant/menu', icon: <MenuIcon fontSize="small" /> },
     {
       label: unrepliedReviewCount > 0 ? `Đánh giá (${unrepliedReviewCount})` : 'Đánh giá',

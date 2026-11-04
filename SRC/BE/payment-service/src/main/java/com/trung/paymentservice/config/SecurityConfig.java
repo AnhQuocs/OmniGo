@@ -24,12 +24,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/payments/admin/platform-fee").hasRole("ADMIN")
+                         .requestMatchers("/api/v1/payments/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/payments/wallet/deposit").denyAll()
+                        .requestMatchers("/api/v1/payments/driver/withdraw").hasRole("DRIVER")
+                        .requestMatchers("/api/v1/payments/internal/**", "/api/v1/payments/booking/*/cancel-pending", "/api/v1/payments/platform-fee").permitAll()
+                        .requestMatchers("/actuator/health/**", "/error").permitAll()
                         .requestMatchers("/api/v1/payments/momo/ipn",
                                 "/api/v1/payments/momo/return",
                                 "/api/v1/payments/vnpay/return",
-                                "/api/v1/payments/booking/**").permitAll()
-                        .anyRequest().permitAll()
+                                "/api/v1/payments/vnpay/ipn").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

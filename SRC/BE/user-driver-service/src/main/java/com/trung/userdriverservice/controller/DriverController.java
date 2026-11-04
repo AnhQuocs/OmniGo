@@ -24,6 +24,7 @@ import com.trung.userdriverservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +46,7 @@ public class DriverController {
     private final CloudinaryService cloudinaryService;
     private final UserFcmTokenService fcmTokenService;
 
-    @PostMapping(value = "/upload-document", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadDriverDocument(@RequestParam("file") MultipartFile file) throws BadRequestException {
         String url = cloudinaryService.uploadImage(file);
         return ResponseEntity.ok(ApiResponse.<Map<String, String>>builder()

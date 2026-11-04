@@ -542,18 +542,107 @@
         <button class="history-btn" onclick="openDriverTripHistoryModal()" style="background-color: #20c997; margin-left: 6px;">📜 Lịch sử hoạt động</button>
         <button class="history-btn" onclick="openDriverReviewsModal()" style="background-color: #f59e0b; margin-left: 6px;">⭐ Đánh giá của tôi</button>
 
-        <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
-            <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU THEO KỲ</h4>
-            <div style="font-size: 15px; line-height: 1.8;">
-                <div>🚗 Tổng số cuốc xe hoàn thành: <b id="rep-trips" style="color: blue;">0</b> cuốc</div>
-                <hr style="border-top: 1px solid #eee;">
-                <div>💰 Tổng doanh thu cước phí: <b id="rep-revenue">0 đ</b></div>
-                <div>💵 <b>Tiền mặt đang cầm của khách: <span id="rep-cash" style="color: green;">0 đ</span></b></div>
-                <div>💳 Tiền khách trả qua App: <b id="rep-app">0 đ</b></div>
-                <hr style="border-top: 1px solid #eee;">
-                <div>📉 Tổng phí sàn đã trừ: <b id="rep-commission" style="color: red;">-0 đ</b></div>
-                <div style="margin-top: 10px; padding: 10px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 5px; text-align: center;">
-                    ✨ Thu nhập ròng của bạn: <span id="rep-net-income" style="font-size: 18px;">0 đ</span>
+        <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 18px; border-radius: 10px; border: 2px dashed #fd7e14; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <h4 style="margin: 0; color: #fd7e14; font-size: 16px;">📈 TỔNG KẾT DOANH THU THEO KỲ (XE & ĐỒ ĂN)</h4>
+                <span id="rep-period-badge" style="font-size: 12px; font-weight: bold; background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 6px; border: 1px solid #ffcc80;"></span>
+            </div>
+
+            <!-- TỔNG KẾT CHUNG (XE & ĐỒ ĂN) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 14px; font-size: 14.5px; line-height: 1.85;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📦 <b>Tổng đơn & cuốc hoàn thành:</b></span>
+                    <b id="rep-total-orders" style="color: #0284c7; font-size: 15px;">0 đơn/cuốc</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>💰 <b>Tổng doanh thu cước phí:</b></span>
+                    <b id="rep-total-revenue" style="color: #0f172a; font-size: 15px;">0 đ</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #475569;">
+                    <span>💵 Tiền mặt đang cầm của khách:</span>
+                    <b id="rep-total-cash" style="color: #16a34a;">0 đ</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #475569;">
+                    <span>💳 Tiền khách trả qua App / Online:</span>
+                    <b id="rep-total-app" style="color: #0284c7;">0 đ</b>
+                </div>
+                <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📉 <b>Tổng phí sàn khấu trừ:</b></span>
+                    <b id="rep-total-commission" style="color: #dc2626;">-0 đ</b>
+                </div>
+                <div style="margin-top: 10px; padding: 12px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14.5px;">✨ Thu nhập ròng tổng cộng:</span>
+                    <span id="rep-total-net-income" style="font-size: 18px; color: #15803d;">0 đ</span>
+                </div>
+            </div>
+
+            <!-- PHÂN TÍCH CHI TIẾT TỪNG DỊCH VỤ -->
+            <div style="font-weight: 700; color: #334155; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">
+                📊 Phân tích chi tiết theo dịch vụ:
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+                <!-- CỘT 1: ĐƠN ĐẶT XE (RIDE HAILING) -->
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 13.5px; line-height: 1.75; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="font-weight: bold; color: #1d4ed8; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        <span>🚗</span> Đơn Đặt Xe (Ride Hailing)
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Số cuốc xe:</span>
+                        <b id="rep-ride-trips" style="color: #1d4ed8;">0 cuốc</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Doanh thu cước xe:</span>
+                        <b id="rep-ride-revenue">0 đ</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Tiền mặt:</span>
+                        <span id="rep-ride-cash">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Qua App/Ví:</span>
+                        <span id="rep-ride-app">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #dc2626;">
+                        <span>Phí sàn trừ:</span>
+                        <b id="rep-ride-commission">-0 đ</b>
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; color: #1d4ed8;">
+                        <span>Thực nhận xe:</span>
+                        <span id="rep-ride-net">0 đ</span>
+                    </div>
+                </div>
+
+                <!-- CỘT 2: ĐƠN ĐỒ ĂN (FOOD DELIVERY) -->
+                <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px; font-size: 13.5px; line-height: 1.75; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="font-weight: bold; color: #ea580c; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        <span>🍔</span> Đơn Giao Đồ Ăn (Food Delivery)
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Số đơn giao món:</span>
+                        <b id="rep-food-orders" style="color: #ea580c;">0 đơn</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Doanh thu cước ship:</span>
+                        <b id="rep-food-revenue">0 đ</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Tiền mặt:</span>
+                        <span id="rep-food-cash">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Qua App/Ví:</span>
+                        <span id="rep-food-app">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #dc2626;">
+                        <span>Phí sàn trừ:</span>
+                        <b id="rep-food-commission">-0 đ</b>
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; color: #ea580c;">
+                        <span>Thực nhận ship:</span>
+                        <span id="rep-food-net">0 đ</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -635,6 +724,8 @@
     <ul id="log"></ul>
 </div>
 
+<script src="payment-flow.js"></script>
+<script src="request-idempotency.js"></script>
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
@@ -665,19 +756,27 @@
             return isNaN(d.getTime()) ? null : d;
         }
         let s = String(dateVal).trim();
-        if (!s || s === '—' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
+        if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
 
         if (Array.isArray(dateVal)) {
             const [y, m, d = 1, h = 0, min = 0, sec = 0] = dateVal;
-            return new Date(Date.UTC(y, m - 1, d, h, min, sec));
+            return new Date(Date.UTC(y, m - 1, d, h - 7, min, sec));
         }
 
         if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) {
             s = s.replace(/\s+/, 'T');
         }
 
-        if (s.includes('T') && !s.endsWith('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(s)) {
-            s = s + 'Z';
+        if (s.endsWith('Z') || /[+-]\d{2}(:?\d{2})?$/.test(s)) {
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        const localMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?/);
+        if (localMatch) {
+            const [, y, m, d, h, min, sec = 0, ms = 0] = localMatch;
+            const msNum = Number(String(ms).padEnd(3, '0').slice(0, 3));
+            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(h) - 7, Number(min), Number(sec), msNum));
         }
 
         const d = new Date(s);
@@ -865,7 +964,9 @@
         }
     }
 
+    const requestIntents = DemoRequestIdempotency.create(localStorage, () => crypto.randomUUID());
     async function fetchWithAuth(url, options = {}) {
+        const requestIntent = requestIntents.prepare('DRIVER:' + DRIVER_ID, url, options);
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = 'Bearer ' + getStoredToken();
         if (DRIVER_ID) {
@@ -890,6 +991,7 @@
                 throw new Error("Phiên đăng nhập đã hết hạn hoàn toàn. Vui lòng đăng nhập lại!");
             }
         }
+        await requestIntents.completeResponse(requestIntent, response);
         return response;
     }
 
@@ -1987,7 +2089,9 @@
     }
 
     // ⚡ Bổ sung hàm xử lý Logic thanh toán khi chốt cuốc
+    let finishingTrip = false;
     function finishTrip(paymentMethod) {
+        if (finishingTrip) return;
         if (!currentBookingId) return;
 
         let confirmMsg = paymentMethod === 'CASH'
@@ -1996,6 +2100,8 @@
 
         if (!confirm(confirmMsg)) return;
 
+        finishingTrip = true;
+        const paymentBookingId = currentBookingId;
         let actionButtons = document.getElementById('action-buttons');
         let originalButtons = actionButtons.innerHTML;
         actionButtons.innerHTML = `<i style="color: gray;">Hệ thống đang xử lý...</i>`;
@@ -2014,11 +2120,12 @@
 
             if (paymentMethod === 'CASH') {
                 actionButtons.innerHTML = `<i>Đã hoàn tất bằng TIỀN MẶT!</i>`;
-                alert("✅ Hoàn thành chuyến đi bằng TIỀN MẶT!\nHệ thống đã tự động trừ 20% phí sàn.");
+                alert("✅ Hoàn thành chuyến đi bằng TIỀN MẶT!\nPhí sàn được quyết toán theo tỷ lệ cấu hình hiện tại.");
                 setTimeout(() => fetchWallet(), 1500);
                 setTimeout(() => closeMatchBoxAndReset(), 1500);
             } else {
                 // CHẾ ĐỘ CHỜ KHÁCH THANH TOÁN
+                watchDriverPayment(paymentBookingId);
                 actionButtons.innerHTML = `
                     <div id="waiting-payment-alert" style="margin-top: 10px; padding: 10px; background-color: #fff3cd; color: #856404; font-weight: bold; border-radius: 5px; border: 1px solid #ffeeba;">
                         ⏳ Đang chờ khách thanh toán qua Ví MoMo/VNPay...
@@ -2030,18 +2137,19 @@
 
                 driverPaymentCheckInterval = setInterval(() => {
                     pollCount++;
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${currentBookingId}/payment-status`)
-                        .then(res => res.text())
-                        .then(status => {
-                            if (status === 'SUCCESS') {
+                    DemoPaymentFlow.create({ request: fetchWithAuth, base: API_BASE_URL, identity: () => DRIVER_ID })
+                        .paid('RIDE', paymentBookingId)
+                        .then(paid => {
+                            if (currentBookingId !== paymentBookingId) { clearInterval(driverPaymentCheckInterval); return; }
+                            if (paid) {
                                 clearInterval(driverPaymentCheckInterval);
                                 actionButtons.innerHTML = `<div style="padding: 10px; background-color: #d4edda; color: #155724; font-weight: bold; border-radius: 5px; text-align: center;">✅ Khách đã thanh toán thành công!</div>`;
-                                alert("🎉 TING TING! KHÁCH HÀNG ĐÃ THANH TOÁN THÀNH CÔNG.\nTiền cước đã được cộng thẳng vào ví của bạn.");
+                                alert("🎉 TING TING! KHÁCH HÀNG ĐÃ THANH TOÁN THÀNH CÔNG.\nHệ thống đang quyết toán tiền cước vào ví của bạn.");
                                 fetchWallet();
                                 fetchTransactions();
                                 setTimeout(() => closeMatchBoxAndReset(), 2500);
                             }
-                        });
+                        }).catch(() => { /* Keep the unpaid state on network errors. */ });
 
                     if (pollCount >= 60) { // Chờ tối đa 3 phút
                         clearInterval(driverPaymentCheckInterval);
@@ -2059,7 +2167,7 @@
         }).catch(err => {
             alert("Lỗi: " + err.message);
             actionButtons.innerHTML = originalButtons; // Lỗi thì hiện lại nút cũ
-        });
+        }).finally(() => { finishingTrip = false; });
     }
 
     function closeMatchBoxAndReset() {
@@ -2229,12 +2337,24 @@
     }
 
     // ⚡ Đã xử lý lại format UTC để hiển thị chuẩn giờ VN
-    function fetchTransactions() {
+    async function fetchTransactions() {
         let listEl = document.getElementById('tx-list');
         if (listEl.style.display === "block") {
             listEl.style.display = "none";
             return;
         }
+
+        try {
+            if (window._currentPlatformFeeRate === undefined) {
+                let feeRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/platform-fee`);
+                if (feeRes.ok) {
+                    let feeData = await feeRes.json();
+                    if (feeData && feeData.percentage !== undefined) {
+                        window._currentPlatformFeeRate = Number(feeData.percentage);
+                    }
+                }
+            }
+        } catch(e) {}
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
             headers: {'X-User-Id': DRIVER_ID, 'X-User-Role': 'DRIVER'}
@@ -2277,7 +2397,15 @@
                     } else if (tx.transactionType === 'FOOD_DELIVERY_INCOME') {
                         desc = isFailedOrCanceled ? `❌ Hủy thu nhập giao đồ ăn đơn #${tx.bookingId}` : `🍲 Thu nhập cước ship giao đồ ăn đơn #${tx.bookingId}`;
                     } else if (tx.transactionType === 'COMMISSION_FEE') {
-                        desc = isFailedOrCanceled ? `❌ Hủy trừ phí hoa hồng đơn/cuốc #${tx.bookingId}` : `📉 Trừ phí hoa hồng sàn (20%) đơn/cuốc #${tx.bookingId}`;
+                        let ratePercent = window._currentPlatformFeeRate ?? 20;
+                        if (tx.bookingId) {
+                            let inc = txList.find(t => t.bookingId === tx.bookingId && (t.transactionType === 'FOOD_DELIVERY_INCOME' || t.transactionType === 'TRIP_INCOME'));
+                            if (inc && inc.amount > 0) {
+                                ratePercent = Math.round((Number(tx.amount) / Number(inc.amount)) * 100);
+                            }
+                        }
+                        let rateText = (ratePercent !== null && ratePercent !== undefined) ? ` (${ratePercent}%)` : '';
+                        desc = isFailedOrCanceled ? `❌ Hủy trừ phí hoa hồng đơn/cuốc #${tx.bookingId}` : `📉 Trừ phí hoa hồng sàn${rateText} đơn/cuốc #${tx.bookingId}`;
                     } else if (tx.transactionType === 'WITHDRAWAL') {
                         desc = isFailedOrCanceled ? `❌ Lệnh rút tiền bị hủy` : `🏧 Rút tiền về tài khoản cá nhân`;
                     } else {
@@ -2340,38 +2468,162 @@
         }).catch(err => alert("❌ THAO TÁC THẤT BẠI: \n" + err.message));
     }
 
-    function fetchDailyReport() {
-        let panel = document.getElementById('daily-report-panel');
+    async function fetchDailyReport() {
+        const panel = document.getElementById('daily-report-panel');
         panel.style.display = 'none';
-        const params = new URLSearchParams({ period: document.getElementById('report-period').value });
-        const date = document.getElementById('report-date').value;
-        if (date) params.set('date', date);
 
-        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`,  {
-            method: 'GET',
-            headers: { 'X-User-Id': DRIVER_ID }
-        })
-            .then(async res => {
-                if (!res.ok) throw new Error("Không thể lấy dữ liệu báo cáo");
-                return res.json();
-            })
-            .then(data => {
-                let report = data.data || data;
+        const period = document.getElementById('report-period').value;
+        const dateInput = document.getElementById('report-date').value;
+        const params = new URLSearchParams({ period });
+        if (dateInput) params.set('date', dateInput);
 
-                document.getElementById('rep-trips').innerText = report.totalTrips;
-                document.getElementById('rep-revenue').innerText = report.totalRevenue.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-cash').innerText = report.cashCollected.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-app').innerText = report.appCollected.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-commission').innerText = "-" + report.commissionFee.toLocaleString('vi-VN') + " đ";
+        // 1. Xác định mốc thời gian lọc (startDate, endDateExclusive)
+        let anchor = dateInput ? new Date(dateInput + 'T00:00:00') : new Date();
+        if (isNaN(anchor.getTime())) anchor = new Date();
 
-                let netIncome = report.totalRevenue - report.commissionFee;
-                document.getElementById('rep-net-income').innerText = netIncome.toLocaleString('vi-VN') + " đ";
+        let startDate, endDateExclusive;
+        let periodBadgeText = '';
+        if (period === 'DAY') {
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate(), 0, 0, 0, 0);
+            endDateExclusive = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + 1, 0, 0, 0, 0);
+            periodBadgeText = `Ngày: ${formatVietnamDate(startDate)}`;
+        } else if (period === 'WEEK') {
+            const day = anchor.getDay();
+            const diff = anchor.getDate() - day + (day === 0 ? -6 : 1);
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), diff, 0, 0, 0, 0);
+            endDateExclusive = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const endSunday = new Date(endDateExclusive.getTime() - 1000);
+            periodBadgeText = `Tuần: ${formatVietnamDate(startDate)} - ${formatVietnamDate(endSunday)}`;
+        } else if (period === 'MONTH') {
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), 1, 0, 0, 0, 0);
+            endDateExclusive = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1, 0, 0, 0, 0);
+            periodBadgeText = `Tháng: ${anchor.getMonth() + 1}/${anchor.getFullYear()}`;
+        }
 
-                panel.style.display = 'block';
-            })
-            .catch(err => {
-                alert("Lỗi tải báo cáo: " + err.message);
+        try {
+            // 2. Fetch song song:
+            // - Báo cáo cuốc xe từ booking-service
+            // - Danh sách đơn đồ ăn tài xế từ food-delivery-service
+            // - Giao dịch ví tài xế từ payment-service (để lấy phí sàn thực tế đã trừ)
+            const [rideRes, foodRes, txRes] = await Promise.allSettled([
+                fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`, {
+                    method: 'GET',
+                    headers: { 'X-User-Id': DRIVER_ID }
+                }).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/driver`).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
+                    headers: { 'X-User-Id': DRIVER_ID, 'X-User-Role': 'DRIVER' }
+                }).then(r => r.ok ? r.json() : null)
+            ]);
+
+            // 3. Số liệu Đơn Đặt Xe (Ride Hailing)
+            const rideData = (rideRes.status === 'fulfilled' && rideRes.value) ? (rideRes.value.data || rideRes.value) : {};
+            const rideTrips = Number(rideData.totalTrips || 0);
+            const rideRevenue = Number(rideData.totalRevenue || 0);
+            const rideCash = Number(rideData.cashCollected || 0);
+            const rideApp = Number(rideData.appCollected || 0);
+            const rideCommission = Number(rideData.commissionFee || 0);
+            const rideNet = rideRevenue - rideCommission;
+
+            // 4. Số liệu Đơn Giao Đồ Ăn (Food Delivery)
+            let foodOrdersList = [];
+            if (foodRes.status === 'fulfilled' && foodRes.value) {
+                foodOrdersList = foodRes.value.data || foodRes.value || [];
+                if (!Array.isArray(foodOrdersList)) foodOrdersList = [];
+            }
+
+            let driverTxs = [];
+            if (txRes.status === 'fulfilled' && txRes.value) {
+                driverTxs = txRes.value.data || txRes.value || [];
+                if (!Array.isArray(driverTxs)) driverTxs = [];
+            }
+
+            let foodOrders = 0;
+            let foodRevenue = 0;
+            let foodCash = 0;
+            let foodApp = 0;
+            let foodCommission = 0;
+
+            const feePct = (typeof currentPlatformFeePercentage === 'number' && currentPlatformFeePercentage > 0)
+                ? currentPlatformFeePercentage
+                : 20;
+
+            foodOrdersList.forEach(order => {
+                const isCompleted = order.status === 'COMPLETED' || order.status === 'DELIVERED';
+                if (!isCompleted) return;
+
+                const rawTime = order.updatedAt || order.createdAt;
+                const orderDate = parseToVietnamDate(rawTime);
+                if (!orderDate) return;
+
+                if (orderDate >= startDate && orderDate < endDateExclusive) {
+                    foodOrders++;
+                    const feeAmt = Number(order.deliveryFee || 0);
+                    foodRevenue += feeAmt;
+
+                    const isCash = String(order.paymentMethod).toUpperCase() === 'CASH';
+                    if (isCash) {
+                        foodCash += feeAmt;
+                    } else {
+                        foodApp += feeAmt;
+                    }
+
+                    // Tìm phí sàn khấu trừ chính xác từ transaction ví
+                    const matchedFeeTx = driverTxs.find(t =>
+                        t.bookingId === order.id &&
+                        t.transactionType === 'COMMISSION_FEE' &&
+                        t.status === 'SUCCESS'
+                    );
+                    if (matchedFeeTx) {
+                        foodCommission += Number(matchedFeeTx.amount || 0);
+                    } else {
+                        foodCommission += Math.round(feeAmt * (feePct / 100));
+                    }
+                }
             });
+
+            const foodNet = foodRevenue - foodCommission;
+
+            // 5. Tổng kết chung (All in one)
+            const totalOrders = rideTrips + foodOrders;
+            const totalRevenue = rideRevenue + foodRevenue;
+            const totalCash = rideCash + foodCash;
+            const totalApp = rideApp + foodApp;
+            const totalCommission = rideCommission + foodCommission;
+            const totalNet = totalRevenue - totalCommission;
+
+            // 6. Hiển thị lên giao diện
+            document.getElementById('rep-period-badge').innerText = periodBadgeText;
+
+            // Tổng hợp chung
+            document.getElementById('rep-total-orders').innerText = `${totalOrders} đơn/cuốc (${rideTrips} xe + ${foodOrders} đồ ăn)`;
+            document.getElementById('rep-total-revenue').innerText = totalRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-cash').innerText = totalCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-app').innerText = totalApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-commission').innerText = "-" + totalCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-net-income').innerText = totalNet.toLocaleString('vi-VN') + " đ";
+
+            // Chi tiết đặt xe
+            document.getElementById('rep-ride-trips').innerText = `${rideTrips} cuốc`;
+            document.getElementById('rep-ride-revenue').innerText = rideRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-cash').innerText = rideCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-app').innerText = rideApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-commission').innerText = "-" + rideCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-net').innerText = rideNet.toLocaleString('vi-VN') + " đ";
+
+            // Chi tiết đồ ăn
+            document.getElementById('rep-food-orders').innerText = `${foodOrders} đơn`;
+            document.getElementById('rep-food-revenue').innerText = foodRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-cash').innerText = foodCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-app').innerText = foodApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-commission').innerText = "-" + foodCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-net').innerText = foodNet.toLocaleString('vi-VN') + " đ";
+
+            panel.style.display = 'block';
+        } catch (err) {
+            console.error("Lỗi tải báo cáo:", err);
+            alert("Lỗi tải báo cáo: " + err.message);
+        }
     }
 
     // ==========================================
@@ -3080,7 +3332,7 @@
             const comment = (serviceType === 'RIDE' ? r.comment : (r.driverComment || r.comment)) || '';
             const customerName = r.customerName || 'Khách hàng';
             const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0284c7&color=fff&size=64`;
-            const avatarUrl = r.customerAvatarUrl || defaultAvatar;
+            const avatarUrl = r['customerAvatarUrl'] || defaultAvatar;
             const dateStr = r.createdAt ? formatVietnamDateTime(r.createdAt) : 'Gần đây';
             const contextTag = serviceType === 'RIDE' ? `Cuốc xe #${r.bookingId || r.id}` : `Đơn đồ ăn #${r.orderId || r.id}`;
 
@@ -3117,6 +3369,26 @@
 
     const customerInfoCache = {};
 
+    /**
+     * @typedef {Object} DriverBookingItem
+     * @property {number} [bookingId]
+     * @property {number} [customerId]
+     * @property {string} [customerName]
+     * @property {string} [customerAvatarUrl]
+     * @property {string} [driverAvatarUrl]
+     * @property {string} [status]
+     * @property {number} [price]
+     * @property {number} [distanceInKm]
+     * @property {string} [vehicleType]
+     * @property {string} [paymentMethod]
+     * @property {string} [pickupAddress]
+     * @property {string} [dropoffAddress]
+     * @property {number} [startLatitude]
+     * @property {number} [startLongitude]
+     * @property {number} [endLatitude]
+     * @property {number} [endLongitude]
+     * @property {string} [createdAt]
+     */
     async function fetchDriverBookingHistory(status = '') {
         const listEl = document.getElementById('driver-trips-list');
         listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu cuốc xe...</div>';
@@ -3163,7 +3435,7 @@
                 // Tên & Avatar khách hàng
                 const customerDisplayName = b.customerName || ('Khách #' + (b.customerId || ''));
                 const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(customerDisplayName)}&background=0284c7&color=fff&size=64`;
-                const avatarUrl = b.customerAvatarUrl || defaultAvatar;
+                const avatarUrl = b['customerAvatarUrl'] || defaultAvatar;
 
                 // Lấy toàn bộ response ra hiển thị lên điểm đón, điểm đến (định dạng thông minh chống sót số nhà "131")
                 let pickupDisplay = formatBookingAddress(b.pickupAddress, b.startLatitude, b.startLongitude, 'Vị trí đón');
@@ -3221,7 +3493,7 @@
 
             // Tự động truy vấn bù Tên & Avatar nếu cuốc xe cũ trong DB chưa lưu tên/avatar
             bookings.forEach(async b => {
-                if (b.customerId && (!b.customerName || !b.customerAvatarUrl)) {
+                if (b.customerId && (!b.customerName || !b['customerAvatarUrl'])) {
                     try {
                         let u = customerInfoCache[b.customerId];
                         if (!u) {
@@ -3249,5 +3521,6 @@
     }
 
 </script>
+<script src="driver-payment-flow.js"></script>
 </body>
 </html>

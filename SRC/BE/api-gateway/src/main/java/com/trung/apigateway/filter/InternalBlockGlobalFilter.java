@@ -26,7 +26,7 @@ public class InternalBlockGlobalFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        if (path.contains("/api/v1/internal/")) {
+        if (path.contains("/internal/") || path.matches("/api/v1/food-orders/[^/]+/paid") || path.endsWith("/cancel-pending")) {
             log.warn("CẢNH BÁO BẢO MẬT: Phát hiện truy cập trái phép vào API nội bộ từ bên ngoài. Path: {}", path);
 
             ServerHttpResponse response = exchange.getResponse();

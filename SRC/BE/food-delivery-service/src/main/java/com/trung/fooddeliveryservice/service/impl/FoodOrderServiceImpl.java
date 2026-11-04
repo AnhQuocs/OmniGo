@@ -26,8 +26,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import com.trung.fooddeliveryservice.service.FinancialOutbox;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -50,6 +53,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FoodOrderServiceImpl implements FoodOrderService {
 
+    private final FinancialOutbox financialOutbox;
+    private final TransactionTemplate transactionTemplate;
     private final FoodOrderRepository foodOrderRepository;
     private final FoodOrderItemRepository foodOrderItemRepository;
     private final RestaurantRepository restaurantRepository;
@@ -80,7 +85,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
 
         if (Boolean.TRUE.equals(restaurant.getIsLocked())) {
             log.warn("Nhà hàng '{}' (ID: {}) đã bị khóa bởi quản trị viên", restaurant.getName(), restaurant.getId());
-            String reason = org.springframework.util.StringUtils.hasText(restaurant.getLockedReason()) ? restaurant.getLockedReason() : "Vi phạm quy định của hệ thống";
+            String reason = StringUtils.hasText(restaurant.getLockedReason()) ? restaurant.getLockedReason() : "Vi phạm quy định của hệ thống";
             throw new BadRequestException("Nhà hàng này hiện đang bị khóa (" + reason + "), quý khách không thể đặt món từ quán này.");
         }
 
@@ -246,7 +251,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
 
         try {
-            FoodOrder order = foodOrderRepository.findById(orderId)
+            FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                     .orElseThrow(() -> {
                         log.warn("Không tìm thấy đơn hàng ID {} để cập nhật", orderId);
                         return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
@@ -408,7 +413,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         }
 
         try {
-            FoodOrder order = foodOrderRepository.findById(orderId)
+            FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                     .orElseThrow(() -> {
                         log.warn("Không tìm thấy đơn hàng ID {} để hủy", orderId);
                         return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
@@ -444,16 +449,17 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse assignDriver(Long orderId, Long driverId) throws ResourceNotFoundException {
-        FoodOrder order = foodOrderRepository.findById(orderId)
+        FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> {
                     log.warn("Không tìm thấy đơn hàng ID {} để gán tài xế", orderId);
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
                 });
 
+        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.REJECTED)
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Không thể gán tài xế cho đơn đã kết thúc");
         order.setDriverId(driverId);
-        if (order.getStatus() == OrderStatus.READY_FOR_PICKUP) {
-            order.setStatus(OrderStatus.DELIVERING);
-        }
+        // Không tự ý đổi trạng thái sang DELIVERING tại đây vì tài xế còn phải di chuyển đến quán lấy món.
+        // Trạng thái DELIVERING sẽ do tài xế xác nhận khi bấm "ĐÃ LẤY MÓN & BẮT ĐẦU ĐI GIAO".
 
         FoodOrder saved = saveAndNotifyStatus(order);
         log.info("Đã gán thành công tài xế ID {} cho đơn hàng ID {}", driverId, orderId);
@@ -469,7 +475,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse updateOrderStatusByDriver(Long orderId, OrderStatus newStatus, Long driverId, String reason, OrderCancelReason reasonCode) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
-        FoodOrder order = foodOrderRepository.findById(orderId)
+        FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> {
                     log.warn("Không tìm thấy đơn hàng ID {}", orderId);
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
@@ -479,6 +485,21 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             log.warn("Tài xế ID {} không phải tài xế được chỉ định cho đơn hàng ID {}", driverId, orderId);
             throw new UnauthorizedException("Bạn không phải là tài xế được gán cho đơn hàng này");
         }
+
+        // Idempotency: nếu đơn hàng đã ở trạng thái yêu cầu, trả về thành công ngay
+        if (order.getStatus() == newStatus) {
+            return enrichOrderDetails(foodOrderMapper.toResponse(order));
+        }
+
+        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.REJECTED) {
+            throw new BadRequestException("Đơn đã kết thúc, không thể đổi trạng thái");
+        }
+        if (newStatus == OrderStatus.COMPLETED && order.getStatus() != OrderStatus.DELIVERING)
+            throw new BadRequestException("Chỉ hoàn thành đơn đang giao");
+        if (newStatus == OrderStatus.COMPLETED && !"CASH".equalsIgnoreCase(order.getPaymentMethod()) && !Boolean.TRUE.equals(order.getIsPaid()))
+            throw new BadRequestException("Đơn online chưa xác nhận thanh toán");
+        if (newStatus == OrderStatus.DELIVERING && order.getStatus() != OrderStatus.READY_FOR_PICKUP)
+            throw new BadRequestException("Đơn chưa sẵn sàng giao (Hiện tại: " + order.getStatus() + ")");
 
         if (newStatus == OrderStatus.DELIVERING) {
             order.setStatus(OrderStatus.DELIVERING);
@@ -515,8 +536,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse markOrderAsPaid(Long orderId) throws ResourceNotFoundException {
-        FoodOrder order = foodOrderRepository.findById(orderId)
+        FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng ID: " + orderId));
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.REJECTED || "CASH".equalsIgnoreCase(order.getPaymentMethod())) {
+            return enrichOrderDetails(foodOrderMapper.toResponse(order));
+        }
+        if (Boolean.TRUE.equals(order.getIsPaid())) return enrichOrderDetails(foodOrderMapper.toResponse(order));
         order.setIsPaid(true);
         if (order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
             order.setStatus(OrderStatus.PENDING);
@@ -530,7 +555,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse switchToCashPayment(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
-        FoodOrder order = foodOrderRepository.findById(orderId)
+        FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng ID: " + orderId));
 
         if (!order.getCustomerId().equals(customerId)) {
@@ -543,6 +568,11 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             throw new BadRequestException("Chỉ có thể chuyển sang Tiền mặt khi đơn hàng đang Chờ thanh toán hoặc Chờ quán duyệt");
         }
 
+        // Online capture can precede the asynchronous isPaid update. Do not race it by changing to cash.
+        if (!"CASH".equalsIgnoreCase(order.getPaymentMethod()))
+            throw new BadRequestException("Đơn online phải hoàn tất hoặc đối soát thanh toán; không thể chuyển sang tiền mặt khi chưa rõ kết quả");
+        if (Boolean.TRUE.equals(order.getIsPaid())) throw new BadRequestException("Đơn đã thanh toán, không thể chuyển sang tiền mặt");
+        financialOutbox.enqueue(orderId);
         order.setPaymentMethod("CASH");
         order.setIsPaid(false);
         order.setStatus(OrderStatus.PENDING);
@@ -554,7 +584,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     @Override
     @Transactional
     public FoodOrderResponse retryDriverByCustomer(Long orderId, Long customerId) throws ResourceNotFoundException, UnauthorizedException, BadRequestException {
-        FoodOrder order = foodOrderRepository.findById(orderId)
+        FoodOrder order = foodOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> {
                     log.warn("Không tìm thấy đơn hàng ID {}", orderId);
                     return new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId);
@@ -663,81 +693,21 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     private FoodOrder saveAndNotifyStatus(FoodOrder order) {
-        FoodOrder saved = foodOrderRepository.save(order);
-        foodEventPublisher.publishOrderStatusAfterCommit(saved);
-        return saved;
+        return transactionTemplate.execute(status -> {
+            FoodOrder saved = foodOrderRepository.save(order);
+            if (saved.getStatus() == OrderStatus.COMPLETED || saved.getStatus() == OrderStatus.CANCELLED || saved.getStatus() == OrderStatus.REJECTED)
+                financialOutbox.enqueue(saved.getId());
+            foodEventPublisher.publishOrderStatusAfterCommit(saved);
+            return saved;
+        });
     }
 
-    private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal deliveryFee, String paymentMethod, Long restaurantOwnerId, BigDecimal foodAmount) {
-        try {
-            Map<String, Object> payoutReq = Map.of(
-                    "restaurantOwnerId", restaurantOwnerId,
-                    "foodAmount", foodAmount,
-                    "driverId", driverId,
-                    "orderId", orderId,
-                    "deliveryFee", deliveryFee != null ? deliveryFee : BigDecimal.valueOf(15000),
-                    "paymentMethod", paymentMethod != null ? paymentMethod : "CASH"
-            );
-
-            List<String> targetUrls = new ArrayList<>();
-            if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
-                targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/food-order-payout");
-            }
-            targetUrls.add("http://payment-service:8085/api/v1/payments/internal/food-order-payout");
-            targetUrls.add("http://api-gateway:8080/api/v1/payments/internal/food-order-payout");
-            targetUrls.add("http://localhost:8085/api/v1/payments/internal/food-order-payout");
-            targetUrls.add("http://localhost:8080/api/v1/payments/internal/food-order-payout");
-
-            boolean success = false;
-            for (String url : targetUrls) {
-                try {
-                    directRestTemplate.postForEntity(url, payoutReq, Void.class);
-                    log.info("Đã gửi yêu cầu quyết toán cước ship đơn đồ ăn #{} cho tài xế ID {} thành công qua URL: {}", orderId, driverId, url);
-                    success = true;
-                    break;
-                } catch (Exception err) {
-                    log.warn("Không thể gọi payment-service qua URL {}: {}", url, err.getMessage());
-                }
-            }
-            if (!success) {
-                log.error("Không thể quyết toán cước ship cho tài xế ID {} (đơn #{}) qua bất kỳ URL nào", driverId, orderId);
-            }
-        } catch (Exception e) {
-            log.error("Lỗi khi gọi thanh toán cước phí ship cho tài xế ID {} (đơn #{}): {}", driverId, orderId, e.getMessage());
-        }
+    private void triggerFoodDeliveryPayout(Long driverId, Long orderId, BigDecimal fee, String method, Long ownerId, BigDecimal foodAmount) {
+        financialOutbox.enqueue(orderId);
     }
 
     private void triggerRefund(Long customerId, Long orderId, BigDecimal amount, String reason) {
-        try {
-            Map<String, Object> refundReq = Map.of(
-                    "userId", customerId,
-                    "userType", "CUSTOMER",
-                    "orderId", orderId,
-                    "amount", amount != null ? amount : BigDecimal.ZERO,
-                    "reason", reason != null ? reason : "Hoàn tiền đơn hàng"
-            );
-
-            List<String> targetUrls = new ArrayList<>();
-            if (paymentServiceBaseUrl != null && !paymentServiceBaseUrl.isBlank()) {
-                targetUrls.add(paymentServiceBaseUrl.replaceAll("/+$", "") + "/api/v1/payments/internal/refund-order");
-            }
-            targetUrls.add("http://payment-service:8085/api/v1/payments/internal/refund-order");
-            targetUrls.add("http://api-gateway:8080/api/v1/payments/internal/refund-order");
-            targetUrls.add("http://localhost:8085/api/v1/payments/internal/refund-order");
-            targetUrls.add("http://localhost:8080/api/v1/payments/internal/refund-order");
-
-            for (String url : targetUrls) {
-                try {
-                    directRestTemplate.postForEntity(url, refundReq, Void.class);
-                    log.info("Đã gửi yêu cầu hoàn tiền {} VND cho khách hàng ID {} (đơn #{}) thành công qua URL: {}", amount, customerId, orderId, url);
-                    break;
-                } catch (Exception err) {
-                    log.warn("Không thể gọi hoàn tiền qua URL {}: {}", url, err.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Lỗi khi gọi hoàn tiền cho khách hàng ID {} (đơn #{}): {}", customerId, orderId, e.getMessage());
-        }
+        financialOutbox.enqueue(orderId);
     }
 
     private void triggerVoucherRollback(Long customerId, Long orderId) {
@@ -772,10 +742,10 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     private void updateDriverStatusOnline(Long driverId) {
         try {
             String url = (driverServiceBaseUrl != null ? driverServiceBaseUrl : "http://localhost:8081") + "/api/v1/drivers/" + driverId + "/status?isActive=true";
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            HttpHeaders headers = new HttpHeaders();
             headers.set("X-User-Id", String.valueOf(driverId));
-            org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
-            directRestTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, Void.class);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            directRestTemplate.exchange(url, HttpMethod.PUT, entity, Void.class);
             log.info("Đã đồng bộ trạng thái ONLINE cho tài xế ID {} sau khi giao đồ ăn xong", driverId);
         } catch (Exception e) {
             log.warn("Không thể đồng bộ trạng thái tài xế ID {} sang ONLINE: {}", driverId, e.getMessage());

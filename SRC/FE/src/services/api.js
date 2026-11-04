@@ -37,6 +37,9 @@ apiClient.interceptors.request.use(
         if (u?.id) {
           config.headers['X-User-Id'] = u.id;
         }
+        if (u?.role) {
+          config.headers['X-User-Role'] = u.role;
+        }
       } catch {
         // ignore parse error
       }

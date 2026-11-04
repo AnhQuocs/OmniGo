@@ -1,9 +1,11 @@
 package com.trung.apigateway.filter;
 
 import com.trung.apigateway.util.JwtUtil;
+
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -17,16 +19,21 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
 
+    @Value("${app.internal-api-token:${INTERNAL_API_TOKEN:omnipay-internal-shared-secret-token-32bytes-min}}")
+    private String internalToken;
     private final JwtUtil jwtUtil;
     private final ReactiveStringRedisTemplate redisTemplate;
 
@@ -59,6 +66,7 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
         if (EXCLUDE_URLS.stream().anyMatch(path::equals) || path.startsWith("/ws-location")
                 || path.startsWith("/ws-booking") || path.contains("/api/v1/payments/momo/ipn")
                 || path.contains("/api/v1/payments/momo/return")
+                || path.equals("/api/v1/payments/vnpay/ipn")
                 || path.contains("/api/v1/payments/vnpay/return")
                 || path.contains("/cancel-pending")
                 || path.contains("/api/v1/payments/internal")
@@ -104,7 +112,9 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
                                 String role = claims.get("role", String.class);
                                 String phoneNumber = claims.getSubject();
 
+                                if (internalToken == null || internalToken.isBlank()) return onError(exchange, "Thiếu cấu hình xác thực nội bộ", HttpStatus.SERVICE_UNAVAILABLE);
                                 ServerHttpRequest mutatedRequest = request.mutate()
+                                        .headers(headers -> { headers.remove("X-Internal-Token"); headers.set("X-Gateway-Token", internalToken); })
                                         .header("X-User-Id", userId)
                                         .header("X-User-Role", role)
                                         .header("X-User-Phone", phoneNumber)
