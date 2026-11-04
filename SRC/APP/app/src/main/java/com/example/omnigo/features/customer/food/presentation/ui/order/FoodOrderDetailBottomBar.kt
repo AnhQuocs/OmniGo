@@ -114,7 +114,7 @@ fun FoodOrderDetailBottomBar(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = formatFoodOrderPrice(order.totalPrice ?: (order.itemsPrice + (order.deliveryFee ?: 0.0))),
+                        text = formatFoodOrderPrice(order.payableTotal),
                         style = MaterialTheme.typography.s18.bold(),
                         color = PrimaryColor
                     )

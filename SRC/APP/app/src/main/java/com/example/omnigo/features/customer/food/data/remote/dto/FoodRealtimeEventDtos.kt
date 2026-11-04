@@ -71,5 +71,6 @@ data class FoodOfferEventDto(
     @SerializedName("paymentMethod")
     val paymentMethod: String? = null,
     @SerializedName("isPaid")
-    val isPaid: Boolean? = null
+    val isPaid: Boolean? = null,
+    @SerializedName("originalAmount") val originalAmount: Double? = null
 )

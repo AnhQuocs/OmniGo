@@ -90,6 +90,53 @@ class PaymentConcurrencyTest {
         } finally { pool.shutdownNow(); }
     }
     private void balance(Long walletId, String amount) { assertEquals(0, wallets.findById(walletId).orElseThrow().getBalance().compareTo(new BigDecimal(amount))); }
+    @Test void discountedOnlineFoodDebitsNetButSettlesGrossExactlyOnce() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        var state=order("COMPLETED","WALLET"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(true,99L)).thenReturn(state);
+        parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("90000"),"FOOD_PAYMENT"));
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(customer.getId(),"110000"); balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
+        state.put("status","CANCELLED"); parallel(() -> workflow.reconcile(true,99L));
+        balance(customer.getId(),"200000");
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.REFUND).count());
+    }
+    @Test void discountedCashFoodReimbursesDriverOnceAndKeepsRestaurantFee() throws Exception {
+        Wallet driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        var state=order("COMPLETED","CASH"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(true,99L)).thenReturn(state);
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(driver.getId(),"26000"); balance(restaurant.getId(),"-20000");
+        assertTrue(txs.findByOrderId("FOOD_VOUCHER_99").isPresent());
+    }
+    @Test void discountedCashRidePaysVoucherAndChargesGrossCommissionOnce() throws Exception {
+        Wallet driver=wallet(11,UserType.DRIVER,"0");
+        var state=order("COMPLETED","CASH"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(false,99L)).thenReturn(state);
+        parallel(() -> workflow.reconcile(false,99L)); balance(driver.getId(),"6000");
+    }
+    @Test void fullyDiscountedCancellationFinishesWithoutCreditingZero() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"0");
+        var state=order("CANCELLED","WALLET"); state.put("prepaid",true); state.put("amount",BigDecimal.ZERO);
+        state.put("originalAmount",new BigDecimal("120000")); state.put("discountAmount",new BigDecimal("120000"));
+        when(orders.get(false,99L)).thenReturn(state);
+        context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,BigDecimal.ZERO,"TRIP_PAYMENT");
+        var payment=txs.findByBookingIdAndTransactionTypeOrderByIdDesc(99L,TransactionType.TRIP_PAYMENT).get(0);
+        parallel(() -> workflow.fulfill(payment.getId()));
+        assertTrue(txs.findById(payment.getId()).orElseThrow().isFulfillmentDone()); balance(customer.getId(),"0");
+    }
+    @Test void fullyDiscountedPrepaidRideDebitsZeroAndSettlesGrossOnce() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"0"), driver=wallet(11,UserType.DRIVER,"0");
+        var state=order("COMPLETED","WALLET"); state.put("prepaid",true);
+        state.put("originalAmount",new BigDecimal("120000")); state.put("discountAmount",new BigDecimal("120000")); state.put("amount",BigDecimal.ZERO);
+        when(orders.get(false,99L)).thenReturn(state);
+        parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,BigDecimal.ZERO,"TRIP_PAYMENT"));
+        parallel(() -> workflow.reconcile(false,99L));
+        balance(customer.getId(),"0"); balance(driver.getId(),"96000");
+    }
     @Test void prepaidRideDebitsOnceBeforeDispatchAndPaysAssignedDriverOnlyOnCompletion() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0");
         var strategy=context.getBean(WalletPaymentStrategy.class);

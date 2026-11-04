@@ -12,6 +12,17 @@ class FoodOrderMapperTest {
     private val gson = Gson()
 
     @Test
+    fun `backend discounted amount is payable without applying voucher twice`() {
+        val response = gson.fromJson("""{"id":1,"totalPrice":90000,"originalAmount":120000,"discountAmount":30000,"voucherCode":"SAVE30"}""", FoodOrderResponse::class.java)
+        val order = response.toDomain()
+        assertEquals(90000.0, order.payableTotal, 0.001)
+        assertEquals(30000.0, order.voucherDiscount, 0.001)
+        assertEquals(120000.0, order.originalAmount ?: 0.0, 0.001)
+        assertEquals("SAVE30", order.voucherCode)
+        assertEquals(0.0, response.copy(totalPrice = 0.0, discountAmount = 120000.0).toDomain().payableTotal, 0.001)
+    }
+
+    @Test
     fun `maps backend food order payload fields and preserves backend total`() {
         val response = gson.fromJson(
             """

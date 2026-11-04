@@ -193,7 +193,10 @@ fun DriverFoodOrderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(Dimen.SizeL)
@@ -210,9 +213,15 @@ fun DriverFoodOrderCard(
                     }
                     Spacer(modifier = Modifier.width(AppSpacing.S))
                     Text(
-                        text = "${stringResource(id = R.string.driver_trips_active_food_title)} #${order.orderId}",
+                        text = if (isActive) {
+                        "${stringResource(id = R.string.driver_trips_active_food_title)} #${order.orderId}"
+                    } else {
+                        stringResource(id = R.string.driver_reviews_order_ref, order.orderId)
+                    },
                         style = MaterialTheme.typography.s14.bold(),
-                        color = TextPrimary
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -225,7 +234,9 @@ fun DriverFoodOrderCard(
                     Text(
                         text = stringResource(id = badgeTextRes),
                         style = MaterialTheme.typography.s12.semiBold(),
-                        color = badgeColor
+                        color = badgeColor,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

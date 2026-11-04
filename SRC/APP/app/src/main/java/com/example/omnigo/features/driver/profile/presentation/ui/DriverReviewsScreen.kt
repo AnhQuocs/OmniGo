@@ -24,22 +24,25 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
+import com.example.omnigo.features.driver.profile.presentation.ui.components.DriverReviewFilterButtonsRow
+import com.example.omnigo.features.driver.profile.presentation.ui.components.DriverReviewServiceFilterBottomSheet
+import com.example.omnigo.features.driver.profile.presentation.ui.components.DriverReviewStarFilterBottomSheet
 import com.example.omnigo.features.driver.profile.presentation.ui.components.EmptyReviewsBox
 import com.example.omnigo.features.driver.profile.presentation.ui.components.FoodDeliveryReviewItemCard
 import com.example.omnigo.features.driver.profile.presentation.ui.components.HeroRatingSummaryCard
 import com.example.omnigo.features.driver.profile.presentation.ui.components.RideReviewItemCard
-import com.example.omnigo.features.driver.profile.presentation.ui.components.StarFilterRow
 import com.example.omnigo.features.driver.profile.presentation.viewmodel.DriverReviewsViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -61,6 +64,8 @@ fun DriverReviewsScreen(
     viewModel: DriverReviewsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showServiceSheet by remember { mutableStateOf(false) }
+    var showStarSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -98,50 +103,6 @@ fun DriverReviewsScreen(
             }
         }
 
-        // Dual Tabs (Cuốc xe vs Đồ ăn)
-        TabRow(
-            selectedTabIndex = uiState.selectedTabIndex,
-            containerColor = SurfaceLight,
-            contentColor = PrimaryColor
-        ) {
-            Tab(
-                selected = uiState.selectedTabIndex == 0,
-                onClick = { viewModel.onTabSelected(0) },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimen.SizeS)
-                        )
-                        Spacer(modifier = Modifier.width(AppSpacing.XS))
-                        Text(
-                            text = stringResource(id = R.string.driver_reviews_tab_ride),
-                            style = MaterialTheme.typography.s14.medium()
-                        )
-                    }
-                }
-            )
-            Tab(
-                selected = uiState.selectedTabIndex == 1,
-                onClick = { viewModel.onTabSelected(1) },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Fastfood,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimen.SizeS)
-                        )
-                        Spacer(modifier = Modifier.width(AppSpacing.XS))
-                        Text(
-                            text = stringResource(id = R.string.driver_reviews_tab_food),
-                            style = MaterialTheme.typography.s14.medium()
-                        )
-                    }
-                }
-            )
-        }
-
         if (uiState.isLoading && uiState.rideReviews.isEmpty() && uiState.foodReviews.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -173,11 +134,12 @@ fun DriverReviewsScreen(
                     HeroRatingSummaryCard(uiState = uiState)
                 }
 
-                // Filter by star
+                // Filters: Service category & Star rating
                 item {
-                    StarFilterRow(
-                        selectedStar = uiState.selectedStarFilter,
-                        onSelectStar = { viewModel.onStarFilterSelected(it) }
+                    DriverReviewFilterButtonsRow(
+                        uiState = uiState,
+                        onOpenServiceSheet = { showServiceSheet = true },
+                        onOpenStarSheet = { showStarSheet = true }
                     )
                 }
 
@@ -203,5 +165,24 @@ fun DriverReviewsScreen(
                 }
             }
         }
+    }
+
+    if (showServiceSheet) {
+        DriverReviewServiceFilterBottomSheet(
+            selectedTabIndex = uiState.selectedTabIndex,
+            rideTotalReviews = uiState.rideTotalReviews,
+            foodTotalReviews = uiState.foodTotalReviews,
+            onSelectTab = { viewModel.onTabSelected(it) },
+            onDismissRequest = { showServiceSheet = false }
+        )
+    }
+
+    if (showStarSheet) {
+        DriverReviewStarFilterBottomSheet(
+            selectedStar = uiState.selectedStarFilter,
+            uiState = uiState,
+            onSelectStar = { viewModel.onStarFilterSelected(it) },
+            onDismissRequest = { showStarSheet = false }
+        )
     }
 }

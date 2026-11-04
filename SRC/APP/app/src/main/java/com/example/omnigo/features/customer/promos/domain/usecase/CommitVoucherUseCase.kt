@@ -11,8 +11,9 @@ class CommitVoucherUseCase @Inject constructor(
         code: String,
         orderAmount: Double,
         serviceType: String,
-        orderId: String? = null
+        orderId: String? = null,
+        discountAmount: Double = 0.0
     ): Result<AppliedVoucherResult> {
-        return voucherRepository.commitVoucher(code, orderAmount, serviceType, orderId)
+        return voucherRepository.commitVoucher(code, orderAmount, serviceType, orderId, discountAmount)
     }
 }

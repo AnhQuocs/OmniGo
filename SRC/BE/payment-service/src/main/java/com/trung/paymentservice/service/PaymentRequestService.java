@@ -20,7 +20,7 @@ public class PaymentRequestService {
     @Transactional
     public PaymentUrlResponse create(Long userId, String role, String method, String type, Long id, BigDecimal amount) {
         method = method.toUpperCase(Locale.ROOT); type = type.toUpperCase(Locale.ROOT);
-        if (amount == null || amount.signum() <= 0 || amount.stripTrailingZeros().scale() > 0 || amount.compareTo(new BigDecimal("100000000")) > 0)
+        if (amount == null || (amount.signum() < 0 || (amount.signum() == 0 && !("WALLET".equals(method) && ("FOOD_PAYMENT".equals(type) || "TRIP_PAYMENT".equals(type))))) || amount.stripTrailingZeros().scale() > 0 || amount.compareTo(new BigDecimal("100000000")) > 0)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số tiền VND không hợp lệ");
         if (!Set.of("WALLET", "MOMO", "VNPAY").contains(method)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cổng không hợp lệ");
         Long driverId = null;

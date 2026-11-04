@@ -32,7 +32,10 @@ data class CommitVoucherRequestDto(
     @SerializedName("orderAmount") val orderAmount: Double,
     @SerializedName("serviceType") val serviceType: String,
     @SerializedName("userId") val userId: String,
-    @SerializedName("orderId") val orderId: String? = null
+    @SerializedName("orderId") val orderId: String? = null,
+    @SerializedName("originalAmount") val originalAmount: Double = 0.0,
+    @SerializedName("discountAmount") val discountAmount: Double = 0.0,
+    @SerializedName("finalAmount") val finalAmount: Double = 0.0
 )
 
 data class ApplyVoucherResponseDto(

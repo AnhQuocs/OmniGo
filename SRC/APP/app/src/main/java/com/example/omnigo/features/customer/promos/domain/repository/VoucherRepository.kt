@@ -12,7 +12,8 @@ interface VoucherRepository {
         code: String,
         orderAmount: Double,
         serviceType: String,
-        orderId: String? = null
+        orderId: String? = null,
+        discountAmount: Double = 0.0
     ): Result<AppliedVoucherResult>
     suspend fun rollbackVoucher(code: String, orderId: String? = null): Result<Unit>
     suspend fun getMyVoucherUsages(): Result<List<VoucherUsage>>

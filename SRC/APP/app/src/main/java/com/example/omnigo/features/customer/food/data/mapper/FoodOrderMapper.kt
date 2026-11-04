@@ -61,6 +61,9 @@ fun FoodOrderResponse.toDomain(): FoodOrder {
         itemsPrice = calculatedItemsPrice,
         deliveryFee = deliveryFee,
         totalPrice = totalPrice,
+        originalAmount = originalAmount,
+        voucherDiscount = discountAmount ?: 0.0,
+        voucherCode = voucherCode,
 
         dropOffAddress = dropOffAddress.orEmpty(),
 

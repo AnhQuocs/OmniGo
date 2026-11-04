@@ -19,7 +19,8 @@ class CreateFoodOrderUseCase @Inject constructor(
         dropOffLongitude: Double,
         items: List<CartItem>,
         note: String? = null,
-        paymentMethod: PaymentMethod = PaymentMethod.CASH
+        paymentMethod: PaymentMethod = PaymentMethod.CASH,
+        voucherCode: String? = null
     ): CreateFoodOrderResult {
         if (items.isEmpty()) {
             return CreateFoodOrderResult.Error(
@@ -47,7 +48,8 @@ class CreateFoodOrderUseCase @Inject constructor(
                 )
             },
             note = note?.trim()?.ifBlank { null },
-            paymentMethod = paymentMethod
+            paymentMethod = paymentMethod,
+            voucherCode = voucherCode
         )
 
         return repository.createFoodOrder(command)

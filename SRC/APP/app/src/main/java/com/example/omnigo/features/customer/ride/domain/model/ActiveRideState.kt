@@ -23,7 +23,7 @@ data class ActiveRideState(
     val routeCoordinates: List<Pair<Double, Double>> = emptyList()
 ) {
     val finalPrice: Double
-        get() = (price - discountAmount).coerceAtLeast(0.0)
+        get() = price.coerceAtLeast(0.0)
 
     val isTripActive: Boolean
         get() = status == BookingStatus.ACCEPTED ||

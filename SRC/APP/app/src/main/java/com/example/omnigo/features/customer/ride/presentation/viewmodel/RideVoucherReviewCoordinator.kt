@@ -115,7 +115,8 @@ class RideVoucherReviewCoordinator @Inject constructor(
                 code = applied.voucherCode,
                 orderAmount = orderAmt,
                 serviceType = "RIDE",
-                orderId = bookingId.toString()
+                orderId = bookingId.toString(),
+                discountAmount = applied.discountAmount
             )
         }
     }
@@ -173,13 +174,15 @@ class RideVoucherReviewCoordinator @Inject constructor(
         code: String,
         orderAmount: Double,
         serviceType: String,
-        orderId: String?
+        orderId: String?,
+        discountAmount: Double = 0.0
     ): Result<com.example.omnigo.features.customer.promos.domain.model.AppliedVoucherResult> {
         return commitVoucherUseCase(
             code = code,
             orderAmount = orderAmount,
             serviceType = serviceType,
-            orderId = orderId
+            orderId = orderId,
+            discountAmount = discountAmount
         )
     }
 

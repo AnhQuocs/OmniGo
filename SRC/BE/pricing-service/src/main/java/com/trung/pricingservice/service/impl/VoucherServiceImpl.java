@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 
 import com.trung.pricingservice.dto.request.CommitVoucherRequest;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,7 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherRedisRepository voucherRedisRepository;
     private final VoucherUsageRepository voucherUsageRepository;
     private final VoucherMapper voucherMapper;
+    @PersistenceContext private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -322,6 +325,7 @@ public class VoucherServiceImpl implements VoucherService {
             discountAmount = Math.min(voucher.getDiscountValue(), orderAmount);
         }
 
+        discountAmount = Math.min(orderAmount, Math.max(0.0, Math.round(discountAmount)));
         double finalAmount = Math.max(0.0, orderAmount - discountAmount);
 
         return ApplyVoucherResponse.builder()
@@ -342,11 +346,27 @@ public class VoucherServiceImpl implements VoucherService {
         String orderId = request.getOrderId();
         String serviceType = request.getServiceType();
         double orderAmount = request.getOriginalAmount();
-        double discountAmount = request.getDiscountAmount();
-        double finalAmount = request.getFinalAmount();
+        entityManager.createNativeQuery("select 1 from pg_advisory_xact_lock(hashtextextended(:key,0))")
+                .setParameter("key", "VOUCHER:" + code).getResultList();
+        if (orderId != null && !orderId.isBlank()) {
+            var previous = voucherUsageRepository.findByVoucherCodeAndOrderId(code, orderId);
+            if (previous.isPresent()) {
+                var usage = previous.get();
+                boolean same = usage.getStatus() == VoucherUsageStatus.USED && java.util.Objects.equals(userId, usage.getUserId())
+                        && java.util.Objects.equals(serviceType, usage.getServiceType()) && Double.compare(orderAmount, usage.getOriginalAmount()) == 0;
+                return ApplyVoucherResponse.builder().valid(same).message(same ? "Đã ghi nhận voucher" : "Voucher đã dùng cho yêu cầu khác hoặc đã hoàn")
+                        .originalAmount(usage.getOriginalAmount()).discountAmount(usage.getDiscountAmount()).finalAmount(usage.getFinalAmount()).build();
+            }
+        }
+        ApplyVoucherResponse quote = applyVoucher(ApplyVoucherRequest.builder().code(code).userId(userId)
+                .serviceType(serviceType).orderAmount(orderAmount).build());
+        if (!quote.isValid()) return quote;
+        // Never accept discount/final totals supplied by a caller.
+        double discountAmount = java.math.BigDecimal.valueOf(quote.getDiscountAmount()).setScale(0, java.math.RoundingMode.HALF_UP).doubleValue();
+        discountAmount = Math.min(orderAmount, Math.max(0, discountAmount));
+        double finalAmount = orderAmount - discountAmount;
 
-        Voucher voucher = voucherRedisRepository.findByCode(code)
-                .or(() -> voucherJpaRepository.findByCode(code))
+        Voucher voucher = voucherJpaRepository.findByCode(code)
                 .orElse(null);
 
         if (voucher == null || voucher.getStatus() != VoucherStatus.ACTIVE || voucher.isExpired()) {
@@ -386,34 +406,23 @@ public class VoucherServiceImpl implements VoucherService {
             voucherRedisRepository.recordUserUsage(code, userId, ttl);
         }
 
-        // 4. Cập nhật số lượt usedCount vào bảng vouchers
-        try {
-            voucher.setUsedCount(voucher.getUsedCount() + 1);
-            voucherJpaRepository.save(voucher);
-        } catch (Exception ex) {
-            log.warn("Lỗi cập nhật usedCount vào DB cho voucher {}: {}", code, ex.getMessage());
-        }
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            if (voucher.getTotalUsageLimit() > 0) voucherRedisRepository.incrementStock(code);
+                            if (userId != null && !userId.isBlank()) voucherRedisRepository.revertUserUsage(code, userId);
+                        }
+                    }
+                });
 
-        // 5. Lưu lịch sử sử dụng chi tiết gắn với Mã đơn/Cuốc xe vào bảng voucher_usages
-        if (userId != null && !userId.isBlank()) {
-            try {
-                VoucherUsage usage = VoucherUsage.builder()
-                        .voucherCode(code)
-                        .userId(userId)
-                        .orderId(orderId)
-                        .serviceType(serviceType)
-                        .originalAmount(orderAmount)
-                        .discountAmount(discountAmount)
-                        .finalAmount(finalAmount)
-                        .status(VoucherUsageStatus.USED)
-                        .usedAt(now)
-                        .build();
-                voucherUsageRepository.save(usage);
-                log.info("Đã ghi nhận sử dụng voucher {} cho User ID {} gắn với Đơn/Cuốc #{}", code, userId, orderId);
-            } catch (Exception ex) {
-                log.error("Lỗi lưu lịch sử voucher_usages: {}", ex.getMessage());
-            }
-        }
+        voucher.setUsedCount(voucher.getUsedCount() + 1);
+        voucherJpaRepository.save(voucher);
+        VoucherUsage usage = VoucherUsage.builder()
+                .voucherCode(code).userId(userId).orderId(orderId).serviceType(serviceType)
+                .originalAmount(orderAmount).discountAmount(discountAmount).finalAmount(finalAmount)
+                .status(VoucherUsageStatus.USED).usedAt(now).build();
+        voucherUsageRepository.save(usage);
 
         return ApplyVoucherResponse.builder()
                 .valid(true)
@@ -491,10 +500,16 @@ public class VoucherServiceImpl implements VoucherService {
             }
         }
 
-        if (usageOpt.isEmpty() && code != null && !code.isBlank() && userId != null && !userId.isBlank()) {
+        if ((orderId == null || orderId.isBlank()) && usageOpt.isEmpty() && code != null && !code.isBlank() && userId != null && !userId.isBlank()) {
             usageOpt = voucherUsageRepository.findFirstByVoucherCodeAndUserIdAndStatusOrderByUsedAtDesc(
                     code.trim().toUpperCase(), userId, VoucherUsageStatus.USED);
         }
+
+        if (usageOpt.isEmpty()) return;
+        if (userId != null && !userId.equals(usageOpt.get().getUserId())) return;
+        entityManager.createNativeQuery("select 1 from pg_advisory_xact_lock(hashtextextended(:key,0))")
+                .setParameter("key", "VOUCHER:" + usageOpt.get().getVoucherCode()).getResultList();
+        entityManager.refresh(usageOpt.get());
 
         String targetCode = (code != null && !code.isBlank())
                 ? code.trim().toUpperCase()

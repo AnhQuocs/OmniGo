@@ -125,9 +125,10 @@ fun EarningsTripDetailSection(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.S)
                 ) {
-                    tripItems.forEachIndexed { index, item ->
+                    val displayItems = tripItems.take(5)
+                    displayItems.forEachIndexed { index, item ->
                         TripDetailItemRow(item = item)
-                        if (index < tripItems.size - 1) {
+                        if (index < displayItems.size - 1) {
                             HorizontalDivider(
                                 color = OutlineVariantLight.copy(alpha = 0.5f),
                                 thickness = Dimen.PaddingXXS

@@ -1374,5 +1374,12 @@
     <string name="ride_history_fare_label">Fare</string>
     <string name="ride_history_fare_discount">Discount</string>
     <string name="ride_history_fare_total">Total paid</string>
+
+    <string name="driver_reviews_service_sheet_title">Review Category</string>
+    <string name="driver_reviews_star_sheet_title">Filter by Rating</string>
+    <string name="driver_reviews_star_format">%1$d Stars</string>
+    <string name="driver_reviews_count_format">%1$d reviews</string>
+
     <string name="ride_payment_wallet_prepaid">OmniPay wallet · prepaid</string>
+
 </resources>

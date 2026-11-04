@@ -156,7 +156,7 @@ fun RideTripReceiptDialog(
                             horizontalArrangement = Arrangement.spacedBy(AppSpacing.XS)
                         ) {
                             Text(
-                                text = booking.price.formatVnd(),
+                                text = (booking.originalPrice ?: (booking.price + booking.discountAmount)).formatVnd(),
                                 style = MaterialTheme.typography.s13.normal().lineThrough(),
                                 color = TextTertiary
                             )

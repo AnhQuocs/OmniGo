@@ -31,6 +31,7 @@ public class FoodOrderCreateRequest {
     private Double deliveryLongitude;
 
     private String note;
+    private String voucherCode;
 
     @Builder.Default
     private String paymentMethod = "CASH";

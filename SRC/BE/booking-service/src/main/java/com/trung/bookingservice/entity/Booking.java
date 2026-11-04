@@ -1,8 +1,12 @@
 package com.trung.bookingservice.entity;
 
+import java.math.BigDecimal;
+
 import com.trung.bookingservice.util.enums.BookingStatus;
+
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -60,6 +64,13 @@ public class Booking {
     private String vehicleType;
 
     private String paymentMethod;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal originalAmount;
+    @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+    @Column(length = 50)
+    private String voucherCode;
     private boolean prepaid;
     private boolean paid;
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.R
 import com.example.omnigo.core.location.manager.UserLocationManager
+import com.example.omnigo.features.customer.food.data.local.FoodOrderVoucherStore
 import com.example.omnigo.features.customer.food.domain.manager.CartManager
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
@@ -40,7 +41,8 @@ class FoodCheckoutViewModel @Inject constructor(
     private val createOrderPaymentUseCase: CreateOrderPaymentUseCase? = null,
     private val getWalletUseCase: GetDriverWalletUseCase? = null,
     private val depositWalletUseCase: DepositWalletUseCase? = null,
-    private val calculateFoodDeliveryFeeUseCase: CalculateFoodDeliveryFeeUseCase? = null
+    private val calculateFoodDeliveryFeeUseCase: CalculateFoodDeliveryFeeUseCase? = null,
+    private val voucherStore: FoodOrderVoucherStore? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FoodCheckoutUiState())
@@ -199,7 +201,7 @@ class FoodCheckoutViewModel @Inject constructor(
         val amount = _uiState.value.totalAmount
         _uiState.update { it.copy(showVoucherSheet = true, isApplyingVoucher = true) }
         viewModelScope.launch {
-            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD") ?: emptyList()
+            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD_DELIVERY") ?: emptyList()
             _uiState.update { it.copy(applicableVouchers = list, isApplyingVoucher = false) }
         }
     }
@@ -210,7 +212,7 @@ class FoodCheckoutViewModel @Inject constructor(
         val amount = _uiState.value.totalAmount
         viewModelScope.launch {
             _uiState.update { it.copy(isApplyingVoucher = true) }
-            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD")
+            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD_DELIVERY")
                 ?.onSuccess { res ->
                     _uiState.update { it.copy(appliedVoucher = res, isApplyingVoucher = false, showVoucherSheet = false) }
                 }
@@ -289,33 +291,32 @@ class FoodCheckoutViewModel @Inject constructor(
                 dropOffLongitude = state.deliveryLongitude,
                 items = state.items,
                 note = state.driverNote.ifBlank { null },
-                paymentMethod = state.selectedPaymentMethod
+                paymentMethod = state.selectedPaymentMethod,
+                voucherCode = state.appliedVoucher?.voucherCode
             )
 
             when (result) {
                 is CreateFoodOrderResult.Success -> {
-                    val applied = state.appliedVoucher
-                    if (applied != null && applied.voucherCode.isNotBlank()) {
-                        voucherCoordinator?.commitVoucher(
-                            code = applied.voucherCode,
-                            orderAmount = state.totalAmount,
-                            serviceType = "FOOD",
-                            orderId = result.order.id.toString()
-                        )
-                    }
-
                     var webViewUrl: String? = null
+                    var paymentError: UiText? = null
                     if (state.selectedPaymentMethod != PaymentMethod.CASH) {
                         val orderAmount = result.order.totalPrice ?: (result.order.itemsPrice + (result.order.deliveryFee ?: 0.0)).takeIf { it > 0.0 } ?: state.finalTotalAmount
-                        val paymentRes = createOrderPaymentUseCase?.invoke(
+                        val paymentResult = createOrderPaymentUseCase?.invoke(
                             bookingId = result.order.id,
                             amount = orderAmount,
                             method = state.selectedPaymentMethod.name,
                             type = "FOOD_PAYMENT"
-                        )?.getOrNull()
+                        )
+                        val paymentRes = paymentResult?.getOrNull()
 
                         if (paymentRes?.startsWith("http") == true) {
                             webViewUrl = paymentRes
+                        } else if (paymentResult == null || paymentResult.isFailure) {
+                            // Order stays AWAITING_PAYMENT, restaurant cannot see it until paid.
+                            paymentError = paymentResult?.exceptionOrNull()?.message
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let(UiText::DynamicString)
+                                ?: UiText.StringResource(R.string.checkout_payment_failed_toast)
                         }
                     }
 
@@ -324,7 +325,9 @@ class FoodCheckoutViewModel @Inject constructor(
                         pendingOrderId = result.order.id
                         _uiState.update { it.copy(isPlacingOrder = false, paymentWebViewUrl = webViewUrl) }
                     } else {
-                        _uiState.update { it.copy(isPlacingOrder = false, createdOrderId = result.order.id) }
+                        _uiState.update {
+                            it.copy(isPlacingOrder = false, createdOrderId = result.order.id, errorMessage = paymentError)
+                        }
                     }
                 }
                 is CreateFoodOrderResult.Error -> {

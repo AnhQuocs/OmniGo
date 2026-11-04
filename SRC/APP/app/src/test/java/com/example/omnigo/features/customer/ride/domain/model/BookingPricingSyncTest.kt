@@ -21,16 +21,16 @@ class BookingPricingSyncTest {
     }
 
     @Test
-    fun `booking with voucher discount computes finalPrice subtracted by discountAmount`() {
+    fun `booking uses backend net price without subtracting voucher twice`() {
         val booking = Booking(
             bookingId = 102L,
-            price = 35000.0,
+            price = 25000.0,
             discountAmount = 10000.0,
             voucherCode = "OMNIGO10K",
             originalPrice = 35000.0
         )
 
-        assertEquals(35000.0, booking.price, 0.001)
+        assertEquals(25000.0, booking.price, 0.001)
         assertEquals(10000.0, booking.discountAmount, 0.001)
         assertEquals(25000.0, booking.finalPrice, 0.001)
         assertEquals("OMNIGO10K", booking.voucherCode)
@@ -38,10 +38,11 @@ class BookingPricingSyncTest {
     }
 
     @Test
-    fun `booking with voucher discount larger than price coerces finalPrice to zero`() {
+    fun `fully discounted booking keeps zero net price`() {
         val booking = Booking(
             bookingId = 103L,
-            price = 20000.0,
+            price = 0.0,
+            originalPrice = 30000.0,
             discountAmount = 30000.0,
             voucherCode = "FREERIDE"
         )
@@ -53,7 +54,8 @@ class BookingPricingSyncTest {
     fun `driver earnings remains based on trip price regardless of customer voucher`() {
         val booking = Booking(
             bookingId = 104L,
-            price = 50000.0,
+            price = 30000.0,
+            originalPrice = 50000.0,
             platformFee = 10000.0,
             discountAmount = 20000.0,
             voucherCode = "BIGDISCOUNT"
@@ -77,7 +79,7 @@ class BookingPricingSyncTest {
 
         val stateWithVoucher = ActiveRideState(
             bookingId = 202L,
-            price = 45000.0,
+            price = 30000.0,
             discountAmount = 15000.0,
             voucherCode = "SAVE15K"
         )

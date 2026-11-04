@@ -310,17 +310,16 @@ class RideBookingViewModel @Inject constructor(
             val result = createRideBookingUseCase(
                 startLatitude = pickup.latitude, startLongitude = pickup.longitude, endLatitude = dropoff.latitude, endLongitude = dropoff.longitude,
                 paymentMethod = _uiState.value.selectedPaymentMethod,
+                voucherCode = _uiState.value.appliedVoucher?.voucherCode,
                 vehicleType = selectedType.name, pickupAddress = pickup.name.ifBlank { pickup.address }, dropoffAddress = dropoff.name.ifBlank { dropoff.address },
                 expectedPrice = expectedPrice
             )
             when (result) {
                 is CreateRideBookingResult.Success -> {
-                    val voucher = _uiState.value.appliedVoucher
-                    val booking = if (voucher != null) result.booking.copy(discountAmount = voucher.discountAmount, voucherCode = voucher.voucherCode, originalPrice = result.booking.price) else result.booking
+                    val booking = result.booking
                     if (booking.status == BookingStatus.CANCELLED) {
                         _uiState.update { it.copy(isCreatingBooking = false, isSearchingDriver = false, currentBooking = null, errorMessage = UiText.StringResource(R.string.ride_error_no_driver_found)) }
                     } else {
-                        rideVoucherReviewCoordinator?.commitAppliedVoucherIfPresent(viewModelScope, _uiState.value, booking.bookingId)
                         _uiState.update { it.copy(isCreatingBooking = false, currentBooking = booking, isSearchingDriver = booking.status == BookingStatus.PENDING, searchCountdownSeconds = 60) }
                         _eventFlow.emit(RideBookingEvent.BookingCreated(booking.bookingId))
                         rideTrackingSessionManager.startSession(booking, pickup.name.ifBlank { pickup.address }, dropoff.name.ifBlank { dropoff.address })
@@ -355,13 +354,11 @@ class RideBookingViewModel @Inject constructor(
     fun cancelBooking() {
         val booking = _uiState.value.currentBooking ?: run { resetBookingState(); return }
         if (_uiState.value.isCancellingBooking) return
-        val voucherCode = _uiState.value.appliedVoucher?.voucherCode
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCancellingBooking = true, errorMessage = null) }
             when (val result = cancelRideBookingUseCase(booking.bookingId)) {
                 is CancelRideBookingResult.Success -> {
-                    rideVoucherReviewCoordinator?.rollbackVoucherIfPresent(viewModelScope, voucherCode, booking.bookingId)
                     resetBookingState(UiText.StringResource(R.string.ride_booking_cancelled_success))
                     _eventFlow.emit(RideBookingEvent.BookingCancelled)
                 }
