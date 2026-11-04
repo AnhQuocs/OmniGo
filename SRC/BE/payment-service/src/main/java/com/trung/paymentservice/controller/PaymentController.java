@@ -1,5 +1,6 @@
 package com.trung.paymentservice.controller;
 
+import com.trung.paymentservice.service.FinancialOrderClient;
 import com.trung.paymentservice.dto.request.FoodOrderPayoutRequest;
 import com.trung.paymentservice.dto.request.MomoIpnRequest;
 import com.trung.paymentservice.dto.request.RefundRequest;
@@ -58,6 +59,19 @@ public class PaymentController {
     private final PaymentRequestService paymentRequests;
     private final com.trung.paymentservice.service.PaymentIdempotency paymentIdempotency;
     private final PaymentWorkflowService workflow;
+
+    private final FinancialOrderClient financialOrders;
+    @PostMapping("/internal/rides/{id}/prepay")
+    public ResponseEntity<Void> prepayRide(@PathVariable Long id) {
+        var order = financialOrders.get(false, id);
+        if (!Boolean.TRUE.equals(order.get("prepaid")) || !"WALLET".equals(order.get("paymentMethod")))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Chuyến không dùng ví trả trước");
+        var result = paymentRequests.create(FinancialOrderClient.id(order, "customerId"),
+                "CUSTOMER", "WALLET", "TRIP_PAYMENT", id, FinancialOrderClient.money(order, "amount"));
+        var transaction = transactionRepository.findByOrderId(result.getOrderId()).orElseThrow();
+        workflow.fulfill(transaction.getId());
+        return ResponseEntity.noContent().build();
+    }
 
     @PostMapping("/internal/reconcile/{kind}/{id}")
     public ResponseEntity<Void> reconcile(@PathVariable String kind, @PathVariable Long id) {

@@ -183,7 +183,7 @@ private fun PaymentOptionItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(
                                 id = R.string.checkout_wallet_balance_format,
@@ -215,6 +215,7 @@ private fun PaymentOptionItem(
                     }
 
                     if (isInsufficient) {
+                        Spacer(modifier = Modifier.width(AppSpacing.S))
                         Surface(
                             onClick = onTopUpClick,
                             shape = RoundedCornerShape(AppShape.ShapeXS),

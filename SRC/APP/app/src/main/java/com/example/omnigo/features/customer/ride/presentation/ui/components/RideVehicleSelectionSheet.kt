@@ -110,6 +110,8 @@ fun RideVehicleSelectionSheet(
     onSelectVehicle: (VehicleType) -> Unit,
     onOpenVoucherSheet: () -> Unit = {},
     onConfirmBooking: () -> Unit,
+    selectedPaymentMethod: String = "CASH",
+    onSelectPaymentMethod: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -156,6 +158,9 @@ fun RideVehicleSelectionSheet(
             HorizontalDivider(color = OutlineVariantLight, thickness = Dimen.PaddingXXS)
             Spacer(modifier = Modifier.height(AppSpacing.S))
 
+            RidePaymentSelector(selectedPaymentMethod, onSelectPaymentMethod)
+            // Payment and Voucher row (Xanh SM style)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -175,7 +180,7 @@ fun RideVehicleSelectionSheet(
                     )
                     Spacer(modifier = Modifier.width(AppSpacing.XS))
                     Text(
-                        text = stringResource(id = R.string.ride_payment_cash_label),
+                        text = if (selectedPaymentMethod == "WALLET") stringResource(R.string.ride_payment_wallet_prepaid) else stringResource(id = R.string.ride_payment_cash_label),
                         style = MaterialTheme.typography.s14.semiBold(),
                         color = TextPrimary
                     )

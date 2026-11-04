@@ -57,51 +57,6 @@ import com.example.omnigo.utils.semiBold
 import java.util.Locale
 
 @Composable
-fun ActivityCompactRideHistoryCard(
-    booking: Booking,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isCancelled = booking.status == BookingStatus.CANCELLED
-    val title = booking.dropoffAddress.ifBlank {
-        "${stringResource(R.string.home_service_ride)} #${booking.bookingId}"
-    }
-    val subtitle = booking.pickupAddress.ifBlank {
-        stringResource(R.string.activity_mock_ride_address)
-    }
-    val priceText = String.format(Locale.getDefault(), "%,.0fđ", booking.price)
-    val paymentLabel = if (booking.paymentMethod.equals("WALLET", ignoreCase = true)) {
-        stringResource(R.string.activity_history_payment_wallet)
-    } else {
-        stringResource(R.string.activity_history_payment_cash)
-    }
-    val distKm = booking.distanceInKm.takeIf { it > 0.0 } ?: 2.5
-    val summarySubtext = stringResource(
-        R.string.activity_history_ride_summary,
-        distKm,
-        paymentLabel
-    )
-
-    CompactHistoryCardLayout(
-        title = title,
-        subtitle = subtitle,
-        dateTimeText = "#${booking.bookingId}",
-        priceText = priceText,
-        bottomRightSummaryText = summarySubtext,
-        statusLabel = if (isCancelled) {
-            stringResource(R.string.activity_item_cancelled_badge)
-        } else {
-            stringResource(R.string.activity_item_completed_badge)
-        },
-        isCancelled = isCancelled,
-        imageUrl = "",
-        fallbackIcon = Icons.Default.DirectionsCar,
-        onClick = onClick,
-        modifier = modifier
-    )
-}
-
-@Composable
 internal fun CompactHistoryCardLayout(
     title: String,
     subtitle: String,

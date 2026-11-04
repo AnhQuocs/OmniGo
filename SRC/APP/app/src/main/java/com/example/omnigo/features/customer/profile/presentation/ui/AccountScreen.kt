@@ -2,6 +2,7 @@ package com.example.omnigo.features.customer.profile.presentation.ui
 
 import com.example.omnigo.utils.showToast
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -228,7 +229,24 @@ fun AccountScreen(
                     AccountMenuItem(
                         icon = Icons.AutoMirrored.Filled.HelpOutline,
                         title = stringResource(id = R.string.account_help_center),
-                        onClick = { /* Help center */ }
+                        onClick = {
+                            val gmailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:support@omnigo.vn")
+                                setPackage("com.google.android.gm")
+                            }
+                            try {
+                                context.startActivity(gmailIntent)
+                            } catch (_: Exception) {
+                                try {
+                                    val fallbackIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = Uri.parse("mailto:support@omnigo.vn")
+                                    }
+                                    context.startActivity(fallbackIntent)
+                                } catch (_: Exception) {
+                                    // No email client available
+                                }
+                            }
+                        }
                     )
                     HorizontalDivider(color = CardBorderColor.copy(alpha = 0.5f), thickness = Dimen.BorderHairline)
                     AccountMenuItem(

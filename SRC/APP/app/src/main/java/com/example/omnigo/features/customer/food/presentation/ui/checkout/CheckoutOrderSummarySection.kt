@@ -192,7 +192,7 @@ fun CheckoutOrderSummarySection(
                     color = TextPrimary
                 )
                 Text(
-                    text = formatFoodPrice((totalAmount - discountAmount).coerceAtLeast(0.0)),
+                    text = formatFoodPrice(totalAmount),
                     style = MaterialTheme.typography.s16.bold(),
                     color = PrimaryColor
                 )

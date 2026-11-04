@@ -207,6 +207,7 @@ fun FoodCheckoutScreen(
                     itemsSubtotal = uiState.itemsSubtotal,
                     deliveryFee = uiState.deliveryFee,
                     discountAmount = uiState.discountAmount,
+                    voucherCode = uiState.appliedVoucher?.voucherCode,
                     totalAmount = uiState.finalTotalAmount
                 )
             }

@@ -1413,4 +1413,21 @@
     <string name="wallet_amount_min_error">Số tiền tối thiểu là 10.000 ₫</string>
     <string name="wallet_withdraw_max_error">Số tiền vượt quá số dư khả dụng</string>
     <string name="wallet_btn_cancel">Hủy</string>
+    <string name="ride_history_address_unknown">Chưa có địa chỉ</string>
+    <string name="ride_history_card_title">%1$s • #%2$d</string>
+    <string name="ride_history_route_section">Lộ trình</string>
+    <string name="ride_history_pickup_label">Điểm đón</string>
+    <string name="ride_history_dropoff_label">Điểm đến</string>
+    <string name="ride_history_info_section">Thông tin chuyến đi</string>
+    <string name="ride_history_vehicle_label">Loại xe</string>
+    <string name="ride_history_distance_label">Quãng đường</string>
+    <string name="ride_history_payment_label">Phương thức thanh toán</string>
+    <string name="ride_history_booked_at_label">Thời gian đặt</string>
+    <string name="ride_history_completed_at_label">Hoàn thành lúc</string>
+    <string name="ride_history_rating_format">%1$.1f</string>
+    <string name="ride_history_fare_section">Chi tiết thanh toán</string>
+    <string name="ride_history_fare_label">Cước phí</string>
+    <string name="ride_history_fare_discount">Giảm giá</string>
+    <string name="ride_history_fare_total">Tổng thanh toán</string>
+    <string name="ride_payment_wallet_prepaid">Ví OmniPay · trả trước</string>
 </resources>

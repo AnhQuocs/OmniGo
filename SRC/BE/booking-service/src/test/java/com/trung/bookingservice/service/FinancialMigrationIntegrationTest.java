@@ -26,6 +26,8 @@ class FinancialMigrationIntegrationTest {
         var ds = new DriverManagerDataSource(url + (url.contains("?") ? "&" : "?") + "currentSchema=" + schema, "codex_test", "");
         var jdbc = new JdbcTemplate(ds);
         try {
+            jdbc.execute("create table bookings(id bigint primary key, status varchar(30) not null)");
+            jdbc.update("insert into bookings values (1,'IN_PROGRESS')");
             if (existing) {
                 for (String file : new String[]{"V20__financial_outbox.sql", "V21__order_idempotency.sql"}) {
                     try (var input = new ClassPathResource("db/migration/" + file).getInputStream()) {
@@ -37,8 +39,10 @@ class FinancialMigrationIntegrationTest {
             }
             var flyway = Flyway.configure().dataSource(ds).schemas(schema).baselineVersion("19").load();
             flyway.baseline();
-            assertEquals(2, flyway.migrate().migrationsExecuted);
+            assertEquals(3, flyway.migrate().migrationsExecuted);
             flyway.validate();
+            assertEquals(false, jdbc.queryForObject("select prepaid from bookings where id=1", Boolean.class));
+            jdbc.update("insert into bookings(id,status,prepaid) values (2,'AWAITING_PAYMENT',true)");
             assertEquals(0, flyway.migrate().migrationsExecuted);
             assertEquals(existing ? 1 : 0, jdbc.queryForObject("select count(*) from financial_outbox", Integer.class));
             assertEquals(existing ? 1 : 0, jdbc.queryForObject("select count(*) from order_idempotency", Integer.class));

@@ -36,9 +36,10 @@ public class PaymentRequestService {
             for (Transaction tx : existing) {
                 if (tx.getStatus() == TransactionStatus.SUCCESS && transactions.findByOrderId("REFUND_PAYMENT_" + tx.getId()).isEmpty()) return PaymentUrlResponse.builder().orderId(tx.getOrderId()).paymentUrl("ALREADY_PAID").build();
             }
+            boolean prepay = !food && Boolean.TRUE.equals(order.get("prepaid")) && "WALLET".equals(method) && "AWAITING_PAYMENT".equals(order.get("status"));
             if (FinancialOrderClient.cancelled(order) || FinancialOrderClient.cash(order)
                     || (food && !"AWAITING_PAYMENT".equals(order.get("status")))
-                    || (!food && !"COMPLETED".equals(order.get("status"))))
+                    || (!food && !prepay && !"COMPLETED".equals(order.get("status"))))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Đơn không ở trạng thái cho phép thanh toán online");
             for (Transaction tx : existing) {
                 if (tx.getStatus() == TransactionStatus.CANCELED)
@@ -50,7 +51,7 @@ public class PaymentRequestService {
                 }
             }
             driverId = FinancialOrderClient.id(order, "driverId");
-            if (!food && driverId == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Cuốc xe chưa có tài xế");
+            if (!food && !prepay && driverId == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Cuốc xe chưa có tài xế");
         } else {
             String cleanRole = role.replace("ROLE_", "");
             boolean customer = "CUSTOMER_DEPOSIT".equals(type) && "CUSTOMER".equals(cleanRole);

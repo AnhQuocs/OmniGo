@@ -25,7 +25,8 @@ interface RideBookingRepository {
         vehicleType: String? = null,
         pickupAddress: String? = null,
         dropoffAddress: String? = null,
-        expectedPrice: Double? = null
+        expectedPrice: Double? = null,
+        paymentMethod: String = "CASH"
     ): CreateRideBookingResult
 
     suspend fun cancelBooking(bookingId: Long): CancelRideBookingResult

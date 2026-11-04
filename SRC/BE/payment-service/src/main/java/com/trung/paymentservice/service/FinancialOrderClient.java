@@ -36,6 +36,9 @@ public class FinancialOrderClient {
         if (result == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Chưa kiểm tra được đơn cũ");
         return result;
     }
+    public void markRidePaid(Long id) {
+        http.exchange(rideUrl + "/api/v1/internal/financial/orders/" + id + "/paid", HttpMethod.POST, new HttpEntity<>(headers()), Void.class);
+    }
     public void markFoodPaid(Long id) {
         http.exchange(foodUrl + "/api/v1/food-orders/" + id + "/paid", HttpMethod.POST, new HttpEntity<>(headers()), Void.class);
     }

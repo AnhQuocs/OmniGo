@@ -1358,4 +1358,21 @@
     <string name="wallet_amount_min_error">Minimum amount is 10,000 ₫</string>
     <string name="wallet_withdraw_max_error">Amount exceeds available balance</string>
     <string name="wallet_btn_cancel">Cancel</string>
+    <string name="ride_history_address_unknown">Address unavailable</string>
+    <string name="ride_history_card_title">%1$s • #%2$d</string>
+    <string name="ride_history_route_section">Route</string>
+    <string name="ride_history_pickup_label">Pickup</string>
+    <string name="ride_history_dropoff_label">Drop-off</string>
+    <string name="ride_history_info_section">Trip information</string>
+    <string name="ride_history_vehicle_label">Vehicle</string>
+    <string name="ride_history_distance_label">Distance</string>
+    <string name="ride_history_payment_label">Payment method</string>
+    <string name="ride_history_booked_at_label">Booked at</string>
+    <string name="ride_history_completed_at_label">Completed at</string>
+    <string name="ride_history_rating_format">%1$.1f</string>
+    <string name="ride_history_fare_section">Payment details</string>
+    <string name="ride_history_fare_label">Fare</string>
+    <string name="ride_history_fare_discount">Discount</string>
+    <string name="ride_history_fare_total">Total paid</string>
+    <string name="ride_payment_wallet_prepaid">OmniPay wallet · prepaid</string>
 </resources>

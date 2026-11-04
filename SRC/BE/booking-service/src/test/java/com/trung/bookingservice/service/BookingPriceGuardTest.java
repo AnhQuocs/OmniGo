@@ -19,7 +19,7 @@ class BookingPriceGuardTest {
     private final PricingClient pricing = mock(PricingClient.class);
     private final DispatchConfigService dispatch = mock(DispatchConfigService.class);
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
-    private final BookingServiceImpl service = new BookingServiceImpl(repository, location, null, redis,
+    private final BookingServiceImpl service = new BookingServiceImpl(null, null, repository, location, null, redis,
             null, null, pricing, null, null, dispatch, null, null, null);
 
     private BookingRequest request() {
