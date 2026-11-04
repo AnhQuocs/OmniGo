@@ -16,8 +16,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalOffer
+import com.example.omnigo.features.customer.promos.domain.model.Voucher
+import com.example.omnigo.features.customer.promos.domain.model.VoucherDiscountType
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -50,7 +53,8 @@ import com.example.omnigo.utils.s16
 
 @Composable
 fun HomePromoBannersSection(
-    onBannerClick: (String) -> Unit,
+    vouchers: List<Voucher>,
+    onBannerClick: (Voucher) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -75,28 +79,68 @@ fun HomePromoBannersSection(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge),
             contentPadding = PaddingValues(horizontal = Dimen.PaddingM)
         ) {
-            item {
-                PromoBannerCard(
-                    title = stringResource(id = R.string.home_banner_title_1),
-                    desc = stringResource(id = R.string.home_banner_desc_1),
-                    badge = "HOT DEAL",
-                    cta = stringResource(id = R.string.home_banner_cta),
-                    gradientColors = listOf(PrimaryColor, PrimaryVariant),
-                    icon = Icons.Filled.LocalOffer,
-                    onClick = { onBannerClick("OMNIRIDE50") }
-                )
-            }
-
-            item {
-                PromoBannerCard(
-                    title = stringResource(id = R.string.home_banner_title_2),
-                    desc = stringResource(id = R.string.home_banner_desc_2),
-                    badge = "FREESHIP",
-                    cta = stringResource(id = R.string.home_banner_food_cta),
-                    gradientColors = listOf(SecondaryColor, SecondaryVariant),
-                    icon = Icons.Filled.Fastfood,
-                    onClick = { onBannerClick("FREESHIP50") }
-                )
+            if (vouchers.isNotEmpty()) {
+                items(vouchers.size, key = { index -> "${vouchers[index].id}_${vouchers[index].code}_$index" }) { index ->
+                    val voucher = vouchers[index]
+                    val isPercent = voucher.discountType == VoucherDiscountType.PERCENTAGE
+                    val title = if (isPercent) "Giảm ${voucher.discountValue.toInt()}%" else voucher.name
+                    val badge = when (voucher.applicableService.uppercase()) {
+                        "RIDE" -> "ĐẶT XE"
+                        "FOOD" -> "ĐỒ ĂN"
+                        else -> "TOÀN SÀN"
+                    }
+                    val gradient = when (voucher.applicableService.uppercase()) {
+                        "RIDE" -> listOf(PrimaryColor, PrimaryVariant)
+                        "FOOD" -> listOf(SecondaryColor, SecondaryVariant)
+                        else -> listOf(PrimaryColor, SecondaryColor)
+                    }
+                    val icon = when (voucher.applicableService.uppercase()) {
+                        "RIDE" -> Icons.Filled.DirectionsCar
+                        "FOOD" -> Icons.Filled.Fastfood
+                        else -> Icons.Filled.LocalOffer
+                    }
+                    PromoBannerCard(
+                        title = title,
+                        desc = voucher.description.ifBlank { "Mã: ${voucher.code}" },
+                        badge = badge,
+                        cta = stringResource(id = R.string.home_banner_cta),
+                        gradientColors = gradient,
+                        icon = icon,
+                        onClick = { onBannerClick(voucher) }
+                    )
+                }
+            } else {
+                item {
+                    PromoBannerCard(
+                        title = stringResource(id = R.string.promos_hero_title),
+                        desc = stringResource(id = R.string.promos_hero_subtitle),
+                        badge = "HOT DEAL",
+                        cta = stringResource(id = R.string.home_banner_cta),
+                        gradientColors = listOf(PrimaryColor, PrimaryVariant),
+                        icon = Icons.Filled.LocalOffer,
+                        onClick = {
+                            onBannerClick(
+                                Voucher(
+                                    id = 0L,
+                                    code = "",
+                                    name = "",
+                                    description = "",
+                                    discountType = VoucherDiscountType.PERCENTAGE,
+                                    discountValue = 0.0,
+                                    maxDiscountAmount = null,
+                                    minOrderAmount = 0.0,
+                                    applicableService = "ALL",
+                                    usageLimit = null,
+                                    usedCount = 0,
+                                    perUserLimit = 0,
+                                    startDate = null,
+                                    endDate = null,
+                                    active = true
+                                )
+                            )
+                        }
+                    )
+                }
             }
         }
     }

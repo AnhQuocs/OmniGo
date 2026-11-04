@@ -16,6 +16,7 @@ class CreateRideBookingUseCase @Inject constructor(
         vehicleType: String? = null,
         pickupAddress: String? = null,
         dropoffAddress: String? = null,
+        expectedPrice: Double? = null,
         paymentMethod: String = "CASH"
     ): CreateRideBookingResult {
         if (!isValidCoordinate(startLatitude, startLongitude) || !isValidCoordinate(endLatitude, endLongitude)) {
@@ -33,6 +34,7 @@ class CreateRideBookingUseCase @Inject constructor(
             vehicleType = vehicleType,
             pickupAddress = pickupAddress,
             dropoffAddress = dropoffAddress,
+            expectedPrice = expectedPrice,
             paymentMethod = paymentMethod
         )
     }

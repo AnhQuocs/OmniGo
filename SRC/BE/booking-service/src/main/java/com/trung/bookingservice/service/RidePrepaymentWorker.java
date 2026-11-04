@@ -19,7 +19,7 @@ public class RidePrepaymentWorker {
             if (error.status() == 400 || error.status() == 422) {
                 try { bookings.cancelBooking(booking.getCustomerId(), id); }
                 catch (Exception cancelError) { log.warn("Prepayment cancellation pending for {}", id, cancelError); }
-                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Không thể thanh toán OmniPay. Hãy kiểm tra số dư ví.");
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "Không thể thanh toán OmniPay. Hãy kiểm tra số dư ví.");
             }
             log.warn("Ride prepayment pending for {}: {}", id, error.status());
         }

@@ -1,7 +1,7 @@
 package com.example.omnigo.features.customer.ride.presentation.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,17 +23,21 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
@@ -44,12 +47,14 @@ import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
+import com.example.omnigo.ui.theme.CardBorderColor
 import com.example.omnigo.ui.theme.OnPrimaryColor
 import com.example.omnigo.ui.theme.OutlineLight
 import com.example.omnigo.ui.theme.OutlineVariantLight
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.SuccessColor
+import com.example.omnigo.ui.theme.SurfaceLight
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextTertiary
@@ -57,6 +62,10 @@ import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
+import com.example.omnigo.utils.s13
+import com.example.omnigo.utils.s22
+import com.example.omnigo.utils.formatVnd
+import com.example.omnigo.utils.lineThrough
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
 import com.example.omnigo.utils.s20
@@ -67,10 +76,13 @@ import java.text.DecimalFormat
 fun RideTripReceiptDialog(
     booking: Booking,
     onDismiss: () -> Unit,
+    onSubmitReview: ((Int, String?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var selectedRating by remember { mutableIntStateOf(5) }
     val selectedTags = remember { mutableStateListOf<Int>() }
+    var commentText by remember { mutableStateOf("") }
 
     val feedbackTags = listOf(
         R.string.ride_trip_rating_tag_safe,
@@ -95,7 +107,6 @@ fun RideTripReceiptDialog(
                     .padding(Dimen.PaddingL),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Success Badge Icon
                 Box(
                     modifier = Modifier
                         .size(Dimen.SizeMega)
@@ -113,7 +124,6 @@ fun RideTripReceiptDialog(
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))
 
-                // Title
                 Text(
                     text = stringResource(id = R.string.ride_trip_completed_title),
                     style = MaterialTheme.typography.s20.bold(),
@@ -123,17 +133,53 @@ fun RideTripReceiptDialog(
 
                 Spacer(modifier = Modifier.height(AppSpacing.S))
 
-                // Total Fare
-                val formattedFare = DecimalFormat("#,###").format(booking.price) + " đ"
-                Text(
-                    text = formattedFare,
-                    style = MaterialTheme.typography.s20.bold(),
-                    color = PrimaryColor,
-                    textAlign = TextAlign.Center
-                )
+                val isDiscounted = booking.discountAmount > 0.0
+                val paymentMethodLabel = if (booking.paymentMethod?.uppercase() == "WALLET") {
+                    stringResource(id = R.string.checkout_payment_wallet)
+                } else {
+                    stringResource(id = R.string.active_trip_sheet_payment_cash)
+                }
+
+                if (isDiscounted) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.XXS)
+                    ) {
+                        Text(
+                            text = booking.finalPrice.formatVnd(),
+                            style = MaterialTheme.typography.s22.bold(),
+                            color = PrimaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.XS)
+                        ) {
+                            Text(
+                                text = booking.price.formatVnd(),
+                                style = MaterialTheme.typography.s13.normal().lineThrough(),
+                                color = TextTertiary
+                            )
+                            if (!booking.voucherCode.isNullOrBlank()) {
+                                Text(
+                                    text = "-${booking.discountAmount.formatVnd()}",
+                                    style = MaterialTheme.typography.s13.semiBold(),
+                                    color = SuccessColor
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = booking.price.formatVnd(),
+                        style = MaterialTheme.typography.s20.bold(),
+                        color = PrimaryColor,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 Text(
-                    text = stringResource(id = R.string.active_trip_sheet_payment_cash),
+                    text = paymentMethodLabel,
                     style = MaterialTheme.typography.s12.medium(),
                     color = TextTertiary
                 )
@@ -142,7 +188,6 @@ fun RideTripReceiptDialog(
                 HorizontalDivider(color = OutlineVariantLight, thickness = Dimen.PaddingXXS)
                 Spacer(modifier = Modifier.height(AppSpacing.M))
 
-                // Rating Prompt
                 Text(
                     text = stringResource(id = R.string.ride_trip_rating_prompt),
                     style = MaterialTheme.typography.s14.semiBold(),
@@ -151,7 +196,6 @@ fun RideTripReceiptDialog(
 
                 Spacer(modifier = Modifier.height(AppSpacing.S))
 
-                // 5 Star Rating Row
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -173,7 +217,6 @@ fun RideTripReceiptDialog(
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))
 
-                // Quick Feedback Tags Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -206,11 +249,45 @@ fun RideTripReceiptDialog(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    placeholder = {
+                        Text(
+                            text = stringResource(id = R.string.ride_review_comment_hint),
+                            style = MaterialTheme.typography.s13.normal(),
+                            color = TextSecondary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(AppShape.ShapeM),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryColor,
+                        unfocusedBorderColor = CardBorderColor,
+                        focusedContainerColor = SurfaceLight,
+                        unfocusedContainerColor = SurfaceLight
+                    ),
+                    maxLines = 3
+                )
+
                 Spacer(modifier = Modifier.height(AppSpacing.L))
 
-                // Complete Button
                 Button(
-                    onClick = onDismiss,
+                    onClick = {
+                        val tagLabels = selectedTags.map { context.getString(it) }
+                        val combinedComment = buildList {
+                            if (tagLabels.isNotEmpty()) add(tagLabels.joinToString(", "))
+                            if (commentText.isNotBlank()) add(commentText.trim())
+                        }.joinToString(" - ").takeIf { it.isNotBlank() }
+
+                        if (onSubmitReview != null) {
+                            onSubmitReview(selectedRating, combinedComment)
+                        } else {
+                            onDismiss()
+                        }
+                    },
                     shape = RoundedCornerShape(AppShape.ShapeM),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     modifier = Modifier
@@ -241,7 +318,7 @@ private fun TagItem(
     Surface(
         shape = RoundedCornerShape(AppShape.ShapeM),
         color = bgColor,
-        border = androidx.compose.foundation.BorderStroke(Dimen.PaddingXXS, borderColor),
+        border = BorderStroke(Dimen.PaddingXXS, borderColor),
         modifier = Modifier
             .clip(RoundedCornerShape(AppShape.ShapeM))
             .clickable(onClick = onClick)

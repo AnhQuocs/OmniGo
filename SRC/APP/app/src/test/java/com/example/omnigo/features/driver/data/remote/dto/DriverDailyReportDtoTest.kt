@@ -30,12 +30,12 @@ class DriverDailyReportDtoTest {
     }
 
     @Test
-    fun `toDomain calculates 80 percent net and 20 percent fee fallback when null`() {
+    fun `toDomain respects API commissionFee and derives driverEarnings without hardcoded rates`() {
         val dto = DriverDailyReportDto(
             totalTrips = 10,
             totalRevenue = 500000.0,
             driverEarnings = null,
-            platformFee = null,
+            platformFee = 100000.0,
             cashCollected = 300000.0,
             appPaid = 200000.0
         )
@@ -44,8 +44,8 @@ class DriverDailyReportDtoTest {
 
         assertEquals(10, domain.totalTrips)
         assertEquals(500000.0, domain.totalRevenue, 0.01)
-        assertEquals(400000.0, domain.driverEarnings, 0.01) // 80% of 500,000
-        assertEquals(100000.0, domain.platformFee, 0.01)    // 20% of 500,000
+        assertEquals(400000.0, domain.driverEarnings, 0.01)
+        assertEquals(100000.0, domain.platformFee, 0.01)
         assertEquals(300000.0, domain.cashCollected, 0.01)
         assertEquals(200000.0, domain.appPaid, 0.01)
     }

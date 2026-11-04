@@ -203,12 +203,21 @@ fun MainDriverScreen(
 
             composable(DriverBottomNavDestination.Account.route) {
                 DriverAccountScreen(
-                    onNavigateToLogin = onNavigateToLogin
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToReviews = {
+                        navController.navigate("driver_reviews")
+                    }
+                )
+            }
+
+            composable("driver_reviews") {
+                com.example.omnigo.features.driver.profile.presentation.ui.DriverReviewsScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
 
-        if (!isTripOrDeliveryActive) {
+        if (!isTripOrDeliveryActive && currentRoute != "driver_reviews") {
             DriverBottomNavBar(
                 currentRoute = currentRoute,
                 onNavigateToDestination = { destination ->

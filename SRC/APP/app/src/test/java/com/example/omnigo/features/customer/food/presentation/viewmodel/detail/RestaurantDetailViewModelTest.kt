@@ -202,7 +202,13 @@ class RestaurantDetailViewModelTest {
         assertEquals(1, state.totalCartQuantity)
         assertEquals(50000.0, state.totalCartAmount, 0.01)
 
-        // 4. Clear cart
+        // 4. Update quantity directly
+        viewModel.onUpdateCartQuantity(101L, 4)
+        state = viewModel.uiState.value
+        assertEquals(4, state.totalCartQuantity)
+        assertEquals(200000.0, state.totalCartAmount, 0.01)
+
+        // 5. Clear cart
         viewModel.onClearCart()
         state = viewModel.uiState.value
         assertEquals(0, state.totalCartQuantity)

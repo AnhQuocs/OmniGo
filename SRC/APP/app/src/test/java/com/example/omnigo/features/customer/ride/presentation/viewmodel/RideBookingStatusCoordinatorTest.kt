@@ -11,6 +11,8 @@ import com.example.omnigo.features.customer.ride.domain.usecase.GetBookingDriver
 import com.example.omnigo.features.customer.ride.domain.usecase.ObserveDriverLiveLocationUseCase
 import com.example.omnigo.features.customer.ride.domain.usecase.ObserveRideBookingStatusUseCase
 import com.example.omnigo.features.customer.ride.presentation.state.RideBookingUiState
+import com.example.omnigo.R
+import com.example.omnigo.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -204,7 +206,38 @@ class RideBookingStatusCoordinatorTest {
         assertNull(uiState.assignedDriver)
         assertNull(uiState.driverLiveLocation)
         assertFalse(uiState.isSearchingDriver)
+        assertEquals(UiText.StringResource(R.string.ride_driver_cancelled_toast), uiState.infoMessage)
         coVerify(exactly = 1) { rideSessionManager.clearActiveBookingId() }
+    }
+
+    @Test
+    fun `handleStatusEvent with CANCELLED by customer sets ride_booking_cancelled_success message`() = runTest {
+        uiState = uiState.copy(
+            currentBooking = sampleBooking.copy(status = BookingStatus.ACCEPTED),
+            isCancellingBooking = true
+        )
+
+        val cancelledEvent = RideStatusEvent(bookingId = 100L, status = BookingStatus.CANCELLED)
+        coordinator.handleStatusEvent(this, cancelledEvent, ::updateState, { uiState })
+        advanceUntilIdle()
+
+        assertEquals(UiText.StringResource(R.string.ride_booking_cancelled_success), uiState.infoMessage)
+    }
+
+    @Test
+    fun `handleStatusEvent with PENDING after driver assigned sets active_trip_banner_driver_cancelled message`() = runTest {
+        uiState = uiState.copy(
+            currentBooking = sampleBooking.copy(status = BookingStatus.ACCEPTED, driverId = 200L),
+            assignedDriver = sampleDriver
+        )
+
+        val pendingEvent = RideStatusEvent(bookingId = 100L, status = BookingStatus.PENDING)
+        coordinator.handleStatusEvent(this, pendingEvent, ::updateState, { uiState })
+        advanceUntilIdle()
+
+        assertEquals(UiText.StringResource(R.string.active_trip_banner_driver_cancelled), uiState.infoMessage)
+        assertNull(uiState.assignedDriver)
+        assertTrue(uiState.isSearchingDriver)
     }
 
     @Test

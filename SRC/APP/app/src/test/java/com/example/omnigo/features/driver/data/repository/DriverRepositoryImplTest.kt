@@ -101,13 +101,8 @@ class DriverRepositoryImplTest {
             speed = 10f,
             timestamp = 1690000000000L
         )
-        val apiResponse: ApiResponse<Any> = ApiResponse(
-            success = true,
-            message = "Location updated",
-            data = "OK",
-            timestamp = null
-        )
-        coEvery { driverApi.sendDriverLocation(request) } returns apiResponse
+        val responseBody = okhttp3.ResponseBody.create(null, "OK")
+        coEvery { driverApi.sendDriverLocation(request) } returns retrofit2.Response.success(responseBody)
 
         val result = repository.sendDriverLocation(update)
 

@@ -121,13 +121,19 @@ class RideBookingStatusCoordinator @Inject constructor(
             BookingStatus.CANCELLED -> {
                 onCancelCountdown()
                 stopObservingDriverLocation(updateState)
+                val hadDriver = currentState.assignedDriver != null || currentState.currentBooking?.driverId != null
+                val cancelMessage = when {
+                    currentState.isCancellingBooking -> UiText.StringResource(R.string.ride_booking_cancelled_success)
+                    hadDriver -> UiText.StringResource(R.string.ride_driver_cancelled_toast)
+                    else -> UiText.StringResource(R.string.ride_trip_cancelled_by_system)
+                }
                 updateState {
                     it.copy(
                         isSearchingDriver = false,
                         showSearchTimeoutDialog = false,
                         currentBooking = null,
                         assignedDriver = null,
-                        infoMessage = UiText.StringResource(R.string.ride_booking_cancelled_success),
+                        infoMessage = cancelMessage,
                         tripStatusMessage = null
                     )
                 }
@@ -136,10 +142,15 @@ class RideBookingStatusCoordinator @Inject constructor(
                 }
             }
             BookingStatus.PENDING -> {
+                val hadDriver = currentState.assignedDriver != null || currentState.currentBooking?.driverId != null
+                val driverCancelMsg = if (hadDriver) UiText.StringResource(R.string.active_trip_banner_driver_cancelled) else null
                 updateState {
                     it.copy(
                         isSearchingDriver = true,
-                        currentBooking = it.currentBooking?.copy(status = BookingStatus.PENDING)
+                        assignedDriver = null,
+                        driverLiveLocation = null,
+                        infoMessage = driverCancelMsg ?: it.infoMessage,
+                        currentBooking = it.currentBooking?.copy(status = BookingStatus.PENDING, driverId = null)
                     )
                 }
             }

@@ -1753,6 +1753,8 @@
                         }).catch(e => console.warn("Lỗi load route cho driver:", e));
                 });
 
+                restoreActiveRide();
+
                 // Lắng nghe đơn Giao Đồ Ăn (Food Delivery)
                 stompBookingClient.subscribe('/user/queue/driver/food-match', function (message) {
                     let foodOrder = JSON.parse(message.body);

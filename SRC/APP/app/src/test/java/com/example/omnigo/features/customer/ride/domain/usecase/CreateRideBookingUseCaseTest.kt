@@ -42,6 +42,22 @@ class CreateRideBookingUseCaseTest {
     }
 
     @Test
+    fun `wallet selection is forwarded with fare to booking request`() = runTest {
+        coEvery { rideBookingRepository.createBooking(any(), any(), any(), any(), any(), any(), any(), 60000.0, "WALLET") } returns CreateRideBookingResult.Success(sampleBooking)
+        val result = useCase(21.0285, 105.8542, 21.0333, 105.8433, expectedPrice = 60000.0, paymentMethod = "WALLET")
+        assertTrue(result is CreateRideBookingResult.Success)
+        coVerify(exactly = 1) { rideBookingRepository.createBooking(any(), any(), any(), any(), any(), any(), any(), 60000.0, "WALLET") }
+    }
+
+    @Test
+    fun `booking forwards displayed price for server validation`() = runTest {
+        coEvery { rideBookingRepository.createBooking(any(), any(), any(), any(), any(), any(), any(), 32000.0) } returns CreateRideBookingResult.Success(sampleBooking)
+        val result = useCase(21.0285, 105.8542, 21.0333, 105.8433, expectedPrice = 32000.0)
+        assertTrue(result is CreateRideBookingResult.Success)
+        coVerify(exactly = 1) { rideBookingRepository.createBooking(any(), any(), any(), any(), any(), any(), any(), 32000.0) }
+    }
+
+    @Test
     fun `invoke with valid coordinates delegates to repository and returns success`() = runTest {
         coEvery {
             rideBookingRepository.createBooking(

@@ -17,6 +17,8 @@ data class BookingRequest(
     val pickupAddress: String? = null,
     @SerializedName("dropoffAddress")
     val dropoffAddress: String? = null,
+    @SerializedName("expectedPrice")
+    val expectedPrice: Double? = null,
     @SerializedName("paymentMethod")
     val paymentMethod: String = "CASH"
 )

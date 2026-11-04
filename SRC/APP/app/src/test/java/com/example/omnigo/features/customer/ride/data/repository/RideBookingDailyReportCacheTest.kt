@@ -48,7 +48,8 @@ class RideBookingDailyReportCacheTest {
     fun setUp() {
         rideBookingApi = mockk()
         stompSource = mockk<RideStompSubscriptionSource>(relaxed = true)
-        repository = RideBookingRepositoryImpl(rideBookingApi, stompSource).apply {
+        val idempotencyKeyManager = mockk<com.example.omnigo.core.network.idempotency.IdempotencyKeyManager>(relaxed = true)
+        repository = RideBookingRepositoryImpl(rideBookingApi, stompSource, idempotencyKeyManager).apply {
             clock = { currentTime }
         }
     }

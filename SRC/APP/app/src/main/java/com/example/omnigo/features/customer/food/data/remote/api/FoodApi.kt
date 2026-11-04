@@ -28,6 +28,7 @@ import retrofit2.http.Query
 
 
 import com.example.omnigo.features.customer.food.data.remote.dto.CancelFoodOrderRequest
+import retrofit2.http.Header
 import retrofit2.http.PATCH
 
 interface FoodApi {
@@ -50,6 +51,7 @@ interface FoodApi {
 
     @POST(ApiEndpoints.FOOD_ORDERS)
     suspend fun createFoodOrder(
+        @Header("Idempotency-Key") idempotencyKey: String? = null,
         @Body request: FoodOrderRequest
     ): ApiResponse<FoodOrderResponse>
 
@@ -81,4 +83,9 @@ interface FoodApi {
     suspend fun getDriverProfile(
         @Path("id") driverId: Long
     ): ApiResponse<DriverProfileResponse>
+
+    @POST(ApiEndpoints.PRICING_DELIVERY_FEE)
+    suspend fun calculateDeliveryFee(
+        @Body request: com.example.omnigo.features.customer.promos.data.remote.dto.DeliveryFeeRequestDto
+    ): okhttp3.ResponseBody
 }

@@ -32,6 +32,8 @@ object Dimen {
     val SizeUltra = 120.dp
 
     val HeightDefault = 48.dp
+    val HeightTopBar = 56.dp
+    val HeightInputField = 52.dp
 
     val SizeVehicleMarkerWidth = 28.dp
     val SizeVehicleMarkerHeight = 42.dp
@@ -76,4 +78,13 @@ object Dimen {
     val HeightEarningsChartContainer = 170.dp
     val HeightPillButtonSmall = 36.dp
     val HeightBottomNavPadding = 100.dp
+    val WidthTicketStub = 96.dp
+    val SizeTicketNotch = 10.dp
+
+    // Elevation
+    val ElevationNone = 0.dp
+    val ElevationXS = 1.dp
+    val ElevationS = 2.dp
+    val ElevationM = 4.dp
+    val ElevationL = 8.dp
 }

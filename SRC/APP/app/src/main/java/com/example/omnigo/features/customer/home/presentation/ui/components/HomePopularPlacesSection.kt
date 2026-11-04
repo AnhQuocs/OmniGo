@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Restaurant
@@ -47,6 +48,7 @@ import com.example.omnigo.features.customer.food.domain.util.RestaurantPriceRang
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
+import com.example.omnigo.ui.theme.ErrorColor
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.SecondaryContainer
@@ -72,7 +74,9 @@ fun HomePopularPlacesSection(
     onPlaceClick: (String) -> Unit,
     onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier,
-    userLocation: UserLocation? = null
+    userLocation: UserLocation? = null,
+    favoriteRestaurantIds: Set<Long> = emptySet(),
+    onToggleFavorite: (Long) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -103,10 +107,13 @@ fun HomePopularPlacesSection(
 
         Spacer(modifier = Modifier.height(AppSpacing.M))
 
-        popularRestaurants.forEach { restaurant ->
+        popularRestaurants.take(3).forEach { restaurant ->
+            val isFavorite = favoriteRestaurantIds.contains(restaurant.id)
             PopularPlaceItem(
                 restaurant = restaurant,
                 userLocation = userLocation,
+                isFavorite = isFavorite,
+                onToggleFavorite = { onToggleFavorite(restaurant.id) },
                 onClick = { onPlaceClick(restaurant.id.toString()) }
             )
             Spacer(modifier = Modifier.height(AppSpacing.SPlus))
@@ -118,6 +125,8 @@ fun HomePopularPlacesSection(
 private fun PopularPlaceItem(
     restaurant: Restaurant,
     userLocation: UserLocation?,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -155,16 +164,23 @@ private fun PopularPlaceItem(
                         .align(Alignment.TopEnd)
                         .padding(Dimen.PaddingXSPlus)
                         .size(Dimen.SizeML)
-                        .background(Color.Black.copy(alpha = 0.45f), CircleShape),
+                        .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                        .clip(CircleShape)
+                        .clickable(onClick = onToggleFavorite),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.FavoriteBorder,
-                        contentDescription = null,
-                        tint = TextWhite,
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) ErrorColor else TextWhite,
                         modifier = Modifier.size(Dimen.SizeS)
                     )
                 }
+
+                val isOpen = restaurant.isOpen
+                val statusDotColor = if (isOpen) SuccessColor else TextTertiary
+                val statusTextColor = if (isOpen) SuccessColor else TextSecondary
+                val statusTextRes = if (isOpen) R.string.home_popular_status_open else R.string.home_popular_status_closed
 
                 Surface(
                     shape = CircleShape,
@@ -184,13 +200,13 @@ private fun PopularPlaceItem(
                         Box(
                             modifier = Modifier
                                 .size(Dimen.PaddingXSPlus)
-                                .background(SuccessColor, CircleShape)
+                                .background(statusDotColor, CircleShape)
                         )
                         Spacer(modifier = Modifier.width(AppSpacing.XS))
                         Text(
-                            text = stringResource(id = R.string.home_popular_status_open),
+                            text = stringResource(id = statusTextRes),
                             style = MaterialTheme.typography.s10.bold(),
-                            color = SuccessColor
+                            color = statusTextColor
                         )
                     }
                 }

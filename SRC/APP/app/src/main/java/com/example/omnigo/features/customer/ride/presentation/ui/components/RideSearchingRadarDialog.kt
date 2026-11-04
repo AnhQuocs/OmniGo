@@ -52,6 +52,7 @@ import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
+import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
@@ -277,4 +278,54 @@ private fun RadarPulseAnimation(
             )
         }
     }
+}
+
+
+@Composable
+fun RideSearchTimeoutDialog(
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = stringResource(id = R.string.ride_search_timeout_dialog_title),
+                style = MaterialTheme.typography.s18.bold(),
+                color = TextPrimary
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(id = R.string.ride_search_timeout_dialog_message),
+                style = MaterialTheme.typography.s14.normal(),
+                color = TextPrimary
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                shape = RoundedCornerShape(AppShape.ShapeM)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.ride_search_timeout_btn_retry),
+                    style = MaterialTheme.typography.s14.semiBold()
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onCancel,
+                shape = RoundedCornerShape(AppShape.ShapeM)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.ride_search_timeout_btn_cancel),
+                    style = MaterialTheme.typography.s14.normal()
+                )
+            }
+        },
+        modifier = modifier
+    )
 }

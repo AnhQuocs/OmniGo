@@ -10,6 +10,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.omnigo.core.location.model.UserLocation
 import com.example.omnigo.core.security.CryptoManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -208,6 +211,13 @@ class SessionManager @Inject constructor(
             addressName = name,
             fullAddress = full
         )
+    }
+
+    private val _sessionExpiredEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val sessionExpiredEvent: SharedFlow<Unit> = _sessionExpiredEvent.asSharedFlow()
+
+    fun notifySessionExpired() {
+        _sessionExpiredEvent.tryEmit(Unit)
     }
 
     suspend fun clearSession() {

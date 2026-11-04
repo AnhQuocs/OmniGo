@@ -133,15 +133,13 @@ public class BookingServiceImpl implements BookingService {
         try {
             pricingInfo = pricingClient.calculatePrice(pricingRequest, supplyCount);
         } catch (Exception e) {
-            log.error("Lỗi khi gọi pricing-service, tự động áp dụng giá cơ sở fallback. Chi tiết: {}", e.getMessage());
-            double distanceFallback = LocationUtils.calculateDistance(
-                    request.getStartLatitude(), request.getStartLongitude(),
-                    request.getEndLatitude(), request.getEndLongitude()
-            );
-            pricingInfo = new PricingResponse();
-            pricingInfo.setTotalPrice(Math.round(distanceFallback * 20000.0));
-            pricingInfo.setDistanceInKm(distanceFallback);
-            pricingInfo.setSurgeMultiplier(1.0);
+            log.error("Không thể xác nhận giá chuyến xe: {}", e.getMessage());
+            throw new BadRequestException("Không thể xác nhận giá chuyến xe. Vui lòng thử lại.");
+        }
+
+        if (request.getExpectedPrice() != null &&
+                Double.compare(request.getExpectedPrice(), pricingInfo.getTotalPrice()) != 0) {
+            throw new BadRequestException("Giá chuyến xe đã thay đổi. Vui lòng xem giá mới và đặt lại.");
         }
 
         Booking booking = Booking.builder()
@@ -225,15 +223,10 @@ public class BookingServiceImpl implements BookingService {
 
                     BookingResponse response = convertToResponse(booking, booking.getDistanceInKm());
 
-                    // Bắn WebSocket mời nhận cuốc
-                    messagingTemplate.convertAndSendToUser(
-                            driverId.toString(),
-                            "/queue/driver/match",
-                            response
-                    );
-
-                    // Gọi tiến trình ngầm đếm ngược 20s
-                    bookingTimeoutService.checkTimeoutAndCancel(booking.getId(), driverId);
+                    afterBookingCommit(() -> {
+                        messagingTemplate.convertAndSendToUser(driverId.toString(), "/queue/driver/match", response);
+                        bookingTimeoutService.checkTimeoutAndCancel(booking.getId(), driverId);
+                    });
 
                     return response;
                 } else {
@@ -261,7 +254,17 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.PENDING);
         bookingRepository.saveAndFlush(booking);
         double radius = dispatchConfigService.getMaxRideDistanceKm();
-        return dispatchBooking(booking, radius, locationClient.getNearbyDrivers(booking.getStartLongitude(), booking.getStartLatitude(), radius));
+        BookingResponse response = dispatchBooking(booking, radius, locationClient.getNearbyDrivers(booking.getStartLongitude(), booking.getStartLatitude(), radius));
+        afterBookingCommit(() -> messagingTemplate.convertAndSendToUser(booking.getCustomerId().toString(), "/queue/booking/status", response));
+        return response;
+    }
+
+    private void afterBookingCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override public void afterCommit() { action.run(); }
+            });
+        } else action.run();
     }
 
     public BookingResponse currentResponse(Long id) {
@@ -294,6 +297,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+        financialOutbox.enqueue(bookingId);
 
         log.info("Khách hàng {} đã chủ động hủy chuyến đi #{}", customerId, bookingId);
 
@@ -566,6 +570,7 @@ public class BookingServiceImpl implements BookingService {
         wsMessage.put("driverId", response.getDriverId());
         wsMessage.put("price", response.getPrice());
         wsMessage.put("paymentMethod", paymentMethod);
+        wsMessage.put("prepaid", booking.isPrepaid()); wsMessage.put("paid", booking.isPaid());
 
         messagingTemplate.convertAndSendToUser(
                 booking.getCustomerId().toString(),

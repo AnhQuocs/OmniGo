@@ -8,9 +8,9 @@ data class DriverDailyReportDto(
     val totalTrips: Int? = null,
     @SerializedName(value = "totalRevenue", alternate = ["totalEarnings", "grossRevenue", "totalAmount"])
     val totalRevenue: Double? = null,
-    @SerializedName(value = "driverEarnings", alternate = ["netEarnings", "netIncome", "actualEarnings"])
+    @SerializedName(value = "driverEarnings", alternate = ["netEarnings", "netIncome", "actualEarnings", "income"])
     val driverEarnings: Double? = null,
-    @SerializedName(value = "platformFee", alternate = ["commissionFee", "serviceFee"])
+    @SerializedName(value = "platformFee", alternate = ["commissionFee", "serviceFee", "commission"])
     val platformFee: Double? = null,
     @SerializedName(value = "cashCollected", alternate = ["cashEarnings", "cashAmount"])
     val cashCollected: Double? = null,
@@ -19,8 +19,9 @@ data class DriverDailyReportDto(
 ) {
     fun toDomain(): DriverDailyReport {
         val revenue = totalRevenue ?: 0.0
-        val earnings = driverEarnings ?: (revenue * 0.80)
-        val fee = platformFee ?: (revenue * 0.20)
+        // Lấy commissionFee và driverEarnings thực tế từ API, không tự ý nhân 20% hay 80%
+        val fee = platformFee ?: if (driverEarnings != null) (revenue - driverEarnings).coerceAtLeast(0.0) else 0.0
+        val earnings = driverEarnings ?: if (platformFee != null) (revenue - platformFee).coerceAtLeast(0.0) else revenue
         return DriverDailyReport(
             totalTrips = totalTrips ?: 0,
             totalRevenue = revenue,

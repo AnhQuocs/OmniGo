@@ -62,7 +62,7 @@ fun FoodOrderDetailActionSection(
         else -> false
     }
 
-    val canSwitchToCash = order.paymentMethod != PaymentMethod.CASH &&
+    val canSwitchToCash = false &&
             order.isPaid != true &&
             (upperStatus == "PENDING" || upperStatus == "AWAITING_PAYMENT")
 

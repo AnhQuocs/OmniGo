@@ -25,6 +25,7 @@ interface RideBookingRepository {
         vehicleType: String? = null,
         pickupAddress: String? = null,
         dropoffAddress: String? = null,
+        expectedPrice: Double? = null,
         paymentMethod: String = "CASH"
     ): CreateRideBookingResult
 

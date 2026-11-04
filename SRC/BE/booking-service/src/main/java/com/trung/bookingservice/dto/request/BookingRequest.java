@@ -2,6 +2,7 @@ package com.trung.bookingservice.dto.request;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,6 +23,8 @@ public class BookingRequest {
 
     @Pattern(regexp = "CASH|WALLET")
     private String paymentMethod = "CASH";
+    @PositiveOrZero
+    private Double expectedPrice;
 
     private String vehicleType;
     private String pickupAddress;

@@ -11,8 +11,8 @@ data class CreateFoodReviewRequest(
     val restaurantComment: String? = null,
     @SerializedName("driverRating")
     val driverRating: Int,
-    @SerializedName("driverTags")
-    val driverTags: List<String>? = null,
-    @SerializedName("reviewPhotos")
-    val reviewPhotos: List<String>? = null
+    @SerializedName("driverComment")
+    val driverComment: String? = null,
+    @SerializedName("images")
+    val images: List<String>? = null
 )

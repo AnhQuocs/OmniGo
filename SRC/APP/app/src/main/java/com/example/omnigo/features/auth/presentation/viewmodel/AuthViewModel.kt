@@ -17,6 +17,7 @@ import com.example.omnigo.features.auth.domain.usecase.LogoutUseCase
 import com.example.omnigo.features.auth.domain.usecase.RegisterCustomerUseCase
 import com.example.omnigo.features.auth.domain.usecase.RegisterDriverUseCase
 import com.example.omnigo.features.auth.domain.usecase.RegisterResult
+import com.example.omnigo.features.auth.domain.usecase.ResetPasswordUseCase
 import com.example.omnigo.features.auth.domain.usecase.SendOtpUseCase
 import com.example.omnigo.features.auth.domain.usecase.UploadDriverDocumentUseCase
 import com.example.omnigo.features.auth.domain.usecase.VerifyOtpUseCase
@@ -60,6 +61,14 @@ sealed interface LogoutUiState {
     data class Error(val message: UiText) : LogoutUiState
 }
 
+sealed interface ResetPasswordUiState {
+    data object Idle : ResetPasswordUiState
+    data object Loading : ResetPasswordUiState
+    data class OtpSent(val phoneNumber: String) : ResetPasswordUiState
+    data class Success(val message: String) : ResetPasswordUiState
+    data class Error(val message: String) : ResetPasswordUiState
+}
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val sendOtpUseCase: SendOtpUseCase,
@@ -68,7 +77,10 @@ class AuthViewModel @Inject constructor(
     private val registerDriverUseCase: RegisterDriverUseCase,
     private val uploadDriverDocumentUseCase: UploadDriverDocumentUseCase,
     private val loginUseCase: LoginUseCase,
-    private val logoutUseCase: LogoutUseCase
+    private val logoutUseCase: LogoutUseCase,
+    private val resetPasswordUseCase: ResetPasswordUseCase,
+    private val sendServerOtpUseCase: com.example.omnigo.features.auth.domain.usecase.SendServerOtpUseCase? = null,
+    private val verifyServerOtpUseCase: com.example.omnigo.features.auth.domain.usecase.VerifyServerOtpUseCase? = null
 ) : ViewModel() {
 
     private val _otpUiState = MutableStateFlow<OtpUiState>(OtpUiState.Idle)
@@ -82,6 +94,9 @@ class AuthViewModel @Inject constructor(
 
     private val _logoutUiState = MutableStateFlow<LogoutUiState>(LogoutUiState.Idle)
     val logoutUiState: StateFlow<LogoutUiState> = _logoutUiState.asStateFlow()
+
+    private val _resetPasswordUiState = MutableStateFlow<ResetPasswordUiState>(ResetPasswordUiState.Idle)
+    val resetPasswordUiState: StateFlow<ResetPasswordUiState> = _resetPasswordUiState.asStateFlow()
 
     fun sendOtp(phoneNumber: String, activity: Activity) {
         viewModelScope.launch {
@@ -156,10 +171,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun login(phoneNumber: String, password: String) {
+    fun login(phoneNumber: String, pass: String) {
         viewModelScope.launch {
             _loginUiState.value = LoginUiState.Loading
-            when (val result = loginUseCase(phoneNumber, password)) {
+            when (val result = loginUseCase(phoneNumber, pass)) {
                 is LoginResult.Success -> {
                     _loginUiState.value = LoginUiState.Success(result.user)
                 }
@@ -173,13 +188,65 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun sendPasswordResetOtp(phoneNumber: String) {
+        viewModelScope.launch {
+            _resetPasswordUiState.value = ResetPasswordUiState.Loading
+            val res = sendServerOtpUseCase?.invoke(phoneNumber) ?: Result.success("OTP sent")
+            res.fold(
+                onSuccess = {
+                    _resetPasswordUiState.value = ResetPasswordUiState.OtpSent(phoneNumber)
+                },
+                onFailure = { err ->
+                    _resetPasswordUiState.value = ResetPasswordUiState.Error(err.message ?: "Gửi mã OTP thất bại")
+                }
+            )
+        }
+    }
+
+    fun resetPassword(phoneNumber: String, newPass: String, confirmPass: String, otpCode: String = "") {
+        viewModelScope.launch {
+            _resetPasswordUiState.value = ResetPasswordUiState.Loading
+            val token = if (otpCode.isNotBlank() && verifyServerOtpUseCase != null) {
+                val verifyRes = verifyServerOtpUseCase.invoke(phoneNumber, otpCode)
+                if (verifyRes.isFailure) {
+                    _resetPasswordUiState.value = ResetPasswordUiState.Error(
+                        verifyRes.exceptionOrNull()?.message ?: "Mã OTP không hợp lệ"
+                    )
+                    return@launch
+                }
+                verifyRes.getOrNull() ?: "DEFAULT_TOKEN"
+            } else {
+                "DEFAULT_TOKEN"
+            }
+
+            val result = resetPasswordUseCase(
+                phoneNumber = phoneNumber,
+                email = null,
+                verificationToken = token,
+                newPassword = newPass,
+                confirmPassword = confirmPass
+            )
+            result.fold(
+                onSuccess = { msg ->
+                    _resetPasswordUiState.value = ResetPasswordUiState.Success(msg)
+                },
+                onFailure = { err ->
+                    _resetPasswordUiState.value = ResetPasswordUiState.Error(err.message ?: "Đặt lại mật khẩu thất bại")
+                }
+            )
+        }
+    }
+
+    fun resetResetPasswordState() {
+        _resetPasswordUiState.value = ResetPasswordUiState.Idle
+    }
+
     fun logout() {
         viewModelScope.launch {
             _logoutUiState.value = LogoutUiState.Loading
             when (val result = logoutUseCase()) {
                 is LogoutResult.Success -> {
                     _logoutUiState.value = LogoutUiState.Success
-                    // Reset all other states
                     _loginUiState.value = LoginUiState.Idle
                     _registerUiState.value = RegisterUiState.Idle
                     _otpUiState.value = OtpUiState.Idle

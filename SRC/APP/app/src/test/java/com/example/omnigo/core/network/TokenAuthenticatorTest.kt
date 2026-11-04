@@ -4,8 +4,10 @@ import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.features.auth.domain.repository.AuthRepository
 import dagger.Lazy
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import okhttp3.Protocol
 import okhttp3.Request
@@ -24,7 +26,7 @@ class TokenAuthenticatorTest {
 
     @Before
     fun setUp() {
-        sessionManager = mockk()
+        sessionManager = mockk(relaxed = true)
         authRepository = mockk()
         authRepositoryProvider = mockk()
         every { authRepositoryProvider.get() } returns authRepository
@@ -47,15 +49,31 @@ class TokenAuthenticatorTest {
     }
 
     @Test
+    fun `authenticate returns null immediately for auth endpoints without refreshing`() = runTest {
+        val request = Request.Builder().url("http://localhost/api/v1/auth/refresh-token").build()
+        val response = Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(401)
+            .message("Unauthorized")
+            .build()
+
+        val result = authenticator.authenticate(null, response)
+
+        assertNull(result)
+        coVerify(exactly = 0) { authRepository.refreshToken() }
+    }
+
+    @Test
     fun `authenticate returns new request if token was already refreshed by another thread`() = runTest {
         val oldToken = "old_token"
         val newToken = "new_token"
-        
+
         val request = Request.Builder()
-            .url("http://localhost/")
+            .url("http://localhost/api/v1/food-orders")
             .header("Authorization", "Bearer $oldToken")
             .build()
-        
+
         val response = Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
@@ -74,12 +92,12 @@ class TokenAuthenticatorTest {
     fun `authenticate calls refreshToken and returns new request on success`() = runTest {
         val oldToken = "old_token"
         val newToken = "new_token"
-        
+
         val request = Request.Builder()
-            .url("http://localhost/")
+            .url("http://localhost/api/v1/food-orders")
             .header("Authorization", "Bearer $oldToken")
             .build()
-        
+
         val response = Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
@@ -96,14 +114,14 @@ class TokenAuthenticatorTest {
     }
 
     @Test
-    fun `authenticate returns null if refreshToken fails`() = runTest {
-        val token = "some_token"
-        
+    fun `authenticate clears session and notifies expired when refreshToken fails`() = runTest {
+        val token = "expired_token"
+
         val request = Request.Builder()
-            .url("http://localhost/")
+            .url("http://localhost/api/v1/food-orders")
             .header("Authorization", "Bearer $token")
             .build()
-        
+
         val response = Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
@@ -117,5 +135,7 @@ class TokenAuthenticatorTest {
         val result = authenticator.authenticate(null, response)
 
         assertNull(result)
+        coVerify(exactly = 1) { sessionManager.clearSession() }
+        verify(exactly = 1) { sessionManager.notifySessionExpired() }
     }
 }

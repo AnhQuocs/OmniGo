@@ -4,6 +4,7 @@ import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
 import com.example.omnigo.features.customer.ride.domain.model.Booking
 import com.example.omnigo.features.customer.ride.domain.model.BookingDriverProfile
+import com.example.omnigo.features.customer.ride.domain.model.BookingReview
 
 enum class ActivityTab {
     ONGOING,
@@ -27,6 +28,10 @@ data class ActivityUiState(
     val activeRideState: ActiveRideState? = null,
     val cancelConfirmBookingId: Long? = null,
     val isCancellingBooking: Boolean = false,
+    val selectedHistoryBooking: Booking? = null,
+    val selectedBookingReview: BookingReview? = null,
+    val isLoadingRideDetail: Boolean = false,
+    val isSubmittingRideReview: Boolean = false,
     val errorMessage: String? = null
 ) {
     val ongoingCount: Int

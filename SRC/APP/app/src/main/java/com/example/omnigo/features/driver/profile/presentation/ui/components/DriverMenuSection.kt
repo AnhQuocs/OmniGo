@@ -58,9 +58,28 @@ fun DriverMenuSection(
     onChangeLanguage: () -> Unit,
     onOpenTerms: () -> Unit,
     onHelpCenter: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenReviews: () -> Unit = {}
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // Item 0: Đánh giá của khách hàng (Ride & Food Reviews)
+        DriverMenuItemCard(
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_star),
+                    contentDescription = null,
+                    tint = PeachOrangePrimary,
+                    modifier = Modifier.size(Dimen.SizeM)
+                )
+            },
+            iconBgColor = PeachOrangeContainer,
+            title = stringResource(id = R.string.driver_reviews_menu_title),
+            subtitle = stringResource(id = R.string.driver_reviews_menu_sub),
+            onClick = onOpenReviews
+        )
+
+        Spacer(modifier = Modifier.height(AppSpacing.SPlus))
+
         // Item 1: Hồ sơ cá nhân (Pastel Blue)
         DriverMenuItemCard(
             icon = {
@@ -142,6 +161,7 @@ private fun DriverMenuItemCard(
     onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = Modifier
@@ -151,7 +171,6 @@ private fun DriverMenuItemCard(
                 color = CardBorderColor,
                 shape = RoundedCornerShape(AppShape.ShapeL)
             )
-            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier

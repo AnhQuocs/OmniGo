@@ -1,198 +1,137 @@
 package com.example.omnigo.features.customer.food.data.repository
 
-
-
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
+import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.customer.food.data.mapper.toDomain
 import com.example.omnigo.features.customer.food.data.mapper.toRequest
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
+import com.example.omnigo.features.customer.food.data.remote.dto.CancelFoodOrderRequest
 import com.example.omnigo.features.customer.food.domain.error.FoodError
+import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.CreateFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.FoodOrderCreateCommand
 import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
-
 import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetailResult
-
 import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
-
-import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
-
-import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
-
-import com.example.omnigo.features.customer.food.data.remote.dto.CancelFoodOrderRequest
-import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
 import com.example.omnigo.features.customer.food.domain.model.GetMyFoodOrdersResult
+import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
+import com.example.omnigo.features.customer.food.domain.model.GetRestaurantsResult
 import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
 import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
 import com.example.omnigo.features.customer.food.domain.repository.FoodRepository
+import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 
-
-
 class FoodRepositoryImpl @Inject constructor(
-
-    private val foodApi: FoodApi
-
+    private val foodApi: FoodApi,
+    private val idempotencyKeyManager: IdempotencyKeyManager
 ) : FoodRepository {
 
-
-
     override suspend fun getRestaurants(search: String?): GetRestaurantsResult {
-
         return try {
-
             val response = foodApi.getRestaurants(search = search)
-
             if (response.success && response.data != null) {
-
                 GetRestaurantsResult.Success(response.data.map { it.toDomain() })
-
             } else {
-
                 GetRestaurantsResult.Error(FoodError.SERVER_ERROR)
-
             }
-
+        } catch (e: HttpException) {
+            GetRestaurantsResult.Error(FoodError.SERVER_ERROR)
         } catch (e: IOException) {
-
             GetRestaurantsResult.Error(FoodError.NETWORK_ERROR)
-
         } catch (e: Exception) {
-
             GetRestaurantsResult.Error(FoodError.UNKNOWN_ERROR)
-
         }
-
     }
-
-
 
     override suspend fun getRestaurantDetail(id: Long): GetRestaurantDetailResult {
-
         return try {
-
             val response = foodApi.getRestaurantDetail(id)
-
             if (response.success && response.data != null) {
-
                 GetRestaurantDetailResult.Success(response.data.toDomain())
-
             } else {
-
                 GetRestaurantDetailResult.Error(FoodError.SERVER_ERROR)
-
             }
-
+        } catch (e: HttpException) {
+            GetRestaurantDetailResult.Error(FoodError.SERVER_ERROR)
         } catch (e: IOException) {
-
             GetRestaurantDetailResult.Error(FoodError.NETWORK_ERROR)
-
         } catch (e: Exception) {
-
             GetRestaurantDetailResult.Error(FoodError.UNKNOWN_ERROR)
-
         }
-
     }
-
-
 
     override suspend fun getRestaurantItems(
-
         restaurantId: Long,
-
         availableOnly: Boolean
-
     ): GetMenuItemsResult {
-
         return try {
-
             val response = foodApi.getRestaurantItems(restaurantId, availableOnly)
-
             if (response.success && response.data != null) {
-
                 GetMenuItemsResult.Success(response.data.map { it.toDomain() })
-
             } else {
-
                 GetMenuItemsResult.Error(FoodError.SERVER_ERROR)
-
             }
-
+        } catch (e: HttpException) {
+            GetMenuItemsResult.Error(FoodError.SERVER_ERROR)
         } catch (e: IOException) {
-
             GetMenuItemsResult.Error(FoodError.NETWORK_ERROR)
-
         } catch (e: Exception) {
-
             GetMenuItemsResult.Error(FoodError.UNKNOWN_ERROR)
-
         }
-
     }
-
-
 
     override suspend fun createFoodOrder(command: FoodOrderCreateCommand): CreateFoodOrderResult {
+        val itemsFingerprint = command.items.map { "${it.menuItemId}x${it.quantity}" }.sorted().joinToString()
+        val fingerprint = "FOOD_${command.restaurantId}_${itemsFingerprint}_${command.dropOffLatitude}_${command.dropOffLongitude}"
+        val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER, fingerprint)
         return try {
-            val response = foodApi.createFoodOrder(command.toRequest())
-
+            val response = foodApi.createFoodOrder(idempotencyKey = key, request = command.toRequest())
             if (response.success && response.data != null) {
-
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER)
                 CreateFoodOrderResult.Success(response.data.toDomain())
-
             } else {
-
                 CreateFoodOrderResult.Error(
-
                     error = FoodError.SERVER_ERROR,
-
                     message = response.message
-
                 )
-
             }
-
+        } catch (e: HttpException) {
+            if (e.code() == 422) {
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER)
+            }
+            val backendMessage = e.toBackendMessage()
+            CreateFoodOrderResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
-
             CreateFoodOrderResult.Error(FoodError.NETWORK_ERROR, e.message)
-
         } catch (e: Exception) {
-
             CreateFoodOrderResult.Error(FoodError.UNKNOWN_ERROR, e.message)
-
         }
-
     }
 
-
-
     override suspend fun getFoodOrderDetail(orderId: Long): GetFoodOrderDetailResult {
-
         return try {
-
             val response = foodApi.getFoodOrderDetail(orderId)
-
             if (response.success && response.data != null) {
-
                 GetFoodOrderDetailResult.Success(response.data.toDomain())
-
             } else {
-
                 GetFoodOrderDetailResult.Error(
-
                     error = FoodError.SERVER_ERROR,
-
                     message = response.message
-
                 )
-
             }
-
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            GetFoodOrderDetailResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
-
             GetFoodOrderDetailResult.Error(FoodError.NETWORK_ERROR, e.message)
-
         } catch (e: Exception) {
             GetFoodOrderDetailResult.Error(FoodError.UNKNOWN_ERROR, e.message)
         }
@@ -206,6 +145,12 @@ class FoodRepositoryImpl @Inject constructor(
             } else {
                 GetMyFoodOrdersResult.Error(FoodError.SERVER_ERROR, response.message)
             }
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            GetMyFoodOrdersResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
             GetMyFoodOrdersResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
@@ -230,6 +175,12 @@ class FoodRepositoryImpl @Inject constructor(
             } else {
                 CancelFoodOrderResult.Error(FoodError.SERVER_ERROR, response.message)
             }
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            CancelFoodOrderResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
             CancelFoodOrderResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
@@ -245,6 +196,12 @@ class FoodRepositoryImpl @Inject constructor(
             } else {
                 SwitchToCashResult.Error(FoodError.SERVER_ERROR, response.message)
             }
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            SwitchToCashResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
             SwitchToCashResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
@@ -260,6 +217,12 @@ class FoodRepositoryImpl @Inject constructor(
             } else {
                 RetryDriverResult.Error(FoodError.SERVER_ERROR, response.message)
             }
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            RetryDriverResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
             RetryDriverResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
@@ -275,10 +238,44 @@ class FoodRepositoryImpl @Inject constructor(
             } else {
                 GetDriverProfileResult.Error(FoodError.SERVER_ERROR, response.message)
             }
+        } catch (e: HttpException) {
+            val backendMessage = e.toBackendMessage()
+            GetDriverProfileResult.Error(
+                error = FoodError.SERVER_ERROR,
+                message = backendMessage ?: e.message()
+            )
         } catch (e: IOException) {
             GetDriverProfileResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
             GetDriverProfileResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun calculateDeliveryFee(
+        restaurantLat: Double,
+        restaurantLng: Double,
+        customerLat: Double,
+        customerLng: Double
+    ): Result<Double> {
+        return try {
+            val request = com.example.omnigo.features.customer.promos.data.remote.dto.DeliveryFeeRequestDto(
+                restaurantLatitude = restaurantLat,
+                restaurantLongitude = restaurantLng,
+                customerLatitude = customerLat,
+                customerLongitude = customerLng
+            )
+            val responseBody = foodApi.calculateDeliveryFee(request)
+            val jsonString = responseBody.string()
+            val jsonObject = com.google.gson.JsonParser.parseString(jsonString).asJsonObject
+            val fee = if (jsonObject.has("data") && jsonObject.get("data").isJsonObject) {
+                jsonObject.getAsJsonObject("data").get("deliveryFee")?.asDouble
+            } else if (jsonObject.has("deliveryFee")) {
+                jsonObject.get("deliveryFee")?.asDouble
+            } else null
+
+            if (fee != null) Result.success(fee) else Result.failure(Exception("Cannot parse delivery fee"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

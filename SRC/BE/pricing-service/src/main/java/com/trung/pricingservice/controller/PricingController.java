@@ -25,7 +25,10 @@ public class PricingController {
     @PostMapping("/calculate")
     public ResponseEntity<PricingResponse> calculatePrice(
             @Valid @RequestBody PricingRequest request,
-            @RequestParam(value = "nearbyDriversCount", defaultValue = "0") int nearbyDriversCount) {
+            @RequestParam(value = "nearbyDriversCount", defaultValue = "0") int nearbyDriversCount,
+            @RequestHeader(value = "X-User-Id", required = false) Long customerId) {
+
+        if (customerId != null) request.setCustomerId(customerId);
 
         PricingResponse response = pricingService.calculateDynamicPrice(request, nearbyDriversCount);
         return ResponseEntity.ok(response);

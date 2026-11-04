@@ -17,6 +17,14 @@ data class BookingResponse(
     val customerPhone: String? = null,
     @SerializedName("driverAvatarUrl")
     val driverAvatarUrl: String? = null,
+    @SerializedName("driverName")
+    val driverName: String? = null,
+    @SerializedName("driverPhone")
+    val driverPhone: String? = null,
+    @SerializedName("driverVehiclePlate")
+    val driverVehiclePlate: String? = null,
+    @SerializedName("driverRating")
+    val driverRating: Double? = null,
     @SerializedName("pickupAddress")
     val pickupAddress: String? = null,
     @SerializedName("dropoffAddress")
@@ -42,5 +50,11 @@ data class BookingResponse(
     @SerializedName("createdAt")
     val createdAt: String? = null,
     @SerializedName("completedAt")
-    val completedAt: String? = null
+    val completedAt: String? = null,
+    @SerializedName(value = "platformFee", alternate = ["commissionFee", "commission", "serviceFee"])
+    val platformFee: Double? = null,
+    @SerializedName(value = "driverEarnings", alternate = ["netEarnings", "netIncome", "driverIncome"])
+    val driverEarnings: Double? = null,
+    @SerializedName(value = "commissionRate", alternate = ["platformFeeRate", "feeRate", "commissionPercentage"])
+    val commissionRate: Double? = null
 )

@@ -1,13 +1,17 @@
 package com.example.omnigo.features.customer.ride.di
 
+import com.example.omnigo.features.customer.promos.data.repository.VoucherRepositoryImpl
+import com.example.omnigo.features.customer.promos.domain.repository.VoucherRepository
 import com.example.omnigo.features.customer.ride.data.remote.api.PricingApi
 import com.example.omnigo.features.customer.ride.data.remote.api.RideBookingApi
 import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSource
 import com.example.omnigo.features.customer.ride.data.remote.realtime.RideStompSubscriptionSourceImpl
 import com.example.omnigo.features.customer.ride.data.repository.PricingRepositoryImpl
 import com.example.omnigo.features.customer.ride.data.repository.RideBookingRepositoryImpl
+import com.example.omnigo.features.customer.ride.data.repository.RideReviewRepositoryImpl
 import com.example.omnigo.features.customer.ride.domain.repository.PricingRepository
 import com.example.omnigo.features.customer.ride.domain.repository.RideBookingRepository
+import com.example.omnigo.features.customer.ride.domain.repository.RideReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -31,6 +35,18 @@ abstract class RideModule {
     abstract fun bindRideBookingRepository(
         impl: RideBookingRepositoryImpl
     ): RideBookingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRideReviewRepository(
+        impl: RideReviewRepositoryImpl
+    ): RideReviewRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVoucherRepository(
+        impl: VoucherRepositoryImpl
+    ): VoucherRepository
 
     @Binds
     @Singleton

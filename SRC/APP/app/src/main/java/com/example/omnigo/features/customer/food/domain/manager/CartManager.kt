@@ -3,6 +3,7 @@ package com.example.omnigo.features.customer.food.domain.manager
 import com.example.omnigo.features.customer.food.domain.model.CartAddResult
 import com.example.omnigo.features.customer.food.domain.model.CartItem
 import com.example.omnigo.features.customer.food.domain.model.CartState
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -121,6 +122,37 @@ class CartManager @Inject constructor() {
             )
         )
         return CartAddResult.Success
+    }
+
+    /**
+     * Khôi phục toàn bộ giỏ hàng từ một đơn hàng trước đó (phục vụ chức năng Đặt lại - Reorder).
+     */
+    fun restoreCartFromOrder(order: FoodOrder) {
+        if (order.items.isEmpty()) return
+
+        val restoredMap = order.items.associate { item ->
+            val menuItem = MenuItem(
+                id = item.menuItemId,
+                restaurantId = order.restaurantId,
+                name = item.itemName,
+                description = "",
+                price = item.itemPrice,
+                imageUrl = item.imageUrl.orEmpty(),
+                category = "",
+                isAvailable = true
+            )
+            item.menuItemId to CartItem(
+                menuItem = menuItem,
+                quantity = item.quantity.coerceAtLeast(1),
+                note = item.note.orEmpty()
+            )
+        }
+
+        _cartState.value = CartState(
+            restaurantId = order.restaurantId,
+            restaurantName = order.restaurantName,
+            items = restoredMap
+        )
     }
 
     fun getItemQuantity(menuItemId: Long): Int {

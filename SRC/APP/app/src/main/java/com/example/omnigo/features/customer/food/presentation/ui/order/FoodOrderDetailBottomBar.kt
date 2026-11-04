@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.omnigo.utils.s13
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +33,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -58,8 +67,11 @@ fun FoodOrderDetailBottomBar(
     onRetryDriverClick: () -> Unit,
     onReorderClick: (FoodOrder) -> Unit,
     onReviewClick: (FoodOrder) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPayOnlineClick: () -> Unit = {},
+    onCheckPaymentStatusClick: () -> Unit = {}
 ) {
+    var isReordering by remember { mutableStateOf(false) }
     val upperStatus = order.status.uppercase(Locale.ROOT)
     val isDelivered = upperStatus in setOf("DELIVERED", "COMPLETED")
     val isCancelled = upperStatus in setOf("CANCELLED", "REJECTED")
@@ -72,7 +84,7 @@ fun FoodOrderDetailBottomBar(
         else -> false
     }
 
-    val canSwitchToCash = order.paymentMethod != PaymentMethod.CASH &&
+    val canSwitchToCash = false &&
         order.isPaid != true &&
         (upperStatus == "PENDING" || upperStatus == "AWAITING_PAYMENT")
 
@@ -151,7 +163,13 @@ fun FoodOrderDetailBottomBar(
                         }
 
                         Button(
-                            onClick = { onReorderClick(order) },
+                            onClick = {
+                                if (!isReordering) {
+                                    isReordering = true
+                                    onReorderClick(order)
+                                }
+                            },
+                            enabled = !isReordering && !isActionLoading,
                             modifier = Modifier
                                 .weight(1.3f)
                                 .height(Dimen.HeightDefault),
@@ -177,7 +195,13 @@ fun FoodOrderDetailBottomBar(
                 // Cancelled / Rejected: [ Đặt lại đơn này ] (Filled)
                 isCancelled -> {
                     Button(
-                        onClick = { onReorderClick(order) },
+                        onClick = {
+                            if (!isReordering) {
+                                isReordering = true
+                                onReorderClick(order)
+                            }
+                        },
+                        enabled = !isReordering && !isActionLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(Dimen.HeightDefault),
@@ -238,6 +262,49 @@ fun FoodOrderDetailBottomBar(
                         }
 
                         if (canSwitchToCash) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
+                            ) {
+                                Button(
+                                    onClick = onPayOnlineClick,
+                                    enabled = !isActionLoading,
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                                    shape = RoundedCornerShape(AppShape.ShapeM),
+                                    contentPadding = PaddingValues(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXS),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = Dimen.HeightDefault)
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.order_pay_now_btn),
+                                        style = MaterialTheme.typography.s13.bold(),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = TextWhite
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = onCheckPaymentStatusClick,
+                                    enabled = !isActionLoading,
+                                    shape = RoundedCornerShape(AppShape.ShapeM),
+                                    contentPadding = PaddingValues(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXS),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = Dimen.HeightDefault)
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.order_check_payment_btn),
+                                        style = MaterialTheme.typography.s13.bold(),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = PrimaryColor
+                                    )
+                                }
+                            }
+
                             OutlinedButton(
                                 onClick = onSwitchToCashClick,
                                 enabled = !isActionLoading,

@@ -1,5 +1,6 @@
 package com.example.omnigo.features.driver.earnings.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -62,7 +63,7 @@ fun DriverEarningsScreen(
     // Handle Toast notification
     LaunchedEffect(uiState.toastMessage) {
         uiState.toastMessage?.let { msg ->
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            context.showToast(msg)
             viewModel.clearToastMessage()
         }
     }

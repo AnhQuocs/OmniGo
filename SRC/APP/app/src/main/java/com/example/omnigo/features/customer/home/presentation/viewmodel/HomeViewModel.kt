@@ -15,6 +15,8 @@ import com.example.omnigo.features.customer.home.domain.model.SavedAddress
 import com.example.omnigo.features.customer.home.domain.usecase.DetectCurrentLocationUseCase
 import com.example.omnigo.features.customer.home.domain.usecase.DetectLocationResult
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerStep
+import com.example.omnigo.features.customer.promos.domain.model.Voucher
+import com.example.omnigo.features.customer.promos.domain.usecase.GetVouchersUseCase
 import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
 import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
 import com.example.omnigo.features.customer.ride.domain.model.CancelRideBookingResult
@@ -29,38 +31,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class HomeUiState(
-    val isPopularPlacesLoading: Boolean = false,
-    val popularPlaces: List<Restaurant> = emptyList(),
-    val userLocation: UserLocation? = null,
-    val displayAddress: String? = null,
-    val isLocationLoading: Boolean = false,
-    val showLocationPromptDialog: Boolean = false,
-    val showAddressPickerSheet: Boolean = false,
-    val addressPickerStep: AddressPickerStep = AddressPickerStep.PROVINCE,
-    val provinces: List<Province> = emptyList(),
-    val districts: List<District> = emptyList(),
-    val wards: List<Ward> = emptyList(),
-    val selectedProvince: Province? = null,
-    val selectedDistrict: District? = null,
-    val selectedWard: Ward? = null,
-    val streetDetail: String = "",
-    val searchQuery: String = "",
-    val savedAddresses: List<SavedAddress> = emptyList(),
-    val editingAddressId: String? = null,
-    val activeRideState: ActiveRideState? = null,
-    val showActiveTripSheet: Boolean = false,
-    val isCancellingActiveTrip: Boolean = false,
-    val showCancelTripConfirmDialog: Boolean = false,
-    val cancelTripErrorMessage: String? = null
-)
-
-sealed interface HomeUiEvent {
-    data object OpenLocationSettings : HomeUiEvent
-    data object OpenAppSettings : HomeUiEvent
-    data object RequestLocationPermission : HomeUiEvent
-}
-
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getRestaurantsUseCase: GetRestaurantsUseCase,
@@ -68,8 +38,11 @@ class HomeViewModel @Inject constructor(
     private val userLocationManager: UserLocationManager,
     private val sessionManager: SessionManager,
     private val homeAddressCoordinator: HomeAddressCoordinator,
+    private val homeFilterCoordinator: HomeFilterCoordinator,
     private val rideTrackingSessionManager: RideTrackingSessionManager,
-    private val cancelRideBookingUseCase: CancelRideBookingUseCase
+    private val cancelRideBookingUseCase: CancelRideBookingUseCase,
+    private val getVouchersUseCase: GetVouchersUseCase,
+    private val getWalletUseCase: com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -82,13 +55,28 @@ class HomeViewModel @Inject constructor(
         observeUserLocation()
         observeSavedAddresses()
         fetchPopularPlaces()
+        fetchHomeVouchers()
         loadProvinces()
         observeActiveRideSession()
         restoreActiveRideSession()
+        loadWalletBalance()
     }
 
     fun onResume() {
         restoreActiveRideSession()
+        loadWalletBalance()
+    }
+
+    private fun loadWalletBalance() {
+        _uiState.update { it.copy(isWalletLoading = true) }
+        viewModelScope.launch {
+            getWalletUseCase?.invoke()?.onSuccess { wallet ->
+                val formatted = "${java.text.NumberFormat.getNumberInstance(java.util.Locale("vi", "VN")).format(wallet.balance.toLong())}đ"
+                _uiState.update { it.copy(walletBalanceFormatted = formatted, isWalletLoading = false) }
+            }?.onFailure {
+                _uiState.update { it.copy(isWalletLoading = false) }
+            } ?: _uiState.update { it.copy(isWalletLoading = false) }
+        }
     }
 
     private fun restoreActiveRideSession() {
@@ -132,9 +120,16 @@ class HomeViewModel @Inject constructor(
                         location.fullAddress
                     }
                     _uiState.update {
+                        val filtered = homeFilterCoordinator.filterAndSort(
+                            it.popularPlaces,
+                            it.selectedFilter,
+                            location.latitude,
+                            location.longitude
+                        )
                         it.copy(
                             userLocation = location,
                             displayAddress = address,
+                            filteredPopularPlaces = filtered.take(MAX_SUGGESTED_PLACES),
                             isLocationLoading = false
                         )
                     }
@@ -147,10 +142,12 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         fetchPopularPlaces()
+        fetchHomeVouchers()
         if (_uiState.value.userLocation == null) {
             detectLocation()
         }
         restoreActiveRideSession()
+        loadWalletBalance()
     }
 
     private fun fetchPopularPlaces() {
@@ -158,14 +155,65 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isPopularPlacesLoading = true) }
             when (val result = getRestaurantsUseCase(search = null)) {
                 is GetRestaurantsResult.Success -> {
-                    val topPlaces = result.restaurants.take(3)
+                    val allPlaces = result.restaurants
+                    val filtered = homeFilterCoordinator.filterAndSort(
+                        allPlaces,
+                        _uiState.value.selectedFilter,
+                        _uiState.value.userLocation?.latitude,
+                        _uiState.value.userLocation?.longitude
+                    )
                     _uiState.update {
-                        it.copy(isPopularPlacesLoading = false, popularPlaces = topPlaces)
+                        it.copy(
+                            isPopularPlacesLoading = false,
+                            popularPlaces = allPlaces,
+                            filteredPopularPlaces = filtered.take(MAX_SUGGESTED_PLACES)
+                        )
                     }
                 }
                 is GetRestaurantsResult.Error -> {
                     _uiState.update { it.copy(isPopularPlacesLoading = false) }
                 }
+            }
+        }
+    }
+
+    fun selectFilter(filter: HomeFilter) {
+        val filtered = homeFilterCoordinator.filterAndSort(
+            _uiState.value.popularPlaces,
+            filter,
+            _uiState.value.userLocation?.latitude,
+            _uiState.value.userLocation?.longitude
+        )
+        _uiState.update {
+            it.copy(selectedFilter = filter, filteredPopularPlaces = filtered.take(MAX_SUGGESTED_PLACES))
+        }
+    }
+
+    fun toggleFavoriteRestaurant(restaurantId: Long) {
+        _uiState.update { state ->
+            val updated = if (state.favoriteRestaurantIds.contains(restaurantId)) {
+                state.favoriteRestaurantIds - restaurantId
+            } else {
+                state.favoriteRestaurantIds + restaurantId
+            }
+            state.copy(favoriteRestaurantIds = updated)
+        }
+    }
+
+    fun openNotifications() = _uiState.update { it.copy(showNotificationsSheet = true) }
+    fun dismissNotifications() = _uiState.update { it.copy(showNotificationsSheet = false) }
+    fun markNotificationsAsRead() = _uiState.update { it.copy(hasUnreadNotifications = false, showNotificationsSheet = false) }
+
+    fun openQrDialog() = _uiState.update { it.copy(showQrDialog = true) }
+    fun dismissQrDialog() = _uiState.update { it.copy(showQrDialog = false) }
+
+    fun fetchHomeVouchers() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isVouchersLoading = true) }
+            getVouchersUseCase().onSuccess { list ->
+                _uiState.update { it.copy(vouchers = list, isVouchersLoading = false) }
+            }.onFailure {
+                _uiState.update { it.copy(isVouchersLoading = false) }
             }
         }
     }
@@ -327,5 +375,9 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    companion object {
+        private const val MAX_SUGGESTED_PLACES = 3
     }
 }

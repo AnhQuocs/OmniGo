@@ -1,5 +1,6 @@
 package com.example.omnigo.features.driver.food.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -83,23 +84,23 @@ fun DriverActiveDeliveryScreen(
 
     LaunchedEffect(uiState.errorMessage) {
         val error = uiState.errorMessage ?: return@LaunchedEffect
-        val msg = if (error == DriverActiveDeliveryViewModel.ERROR_GEOFENCE_OUTSIDE) {
-            context.getString(R.string.driver_delivery_error_geofence_outside)
-        } else error
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        if (error == DriverActiveDeliveryViewModel.ERROR_GEOFENCE_OUTSIDE) {
+            context.showToast(R.string.driver_delivery_error_geofence_outside)
+        } else {
+            context.showToast(error)
+        }
         viewModel.clearErrorMessage()
     }
 
     LaunchedEffect(uiState.actionMessage) {
         val action = uiState.actionMessage ?: return@LaunchedEffect
-        val msg = when (action) {
+        when (action) {
             DriverActiveDeliveryViewModel.MESSAGE_PICKUP_SUCCESS ->
-                context.getString(R.string.driver_delivery_pickup_success)
+                context.showToast(R.string.driver_delivery_pickup_success)
             DriverActiveDeliveryViewModel.MESSAGE_DELIVERY_SUCCESS ->
-                context.getString(R.string.driver_delivery_completed_success)
-            else -> action
+                context.showToast(R.string.driver_delivery_completed_success)
+            else -> context.showToast(action)
         }
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         viewModel.clearActionMessage()
     }
 

@@ -6,18 +6,29 @@ import com.example.omnigo.features.customer.food.domain.model.CreateFoodReviewCo
 import com.example.omnigo.features.customer.food.domain.model.FoodReview
 
 fun FoodOrderReviewResponse.toDomain(): FoodReview {
+    val parsedTags = when {
+        !driverTags.isNullOrEmpty() -> driverTags
+        !driverComment.isNullOrBlank() -> driverComment.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        else -> emptyList()
+    }
+    val editable = canEdit ?: (updatedAt == null && !(readOnly ?: false))
     return FoodReview(
         id = id ?: 0L,
         orderId = orderId ?: 0L,
         restaurantRating = restaurantRating ?: 5,
         restaurantComment = restaurantComment,
         driverRating = driverRating ?: 5,
-        driverTags = driverTags ?: emptyList(),
-        reviewPhotos = reviewPhotos ?: emptyList(),
+        driverTags = parsedTags,
+        reviewPhotos = restaurantImages ?: emptyList(),
         merchantReply = merchantReply,
         merchantReplyAt = merchantReplyAt,
         createdAt = createdAt,
-        isReadOnly = readOnly ?: false
+        isReadOnly = readOnly ?: true,
+        customerId = customerId ?: 0L,
+        customerName = customerName,
+        driverComment = driverComment ?: parsedTags.joinToString(", ").takeIf { it.isNotBlank() },
+        updatedAt = updatedAt,
+        canEdit = editable
     )
 }
 
@@ -27,7 +38,7 @@ fun CreateFoodReviewCommand.toRequest(): CreateFoodReviewRequest {
         restaurantRating = restaurantRating,
         restaurantComment = restaurantComment?.takeIf { it.isNotBlank() },
         driverRating = driverRating,
-        driverTags = driverTags.takeIf { it.isNotEmpty() },
-        reviewPhotos = reviewPhotos.takeIf { it.isNotEmpty() }
+        driverComment = driverTags.joinToString(", ").takeIf { it.isNotBlank() },
+        images = reviewPhotos.takeIf { it.isNotEmpty() }
     )
 }

@@ -1,284 +1,226 @@
 package com.example.omnigo.features.customer.promos.presentation.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import com.example.omnigo.utils.showToast
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.example.omnigo.R
-import com.example.omnigo.ui.dimens.AppShape
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.omnigo.core.components.OmniGoMainLayout
+import com.example.omnigo.features.customer.promos.domain.model.Voucher
+import com.example.omnigo.features.customer.promos.presentation.ui.components.PromosEmptyState
+import com.example.omnigo.features.customer.promos.presentation.ui.components.PromosFilterPills
+import com.example.omnigo.features.customer.promos.presentation.ui.components.PromosHeroBanner
+import com.example.omnigo.features.customer.promos.presentation.ui.components.PromosInputBar
+import com.example.omnigo.features.customer.promos.presentation.ui.components.PromosTopBar
+import com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherDetailDialog
+import com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherItemCard
+import com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherServiceChooserDialog
+import com.example.omnigo.features.customer.promos.presentation.ui.components.VoucherUsageHistorySheet
+import com.example.omnigo.features.customer.promos.presentation.viewmodel.PromosViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
-import com.example.omnigo.ui.theme.BackgroundLight
-import com.example.omnigo.ui.theme.CardBorderColor
 import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.PrimaryContainer
-import com.example.omnigo.ui.theme.SecondaryColor
-import com.example.omnigo.ui.theme.SecondaryContainer
-import com.example.omnigo.ui.theme.SurfaceLight
-import com.example.omnigo.ui.theme.TextPrimary
-import com.example.omnigo.ui.theme.TextSecondary
-import com.example.omnigo.ui.theme.TextWhite
-import com.example.omnigo.utils.bold
-import com.example.omnigo.utils.medium
-import com.example.omnigo.utils.normal
-import com.example.omnigo.utils.s10
-import com.example.omnigo.utils.s12
-import com.example.omnigo.utils.s13
-import com.example.omnigo.utils.s14
-import com.example.omnigo.utils.s16
-import com.example.omnigo.utils.s18
-import com.example.omnigo.utils.semiBold
 
 @Composable
 fun PromosScreen(
-    modifier: Modifier = Modifier
+    currentOrderSubtotal: Double? = null,
+    onSelectVoucher: ((String) -> Unit)? = null,
+    onNavigateToRide: ((String) -> Unit)? = null,
+    onNavigateToFood: ((String) -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    viewModel: PromosViewModel = hiltViewModel()
 ) {
-    var promoCode by remember { mutableStateOf("") }
-    var selectedFilterIndex by remember { mutableIntStateOf(0) }
-    val filters = listOf(
-        stringResource(id = R.string.promos_filter_all),
-        stringResource(id = R.string.promos_filter_ride),
-        stringResource(id = R.string.promos_filter_food)
-    )
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    var chooserVoucher by remember { mutableStateOf<Voucher?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-            .statusBarsPadding()
-            .padding(horizontal = Dimen.PaddingM)
-    ) {
-        Text(
-            text = stringResource(id = R.string.promos_title),
-            style = MaterialTheme.typography.s18.bold(),
-            color = TextPrimary,
-            modifier = Modifier.padding(vertical = Dimen.PaddingM)
-        )
-
-        // Input promo code
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = promoCode,
-                onValueChange = { promoCode = it.uppercase() },
-                placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.promos_input_hint),
-                        style = MaterialTheme.typography.s14.normal(),
-                        color = TextSecondary
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(AppShape.ShapeM),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = CardBorderColor,
-                    focusedContainerColor = SurfaceLight,
-                    unfocusedContainerColor = SurfaceLight
-                ),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.width(AppSpacing.S))
-
-            Button(
-                onClick = { /* Apply promo code */ },
-                shape = RoundedCornerShape(AppShape.ShapeM),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                modifier = Modifier.height(54.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.promos_apply_btn),
-                    style = MaterialTheme.typography.s14.semiBold(),
-                    color = TextWhite
-                )
-            }
+    LaunchedEffect(uiState.statusMessage) {
+        uiState.statusMessage?.let { msg ->
+            context.showToast(msg)
+            viewModel.clearStatusMessage()
         }
+    }
 
-        Spacer(modifier = Modifier.height(AppSpacing.M))
-
-        // Filter chips
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
-        ) {
-            filters.forEachIndexed { index, filter ->
-                FilterChip(
-                    selected = selectedFilterIndex == index,
-                    onClick = { selectedFilterIndex = index },
-                    label = {
-                        Text(
-                            text = filter,
-                            style = if (selectedFilterIndex == index) {
-                                MaterialTheme.typography.s12.bold()
-                            } else {
-                                MaterialTheme.typography.s12.normal()
-                            }
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PrimaryColor,
-                        selectedLabelColor = TextWhite,
-                        containerColor = SurfaceLight,
-                        labelColor = TextSecondary
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = selectedFilterIndex == index,
-                        borderColor = CardBorderColor,
-                        selectedBorderColor = PrimaryColor
-                    )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(AppSpacing.M))
-
-        // Voucher List
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
-        ) {
-            item {
-                VoucherCard(
-                    title = stringResource(id = R.string.promos_voucher_title_1),
-                    desc = stringResource(id = R.string.promos_voucher_desc_1),
-                    badge = "OMNIRIDE",
-                    iconColor = PrimaryColor,
-                    containerColor = PrimaryContainer
-                )
-            }
-            item {
-                VoucherCard(
-                    title = stringResource(id = R.string.promos_voucher_title_2),
-                    desc = stringResource(id = R.string.promos_voucher_desc_2),
-                    badge = "OMNIFOOD",
-                    iconColor = SecondaryColor,
-                    containerColor = SecondaryContainer
-                )
+    fun handleUseVoucher(voucher: Voucher) {
+        if (currentOrderSubtotal != null && onSelectVoucher != null) {
+            // Checkout context: Apply voucher to current active order
+            viewModel.onUseVoucherCard(voucher, currentOrderSubtotal, onSelectVoucher)
+        } else {
+            // Exploration context: Navigate directly to the corresponding service
+            when (voucher.applicableService.uppercase()) {
+                "RIDE" -> {
+                    onNavigateToRide?.invoke(voucher.code)
+                }
+                "FOOD" -> {
+                    onNavigateToFood?.invoke(voucher.code)
+                }
+                else -> {
+                    // ALL service: open service chooser dialog
+                    chooserVoucher = voucher
+                }
             }
         }
     }
-}
 
-@Composable
-private fun VoucherCard(
-    title: String,
-    desc: String,
-    badge: String,
-    iconColor: Color,
-    containerColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppShape.ShapeM),
-        color = SurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor),
-        shadowElevation = 1.dp
+    OmniGoMainLayout(
+        modifier = modifier,
+        headerHeight = Dimen.HeightTopBar,
+        header = {
+            PromosTopBar(
+                totalVouchersCount = uiState.allVouchersCount,
+                onOpenHistory = viewModel::openUsageHistory
+            )
+        }
     ) {
-        Row(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimen.PaddingM),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(horizontal = Dimen.PaddingM),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.M),
+            contentPadding = PaddingValues(
+                top = AppSpacing.S,
+                bottom = Dimen.HeightBottomNavPadding
+            )
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(AppShape.ShapeM))
-                    .background(containerColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.LocalOffer,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(Dimen.SizeM)
+            // 1. Hero Promo Banner
+            item {
+                PromosHeroBanner(totalCount = uiState.allVouchersCount)
+            }
+
+            // 2. Interactive Input Bar
+            item {
+                PromosInputBar(
+                    code = uiState.promoCodeInput,
+                    isLoading = uiState.isLoading,
+                    onCodeChange = viewModel::updatePromoCodeInput,
+                    onPasteCode = {
+                        clipboardManager.getText()?.text?.let { text ->
+                            if (text.isNotBlank()) {
+                                viewModel.updatePromoCodeInput(text.trim())
+                            }
+                        }
+                    },
+                    onApply = {
+                        viewModel.applyManualCode(currentOrderSubtotal, onSelectVoucher)
+                    }
                 )
             }
 
-            Spacer(modifier = Modifier.width(AppSpacing.M))
+            // 3. Category Filter Pills
+            item {
+                PromosFilterPills(
+                    selectedIndex = uiState.selectedFilterIndex,
+                    allCount = uiState.allVouchersCount,
+                    rideCount = uiState.rideVouchersCount,
+                    foodCount = uiState.foodVouchersCount,
+                    onSelectIndex = viewModel::selectFilter
+                )
+            }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    shape = RoundedCornerShape(AppShape.ShapeXXS),
-                    color = iconColor.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.s10.bold(),
-                        color = iconColor,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            // 4. Voucher Tickets List / Loading / Empty
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = Dimen.PaddingXL),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(Dimen.SizeL),
+                            color = PrimaryColor,
+                            strokeWidth = Dimen.PaddingXXS
+                        )
+                    }
+                }
+            } else if (uiState.vouchers.isEmpty()) {
+                item {
+                    PromosEmptyState(
+                        onResetFilter = { viewModel.selectFilter(0) }
                     )
                 }
-
-                Spacer(modifier = Modifier.height(AppSpacing.XXS))
-
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.s14.semiBold(),
-                    color = TextPrimary
-                )
-
-                Text(
-                    text = desc,
-                    style = MaterialTheme.typography.s12.normal(),
-                    color = TextSecondary
-                )
-            }
-
-            Button(
-                onClick = { /* Use voucher */ },
-                shape = RoundedCornerShape(AppShape.ShapeM),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.promos_use_now),
-                    style = MaterialTheme.typography.s12.semiBold(),
-                    color = TextWhite
-                )
+            } else {
+                items(uiState.vouchers, key = { "${it.id}_${it.code}" }) { voucher ->
+                    val isSelected = uiState.appliedPreview?.voucherCode.equals(voucher.code, ignoreCase = true)
+                    VoucherItemCard(
+                        voucher = voucher,
+                        currentOrderSubtotal = currentOrderSubtotal,
+                        isSelected = isSelected,
+                        onUseClick = { selected ->
+                            handleUseVoucher(selected)
+                        },
+                        onCopyCode = { code ->
+                            clipboardManager.setText(AnnotatedString(code))
+                            viewModel.copyCode(code)
+                        },
+                        onDetailClick = { selected ->
+                            viewModel.openDetail(selected)
+                        }
+                    )
+                }
             }
         }
+    }
+
+    // Modal Dialog: Voucher Detail
+    uiState.detailVoucher?.let { voucher ->
+        VoucherDetailDialog(
+            voucher = voucher,
+            onDismiss = viewModel::closeDetail,
+            onUseClick = { selected ->
+                viewModel.closeDetail()
+                handleUseVoucher(selected)
+            },
+            onCopyCode = { code ->
+                clipboardManager.setText(AnnotatedString(code))
+                viewModel.copyCode(code)
+            }
+        )
+    }
+
+    // Dialog: Service Chooser for ALL service vouchers
+    chooserVoucher?.let { voucher ->
+        VoucherServiceChooserDialog(
+            voucher = voucher,
+            onChooseRide = { code ->
+                chooserVoucher = null
+                onNavigateToRide?.invoke(code)
+            },
+            onChooseFood = { code ->
+                chooserVoucher = null
+                onNavigateToFood?.invoke(code)
+            },
+            onDismiss = { chooserVoucher = null }
+        )
+    }
+
+    // BottomSheet: Voucher Usage History
+    if (uiState.showHistorySheet) {
+        VoucherUsageHistorySheet(
+            usages = uiState.usageHistory,
+            isLoading = uiState.isLoadingHistory,
+            onDismiss = viewModel::closeUsageHistory
+        )
     }
 }

@@ -90,6 +90,44 @@ class PaymentConcurrencyTest {
         } finally { pool.shutdownNow(); }
     }
     private void balance(Long walletId, String amount) { assertEquals(0, wallets.findById(walletId).orElseThrow().getBalance().compareTo(new BigDecimal(amount))); }
+    @Test void prepaidRideDebitsOnceBeforeDispatchAndPaysAssignedDriverOnlyOnCompletion() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0");
+        var strategy=context.getBean(WalletPaymentStrategy.class);
+        parallel(() -> strategy.createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT"));
+        balance(customer.getId(),"80000"); balance(driver.getId(),"0");
+        Transaction payment=txs.findByBookingIdAndTransactionTypeOrderByIdDesc(99L,TransactionType.TRIP_PAYMENT).get(0);
+        var state=order("AWAITING_PAYMENT","WALLET"); state.put("prepaid",true); state.put("driverId",null);
+        when(orders.get(false,99L)).thenReturn(state);
+        doAnswer(inv -> { state.put("status","PENDING"); state.put("paid",true); return null; }).when(orders).markRidePaid(99L);
+        workflow.fulfill(payment.getId());
+        verify(orders).markRidePaid(99L);
+        assertFalse(txs.findById(payment.getId()).orElseThrow().isFulfillmentDone());
+        state.put("status","IN_PROGRESS"); state.put("driverId",11L);
+        workflow.fulfill(payment.getId()); balance(driver.getId(),"0");
+        state.put("status","COMPLETED");
+        parallel(() -> workflow.reconcile(false,99L));
+        balance(customer.getId(),"80000"); balance(driver.getId(),"96000");
+        assertTrue(txs.findById(payment.getId()).orElseThrow().isFulfillmentDone());
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.TRIP_INCOME).count());
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.COMMISSION_FEE).count());
+    }
+    @Test void prepaidRideCancellationRefundsOnceWithoutDriverIncome() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"200000");
+        context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT");
+        var state=order("CANCELLED","WALLET"); state.put("prepaid",true);
+        when(orders.get(false,99L)).thenReturn(state);
+        parallel(() -> workflow.reconcile(false,99L));
+        balance(customer.getId(),"200000");
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.REFUND).count());
+        assertEquals(0,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.TRIP_INCOME).count());
+    }
+    @Test void insufficientPrepaidBalanceLeavesWalletAndLedgerUntouched() {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"10000");
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () ->
+            context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT"));
+        balance(customer.getId(),"10000"); assertEquals(0,txs.count());
+        verifyNoInteractions(orders);
+    }
     @Test void legacyTypeConstraintRollsBackOnlinePayoutUntilMigrationThenRetrySettlesOnce() throws Exception {
         var jdbc=new JdbcTemplate(context.getBean(DataSource.class));
         Wallet customer=wallet(1,UserType.CUSTOMER,"0"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");

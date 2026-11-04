@@ -19,7 +19,7 @@ class FoodReviewMapperTest {
             restaurantComment = "Món ăn rất ngon, nóng hổi",
             driverRating = 5,
             driverTags = listOf("Giao hàng nhanh", "Thân thiện"),
-            reviewPhotos = listOf("https://cdn.cloudinary.com/img1.jpg"),
+            restaurantImages = listOf("https://cdn.cloudinary.com/img1.jpg"),
             merchantReply = "Cảm ơn quý khách đã ủng hộ quán!",
             merchantReplyAt = "2026-10-23T10:00:00Z",
             createdAt = "2026-10-23T09:00:00Z",
@@ -50,7 +50,7 @@ class FoodReviewMapperTest {
             restaurantComment = null,
             driverRating = null,
             driverTags = null,
-            reviewPhotos = null,
+            restaurantImages = null,
             merchantReply = null,
             merchantReplyAt = null,
             createdAt = null,
@@ -68,7 +68,7 @@ class FoodReviewMapperTest {
         assertTrue(domain.reviewPhotos.isEmpty())
         assertNull(domain.merchantReply)
         assertNull(domain.createdAt)
-        assertFalse(domain.isReadOnly)
+        assertTrue(domain.isReadOnly)
     }
 
     @Test
@@ -88,8 +88,8 @@ class FoodReviewMapperTest {
         assertEquals(4, request.restaurantRating)
         assertEquals("Giao hàng tốt", request.restaurantComment)
         assertEquals(5, request.driverRating)
-        assertEquals(listOf("Đúng giờ"), request.driverTags)
-        assertEquals(listOf("https://cdn.cloudinary.com/photo.jpg"), request.reviewPhotos)
+        assertEquals("Đúng giờ", request.driverComment)
+        assertEquals(listOf("https://cdn.cloudinary.com/photo.jpg"), request.images)
     }
 
     @Test
@@ -106,7 +106,7 @@ class FoodReviewMapperTest {
         val request = command.toRequest()
 
         assertNull(request.restaurantComment)
-        assertNull(request.driverTags)
-        assertNull(request.reviewPhotos)
+        assertNull(request.driverComment)
+        assertNull(request.images)
     }
 }

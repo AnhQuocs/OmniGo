@@ -15,6 +15,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -70,6 +71,34 @@ abstract class NetworkModule {
         }
 
         // private const val BASE_LOCALHOST = "http://192.168.1.24:8080/"
+
+        @Provides
+        @Singleton
+        @Named("AuthOkHttpClient")
+        fun provideAuthOkHttpClient(
+            loggingInterceptor: HttpLoggingInterceptor
+        ): OkHttpClient {
+            return OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .build()
+        }
+
+        @Provides
+        @Singleton
+        @Named("AuthRetrofit")
+        fun provideAuthRetrofit(
+            @Named("AuthOkHttpClient") authOkHttpClient: OkHttpClient,
+            gsonConverterFactory: GsonConverterFactory
+        ): Retrofit {
+            return Retrofit.Builder()
+                .baseUrl(BuildConfig.BASE_URL)
+                .client(authOkHttpClient)
+                .addConverterFactory(gsonConverterFactory)
+                .build()
+        }
 
         @Provides
         @Singleton
