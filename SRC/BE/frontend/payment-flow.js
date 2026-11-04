@@ -34,12 +34,13 @@
                 for (const row of rows) {
                     if (['CANCELLED', 'CANCELED', 'REJECTED'].includes(row.status)) continue;
                     const id = row.id ?? row.bookingId;
-                    const cash = row.paymentMethod === 'CASH';
+                    const method = String(row.paymentMethod || '').toUpperCase();
+                    const cash = method === 'CASH';
                     // Cash is collected on completion. Until then it is still an outstanding order.
                     if (cash && row.status === 'COMPLETED') continue;
                     if (!cash && await paid(kind, id)) continue;
                     result.push({ kind, id, amount: kind === 'FOOD' ? row.totalPrice : row.price,
-                        method: row.paymentMethod, status: row.status,
+                        method, status: row.status,
                         payable: !cash && (kind === 'FOOD' ? row.status === 'AWAITING_PAYMENT' : row.status === 'COMPLETED') });
                 }
             }

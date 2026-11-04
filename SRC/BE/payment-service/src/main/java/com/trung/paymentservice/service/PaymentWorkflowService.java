@@ -109,7 +109,7 @@ public class PaymentWorkflowService {
         }
         if (!"COMPLETED".equals(order.get("status"))) return;
         if (food) {
-            if (!FinancialOrderClient.cash(order) && payments.stream().noneMatch(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount().compareTo(FinancialOrderClient.money(order, "amount")) == 0 && transactions.findByOrderId("REFUND_PAYMENT_" + t.getId()).isEmpty()))
+            if (!FinancialOrderClient.cash(order) && payments.stream().noneMatch(t -> t.getStatus() == TransactionStatus.SUCCESS && transactions.findByOrderId("REFUND_PAYMENT_" + t.getId()).isEmpty()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Chưa có thanh toán online hợp lệ");
             walletService.processFoodOrderPayout(FoodOrderPayoutRequest.builder().orderId(id)
                     .driverId(FinancialOrderClient.id(order, "driverId")).restaurantOwnerId(FinancialOrderClient.id(order, "restaurantOwnerId"))

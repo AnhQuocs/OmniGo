@@ -2511,7 +2511,8 @@
                 fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/driver`).then(r => r.ok ? r.json() : null),
                 fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
                     headers: { 'X-User-Id': DRIVER_ID, 'X-User-Role': 'DRIVER' }
-                }).then(r => r.ok ? r.json() : null)
+                }).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/payments/platform-fee`).then(r => r.ok ? r.json() : null)
             ]);
 
             // 3. Số liệu Đơn Đặt Xe (Ride Hailing)
@@ -2543,7 +2544,7 @@
             let foodApp = 0;
             let foodCommission = 0;
 
-            const feePct = (typeof window._currentPlatformFeeRate === "number" && window._currentPlatformFeeRate > 0) ? window._currentPlatformFeeRate : 20;
+            const feePct = (typeof window._currentPlatformFeeRate === "number" && window._currentPlatformFeeRate >= 0) ? window._currentPlatformFeeRate : 20;
 
             foodOrdersList.forEach(order => {
                 const isCompleted = order.status === 'COMPLETED' || order.status === 'DELIVERED';

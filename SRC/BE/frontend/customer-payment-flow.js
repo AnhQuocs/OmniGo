@@ -45,7 +45,7 @@ function refreshOutstanding() {
         }
         for (const order of orders) {
             const row = document.createElement('div');
-            row.textContent = `${order.kind === 'FOOD' ? 'Đồ ăn' : 'Chuyến xe'} #${order.id}: ${Number(order.amount || 0).toLocaleString('vi-VN')} đ — ${order.payable ? 'Chưa xác nhận thanh toán' : 'Đang chờ hoàn tất đơn / thu tiền'}. `;
+            row.textContent = `${order.kind === 'FOOD' ? 'Đồ ăn' : 'Chuyến xe'} #${order.id}: ${Number(order.amount || 0).toLocaleString('vi-VN')} đ — ${order.method === 'CASH' ? 'Tiền mặt' : (order.method || 'Chưa rõ phương thức')} — ${order.status} — ${order.payable ? 'Chưa xác nhận thanh toán' : 'Đang chờ hoàn tất đơn / thu tiền'}. `;
             if (order.payable) {
                 const methods = ['WALLET', 'MOMO', 'VNPAY'].includes(order.method) ? [order.method] : ['WALLET', 'MOMO', 'VNPAY'];
                 for (const method of methods) {
