@@ -402,7 +402,7 @@ export const MerchantWallet = () => {
             />
           </Box>
           <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.88rem' }}>
-            Quản lý số dư, theo dõi đối soát doanh thu bán món, khấu trừ phí sàn và thực nhận theo từng đơn hàng của quán.
+            {restaurant?.name ? `${restaurant.name} • ` : ''}Quản lý số dư, theo dõi đối soát doanh thu bán món, khấu trừ phí sàn và thực nhận theo từng đơn hàng.
           </Typography>
         </Box>
 
@@ -776,7 +776,7 @@ export const MerchantWallet = () => {
               </TableHead>
               <TableBody>
                 {paginatedTransactions.map((tx) => {
-                  const { title, typeChipColor, sign, amountColor } = getTransactionDetails(tx);
+                  const { title, sign, amountColor } = getTransactionDetails(tx);
                   const isSuccess = tx.status === 'SUCCESS';
                   const isPending = tx.status === 'PENDING';
                   const methodBadge = getMethodBadge(tx);
