@@ -1246,9 +1246,13 @@
     ];
 
     let driverSearchTimeout = null;
+    let driverSearchVersion = 0;
+    const driverAddressCache = new Map();
 
     function handleDriverAddressFocus(value) {
         if (!value || value.trim().length === 0) {
+            clearTimeout(driverSearchTimeout);
+            driverSearchVersion++;
             renderDriverAutocomplete(POPULAR_DRIVER_LOCATIONS.slice(0, 6), true);
         } else {
             handleDriverAddressInputDebounced(value);
@@ -1257,6 +1261,7 @@
 
     function handleDriverAddressInputDebounced(query) {
         if (driverSearchTimeout) clearTimeout(driverSearchTimeout);
+        const version = ++driverSearchVersion;
         const dropdown = document.getElementById('driver-autocomplete-dropdown');
         if (!dropdown) return;
 
@@ -1266,35 +1271,42 @@
         }
 
         dropdown.style.display = 'block';
-        dropdown.innerHTML = `<div class="autocomplete-loading">🔍 Đang tìm kiếm "${query}"...</div>`;
+        dropdown.textContent = '🔍 Đang tìm kiếm địa chỉ...';
 
         driverSearchTimeout = setTimeout(async () => {
             const results = await fetchDriverAddressSuggestions(query);
-            renderDriverAutocomplete(results, false);
-        }, 300);
+            if (version === driverSearchVersion) renderDriverAutocomplete(results, false);
+        }, 600);
     }
 
     async function fetchDriverAddressSuggestions(query) {
         const qNorm = query.trim().toLowerCase();
+        if (driverAddressCache.has(qNorm)) return driverAddressCache.get(qNorm);
         
         let localMatches = POPULAR_DRIVER_LOCATIONS.filter(p => 
             p.name.toLowerCase().includes(qNorm) || p.desc.toLowerCase().includes(qNorm)
         );
 
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=6&addressdetails=1`;
-            const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query.trim())}&lat=21.0285&lon=105.8544&limit=8`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
             if (res.ok) {
                 const data = await res.json();
-                const remoteMatches = data.map(item => {
-                    let parts = (item.display_name || '').split(',');
-                    let mainName = parts[0] ? parts[0].trim() : item.display_name;
-                    let subAddress = parts.slice(1, 4).join(',').trim();
+                const remoteMatches = (data.features || []).filter(feature =>
+                    feature.properties?.countrycode?.toUpperCase() === 'VN' &&
+                    Number.isFinite(feature.geometry?.coordinates?.[0]) &&
+                    Number.isFinite(feature.geometry?.coordinates?.[1])
+                ).map(feature => {
+                    const item = feature.properties;
+                    const [lng, lat] = feature.geometry.coordinates;
+                    const mainName = item.name || [item.housenumber, item.street].filter(Boolean).join(' ') || query.trim();
+                    const subAddress = [...new Set([item.street, item.district || item.suburb,
+                        item.city || item.state, item.country].filter(Boolean))].join(', ');
                     return {
                         name: mainName,
-                        desc: subAddress || item.display_name,
-                        lat: parseFloat(item.lat),
-                        lng: parseFloat(item.lon),
+                        desc: subAddress || mainName,
+                        lat,
+                        lng,
                         category: item.type || 'Bản đồ',
                         icon: '📍'
                     };
@@ -1305,8 +1317,12 @@
                     let exists = combined.some(c => Math.abs(c.lat - rm.lat) < 0.001 && Math.abs(c.lng - rm.lng) < 0.001);
                     if (!exists) combined.push(rm);
                 });
-                return combined.slice(0, 7);
+                const results = combined.slice(0, 7);
+                if (driverAddressCache.size >= 50) driverAddressCache.delete(driverAddressCache.keys().next().value);
+                driverAddressCache.set(qNorm, results);
+                return results;
             }
+            console.warn('Dịch vụ tìm địa chỉ trả HTTP', res.status);
         } catch (e) {
             console.warn("Lỗi tìm kiếm geocoding cho tài xế:", e);
         }
