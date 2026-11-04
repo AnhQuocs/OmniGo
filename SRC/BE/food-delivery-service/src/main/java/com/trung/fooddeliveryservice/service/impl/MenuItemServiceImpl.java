@@ -45,7 +45,11 @@ public class MenuItemServiceImpl implements MenuItemService {
         }
 
         MenuItem menuItem = menuItemMapper.toEntity(request, restaurant);
-        menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
+        if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl().trim()));
+        } else {
+            menuItem.setImageUrl(null);
+        }
         MenuItem saved = menuItemRepository.save(menuItem);
         log.info("Thêm thành công món ăn '{}' (ID: {}) vào nhà hàng ID {}", saved.getName(), saved.getId(), restaurantId);
         return menuItemMapper.toResponse(saved);
@@ -105,7 +109,13 @@ public class MenuItemServiceImpl implements MenuItemService {
         menuItem.setName(request.getName());
         menuItem.setDescription(request.getDescription());
         menuItem.setPrice(request.getPrice());
-        menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl()));
+        if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            if (!request.getImageUrl().trim().equals(menuItem.getImageUrl())) {
+                menuItem.setImageUrl(cloudinaryService.validateImageUrl(request.getImageUrl().trim()));
+            }
+        } else if (request.getImageUrl() != null && request.getImageUrl().trim().isEmpty()) {
+            menuItem.setImageUrl(null);
+        }
         menuItem.setCategory(request.getCategory());
         if (request.getIsAvailable() != null) {
             menuItem.setIsAvailable(request.getIsAvailable());
@@ -113,6 +123,27 @@ public class MenuItemServiceImpl implements MenuItemService {
 
         MenuItem updated = menuItemRepository.save(menuItem);
         log.info("Cập nhật thành công món ăn ID {}", updated.getId());
+        return menuItemMapper.toResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "restaurants", allEntries = true)
+    public MenuItemResponse updateItemAvailability(Long itemId, Boolean isAvailable, Long ownerId) throws ResourceNotFoundException, UnauthorizedException {
+        MenuItem menuItem = menuItemRepository.findById(itemId)
+                .orElseThrow(() -> {
+                    log.warn("Không tìm thấy món ăn ID {} để đổi trạng thái", itemId);
+                    return new ResourceNotFoundException("Không tìm thấy món ăn với ID: " + itemId);
+                });
+
+        if (!menuItem.getRestaurant().getOwnerId().equals(ownerId)) {
+            log.warn("Người dùng ID {} không có quyền sửa món ID {}", ownerId, itemId);
+            throw new UnauthorizedException("Bạn không có quyền chỉnh sửa món ăn này");
+        }
+
+        menuItem.setIsAvailable(isAvailable != null ? isAvailable : !Boolean.TRUE.equals(menuItem.getIsAvailable()));
+        MenuItem updated = menuItemRepository.save(menuItem);
+        log.info("Cập nhật trạng thái món ăn ID {} sang isAvailable={}", updated.getId(), updated.getIsAvailable());
         return menuItemMapper.toResponse(updated);
     }
 

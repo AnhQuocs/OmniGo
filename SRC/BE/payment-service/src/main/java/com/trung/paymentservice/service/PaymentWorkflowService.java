@@ -124,7 +124,9 @@ public class PaymentWorkflowService {
     private void refund(Transaction payment) {
         String reference = "REFUND_PAYMENT_" + payment.getId();
         if (transactions.findByOrderId(reference).isPresent()) return;
-        Wallet customer = wallets.findById(payment.getWalletId()).orElseThrow();
+        if (payment.getWalletId() == null) return;
+        Wallet customer = wallets.findById(payment.getWalletId()).orElse(null);
+        if (customer == null) return;
         walletService.creditWallet(customer.getUserId(), customer.getUserType(), payment.getAmount().doubleValue());
         transactions.save(Transaction.builder().walletId(customer.getId()).bookingId(payment.getBookingId()).orderId(reference)
                 .amount(payment.getAmount()).transactionType(TransactionType.REFUND).paymentMethod(PaymentMethod.WALLET)
