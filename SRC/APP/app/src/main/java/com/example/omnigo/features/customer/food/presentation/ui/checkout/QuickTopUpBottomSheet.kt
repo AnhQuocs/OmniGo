@@ -207,7 +207,7 @@ private fun TopUpOptionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f).padding(end = Dimen.PaddingS)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.s15.semiBold(),
