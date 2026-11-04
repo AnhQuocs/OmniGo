@@ -93,7 +93,8 @@ class VoucherRepositoryImpl @Inject constructor(
         code: String,
         orderAmount: Double,
         serviceType: String,
-        orderId: String?
+        orderId: String?,
+        discountAmount: Double
     ): Result<AppliedVoucherResult> {
         return try {
             val trimmedCode = code.trim().uppercase()
@@ -105,7 +106,10 @@ class VoucherRepositoryImpl @Inject constructor(
                     orderAmount = orderAmount,
                     serviceType = serviceType,
                     userId = userId,
-                    orderId = orderId
+                    orderId = orderId,
+                    originalAmount = orderAmount,
+                    discountAmount = discountAmount,
+                    finalAmount = (orderAmount - discountAmount).coerceAtLeast(0.0)
                 )
             )
             val body = response.body()

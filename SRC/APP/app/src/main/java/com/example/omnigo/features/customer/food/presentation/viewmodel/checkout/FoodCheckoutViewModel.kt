@@ -303,7 +303,8 @@ class FoodCheckoutViewModel @Inject constructor(
                             code = applied.voucherCode,
                             orderAmount = state.totalAmount,
                             serviceType = "FOOD",
-                            orderId = result.order.id.toString()
+                            orderId = result.order.id.toString(),
+                            discountAmount = applied.discountAmount
                         )
                     }
 
