@@ -95,8 +95,11 @@ fun DriverCompletedRideCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                Box(
                         modifier = Modifier
                             .size(Dimen.SizeL)
                             .clip(CircleShape)
@@ -117,7 +120,9 @@ fun DriverCompletedRideCard(
                         Text(
                             text = "${stringResource(id = R.string.driver_trips_completed_ride_title)} #${booking.bookingId}",
                             style = MaterialTheme.typography.s14.bold(),
-                            color = TextPrimary
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = timeStr,
@@ -127,6 +132,7 @@ fun DriverCompletedRideCard(
                     }
                 }
 
+                Spacer(modifier = Modifier.width(AppSpacing.S))
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(AppShape.ShapeS))
@@ -136,7 +142,9 @@ fun DriverCompletedRideCard(
                     Text(
                         text = stringResource(id = badgeTextRes),
                         style = MaterialTheme.typography.s12.semiBold(),
-                        color = badgeColor
+                        color = badgeColor,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -153,7 +161,7 @@ fun DriverCompletedRideCard(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(
+                Box(
                         modifier = Modifier
                             .padding(top = Dimen.PaddingXXS)
                             .size(Dimen.PaddingS)
@@ -175,7 +183,7 @@ fun DriverCompletedRideCard(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(
+                Box(
                         modifier = Modifier
                             .padding(top = Dimen.PaddingXXS)
                             .size(Dimen.PaddingS)
