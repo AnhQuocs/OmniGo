@@ -2345,7 +2345,6 @@
         }
 
         try {
-            if (window._currentPlatformFeeRate === undefined) {
                 let feeRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/platform-fee`);
                 if (feeRes.ok) {
                     let feeData = await feeRes.json();
@@ -2353,7 +2352,6 @@
                         window._currentPlatformFeeRate = Number(feeData.percentage);
                     }
                 }
-            }
         } catch(e) {}
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
@@ -2505,7 +2503,7 @@
             // - Báo cáo cuốc xe từ booking-service
             // - Danh sách đơn đồ ăn tài xế từ food-delivery-service
             // - Giao dịch ví tài xế từ payment-service (để lấy phí sàn thực tế đã trừ)
-            const [rideRes, foodRes, txRes] = await Promise.allSettled([
+            const [rideRes, foodRes, txRes, feeRes] = await Promise.allSettled([
                 fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`, {
                     method: 'GET',
                     headers: { 'X-User-Id': DRIVER_ID }
@@ -2517,6 +2515,7 @@
             ]);
 
             // 3. Số liệu Đơn Đặt Xe (Ride Hailing)
+            if (feeRes.status === "fulfilled" && feeRes.value && feeRes.value.percentage !== undefined) window._currentPlatformFeeRate = Number(feeRes.value.percentage);
             const rideData = (rideRes.status === 'fulfilled' && rideRes.value) ? (rideRes.value.data || rideRes.value) : {};
             const rideTrips = Number(rideData.totalTrips || 0);
             const rideRevenue = Number(rideData.totalRevenue || 0);
@@ -2544,9 +2543,7 @@
             let foodApp = 0;
             let foodCommission = 0;
 
-            const feePct = (typeof currentPlatformFeePercentage === 'number' && currentPlatformFeePercentage > 0)
-                ? currentPlatformFeePercentage
-                : 20;
+            const feePct = (typeof window._currentPlatformFeeRate === "number" && window._currentPlatformFeeRate > 0) ? window._currentPlatformFeeRate : 20;
 
             foodOrdersList.forEach(order => {
                 const isCompleted = order.status === 'COMPLETED' || order.status === 'DELIVERED';
