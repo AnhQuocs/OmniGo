@@ -72,7 +72,8 @@ fun HomeHeaderSection(
     isLocating: Boolean,
     onLocationClick: () -> Unit,
     onNotificationClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hasUnreadNotifications: Boolean = false
 ) {
     Row(
         modifier = modifier
@@ -155,25 +156,30 @@ fun HomeHeaderSection(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(9.dp)
-                    .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 2.dp)
-                    .clip(CircleShape)
-                    .background(ErrorColor)
-            )
+            if (hasUnreadNotifications) {
+                Box(
+                    modifier = Modifier
+                        .size(9.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(top = 2.dp, end = 2.dp)
+                        .clip(CircleShape)
+                        .background(ErrorColor)
+                )
+            }
         }
     }
 }
 
 @Composable
 fun HomeQuickWalletSection(
+    balanceText: String? = null,
+    isWalletLoading: Boolean = false,
     onTopUpClick: () -> Unit = {},
     onScanQrClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onTopUpClick,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimen.PaddingM),
@@ -214,7 +220,11 @@ fun HomeQuickWalletSection(
                         color = TextSecondary
                     )
                     Text(
-                        text = stringResource(id = R.string.home_wallet_balance_mock),
+                        text = when {
+                            isWalletLoading -> stringResource(id = R.string.home_wallet_loading)
+                            !balanceText.isNullOrBlank() -> balanceText
+                            else -> "0 đ"
+                        },
                         style = MaterialTheme.typography.s16.bold(),
                         color = TextPrimary
                     )
@@ -322,48 +332,3 @@ fun HomeSearchSection(
     }
 }
 
-@Composable
-fun HomeFilterChipsSection(
-    modifier: Modifier = Modifier
-) {
-    var selectedIndex by remember { mutableStateOf(0) }
-    val filters = listOf(
-        R.string.home_filter_all,
-        R.string.home_filter_nearby,
-        R.string.home_filter_promos,
-        R.string.home_filter_top_rated
-    )
-
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Dimen.PaddingM)
-    ) {
-        items(filters.size) { index ->
-            val isSelected = selectedIndex == index
-            FilterChip(
-                selected = isSelected,
-                onClick = { selectedIndex = index },
-                label = {
-                    Text(
-                        text = stringResource(id = filters[index]),
-                        style = if (isSelected) MaterialTheme.typography.s12.bold() else MaterialTheme.typography.s12.normal()
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryContainer,
-                    selectedLabelColor = PrimaryColor,
-                    containerColor = SurfaceLight,
-                    labelColor = TextSecondary
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = if (isSelected) PrimaryColor else CardBorderColor,
-                    borderWidth = 1.dp
-                ),
-                shape = RoundedCornerShape(AppShape.ShapeXL2)
-            )
-        }
-    }
-}

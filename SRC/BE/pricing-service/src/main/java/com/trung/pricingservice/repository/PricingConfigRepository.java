@@ -1,6 +1,9 @@
 package com.trung.pricingservice.repository;
 
 import com.trung.pricingservice.entity.PricingConfig;
+import com.trung.pricingservice.dto.request.PricingRequest;
+import com.trung.pricingservice.dto.response.PricingResponse;
+import com.trung.pricingservice.service.RouteCalculationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -15,6 +18,30 @@ public class PricingConfigRepository {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String REDIS_KEY = "pricing:config";
+
+    public PricingResponse getRideQuote(
+            PricingRequest request) {
+        if (request.getCustomerId() == null) return null;
+        Object value = redisTemplate.opsForValue().get(rideQuoteKey(request));
+        return value instanceof PricingResponse quote ? quote : null;
+    }
+
+    public PricingResponse saveRideQuote(
+            PricingRequest request,
+            PricingResponse response) {
+        if (request.getCustomerId() == null) return response;
+        // Concurrent requests must all display the winning quote; reads do not extend expiry.
+        redisTemplate.opsForValue().setIfAbsent(rideQuoteKey(request), response, Duration.ofMinutes(5));
+        var saved = getRideQuote(request);
+        return saved != null ? saved : response;
+    }
+
+    private String rideQuoteKey(PricingRequest request) {
+        return "pricing:ride-quote:" + request.getCustomerId() + ":"
+                + request.getStartLatitude() + ":" + request.getStartLongitude() + ":"
+                + request.getEndLatitude() + ":" + request.getEndLongitude() + ":"
+                + RouteCalculationService.normalizeVehicleType(request.getVehicleType());
+    }
 
     public PricingConfig getBasePricingConfig() {
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(REDIS_KEY);

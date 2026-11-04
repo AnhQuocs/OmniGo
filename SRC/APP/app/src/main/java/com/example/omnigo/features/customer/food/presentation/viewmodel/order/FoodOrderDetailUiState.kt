@@ -1,8 +1,8 @@
 package com.example.omnigo.features.customer.food.presentation.viewmodel
 
 import com.example.omnigo.features.customer.food.domain.model.DriverLocation
-import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.features.customer.food.domain.model.DriverProfile
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
 import com.example.omnigo.utils.UiText
 
 data class FoodOrderDetailUiState(
@@ -18,5 +18,6 @@ data class FoodOrderDetailUiState(
     val isActionLoading: Boolean = false,
     val actionMessage: UiText? = null,
     val isCancelDialogOpen: Boolean = false,
-    val retryDriverCount: Int = 0
+    val retryDriverCount: Int = 0,
+    val openPaymentUrl: String? = null
 )

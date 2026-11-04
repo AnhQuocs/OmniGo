@@ -24,6 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.core.components.AppTextField
 import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomBar
+import com.example.omnigo.features.customer.food.presentation.ui.components.CartBottomSheet
 import com.example.omnigo.features.customer.food.presentation.viewmodel.RestaurantDetailViewModel
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -61,6 +65,7 @@ fun RestaurantDetailScreen(
     viewModel: RestaurantDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var isCartSheetOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(restaurantId) {
         viewModel.loadRestaurant(restaurantId)
@@ -292,6 +297,7 @@ fun RestaurantDetailScreen(
                     totalQuantity = uiState.totalCartQuantity,
                     totalAmount = uiState.totalCartAmount,
                     onCheckoutClick = onCheckoutClick,
+                    onCartClick = { isCartSheetOpen = true },
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
@@ -320,6 +326,20 @@ fun RestaurantDetailScreen(
                 newRestaurantName = conflict.newRestaurantName,
                 onConfirm = viewModel::onConfirmReplaceCart,
                 onDismiss = viewModel::onDismissConflictDialog
+            )
+        }
+
+        // Cart Bottom Sheet
+        if (isCartSheetOpen && uiState.totalCartQuantity > 0) {
+            CartBottomSheet(
+                restaurantName = uiState.cartRestaurantName.ifBlank { uiState.restaurant?.name.orEmpty() },
+                items = uiState.cartItems.values.toList(),
+                totalAmount = uiState.totalCartAmount,
+                onUpdateQuantity = viewModel::onUpdateCartQuantity,
+                onClearCart = viewModel::onClearCart,
+                onCheckoutClick = onCheckoutClick,
+                onDismiss = { isCartSheetOpen = false },
+                restaurantId = uiState.cartRestaurantId
             )
         }
     }

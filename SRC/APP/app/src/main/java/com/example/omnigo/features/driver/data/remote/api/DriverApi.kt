@@ -5,7 +5,11 @@ import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.food.data.remote.dto.FoodOrderResponse
 import com.example.omnigo.features.driver.data.remote.dto.DriverAccountProfileResponse
 import com.example.omnigo.features.driver.data.remote.dto.DriverLocationRequest
+import com.example.omnigo.features.driver.data.remote.dto.DriverResubmitRequestDto
+import com.example.omnigo.features.driver.data.remote.dto.DriverUpdateVehicleRequestDto
 import com.example.omnigo.features.driver.food.data.remote.dto.UpdateDriverOrderStatusRequest
+import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
@@ -30,10 +34,27 @@ interface DriverApi {
     @GET(ApiEndpoints.GET_ME)
     suspend fun getMyProfile(): ApiResponse<DriverAccountProfileResponse>
 
+    @PUT(ApiEndpoints.DRIVER_VEHICLE_UPDATE)
+    suspend fun updateDriverVehicle(
+        @Path("driverId") driverId: Long,
+        @Body request: DriverUpdateVehicleRequestDto
+    ): ApiResponse<DriverAccountProfileResponse>
+
+    @PUT(ApiEndpoints.DRIVER_RESUBMIT)
+    suspend fun resubmitDriverProfile(
+        @Path("driverId") driverId: Long,
+        @Body request: DriverResubmitRequestDto
+    ): ApiResponse<DriverAccountProfileResponse>
+
+    @POST(ApiEndpoints.DRIVERS_ME_FCM_TOKEN)
+    suspend fun updateDriverFcmToken(
+        @Body request: Map<String, String>
+    ): ApiResponse<String>
+
     @POST(ApiEndpoints.DRIVER_LOCATION_ME)
     suspend fun sendDriverLocation(
         @Body request: DriverLocationRequest
-    ): ApiResponse<Any>
+    ): Response<ResponseBody>
 
     @POST(ApiEndpoints.BOOKING_FOOD_ORDER_ACCEPT)
     suspend fun acceptFoodOrder(

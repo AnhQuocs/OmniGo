@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.food.data.repository
 
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
 import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
 import com.example.omnigo.features.customer.food.data.remote.dto.DriverProfileResponse
@@ -24,6 +25,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
 class FoodRepositoryImplTest {
@@ -70,7 +75,8 @@ class FoodRepositoryImplTest {
     @Before
     fun setUp() {
         foodApi = mockk()
-        repository = FoodRepositoryImpl(foodApi)
+        val idempotencyKeyManager: IdempotencyKeyManager = mockk(relaxed = true)
+        repository = FoodRepositoryImpl(foodApi, idempotencyKeyManager)
     }
 
     @Test
@@ -150,7 +156,7 @@ class FoodRepositoryImplTest {
             note = null,
             paymentMethod = PaymentMethod.CASH
         )
-        coEvery { foodApi.createFoodOrder(any()) } returns ApiResponse(
+        coEvery { foodApi.createFoodOrder(any(), any()) } returns ApiResponse(
             success = true,
             message = "Created",
             data = FoodOrderResponse(
@@ -171,13 +177,41 @@ class FoodRepositoryImplTest {
         assertEquals(12_345.0, order.deliveryFee!!, 0.001)
         io.mockk.coVerify(exactly = 1) {
             foodApi.createFoodOrder(
-                match {
+                idempotencyKey = any(),
+                request = match {
                     it.restaurantId == 1L &&
                         it.deliveryAddress == "Delivery address" &&
                         it.paymentMethod == "CASH"
                 }
             )
         }
+    }
+
+    @Test
+    fun `createFoodOrder returns ServerError with backend message when HttpException 400 is thrown`() = runTest {
+        val errorJson = """{"success":false,"message":"Món ăn 'Tôm hùm' hiện tại đã hết hàng","error":"BAD_REQUEST"}"""
+        val responseBody = errorJson.toResponseBody("application/json".toMediaType())
+        val httpResponse = Response.error<FoodOrderResponse>(400, responseBody)
+        val httpException = HttpException(httpResponse)
+
+        coEvery { foodApi.createFoodOrder(any(), any()) } throws httpException
+
+        val command = FoodOrderCreateCommand(
+            restaurantId = 7L,
+            dropOffAddress = "Ngõ 34",
+            dropOffLatitude = 20.9,
+            dropOffLongitude = 105.7,
+            items = emptyList(),
+            note = null,
+            paymentMethod = PaymentMethod.CASH
+        )
+
+        val result = repository.createFoodOrder(command)
+
+        assertTrue(result is CreateFoodOrderResult.Error)
+        val error = result as CreateFoodOrderResult.Error
+        assertEquals(FoodError.SERVER_ERROR, error.error)
+        assertEquals("Món ăn 'Tôm hùm' hiện tại đã hết hàng", error.message)
     }
 
     @Test

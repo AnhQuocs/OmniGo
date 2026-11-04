@@ -1,7 +1,7 @@
 package com.example.omnigo.features.customer.ride.presentation.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,26 +33,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.omnigo.R
 import com.example.omnigo.features.auth.domain.model.VehicleType
+import com.example.omnigo.features.customer.promos.domain.model.AppliedVoucherResult
 import com.example.omnigo.features.customer.ride.domain.model.PricingEstimate
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.OnPrimaryColor
-import com.example.omnigo.ui.theme.OutlineLight
 import com.example.omnigo.ui.theme.OutlineVariantLight
 import com.example.omnigo.ui.theme.PrimaryColor
-import com.example.omnigo.ui.theme.PrimaryContainer
+import com.example.omnigo.ui.theme.SuccessColor
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextTertiary
 import com.example.omnigo.utils.bold
+import com.example.omnigo.utils.formatVnd
+import com.example.omnigo.utils.lineThrough
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s10
@@ -104,7 +105,10 @@ fun RideVehicleSelectionSheet(
     selectedType: VehicleType,
     estimates: Map<VehicleType, PricingEstimate>,
     isCalculating: Boolean,
+    appliedVoucher: AppliedVoucherResult? = null,
+    pendingPromoCode: String? = null,
     onSelectVehicle: (VehicleType) -> Unit,
+    onOpenVoucherSheet: () -> Unit = {},
     onConfirmBooking: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -120,7 +124,6 @@ fun RideVehicleSelectionSheet(
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Drag Handle Bar
             Box(
                 modifier = Modifier
                     .width(Dimen.SizeXL)
@@ -131,7 +134,6 @@ fun RideVehicleSelectionSheet(
 
             Spacer(modifier = Modifier.height(AppSpacing.S))
 
-            // Vehicle Cards List
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.S)
@@ -144,24 +146,21 @@ fun RideVehicleSelectionSheet(
                         estimate = estimate,
                         isSelected = isSelected,
                         isCalculating = isCalculating,
+                        appliedVoucher = appliedVoucher,
                         onClick = { onSelectVehicle(config.type) }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(AppSpacing.M))
-
             HorizontalDivider(color = OutlineVariantLight, thickness = Dimen.PaddingXXS)
-
             Spacer(modifier = Modifier.height(AppSpacing.S))
 
-            // Payment and Voucher row (Xanh SM style)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Payment Method
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -182,24 +181,39 @@ fun RideVehicleSelectionSheet(
                     )
                 }
 
-                // Discount Voucher
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(AppShape.ShapeM))
+                        .clickable(onClick = onOpenVoucherSheet)
                         .padding(horizontal = Dimen.PaddingXS, vertical = Dimen.PaddingXS)
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocalOffer,
                         contentDescription = null,
-                        tint = PrimaryColor,
+                        tint = if (appliedVoucher != null || !pendingPromoCode.isNullOrBlank()) SuccessColor else PrimaryColor,
                         modifier = Modifier.size(Dimen.SizeSM)
                     )
                     Spacer(modifier = Modifier.width(AppSpacing.XS))
                     Text(
-                        text = stringResource(id = R.string.ride_voucher_label),
-                        style = MaterialTheme.typography.s14.normal(),
-                        color = TextSecondary
+                        text = when {
+                            appliedVoucher != null -> stringResource(
+                                id = R.string.voucher_applied_badge,
+                                appliedVoucher.voucherCode,
+                                appliedVoucher.discountAmount.formatVnd()
+                            )
+                            !pendingPromoCode.isNullOrBlank() -> stringResource(
+                                id = R.string.voucher_pending_badge,
+                                pendingPromoCode
+                            )
+                            else -> stringResource(id = R.string.ride_voucher_label)
+                        },
+                        style = if (appliedVoucher != null || !pendingPromoCode.isNullOrBlank()) {
+                            MaterialTheme.typography.s12.semiBold()
+                        } else {
+                            MaterialTheme.typography.s14.normal()
+                        },
+                        color = if (appliedVoucher != null || !pendingPromoCode.isNullOrBlank()) SuccessColor else TextSecondary
                     )
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
@@ -212,10 +226,13 @@ fun RideVehicleSelectionSheet(
 
             Spacer(modifier = Modifier.height(AppSpacing.S))
 
-            // CTA Confirm Booking Button
             val selectedEstimate = estimates[selectedType]
-            val formattedPrice = selectedEstimate?.let {
-                DecimalFormat("#,###").format(it.totalPrice) + " đ"
+            val finalDisplayPrice = selectedEstimate?.let {
+                val discount = appliedVoucher?.discountAmount ?: 0.0
+                (it.totalPrice - discount).coerceAtLeast(0.0)
+            }
+            val formattedPrice = finalDisplayPrice?.let {
+                DecimalFormat("#,###").format(it) + " đ"
             } ?: ""
 
             Button(
@@ -256,6 +273,7 @@ private fun VehicleItemCard(
     estimate: PricingEstimate?,
     isSelected: Boolean,
     isCalculating: Boolean,
+    appliedVoucher: AppliedVoucherResult?,
     onClick: () -> Unit
 ) {
     val containerBg = if (isSelected) PrimaryColor.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent
@@ -274,7 +292,6 @@ private fun VehicleItemCard(
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Vehicle Image (without circle background)
             Image(
                 painter = painterResource(id = config.imageRes),
                 contentDescription = stringResource(id = config.titleRes),
@@ -284,7 +301,6 @@ private fun VehicleItemCard(
 
             Spacer(modifier = Modifier.width(AppSpacing.M))
 
-            // Vehicle Details (Title, Seats, ETA, Description)
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -293,7 +309,6 @@ private fun VehicleItemCard(
                         color = TextPrimary
                     )
                     Spacer(modifier = Modifier.width(AppSpacing.S))
-                    // Seats Badge
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Person,
@@ -311,7 +326,6 @@ private fun VehicleItemCard(
 
                 Spacer(modifier = Modifier.height(AppSpacing.XXS))
 
-                // ETA Pickup
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.AccessTime,
@@ -338,7 +352,6 @@ private fun VehicleItemCard(
 
             Spacer(modifier = Modifier.width(AppSpacing.S))
 
-            // Fare Price Column
             Box(contentAlignment = Alignment.CenterEnd) {
                 if (isCalculating && estimate == null) {
                     CircularProgressIndicator(
@@ -347,12 +360,28 @@ private fun VehicleItemCard(
                         strokeWidth = Dimen.PaddingXXS
                     )
                 } else if (estimate != null) {
-                    val formatted = DecimalFormat("#,###").format(estimate.totalPrice) + " đ"
-                    Text(
-                        text = formatted,
-                        style = MaterialTheme.typography.s16.bold(),
-                        color = if (isSelected) PrimaryColor else TextPrimary
-                    )
+                    val discount = if (isSelected) (appliedVoucher?.discountAmount ?: 0.0) else 0.0
+                    val finalPrice = (estimate.totalPrice - discount).coerceAtLeast(0.0)
+                    if (discount > 0.0) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = finalPrice.formatVnd(),
+                                style = MaterialTheme.typography.s16.bold(),
+                                color = PrimaryColor
+                            )
+                            Text(
+                                text = estimate.totalPrice.formatVnd(),
+                                style = MaterialTheme.typography.s12.normal().lineThrough(),
+                                color = TextTertiary
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = estimate.totalPrice.formatVnd(),
+                            style = MaterialTheme.typography.s16.bold(),
+                            color = if (isSelected) PrimaryColor else TextPrimary
+                        )
+                    }
                 }
             }
         }

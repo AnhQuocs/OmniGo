@@ -6,9 +6,15 @@ import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
 
 fun BookingResponse.toDomain(): Booking {
     val bookingStatus = try {
-        status?.let { BookingStatus.valueOf(it.uppercase()) } ?: BookingStatus.PENDING
-    } catch (e: IllegalArgumentException) {
+        BookingStatus.valueOf(status?.uppercase() ?: "PENDING")
+    } catch (_: IllegalArgumentException) {
         BookingStatus.PENDING
+    }
+
+    val normalizedRate = if (commissionRate != null && commissionRate > 1.0) {
+        commissionRate / 100.0
+    } else {
+        commissionRate
     }
 
     return Booking(
@@ -17,6 +23,10 @@ fun BookingResponse.toDomain(): Booking {
         driverId = driverId,
         customerAvatarUrl = customerAvatarUrl,
         driverAvatarUrl = driverAvatarUrl,
+        driverName = driverName,
+        driverPhone = driverPhone,
+        driverVehiclePlate = driverVehiclePlate,
+        driverRating = driverRating,
         pickupAddress = pickupAddress.orEmpty(),
         dropoffAddress = dropoffAddress.orEmpty(),
         startLongitude = startLongitude ?: 0.0,
@@ -29,6 +39,9 @@ fun BookingResponse.toDomain(): Booking {
         vehicleType = vehicleType,
         paymentMethod = paymentMethod,
         createdAt = createdAt,
-        completedAt = completedAt
+        completedAt = completedAt,
+        platformFee = platformFee,
+        driverEarnings = driverEarnings,
+        commissionRate = normalizedRate
     )
 }

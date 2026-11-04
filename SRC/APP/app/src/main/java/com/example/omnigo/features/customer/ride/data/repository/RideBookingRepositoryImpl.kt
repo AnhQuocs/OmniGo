@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.data.repository
 
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
 import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.customer.ride.data.mapper.toDomain
 import com.example.omnigo.features.customer.ride.data.mapper.toRideOfferEvent
@@ -18,7 +19,6 @@ import com.example.omnigo.features.customer.ride.domain.model.GetBookingDriverRe
 import com.example.omnigo.features.customer.ride.domain.model.GetCustomerBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverDailyReportResult
-import com.example.omnigo.features.auth.domain.model.VehicleType
 import com.example.omnigo.features.customer.ride.domain.model.NearbyDriver
 import com.example.omnigo.features.customer.ride.domain.model.RejectRideBookingResult
 import com.example.omnigo.features.customer.ride.domain.model.RideStatusEvent
@@ -35,7 +35,8 @@ import javax.inject.Inject
 
 class RideBookingRepositoryImpl @Inject constructor(
     private val rideBookingApi: RideBookingApi,
-    private val rideStompSubscriptionSource: RideStompSubscriptionSource
+    private val rideStompSubscriptionSource: RideStompSubscriptionSource,
+    private val idempotencyKeyManager: IdempotencyKeyManager
 ) : RideBookingRepository {
 
     internal var clock: () -> Long = { System.currentTimeMillis() }
@@ -53,8 +54,11 @@ class RideBookingRepositoryImpl @Inject constructor(
         endLongitude: Double,
         vehicleType: String?,
         pickupAddress: String?,
-        dropoffAddress: String?
+        dropoffAddress: String?,
+        expectedPrice: Double?
     ): CreateRideBookingResult {
+        val fingerprint = "BOOKING_${startLatitude}_${startLongitude}_${endLatitude}_${endLongitude}_${vehicleType}_${expectedPrice}"
+        val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_BOOKING, fingerprint)
         return try {
             val request = BookingRequest(
                 startLongitude = startLongitude,
@@ -63,48 +67,34 @@ class RideBookingRepositoryImpl @Inject constructor(
                 endLatitude = endLatitude,
                 vehicleType = vehicleType,
                 pickupAddress = pickupAddress,
-                dropoffAddress = dropoffAddress
+                dropoffAddress = dropoffAddress,
+                expectedPrice = expectedPrice
             )
-            val response = rideBookingApi.createBooking(request)
+            val response = rideBookingApi.createBooking(idempotencyKey = key, request = request)
+            idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_BOOKING)
             CreateRideBookingResult.Success(response.toDomain())
         } catch (e: IOException) {
-            CreateRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            CreateRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
-            CreateRideBookingResult.Error(
-                error = RideError.SERVER_ERROR,
-                message = e.toBackendMessage()
-            )
+            if (e.code() == 422) {
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_BOOKING)
+            }
+            CreateRideBookingResult.Error(error = RideError.SERVER_ERROR, message = e.toBackendMessage())
         } catch (e: Exception) {
-            CreateRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            CreateRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override suspend fun cancelBooking(bookingId: Long): CancelRideBookingResult {
         return try {
-            val response = rideBookingApi.cancelBooking(bookingId)
-            CancelRideBookingResult.Success(response.toDomain())
+            CancelRideBookingResult.Success(rideBookingApi.cancelBooking(bookingId).toDomain())
         } catch (e: IOException) {
-            CancelRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            CancelRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            CancelRideBookingResult.Error(
-                error = error,
-                message = e.toBackendMessage()
-            )
+            CancelRideBookingResult.Error(error = error, message = e.toBackendMessage())
         } catch (e: Exception) {
-            CancelRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            CancelRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
@@ -121,113 +111,64 @@ class RideBookingRepositoryImpl @Inject constructor(
                 )
             }
         } catch (e: IOException) {
-            GetBookingDriverResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            GetBookingDriverResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.DRIVER_NOT_FOUND else RideError.SERVER_ERROR
-            GetBookingDriverResult.Error(
-                error = error,
-                message = e.message()
-            )
+            GetBookingDriverResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            GetBookingDriverResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            GetBookingDriverResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override suspend fun acceptBooking(bookingId: Long): AcceptRideBookingResult {
         return try {
-            val response = rideBookingApi.acceptBooking(bookingId)
-            AcceptRideBookingResult.Success(response.toDomain())
+            AcceptRideBookingResult.Success(rideBookingApi.acceptBooking(bookingId).toDomain())
         } catch (e: IOException) {
-            AcceptRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            AcceptRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            AcceptRideBookingResult.Error(
-                error = error,
-                message = e.message()
-            )
+            AcceptRideBookingResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            AcceptRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            AcceptRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override suspend fun rejectBooking(bookingId: Long): RejectRideBookingResult {
         return try {
-            val response = rideBookingApi.driverCancelBooking(bookingId)
-            RejectRideBookingResult.Success(response.toDomain())
+            RejectRideBookingResult.Success(rideBookingApi.driverCancelBooking(bookingId).toDomain())
         } catch (e: IOException) {
-            RejectRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            RejectRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            RejectRideBookingResult.Error(
-                error = error,
-                message = e.message()
-            )
+            RejectRideBookingResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            RejectRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            RejectRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override suspend fun arriveBooking(bookingId: Long): ArriveRideBookingResult {
         return try {
-            val response = rideBookingApi.arriveBooking(bookingId)
-            ArriveRideBookingResult.Success(response.toDomain())
+            ArriveRideBookingResult.Success(rideBookingApi.arriveBooking(bookingId).toDomain())
         } catch (e: IOException) {
-            ArriveRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            ArriveRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            ArriveRideBookingResult.Error(
-                error = error,
-                message = e.message()
-            )
+            ArriveRideBookingResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            ArriveRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            ArriveRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override suspend fun startBooking(bookingId: Long): StartRideBookingResult {
         return try {
-            val response = rideBookingApi.startBooking(bookingId)
-            StartRideBookingResult.Success(response.toDomain())
+            StartRideBookingResult.Success(rideBookingApi.startBooking(bookingId).toDomain())
         } catch (e: IOException) {
-            StartRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            StartRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            StartRideBookingResult.Error(
-                error = error,
-                message = e.message()
-            )
+            StartRideBookingResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            StartRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            StartRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
@@ -237,27 +178,17 @@ class RideBookingRepositoryImpl @Inject constructor(
             invalidateDailyReportCache()
             CompleteRideBookingResult.Success(response.toDomain())
         } catch (e: IOException) {
-            CompleteRideBookingResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            CompleteRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
             val error = if (e.code() == 404) RideError.BOOKING_NOT_FOUND else RideError.SERVER_ERROR
-            CompleteRideBookingResult.Error(
-                error = error,
-                message = e.message()
-            )
+            CompleteRideBookingResult.Error(error = error, message = e.message())
         } catch (e: Exception) {
-            CompleteRideBookingResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            CompleteRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
     override fun observeRideOffers(): Flow<RideOfferEvent> {
-        return rideStompSubscriptionSource.subscribeToRideOffers()
-            .mapNotNull { it.toRideOfferEvent() }
+        return rideStompSubscriptionSource.subscribeToRideOffers().mapNotNull { it.toRideOfferEvent() }
     }
 
     override fun observeBookingStatus(bookingId: Long): Flow<RideStatusEvent> {
@@ -267,37 +198,23 @@ class RideBookingRepositoryImpl @Inject constructor(
     }
 
     override fun observeDriverLiveLocation(driverId: Long): Flow<DriverLiveLocation> {
-        return rideStompSubscriptionSource.subscribeToDriverLocation(driverId)
-            .mapNotNull { it.toDomain() }
+        return rideStompSubscriptionSource.subscribeToDriverLocation(driverId).mapNotNull { it.toDomain() }
     }
 
     override suspend fun getCustomerBookings(): GetCustomerBookingsResult {
         return try {
             val response = rideBookingApi.getCustomerBookings()
             if (response.success && response.data != null) {
-                val bookings = response.data.map { it.toDomain() }
-                GetCustomerBookingsResult.Success(bookings)
+                GetCustomerBookingsResult.Success(response.data.map { it.toDomain() })
             } else {
-                GetCustomerBookingsResult.Error(
-                    error = RideError.UNKNOWN_ERROR,
-                    message = response.message
-                )
+                GetCustomerBookingsResult.Error(error = RideError.UNKNOWN_ERROR, message = response.message)
             }
         } catch (e: HttpException) {
-            GetCustomerBookingsResult.Error(
-                error = RideError.SERVER_ERROR,
-                message = e.message()
-            )
+            GetCustomerBookingsResult.Error(error = RideError.SERVER_ERROR, message = e.message())
         } catch (e: IOException) {
-            GetCustomerBookingsResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            GetCustomerBookingsResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: Exception) {
-            GetCustomerBookingsResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            GetCustomerBookingsResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
@@ -305,29 +222,16 @@ class RideBookingRepositoryImpl @Inject constructor(
         return try {
             val response = rideBookingApi.getDriverBookings()
             if (response.success && response.data != null) {
-                val bookings = response.data.map { it.toDomain() }
-                GetDriverBookingsResult.Success(bookings)
+                GetDriverBookingsResult.Success(response.data.map { it.toDomain() })
             } else {
-                GetDriverBookingsResult.Error(
-                    error = RideError.UNKNOWN_ERROR,
-                    message = response.message
-                )
+                GetDriverBookingsResult.Error(error = RideError.UNKNOWN_ERROR, message = response.message)
             }
         } catch (e: HttpException) {
-            GetDriverBookingsResult.Error(
-                error = RideError.SERVER_ERROR,
-                message = e.message()
-            )
+            GetDriverBookingsResult.Error(error = RideError.SERVER_ERROR, message = e.message())
         } catch (e: IOException) {
-            GetDriverBookingsResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            GetDriverBookingsResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: Exception) {
-            GetDriverBookingsResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            GetDriverBookingsResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
@@ -356,26 +260,14 @@ class RideBookingRepositoryImpl @Inject constructor(
                 }
                 GetDriverDailyReportResult.Success(report)
             } else {
-                GetDriverDailyReportResult.Error(
-                    error = RideError.UNKNOWN_ERROR,
-                    message = response.message
-                )
+                GetDriverDailyReportResult.Error(error = RideError.UNKNOWN_ERROR, message = response.message)
             }
         } catch (e: HttpException) {
-            GetDriverDailyReportResult.Error(
-                error = RideError.SERVER_ERROR,
-                message = e.message()
-            )
+            GetDriverDailyReportResult.Error(error = RideError.SERVER_ERROR, message = e.message())
         } catch (e: IOException) {
-            GetDriverDailyReportResult.Error(
-                error = RideError.NETWORK_ERROR,
-                message = e.message
-            )
+            GetDriverDailyReportResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: Exception) {
-            GetDriverDailyReportResult.Error(
-                error = RideError.UNKNOWN_ERROR,
-                message = e.message
-            )
+            GetDriverDailyReportResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)
         }
     }
 
@@ -385,12 +277,7 @@ class RideBookingRepositoryImpl @Inject constructor(
         radius: Double
     ): List<NearbyDriver> {
         return try {
-            val response = rideBookingApi.getNearbyDrivers(
-                longitude = longitude,
-                latitude = latitude,
-                radius = radius
-            )
-            response.toDomain()
+            rideBookingApi.getNearbyDrivers(longitude = longitude, latitude = latitude, radius = radius).toDomain()
         } catch (_: Exception) {
             emptyList()
         }

@@ -31,6 +31,7 @@
     <string name="dont_have_account">Don\'t have an account?</string>
     <string name="register_now">Register now</string>
     <string name="logging_in">Logging in…</string>
+    <string name="auth_session_expired">Session expired. Please log in again.</string>
 
     <!-- REGISTER SCREEN -->
     <string name="register">Register</string>
@@ -172,6 +173,20 @@
     <string name="home_banner_desc_2">For orders from 50k</string>
     <string name="rating_count">%s reviews</string>
     <string name="home_popular_status_open">OPEN</string>
+    <string name="home_popular_status_closed">CLOSED</string>
+    <string name="home_wallet_loading">Updating...</string>
+    <string name="home_notifications_title">Notifications</string>
+    <string name="home_notifications_empty">No notifications yet</string>
+    <string name="home_notifications_mark_read">Mark all as read</string>
+    <string name="home_qr_dialog_title">OmniPay QR</string>
+    <string name="home_qr_dialog_desc">Scan at partner stores to pay instantly</string>
+    <string name="home_qr_my_code">My Payment Code</string>
+    <string name="home_notification_promo_title">Special Welcome Voucher</string>
+    <string name="home_notification_promo_desc">Get 30% discount with code OMIGO30 on your rides and meals!</string>
+    <string name="home_notification_ride_title">Safe Journey Guaranteed</string>
+    <string name="home_notification_ride_desc">OmniGo drivers are strictly verified for your safety and comfort.</string>
+    <string name="home_notification_wallet_title">OmniPay Activated</string>
+    <string name="home_notification_wallet_desc">Top up now for exclusive cashback and promotions.</string>
 
     <!-- ACTIVITY SCREEN -->
     <string name="activity_title">Activity &amp; History</string>
@@ -657,7 +672,9 @@
     <string name="ride_cancel_confirm_no">Keep Searching</string>
     <string name="ride_search_timeout_message">No drivers responded in time. Please try booking
         again in a few moments.</string>
-    <string name="ride_booking_cancelled_success">Search cancelled successfully.</string>
+    <string name="ride_booking_cancelled_success">Trip cancelled successfully.</string>
+    <string name="ride_driver_cancelled_toast">Driver has cancelled this trip.</string>
+    <string name="ride_trip_cancelled_by_system">This trip has been cancelled.</string>
     <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
     <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
     <string name="ride_error_incomplete_locations">Please select both pickup and drop-off locations.</string>
@@ -787,8 +804,8 @@
         location to complete the trip.</string>
     <string name="driver_trip_settlement_title">Trip Settlement</string>
     <string name="driver_trip_settlement_total_fare">Total Fare</string>
-    <string name="driver_trip_settlement_platform_fee">Platform Fee (20%)</string>
-    <string name="driver_trip_settlement_driver_income">Driver Earnings (80%)</string>
+    <string name="driver_trip_settlement_platform_fee">Platform Fee</string>
+    <string name="driver_trip_settlement_driver_income">Driver Earnings</string>
     <string name="driver_trip_settlement_cash_collect">Collect Cash: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Passenger paid via app (0 VND)</string>
     <string name="driver_trip_btn_finish_and_home">Continue Driving</string>
@@ -817,8 +834,8 @@
     <string name="driver_daily_report_trips_label">Completed Trips</string>
     <string name="driver_daily_report_trips_count_format">%1$d trips</string>
     <string name="driver_daily_report_gross_revenue">Gross Fare</string>
-    <string name="driver_daily_report_net_earnings">Driver Earnings (80%)</string>
-    <string name="driver_daily_report_platform_fee">Platform Fee (20%)</string>
+    <string name="driver_daily_report_net_earnings">Driver Earnings</string>
+    <string name="driver_daily_report_platform_fee">Platform Fee</string>
     <string name="driver_daily_report_cash">Cash: %1$s</string>
     <string name="driver_daily_report_app_paid">App: %1$s</string>
     <string name="driver_trips_active_trip_title">Ongoing Trip</string>
@@ -1028,6 +1045,20 @@
     <string name="driver_trips_btn_resume_food">Resume Delivery</string>
     <string name="driver_trips_history_food_completed">Delivered</string>
     <string name="driver_trips_history_food_cancelled">Cancelled</string>
+
+    <!-- DRIVER ORDER DETAIL -->
+    <string name="driver_order_detail_title">Trip / Order Details</string>
+    <string name="driver_order_detail_customer">Customer</string>
+    <string name="driver_order_detail_call_customer">Call Customer</string>
+    <string name="driver_order_detail_restaurant">Restaurant / Pickup</string>
+    <string name="driver_order_detail_dropoff">Delivery Destination</string>
+    <string name="driver_order_detail_items">Item List (%1$d)</string>
+    <string name="driver_order_detail_fare_breakdown">Earnings Breakdown</string>
+    <string name="driver_order_detail_delivery_fee">Delivery / Trip Fare</string>
+    <string name="driver_order_detail_net_earnings">Driver Net Earnings</string>
+    <string name="driver_order_detail_payment_method">Payment Method</string>
+    <string name="driver_order_detail_note">Customer Note</string>
+    <string name="driver_order_detail_close">Close</string>
     <string name="driver_earnings_today_summary_title">Today\'s Performance</string>
     <string name="driver_earnings_quest_10_trips">Complete 10 trips today</string>
     <string name="driver_earnings_quest_progress_format">Progress: %1$d/%2$d trips</string>
@@ -1108,8 +1139,8 @@
     <string name="driver_earnings_total_week">Total Earnings This Week</string>
     <string name="driver_earnings_total_month">Total Earnings This Month</string>
     <string name="driver_earnings_trips_count_fmt">%1$d trips</string>
-    <string name="driver_earnings_net_received_label">Net (80%)</string>
-    <string name="driver_earnings_platform_fee_label">Platform Fee (20%)</string>
+    <string name="driver_earnings_net_received_label">Net Earnings</string>
+    <string name="driver_earnings_platform_fee_label">Platform Fee</string>
     <string name="driver_earnings_gross_fare_label">Gross Fare</string>
     <string name="driver_earnings_quest_reward">+50,000 VND</string>
     <string name="driver_earnings_chart_title">Earnings Chart</string>
@@ -1147,7 +1178,7 @@
     <string name="driver_wallet_tab_income">Trip Income</string>
     <string name="driver_wallet_deposit_subtitle">Current Credit Balance</string>
     <string name="driver_wallet_income_subtitle">Net Earnings in Period</string>
-    <string name="driver_wallet_income_note">Earnings after 20% platform commission fee deduction.</string>
+    <string name="driver_wallet_income_note">Driver net earnings received after platform commission fee deduction.</string>
     <string name="driver_wallet_note_success_only">Only successful transactions affect your wallet balance.</string>
 
     <!-- Driver Account Redesign -->
@@ -1186,4 +1217,214 @@
     <string name="driver_support_email_title">Send Support Email</string>
     <string name="driver_support_email_desc">support@omnigo.vn</string>
     <string name="driver_map_compass_aligned">Map is already facing North</string>
+    <!-- Password Management -->
+    <string name="account_change_password">Change Password</string>
+    <string name="account_old_password">Current Password</string>
+    <string name="account_new_password">New Password</string>
+    <string name="account_confirm_new_password">Confirm New Password</string>
+    <string name="account_change_password_success">Password changed successfully</string>
+    <string name="account_change_password_submit">Update Password</string>
+    <string name="auth_forgot_password_title">Reset Password</string>
+    <string name="auth_forgot_password_desc">Enter your registered phone number to reset password</string>
+    <string name="auth_reset_password_success">Password reset successfully</string>
+    <string name="voucher_min_order_warning">Add %1$s more to apply this voucher</string>
+    <string name="saved_address_title">Saved Places</string>
+    <string name="saved_address_add">Add New Address</string>
+    <string name="saved_address_empty">No saved addresses yet</string>
+    <string name="saved_address_name_hint">Address label (e.g. Home, Company)</string>
+    <string name="saved_address_detail_hint">Street name, building, apartment</string>
+    <string name="saved_address_delete_success">Address deleted</string>
+    <string name="saved_address_save_success">Address saved</string>
+    <string name="saved_address_set_default">Set as default</string>
+    <!-- Customer Profile Redesign & Edit Profile -->
+    <string name="profile_edit_btn">Edit Profile</string>
+    <string name="profile_edit_title">Edit Profile</string>
+    <string name="profile_edit_fullname_hint">Enter your full name</string>
+    <string name="profile_edit_email_hint">Enter email address</string>
+    <string name="profile_edit_save_btn">Save Changes</string>
+    <string name="profile_edit_success">Profile updated successfully</string>
+    <string name="profile_edit_failed">Failed to update profile</string>
+    <string name="profile_tier_member">OmniGo Member</string>
+    <string name="profile_metric_trips">Rides</string>
+    <string name="profile_metric_orders">Food Orders</string>
+    <string name="profile_metric_promos">Promos</string>
+
+    <!-- Phase 1: Vouchers & Promotions -->
+    <string name="promos_history_btn">History</string>
+    <string name="promos_history_title">Voucher Usage History</string>
+    <string name="promos_history_empty">You haven\'t used any vouchers yet</string>
+    <string name="promos_empty">No active vouchers available</string>
+    <string name="promos_saved_code_msg">Voucher %1$s applied! Discount: -%2$s</string>
+    <string name="promos_code_copied_ready">Voucher %1$s is ready to use</string>
+    <string name="voucher_sheet_title">Select Voucher</string>
+    <string name="voucher_sheet_subtitle">Best applicable vouchers for your order</string>
+    <string name="voucher_remove_btn">Remove</string>
+    <string name="voucher_applied_badge">Applied: %1$s (-%2$s)</string>
+    <string name="voucher_pending_badge">Code: %1$s</string>
+    <string name="voucher_discount_row">Voucher Discount (%1$s)</string>
+    <string name="voucher_min_order_label">Min. order %1$s</string>
+    <string name="voucher_max_discount_label">Up to %1$s</string>
+    <string name="voucher_usage_order_format">Order #%1$s • Saved %2$s</string>
+    <string name="checkout_voucher_title">OmniGo Voucher</string>
+    <string name="checkout_voucher_select_hint">Select or enter promo code</string>
+    <string name="promos_hero_title">OmniGo Deals &amp; Vouchers ✨</string>
+    <string name="promos_hero_subtitle">Save up to 50% on rides and delicious meals every day!</string>
+    <string name="promos_badge_total">%1$d active</string>
+    <string name="promos_filter_all_label">✨ All (%1$d)</string>
+    <string name="promos_filter_ride_label">🚗 Rides (%1$d)</string>
+    <string name="promos_filter_food_label">🍔 Food (%1$d)</string>
+    <string name="promos_tag_hot">HOT DEAL</string>
+    <string name="promos_tag_limited">LIMITED</string>
+    <string name="promos_off_label">OFF</string>
+    <string name="promos_service_all">ALL</string>
+    <string name="promos_service_ride">RIDE</string>
+    <string name="promos_service_food">FOOD</string>
+    <string name="promos_copy_success">Copied code %1$s to clipboard!</string>
+    <string name="promos_detail_btn">Details</string>
+    <string name="promos_detail_title">Voucher Details</string>
+    <string name="promos_detail_code">Promo Code</string>
+    <string name="promos_detail_service">Applicable Service</string>
+    <string name="promos_detail_min_order">Minimum Order</string>
+    <string name="promos_detail_max_discount">Maximum Discount</string>
+    <string name="promos_detail_validity">Validity</string>
+    <string name="promos_detail_limit">Usage Limit</string>
+    <string name="promos_detail_limit_value">%1$d times per user</string>
+    <string name="promos_detail_close">Close</string>
+    <string name="promos_selected_badge">Selected</string>
+    <string name="promos_empty_filter_btn">View All Deals</string>
+    <string name="promos_paste_btn">Paste</string>
+    <string name="promos_navigate_ride_toast">Opening Ride booking with code %1$s!</string>
+    <string name="promos_navigate_food_toast">Opening Food delivery with code %1$s!</string>
+    <string name="promos_choose_service_title">Choose Service</string>
+    <string name="promos_choose_service_desc">Voucher %1$s can be used for both Rides and Food. Which service would you like to use it for?</string>
+    <string name="promos_choose_service_ride">Book a Ride</string>
+    <string name="promos_choose_service_food">Order Food</string>
+    <string name="promos_btn_apply">Apply</string>
+
+    <!-- Phase 2: Ride & Food Reviews + Driver Dual-Tab Reviews -->
+    <string name="ride_review_comment_hint">Share your experience with the driver (optional)...</string>
+    <string name="ride_review_tag_safe">Safe driving</string>
+    <string name="ride_review_tag_clean">Clean vehicle</string>
+    <string name="ride_review_tag_ontime">On time</string>
+    <string name="ride_review_tag_friendly">Friendly driver</string>
+    <string name="ride_review_submitted_msg">Thank you for rating your trip!</string>
+    <string name="ride_detail_sheet_title">Ride Details #%1$d</string>
+    <string name="ride_detail_driver_section">Driver Information</string>
+    <string name="ride_detail_review_section">Your Trip Rating</string>
+    <string name="ride_detail_rate_now_btn">Submit Rating</string>
+    <string name="food_review_edit_btn">Edit Review (within 24h)</string>
+    <string name="food_review_update_btn">Update Review</string>
+    <string name="food_review_updated_msg">Review updated successfully!</string>
+    <string name="driver_reviews_menu_title">Customer Reviews</string>
+    <string name="driver_reviews_menu_sub">View ride and food delivery ratings</string>
+    <string name="driver_reviews_screen_title">My Customer Reviews</string>
+    <string name="driver_reviews_tab_ride">Ride Reviews</string>
+    <string name="driver_reviews_tab_food">Food Delivery Reviews</string>
+    <string name="driver_reviews_total_count">%1$d reviews</string>
+    <string name="driver_reviews_filter_all">All</string>
+    <string name="driver_reviews_empty">No reviews in this category yet</string>
+    <string name="driver_reviews_trip_ref">Trip #%1$d</string>
+    <string name="driver_reviews_order_ref">Food Order #%1$d</string>
+    <string name="driver_reviews_no_comment">Customer rated without leaving a comment</string>
+
+    <!-- Phase 3: Customer OmniPay Wallet & Online Payment -->
+    <string name="wallet_screen_title">OmniPay Wallet</string>
+    <string name="wallet_balance_label">Available Balance</string>
+    <string name="wallet_btn_deposit">Top Up</string>
+    <string name="wallet_btn_withdraw">Withdraw</string>
+    <string name="wallet_deposit_dialog_title">Top Up OmniPay Wallet</string>
+    <string name="wallet_withdraw_dialog_title">Withdraw from Wallet</string>
+    <string name="wallet_amount_hint">Enter amount (min 10,000 VND)</string>
+    <string name="wallet_withdraw_success">Withdrawal completed successfully!</string>
+    <string name="wallet_deposit_redirect_msg">Redirecting to payment gateway...</string>
+    <string name="order_pay_now_btn">Pay Online Now</string>
+    <string name="order_check_payment_btn">Check Payment</string>
+    <string name="order_payment_status_paid">Payment confirmed!</string>
+    <string name="order_payment_status_unpaid">Payment is still pending (%1$s)</string>
+
+    <!-- Phase 4: Redis OTP, Deactivate Account & Address Edit -->
+    <string name="auth_send_otp_btn">Send OTP Code</string>
+    <string name="auth_otp_sent_msg">6-digit OTP has been sent to %1$s</string>
+    <string name="auth_otp_input_label">6-Digit OTP Code</string>
+    <string name="auth_otp_input_hint">Enter 6-digit OTP</string>
+    <string name="auth_resend_otp_btn">Resend OTP</string>
+    <string name="profile_deactivate_btn">Deactivate Account</string>
+    <string name="profile_deactivate_dialog_title">Deactivate Your Account?</string>
+    <string name="profile_deactivate_dialog_desc">Your account will be deactivated and logged out immediately. Are you sure you want to continue?</string>
+    <string name="profile_deactivate_confirm_btn">Deactivate</string>
+    <string name="profile_deactivate_success">Account has been deactivated</string>
+    <string name="saved_address_edit_title">Edit Saved Address</string>
+    <string name="saved_address_update_success">Address updated successfully</string>
+
+    <!-- Phase 5: Driver Vehicle Update & Resubmit -->
+    <string name="driver_vehicle_edit_btn">Update Vehicle</string>
+    <string name="driver_vehicle_dialog_title">Update Vehicle Information</string>
+    <string name="driver_vehicle_type_label">Vehicle Type</string>
+    <string name="driver_vehicle_plate_label">License Plate</string>
+    <string name="driver_vehicle_brand_label">Vehicle Brand / Model</string>
+    <string name="driver_vehicle_update_success">Vehicle information updated!</string>
+    <string name="driver_resubmit_btn">Resubmit Profile</string>
+    <string name="driver_resubmit_sheet_title">Resubmit Driver Application</string>
+    <string name="driver_resubmit_sheet_desc">Please review and update your information and document photos to resubmit for approval.</string>
+    <string name="driver_resubmit_license_label">Driver License Number</string>
+    <string name="driver_resubmit_success">Profile resubmitted! Status is now Pending Approval.</string>
+    <string name="common_back">Back</string>
+    <string name="common_retry">Retry</string>
+    <!-- OmniGo Payment System & Quick Top-up -->
+    <string name="checkout_wallet_balance_format">Balance: %1$s</string>
+    <string name="checkout_wallet_insufficient">Insufficient balance (Need %1$s more)</string>
+    <string name="checkout_wallet_sufficient">Available balance</string>
+    <string name="checkout_wallet_top_up_btn">Top up</string>
+    <string name="checkout_error_insufficient_wallet">OmniPay wallet balance is insufficient. Please top up!</string>
+    <string name="checkout_quick_top_up_title">Quick OmniPay Wallet Top-up</string>
+    <string name="checkout_quick_top_up_subtitle">Top up to complete your order payment</string>
+    <string name="checkout_quick_top_up_deficit_option">Remaining deficit (%1$s)</string>
+    <string name="checkout_quick_top_up_custom_amount">Or choose another amount</string>
+    <string name="checkout_quick_top_up_btn">Confirm Top-up</string>
+    <string name="checkout_payment_gateway_title">OmniGo Payment Gateway</string>
+    <string name="checkout_payment_success_toast">Payment successful!</string>
+    <string name="checkout_payment_failed_toast">Payment incomplete or cancelled</string>
+    <string name="checkout_payment_loading">Connecting to payment gateway…</string>
+    <string name="checkout_wallet_payment_success">OmniPay wallet payment successful!</string>
+    <!-- Fintech Payment V4 & Idempotency Sentinels -->
+    <string name="payment_sentinel_wallet_success">OmniPay wallet payment successful!</string>
+    <string name="payment_sentinel_already_paid">This order has already been paid.</string>
+    <string name="payment_verifying_status">Verifying payment status with gateway…</string>
+    <string name="payment_status_pending_hint">Payment is awaiting confirmation from the gateway. Please tap Check Payment in a few moments.</string>
+    <string name="order_admission_blocked_food">You have an unpaid food order (%1$s). Please complete it before placing a new order.</string>
+    <string name="order_admission_blocked_ride">You have an ongoing ride booking. Please complete it before booking a new one.</string>
+    <string name="order_admission_view_order_btn">View Order</string>
+    <!-- Food Cart Bottom Sheet -->
+    <string name="food_cart_sheet_title">Cart</string>
+    <string name="food_cart_sheet_clear_all">Clear all</string>
+    <string name="food_cart_sheet_total">Total</string>
+    <string name="food_cart_sheet_checkout">Checkout</string>
+    <string name="food_cart_sheet_empty">Your cart is currently empty</string>
+    <string name="food_cart_sheet_view_restaurant">View restaurant menu</string>
+    <string name="food_cart_sheet_note_prefix">Note: %1$s</string>
+    <string name="food_cd_clear_cart">Clear entire cart</string>
+    <string name="food_cd_close_cart">Close cart</string>
+    <!-- Wallet Payment Confirmation -->
+    <string name="checkout_wallet_confirm_title">Confirm Payment</string>
+    <string name="checkout_wallet_confirm_amount_label">Payment Amount</string>
+    <string name="checkout_wallet_confirm_restaurant">Restaurant</string>
+    <string name="checkout_wallet_confirm_source">Payment Method</string>
+    <string name="checkout_wallet_confirm_current_balance">Current Balance</string>
+    <string name="checkout_wallet_confirm_remaining_balance">Remaining Balance</string>
+    <string name="checkout_wallet_confirm_btn_pay">Confirm &amp; Pay</string>
+    <string name="checkout_wallet_confirm_btn_cancel">Cancel</string>
+    <!-- Wallet Modern Dialog Strings -->
+    <string name="wallet_deposit_dialog_subtitle">Fast and secure top-up via VNPay Gateway</string>
+    <string name="wallet_withdraw_dialog_subtitle">Transfer funds 24/7 to linked bank account</string>
+    <string name="wallet_method_vnpay_title">VNPay Payment Gateway</string>
+    <string name="wallet_method_vnpay_subtitle">Supports VietQR, Domestic ATM, Visa/Mastercard</string>
+    <string name="wallet_withdraw_bank_title">Linked Bank Account</string>
+    <string name="wallet_withdraw_bank_subtitle">Fast 24/7 interbank transfer</string>
+    <string name="wallet_deposit_btn_confirm">Confirm Top Up</string>
+    <string name="wallet_withdraw_btn_confirm">Confirm Withdrawal</string>
+    <string name="wallet_withdraw_all">Withdraw all</string>
+    <string name="wallet_available_balance">Available: %1$s</string>
+    <string name="wallet_amount_min_error">Minimum amount is 10,000 ₫</string>
+    <string name="wallet_withdraw_max_error">Amount exceeds available balance</string>
+    <string name="wallet_btn_cancel">Cancel</string>
 </resources>

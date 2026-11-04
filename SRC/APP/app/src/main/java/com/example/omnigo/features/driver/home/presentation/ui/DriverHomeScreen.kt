@@ -1,5 +1,6 @@
 package com.example.omnigo.features.driver.home.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.Manifest
 import android.os.Build
 import android.widget.Toast
@@ -77,11 +78,7 @@ fun DriverHomeScreen(
             viewModel.refreshDriverLocation()
             viewModel.toggleOnlineStatus(true)
         } else {
-            Toast.makeText(
-                context,
-                context.getString(R.string.driver_permission_location_required),
-                Toast.LENGTH_SHORT
-            ).show()
+            context.showToast(R.string.driver_permission_location_required)
         }
     }
 
@@ -109,10 +106,10 @@ fun DriverHomeScreen(
                 permissionLauncher.launch(perms.toTypedArray())
             }
             DriverHomeViewModel.ERROR_GPS_REQUIRED -> {
-                Toast.makeText(context, gpsReqMsg, Toast.LENGTH_LONG).show()
+                context.showToast(gpsReqMsg)
             }
             else -> {
-                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                context.showToast(error)
             }
         }
         viewModel.clearErrorMessage()
@@ -137,25 +134,13 @@ fun DriverHomeScreen(
     LaunchedEffect(uiState.offerActionMessage) {
         when (uiState.offerActionMessage) {
             DriverHomeViewModel.TIMEOUT_MESSAGE -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.driver_food_offer_timeout_msg),
-                    Toast.LENGTH_SHORT
-                ).show()
+                context.showToast(R.string.driver_food_offer_timeout_msg)
             }
             DriverRideOfferCoordinator.TIMEOUT_OFFER_MESSAGE -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.driver_ride_offer_timeout_msg),
-                    Toast.LENGTH_SHORT
-                ).show()
+                context.showToast(R.string.driver_ride_offer_timeout_msg)
             }
             DriverRideOfferCoordinator.CANCELLED_OFFER_MESSAGE -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.driver_ride_offer_cancelled_msg),
-                    Toast.LENGTH_SHORT
-                ).show()
+                context.showToast(R.string.driver_ride_offer_cancelled_msg)
             }
         }
         viewModel.clearOfferActionMessage()
@@ -266,11 +251,7 @@ fun DriverHomeScreen(
                         }
                     }
                 } else {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.driver_map_compass_aligned),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    context.showToast(R.string.driver_map_compass_aligned)
                 }
             },
             onRecenterClick = {

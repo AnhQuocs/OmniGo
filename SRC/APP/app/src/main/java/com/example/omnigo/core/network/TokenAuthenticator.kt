@@ -25,6 +25,12 @@ class TokenAuthenticator @Inject constructor(
         // Chỉ xử lý nếu mã phản hồi là 401 Unauthorized
         if (response.code != 401) return null
 
+        // Không bao giờ thử refresh token cho chính các API xác thực để tránh vòng lặp
+        val path = response.request.url.encodedPath
+        if (path.contains("/auth/refresh-token") || path.contains("/auth/login") || path.contains("/auth/register")) {
+            return null
+        }
+
         synchronized(this) {
             // Lấy token hiện tại từ SessionManager
             val currentToken = runBlocking { sessionManager.getAccessToken() }
@@ -45,7 +51,9 @@ class TokenAuthenticator @Inject constructor(
 
             // Nếu token chưa được refresh, tiến hành gọi API Refresh Token
             val isRefreshed = runBlocking {
-                authRepositoryProvider.get().refreshToken()
+                runCatching {
+                    authRepositoryProvider.get().refreshToken()
+                }.getOrDefault(false)
             }
 
             if (isRefreshed) {
@@ -56,6 +64,12 @@ class TokenAuthenticator @Inject constructor(
                         .header("Authorization", "Bearer $newToken")
                         .build()
                 }
+            } else {
+                // Refresh token thất bại hoặc đã hết hạn hoàn toàn -> Xóa session & thông báo phiên hết hạn
+                runBlocking {
+                    sessionManager.clearSession()
+                }
+                sessionManager.notifySessionExpired()
             }
         }
 

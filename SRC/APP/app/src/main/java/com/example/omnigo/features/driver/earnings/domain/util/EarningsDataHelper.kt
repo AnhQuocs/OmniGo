@@ -117,7 +117,7 @@ object EarningsDataHelper {
                     title = "Chuyến xe #${b.bookingId}",
                     time = timeStr,
                     grossAmount = b.price,
-                    netAmount = b.price * 0.80,
+                    netAmount = b.actualEarnings,
                     isCash = b.paymentMethod?.uppercase() == "CASH"
                 )
             }
@@ -135,7 +135,7 @@ object EarningsDataHelper {
                     title = "Giao món #${order.orderId}",
                     time = timeStr,
                     grossAmount = gross,
-                    netAmount = gross * 0.80,
+                    netAmount = order.actualEarnings,
                     isCash = order.paymentMethod.uppercase() == "CASH"
                 )
             }

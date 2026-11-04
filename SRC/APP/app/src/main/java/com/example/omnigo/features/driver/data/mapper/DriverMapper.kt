@@ -16,7 +16,14 @@ object DriverMapper {
             vehiclePlate = response.vehiclePlate,
             approvalStatus = approval,
             isOnline = online,
-            avatarUrl = response.avatarUrl
+            avatarUrl = response.avatarUrl,
+            vehicleType = response.vehicleType,
+            vehicleBrand = response.vehicleBrand,
+            licenseNumber = response.licenseNumber,
+            idCardFrontUrl = response.idCardFrontUrl,
+            idCardBackUrl = response.idCardBackUrl,
+            licenseImageUrl = response.licenseImageUrl,
+            vehicleRegImageUrl = response.vehicleRegImageUrl
         )
     }
 

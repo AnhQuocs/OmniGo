@@ -1,5 +1,6 @@
 package com.example.omnigo.features.driver.ride.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -99,14 +100,13 @@ fun DriverActiveTripScreen(
     LaunchedEffect(uiState.errorMessage) {
         val error = uiState.errorMessage
         if (error != null) {
-            val message = when (error) {
+            when (error) {
                 DriverActiveTripViewModel.GEOFENCE_WARNING_PICKUP ->
-                    context.getString(R.string.driver_trip_geofence_warning_pickup)
+                    context.showToast(R.string.driver_trip_geofence_warning_pickup)
                 DriverActiveTripViewModel.GEOFENCE_WARNING_DROPOFF ->
-                    context.getString(R.string.driver_trip_geofence_warning_dropoff)
-                else -> error
+                    context.showToast(R.string.driver_trip_geofence_warning_dropoff)
+                else -> context.showToast(error)
             }
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             viewModel.clearErrorMessage()
         }
     }

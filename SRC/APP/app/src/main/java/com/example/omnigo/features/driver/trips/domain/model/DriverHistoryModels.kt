@@ -21,7 +21,7 @@ sealed class DriverHistoryItem {
     ) : DriverHistoryItem() {
         override val id: Long get() = booking.bookingId
         override val timestampStr: String? get() = booking.completedAt ?: booking.createdAt
-        override val netEarnings: Double get() = booking.price * 0.80
+        override val netEarnings: Double get() = booking.actualEarnings
         override val isSuccess: Boolean get() = booking.status.name == "COMPLETED"
     }
 
@@ -30,8 +30,7 @@ sealed class DriverHistoryItem {
     ) : DriverHistoryItem() {
         override val id: Long get() = order.orderId
         override val timestampStr: String? get() = order.createdAt
-        override val netEarnings: Double
-            get() = if (order.deliveryFee > 0) order.deliveryFee * 0.80 else order.totalPrice * 0.80
+        override val netEarnings: Double get() = order.actualEarnings
         override val isSuccess: Boolean get() = order.status.name == "COMPLETED"
     }
 }
@@ -43,4 +42,3 @@ data class DriverHistoryDayGroup(
     val totalEarnings: Double,
     val items: List<DriverHistoryItem>
 )
-

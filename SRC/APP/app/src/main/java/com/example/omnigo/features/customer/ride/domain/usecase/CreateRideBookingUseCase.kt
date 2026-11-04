@@ -15,7 +15,8 @@ class CreateRideBookingUseCase @Inject constructor(
         endLongitude: Double,
         vehicleType: String? = null,
         pickupAddress: String? = null,
-        dropoffAddress: String? = null
+        dropoffAddress: String? = null,
+        expectedPrice: Double? = null
     ): CreateRideBookingResult {
         if (!isValidCoordinate(startLatitude, startLongitude) || !isValidCoordinate(endLatitude, endLongitude)) {
             return CreateRideBookingResult.Error(
@@ -31,7 +32,8 @@ class CreateRideBookingUseCase @Inject constructor(
             endLongitude = endLongitude,
             vehicleType = vehicleType,
             pickupAddress = pickupAddress,
-            dropoffAddress = dropoffAddress
+            dropoffAddress = dropoffAddress,
+            expectedPrice = expectedPrice
         )
     }
 

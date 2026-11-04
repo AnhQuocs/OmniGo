@@ -201,6 +201,7 @@ fun DocumentUploadCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(Dimen.SizeUltra)
+                        .clip(RoundedCornerShape(AppShape.ShapeS))
                         .background(Color.White, RoundedCornerShape(AppShape.ShapeS))
                         .clickable(onClick = onPickImage)
                         .padding(Dimen.PaddingM)

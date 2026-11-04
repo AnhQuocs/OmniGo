@@ -24,6 +24,7 @@ class SessionManagerTest {
 
     @Before
     fun setUp() {
+        io.mockk.mockkStatic("androidx.datastore.preferences.core.PreferencesKt")
         dataStore = mockk(relaxed = true)
         cryptoManager = mockk()
         sessionManager = SessionManager(dataStore, cryptoManager)
@@ -38,7 +39,7 @@ class SessionManagerTest {
         
         val mockMutablePreferences = mockk<MutablePreferences>(relaxed = true)
         coEvery { dataStore.edit(any()) } coAnswers {
-            val transform = firstArg<(MutablePreferences) -> Unit>()
+            val transform = secondArg<suspend (MutablePreferences) -> Unit>()
             transform(mockMutablePreferences)
             mockMutablePreferences
         }
@@ -58,7 +59,7 @@ class SessionManagerTest {
         
         val mockMutablePreferences = mockk<MutablePreferences>(relaxed = true)
         coEvery { dataStore.edit(any()) } coAnswers {
-            val transform = firstArg<(MutablePreferences) -> Unit>()
+            val transform = secondArg<suspend (MutablePreferences) -> Unit>()
             transform(mockMutablePreferences)
             mockMutablePreferences
         }

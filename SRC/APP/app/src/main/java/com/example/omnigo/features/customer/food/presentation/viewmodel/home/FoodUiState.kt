@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.food.presentation.viewmodel
 
+import com.example.omnigo.features.customer.food.domain.model.CartItem
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.util.RestaurantSort
 import com.example.omnigo.utils.UiText
@@ -16,6 +17,8 @@ data class FoodUiState(
     val selectedSort: RestaurantSort = RestaurantSort.RECOMMENDED,
     val errorMessage: UiText? = null,
     val cartRestaurantId: Long? = null,
+    val cartRestaurantName: String = "",
+    val cartItems: Map<Long, CartItem> = emptyMap(),
     val totalCartQuantity: Int = 0,
     val totalCartAmount: Double = 0.0,
     val userAddressLabel: String? = null

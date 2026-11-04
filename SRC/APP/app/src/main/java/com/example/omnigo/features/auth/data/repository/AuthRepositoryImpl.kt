@@ -4,17 +4,22 @@ import android.app.Activity
 import android.util.Log
 import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.core.network.dto.ApiResponse
+import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.auth.data.mapper.toCustomerRequest
 import com.example.omnigo.features.auth.data.mapper.toDomain
 import com.example.omnigo.features.auth.data.mapper.toDriverRequest
 import com.example.omnigo.features.auth.data.remote.api.AuthApi
-import com.example.omnigo.features.auth.data.remote.dto.response.LoginResponse
-import com.example.omnigo.features.auth.data.remote.dto.response.UserResponse
+import com.example.omnigo.features.auth.data.remote.dto.request.ChangePasswordRequest
+import com.example.omnigo.features.auth.data.remote.dto.request.FcmTokenRequest
 import com.example.omnigo.features.auth.data.remote.dto.request.LoginRequest
+import com.example.omnigo.features.auth.data.remote.dto.request.ResetPasswordRequest
+import com.example.omnigo.features.auth.data.remote.dto.request.SendServerOtpRequest
+import com.example.omnigo.features.auth.data.remote.dto.request.UpdateUserProfileRequest
+import com.example.omnigo.features.auth.data.remote.dto.request.VerifyServerOtpRequest
+import com.example.omnigo.features.auth.data.remote.dto.response.LoginResponse
+import com.example.omnigo.features.auth.data.remote.firebase.FirebasePhoneAuthDataSource
 import com.example.omnigo.features.auth.domain.error.LoginError
 import com.example.omnigo.features.auth.domain.error.RegisterError
-import com.example.omnigo.utils.await
-import okhttp3.MultipartBody
 import com.example.omnigo.features.auth.domain.model.AuthUser
 import com.example.omnigo.features.auth.domain.model.LoginResult
 import com.example.omnigo.features.auth.domain.model.LogoutResult
@@ -24,197 +29,102 @@ import com.example.omnigo.features.auth.domain.model.SendOtpResult
 import com.example.omnigo.features.auth.domain.model.VerifyOtpResult
 import com.example.omnigo.features.auth.domain.repository.AuthRepository
 import com.example.omnigo.features.auth.domain.usecase.RegisterResult
-import com.example.omnigo.utils.PhoneUtils
-import com.google.android.gms.tasks.Task
-import com.google.firebase.FirebaseException
-import com.google.firebase.FirebaseTooManyRequestsException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.MultipartBody
+import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 private const val TAG = "AuthRepositoryImpl"
 
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
-    private val firebaseAuth: FirebaseAuth,
+    private val firebasePhoneAuthDataSource: FirebasePhoneAuthDataSource,
     private val sessionManager: SessionManager
 ) : AuthRepository {
 
-    override suspend fun sendOtp(
-        phoneNumber: String,
-        activity: Activity
-    ): Flow<SendOtpResult> = callbackFlow {
-        val e164Phone = PhoneUtils.toE164(phoneNumber)
-        Log.d(TAG, "sendOtp: Starting OTP request for phone=$phoneNumber (E.164: $e164Phone)")
+    override suspend fun sendOtp(phoneNumber: String, activity: Activity): Flow<SendOtpResult> =
+        firebasePhoneAuthDataSource.sendOtp(phoneNumber, activity)
 
-        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                Log.d(TAG, "sendOtp - onVerificationCompleted: Instant verification / auto-retrieval completed.")
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val authResult = firebaseAuth.signInWithCredential(credential).await()
-                        val token = authResult.user?.getIdToken(false)?.await()?.token
-                        if (!token.isNullOrBlank()) {
-                            Log.d(TAG, "sendOtp - onVerificationCompleted: Token obtained successfully.")
-                            trySend(SendOtpResult.AutoVerified(token))
-                        } else {
-                            Log.w(TAG, "sendOtp - onVerificationCompleted: Token is null or blank.")
-                            trySend(SendOtpResult.Error(RegisterError.UNKNOWN))
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "sendOtp - onVerificationCompleted: Auto-verification sign-in failed", e)
-                        trySend(SendOtpResult.Error(RegisterError.UNKNOWN))
-                    } finally {
-                        close()
-                    }
-                }
-            }
+    override suspend fun verifyOtp(verificationId: String, otpCode: String): VerifyOtpResult =
+        firebasePhoneAuthDataSource.verifyOtp(verificationId, otpCode)
 
-            override fun onVerificationFailed(exception: FirebaseException) {
-                Log.e(TAG, "sendOtp - onVerificationFailed: ${exception::class.java.simpleName} - ${exception.message}", exception)
-                val error = when (exception) {
-                    is FirebaseAuthInvalidCredentialsException -> RegisterError.INVALID_PHONE
-                    is FirebaseTooManyRequestsException -> RegisterError.TOO_MANY_REQUESTS
-                    else -> RegisterError.UNKNOWN
-                }
-                trySend(SendOtpResult.Error(error))
-                close()
-            }
-
-            override fun onCodeSent(
-                verificationId: String,
-                token: PhoneAuthProvider.ForceResendingToken
-            ) {
-                Log.d(TAG, "sendOtp - onCodeSent: OTP code sent successfully. verificationId=$verificationId")
-                trySend(SendOtpResult.CodeSent(verificationId))
-                close()
-            }
-        }
-
-        val options = PhoneAuthOptions.newBuilder(firebaseAuth)
-            .setPhoneNumber(e164Phone)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(activity)
-            .setCallbacks(callbacks)
-            .build()
-
-        PhoneAuthProvider.verifyPhoneNumber(options)
-
-        awaitClose { }
-    }
-
-    override suspend fun verifyOtp(
-        verificationId: String,
-        otpCode: String
-    ): VerifyOtpResult {
-        Log.d(TAG, "verifyOtp: Verifying OTP for verificationId=$verificationId")
+    override suspend fun sendServerOtp(phoneNumber: String): Result<String> {
         return try {
-            val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
-            val authResult = firebaseAuth.signInWithCredential(credential).await()
-            val firebaseToken = authResult.user?.getIdToken(false)?.await()?.token
-            if (!firebaseToken.isNullOrBlank()) {
-                Log.d(TAG, "verifyOtp: OTP verified successfully. Firebase token acquired.")
-                VerifyOtpResult.Success(firebaseToken)
+            val response = authApi.sendServerOtp(SendServerOtpRequest(phoneNumber = phoneNumber))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                Result.success(body.data ?: body.message ?: "OTP sent")
             } else {
-                Log.w(TAG, "verifyOtp: OTP verified but Firebase token is null or blank.")
-                VerifyOtpResult.Error(RegisterError.UNKNOWN)
+                Result.failure(Exception(body?.message ?: "Failed to send OTP (HTTP ${response.code()})"))
             }
-        } catch (e: FirebaseAuthInvalidCredentialsException) {
-            Log.e(TAG, "verifyOtp: Invalid OTP code entered", e)
-            VerifyOtpResult.Error(RegisterError.INVALID_OTP)
-        } catch (e: FirebaseTooManyRequestsException) {
-            Log.e(TAG, "verifyOtp: Too many requests during OTP verification", e)
-            VerifyOtpResult.Error(RegisterError.TOO_MANY_REQUESTS)
         } catch (e: Exception) {
-            Log.e(TAG, "verifyOtp: Unexpected error during OTP verification", e)
-            VerifyOtpResult.Error(RegisterError.UNKNOWN)
+            Result.failure(e)
         }
     }
 
-    private suspend fun validatePhoneSession(phone: String): Pair<String?, RegisterError?> {
-        val currentUser = firebaseAuth.currentUser
-            ?: return Pair(null, RegisterError.PHONE_VERIFICATION_REQUIRED)
-        if (!PhoneUtils.isSamePhoneNumber(currentUser.phoneNumber, phone)) {
-            return Pair(null, RegisterError.PHONE_NUMBER_MISMATCH)
+    override suspend fun verifyServerOtp(phoneNumber: String, otpCode: String): Result<String> {
+        return try {
+            val response = authApi.verifyServerOtp(
+                VerifyServerOtpRequest(phoneNumber = phoneNumber, otp = otpCode)
+            )
+            val body = response.body()
+            val token = body?.data?.verificationToken
+            if (response.isSuccessful && body?.success == true && !token.isNullOrBlank()) {
+                Result.success(token)
+            } else {
+                Result.failure(Exception(body?.message ?: "Invalid OTP"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        val token = getFirebaseToken()
-            ?: return Pair(null, RegisterError.PHONE_VERIFICATION_REQUIRED)
-        return Pair(token, null)
     }
 
     override suspend fun registerCustomer(user: RegisterUser): RegisterResult {
-        val (token, error) = validatePhoneSession(user.phoneNumber)
-        if (error != null) return RegisterResult.Error(error)
-
-        val request = user.toCustomerRequest(firebaseToken = token)
         return try {
-            handleApiResponse(authApi.registerCustomer(request))
-        } catch (e: IOException) {
-            Log.e(TAG, "registerCustomer: Network error", e)
-            RegisterResult.Error(RegisterError.NETWORK_ERROR)
+            handleApiResponse(authApi.registerCustomer(user.toCustomerRequest()))
         } catch (e: Exception) {
-            Log.e(TAG, "registerCustomer: Unexpected error", e)
-            RegisterResult.Error(RegisterError.UNKNOWN)
+            RegisterResult.Error(RegisterError.NETWORK_ERROR)
         }
     }
 
     override suspend fun registerDriver(driver: RegisterDriver): RegisterResult {
-        val (token, error) = validatePhoneSession(driver.user.phoneNumber)
-        if (error != null) return RegisterResult.Error(error)
-
-        val request = driver.toDriverRequest(firebaseToken = token)
         return try {
-            handleApiResponse(authApi.registerDriver(request))
-        } catch (e: IOException) {
-            Log.e(TAG, "registerDriver: Network error", e)
-            RegisterResult.Error(RegisterError.NETWORK_ERROR)
+            handleApiResponse(authApi.registerDriver(driver.toDriverRequest()))
         } catch (e: Exception) {
-            Log.e(TAG, "registerDriver: Unexpected error", e)
-            RegisterResult.Error(RegisterError.UNKNOWN)
+            RegisterResult.Error(RegisterError.NETWORK_ERROR)
         }
     }
 
-    override suspend fun login(
-        request: LoginRequest
-    ): LoginResult {
+    override suspend fun login(request: LoginRequest): LoginResult {
         return try {
             val response = authApi.login(request)
             if (response.isSuccessful) {
                 val apiResponse = response.body()
-                val loginData = apiResponse?.data
-                if (apiResponse?.success == true && loginData != null) {
-                    sessionManager.saveSession(
-                        accessToken = loginData.accessToken,
-                        refreshToken = loginData.refreshToken,
-                        userId = loginData.user.id,
-                        phoneNumber = loginData.user.phoneNumber.orEmpty(),
-                        fullName = loginData.user.fullName.orEmpty(),
-                        role = loginData.user.role.orEmpty()
-                    )
-                    LoginResult.Success(loginData.user.toDomain())
+                val loginResponse = apiResponse?.data
+                if (apiResponse?.success == true && loginResponse != null) {
+                    val accessToken = loginResponse.accessToken
+                    val refreshToken = loginResponse.refreshToken
+                    val userResponse = loginResponse.user
+                    if (!accessToken.isNullOrBlank()) {
+                        sessionManager.saveSession(
+                            accessToken = accessToken,
+                            refreshToken = refreshToken,
+                            userId = userResponse.id,
+                            phoneNumber = userResponse.phoneNumber.orEmpty(),
+                            fullName = userResponse.fullName.orEmpty(),
+                            role = userResponse.role.orEmpty()
+                        )
+                    }
+                    LoginResult.Success(userResponse.toDomain())
                 } else {
                     LoginResult.Error(LoginError.UNKNOWN)
                 }
             } else {
                 val error = when (response.code()) {
-                    400, 401 -> LoginError.INVALID_CREDENTIALS
-                    403 -> LoginError.ACCOUNT_BLOCKED
+                    400 -> LoginError.INVALID_CREDENTIALS
                     404 -> LoginError.ACCOUNT_NOT_FOUND
                     in 500..599 -> LoginError.SERVER_ERROR
                     else -> LoginError.UNKNOWN
@@ -229,45 +139,38 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout(): LogoutResult {
-        try {
+        return try {
             val refreshToken = sessionManager.getRefreshToken()
-            val cookieHeader = if (!refreshToken.isNullOrBlank()) "refresh_token=$refreshToken" else null
-
-            authApi.logout(refreshTokenCookie = cookieHeader)
-        } catch (_: Exception) {
-            // Ngay cả khi API logout lỗi mạng, vẫn xóa session local để đảm bảo bảo mật cho người dùng
-        } finally {
+            val refreshTokenCookie = if (!refreshToken.isNullOrBlank()) "refreshToken=$refreshToken" else null
+            authApi.logout(refreshTokenCookie)
             sessionManager.clearSession()
-            firebaseAuth.signOut()
+            LogoutResult.Success
+        } catch (e: Exception) {
+            sessionManager.clearSession()
+            LogoutResult.Success
         }
-        return LogoutResult.Success
     }
 
     override suspend fun refreshToken(): Boolean {
-        val refreshToken = sessionManager.getRefreshToken() ?: return false
-
         return try {
-            val response = authApi.refreshToken(
-                refreshTokenCookie = "refresh_token=$refreshToken"
-            )
-            if (response.isSuccessful) {
-                val loginData = response.body()?.data
-                if (loginData != null) {
+            val refreshToken = sessionManager.getRefreshToken() ?: return false
+            val response = authApi.refreshToken("refreshToken=$refreshToken")
+            if (response.isSuccessful && response.body()?.success == true) {
+                val loginResponse = response.body()?.data
+                val newAccessToken = loginResponse?.accessToken
+                val newRefreshToken = loginResponse?.refreshToken
+                if (!newAccessToken.isNullOrBlank()) {
                     sessionManager.saveSession(
-                        accessToken = loginData.accessToken,
-                        refreshToken = loginData.refreshToken,
-                        userId = loginData.user.id,
-                        phoneNumber = loginData.user.phoneNumber.orEmpty(),
-                        fullName = loginData.user.fullName.orEmpty(),
-                        role = loginData.user.role.orEmpty()
+                        accessToken = newAccessToken,
+                        refreshToken = newRefreshToken,
+                        userId = null,
+                        phoneNumber = null,
+                        fullName = null,
+                        role = null
                     )
                     true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
+                } else false
+            } else false
         } catch (e: Exception) {
             false
         }
@@ -276,90 +179,161 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun getMe(): Flow<AuthUser> = flow {
         try {
             val response = authApi.getMe()
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                val userResponse = apiResponse?.data
-                if (apiResponse?.success == true && userResponse != null) {
-                    // Cập nhật thông tin phiên làm việc nếu có thay đổi
+            if (response.isSuccessful && response.body()?.success == true) {
+                val userResponse = response.body()?.data
+                if (userResponse != null) {
+                    val authUser = userResponse.toDomain()
+                    val currentAccess = sessionManager.getAccessToken().orEmpty()
+                    val currentRefresh = sessionManager.getRefreshToken()
                     sessionManager.saveSession(
-                        accessToken = sessionManager.getAccessToken().orEmpty(),
-                        refreshToken = sessionManager.getRefreshToken().orEmpty(),
-                        userId = userResponse.id,
-                        phoneNumber = userResponse.phoneNumber.orEmpty(),
-                        fullName = userResponse.fullName.orEmpty(),
-                        role = userResponse.role.orEmpty()
+                        accessToken = currentAccess,
+                        refreshToken = currentRefresh,
+                        userId = authUser.id,
+                        phoneNumber = authUser.phoneNumber,
+                        fullName = authUser.fullName,
+                        role = authUser.role.name
                     )
-                    emit(userResponse.toDomain())
-                } else {
-                    Log.w(TAG, "getMe: API response success=false or data is null")
-                    throw Exception(apiResponse?.message ?: "Unknown error")
+                    emit(authUser)
                 }
-            } else {
-                Log.e(TAG, "getMe: API failed with code=${response.code()}")
-                throw Exception("API Error: ${response.code()}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "getMe: Exception during fetching user info", e)
-            throw e
+            Log.e(TAG, "getMe error: ${e.message}", e)
         }
     }
 
-    private suspend fun getFirebaseToken(): String? {
-        val currentUser = firebaseAuth.currentUser
-        if (currentUser == null) {
-            Log.w(TAG, "getFirebaseToken: No current Firebase user found")
-            return null
-        }
-        return try {
-            val tokenResult = currentUser.getIdToken(false).await()
-            tokenResult.token
-        } catch (e: Exception) {
-            Log.e(TAG, "getFirebaseToken: Error acquiring Firebase ID token", e)
-            null
-        }
-    }
-
-    override suspend fun uploadDriverDocument(
-        file: MultipartBody.Part
-    ): Result<String> {
+    override suspend fun uploadDriverDocument(file: MultipartBody.Part): Result<String> {
         return try {
             val response = authApi.uploadDriverDocument(file)
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                val url = apiResponse?.data?.get("url")
-                if (!url.isNullOrBlank()) {
-                    Result.success(url)
-                } else {
-                    Result.failure(Exception(apiResponse?.message ?: "Upload document failed: URL is empty"))
-                }
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                val docUrl = data?.get("documentUrl") ?: data?.get("url")
+                if (!docUrl.isNullOrBlank()) Result.success(docUrl)
+                else Result.failure(Exception("Document URL missing in response"))
             } else {
-                Result.failure(Exception("Upload document failed with HTTP ${response.code()}"))
+                Result.failure(Exception(response.body()?.message ?: "Upload failed"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "uploadDriverDocument: Error uploading document", e)
             Result.failure(e)
         }
     }
 
-    override suspend fun uploadAvatar(
-        file: MultipartBody.Part
-    ): Result<String> {
+    override suspend fun uploadAvatar(file: MultipartBody.Part): Result<String> {
         return try {
             val response = authApi.uploadAvatar(file)
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                val avatarUrl = apiResponse?.data?.avatarUrl
+            if (response.isSuccessful && response.body()?.success == true) {
+                val avatarUrl = response.body()?.data?.avatarUrl
                 if (!avatarUrl.isNullOrBlank()) {
                     sessionManager.saveAvatarUrl(avatarUrl)
                     Result.success(avatarUrl)
-                } else {
-                    Result.failure(Exception(apiResponse?.message ?: "Upload avatar failed: avatarUrl is empty"))
-                }
+                } else Result.failure(Exception("Avatar URL missing in response"))
             } else {
-                Result.failure(Exception("Upload avatar failed with HTTP ${response.code()}"))
+                Result.failure(Exception(response.body()?.message ?: "Upload avatar failed"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "uploadAvatar: Error uploading avatar", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resetPassword(
+        phoneNumber: String?,
+        email: String?,
+        verificationToken: String,
+        newPassword: String,
+        confirmPassword: String
+    ): Result<String> {
+        return try {
+            val request = ResetPasswordRequest(
+                phoneNumber = phoneNumber,
+                email = email,
+                verificationToken = verificationToken,
+                newPassword = newPassword,
+                confirmPassword = confirmPassword
+            )
+            val response = authApi.resetPassword(request)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()?.message ?: "Đặt lại mật khẩu thành công")
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Đặt lại mật khẩu thất bại (HTTP ${response.code()})"))
+            }
+        } catch (e: HttpException) {
+            Result.failure(Exception(e.toBackendMessage() ?: e.message()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ): Result<String> {
+        return try {
+            val userId = sessionManager.getUserId()
+            val request = ChangePasswordRequest(oldPassword, newPassword, confirmPassword)
+            val response = authApi.changePassword(userId = userId, request = request)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()?.message ?: "Đổi mật khẩu thành công")
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Đổi mật khẩu thất bại (HTTP ${response.code()})"))
+            }
+        } catch (e: HttpException) {
+            Result.failure(Exception(e.toBackendMessage() ?: e.message()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateProfile(fullName: String, email: String?): Result<AuthUser> {
+        return try {
+            val response = authApi.updateProfile(UpdateUserProfileRequest(fullName = fullName, email = email))
+            if (response.isSuccessful && response.body()?.success == true && response.body()?.data != null) {
+                val updatedUser = response.body()!!.data!!.toDomain()
+                val currentAccess = sessionManager.getAccessToken().orEmpty()
+                val currentRefresh = sessionManager.getRefreshToken()
+                sessionManager.saveSession(
+                    accessToken = currentAccess,
+                    refreshToken = currentRefresh,
+                    userId = updatedUser.id,
+                    phoneNumber = updatedUser.phoneNumber,
+                    fullName = updatedUser.fullName,
+                    role = updatedUser.role.name
+                )
+                Result.success(updatedUser)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Cập nhật thông tin thất bại (HTTP ${response.code()})"))
+            }
+        } catch (e: HttpException) {
+            Result.failure(Exception(e.toBackendMessage() ?: e.message()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteMyAccount(): Result<String> {
+        return try {
+            val response = authApi.deleteMyAccount()
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                sessionManager.clearSession()
+                Result.success(body.message ?: "Account deactivated")
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to deactivate account"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateFcmToken(fcmToken: String): Result<String> {
+        return try {
+            val response = authApi.updateFcmToken(FcmTokenRequest(fcmToken = fcmToken))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                Result.success(body.message ?: "FCM token synced")
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to sync FCM token"))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
@@ -382,14 +356,9 @@ class AuthRepositoryImpl @Inject constructor(
                         role = userResponse.role.orEmpty()
                     )
                 }
-                Log.d(TAG, "handleApiResponse: Registration successful for user ID=${userResponse.id}")
                 RegisterResult.Success(userResponse.toDomain())
-            } else {
-                Log.w(TAG, "handleApiResponse: API response success=false or data is null: ${apiResponse?.message}")
-                RegisterResult.Error(RegisterError.UNKNOWN)
-            }
+            } else RegisterResult.Error(RegisterError.UNKNOWN)
         } else {
-            Log.e(TAG, "handleApiResponse: Registration failed with HTTP code=${response.code()}")
             val error = when (response.code()) {
                 400 -> RegisterError.BAD_REQUEST
                 409 -> RegisterError.EMAIL_OR_PHONE_ALREADY_EXISTS

@@ -15,6 +15,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -38,14 +39,14 @@ fun OmniGoMainLayout(
     val density = LocalDensity.current
     val statusBarHeightPx = WindowInsets.statusBars.getTop(density).toFloat()
     val contentHeaderHeightPx = with(density) { headerHeight.toPx() }
-    val fullHeaderHeightPx = statusBarHeightPx + contentHeaderHeightPx
 
     val scrollThresholdPx = headerHeight.value + 20f
 
     val bottomNavController = LocalBottomNavVisibility.current
     val barsState = rememberCollapsingBarsState(scrollThreshold = scrollThresholdPx)
 
-    val headerOffset = animateToolbarOffset(barsState.barsVisible, fullHeaderHeightPx)
+    // Chỉ cần trượt lên bằng đúng chiều cao nội dung header để ẩn khỏi viewport dưới status bar
+    val headerOffset = animateToolbarOffset(barsState.barsVisible, contentHeaderHeightPx)
 
     LaunchedEffect(barsState.barsVisible) {
         bottomNavController.visible = barsState.barsVisible
@@ -57,7 +58,9 @@ fun OmniGoMainLayout(
             .background(BackgroundLight)
     ) {
         val offsetModifier = Modifier.offset {
-            val visibleHeaderHeight = (fullHeaderHeightPx + headerOffset).coerceAtLeast(0f)
+            // Khi header ẩn đi, nội dung dừng lại chính xác tại statusBarHeightPx để không bị che khuất
+            val visibleHeaderHeight = (statusBarHeightPx + contentHeaderHeightPx + headerOffset)
+                .coerceAtLeast(statusBarHeightPx)
             IntOffset(0, visibleHeaderHeight.toInt())
         }
 
@@ -91,6 +94,7 @@ fun OmniGoMainLayout(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
+                .clipToBounds()
                 .offset { IntOffset(0, headerOffset.toInt()) }
         ) {
             header()

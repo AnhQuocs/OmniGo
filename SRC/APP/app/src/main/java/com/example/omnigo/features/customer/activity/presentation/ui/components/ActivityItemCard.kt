@@ -65,6 +65,7 @@ fun ActivityItemCard(
     val cardModifier = if (onClick != null) {
         modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(AppShape.ShapeM))
             .clickable { onClick() }
     } else {
         modifier.fillMaxWidth()

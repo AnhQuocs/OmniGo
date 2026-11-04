@@ -131,6 +131,8 @@ private fun TripMapContent(
             bookingId = activeRideState.bookingId,
             status = activeRideState.status,
             price = activeRideState.price,
+            discountAmount = activeRideState.discountAmount,
+            voucherCode = activeRideState.voucherCode,
             paymentMethod = activeRideState.paymentMethod,
             startLatitude = activeRideState.startLatitude,
             startLongitude = activeRideState.startLongitude,

@@ -82,6 +82,8 @@ class RideTrackingSessionManager @Inject constructor(
             pickupAddress = pickupAddress.ifBlank { booking.pickupAddress },
             dropoffAddress = dropoffAddress.ifBlank { booking.dropoffAddress },
             price = booking.price,
+            discountAmount = booking.discountAmount,
+            voucherCode = booking.voucherCode,
             paymentMethod = booking.paymentMethod,
             isSearchingDriver = booking.status == BookingStatus.PENDING
         )

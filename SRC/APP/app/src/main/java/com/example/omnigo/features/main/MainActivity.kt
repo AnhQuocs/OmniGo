@@ -1,5 +1,6 @@
 package com.example.omnigo.features.main
 
+import com.example.omnigo.utils.showToast
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -22,10 +23,19 @@ import com.example.omnigo.features.main.presentation.ui.MainDriverScreen
 import com.example.omnigo.features.main.presentation.ui.SplashScreen
 import com.example.omnigo.features.onboarding.presentation.ui.OnboardingScreen
 import com.example.omnigo.ui.theme.BackgroundLight
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.example.omnigo.R
+import com.example.omnigo.core.datastore.SessionManager
+import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : BaseComponentActivity() {
+
+    @Inject
+    lateinit var sessionManager: SessionManager
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -49,15 +59,28 @@ class MainActivity : BaseComponentActivity() {
                 )
             }
 
-            MainApp(goToAuth = goToAuth)
+            MainApp(goToAuth = goToAuth, sessionManager = sessionManager)
         }
     }
 }
 
 @Composable
-fun MainApp(goToAuth: Boolean) {
+fun MainApp(goToAuth: Boolean, sessionManager: SessionManager? = null) {
     val navController = rememberNavController()
     val startRoute = if (goToAuth) "auth_root" else "splash_root"
+
+    val context = LocalContext.current
+
+    sessionManager?.let { sm ->
+        LaunchedEffect(Unit) {
+            sm.sessionExpiredEvent.collect {
+                context.showToast(R.string.auth_session_expired)
+                navController.navigate("auth_root") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,

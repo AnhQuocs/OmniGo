@@ -5,7 +5,7 @@ import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.auth.data.remote.api.AuthApi
 import com.example.omnigo.features.auth.data.remote.dto.response.UserResponse
-import com.google.firebase.auth.FirebaseAuth
+import com.example.omnigo.features.auth.data.remote.firebase.FirebasePhoneAuthDataSource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -23,16 +23,16 @@ import retrofit2.Response
 class AuthRepositoryImplTest {
 
     private lateinit var authApi: AuthApi
-    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var firebasePhoneAuthDataSource: FirebasePhoneAuthDataSource
     private lateinit var sessionManager: SessionManager
     private lateinit var repository: AuthRepositoryImpl
 
     @Before
     fun setUp() {
         authApi = mockk()
-        firebaseAuth = mockk()
+        firebasePhoneAuthDataSource = mockk()
         sessionManager = mockk(relaxed = true)
-        repository = AuthRepositoryImpl(authApi, firebaseAuth, sessionManager)
+        repository = AuthRepositoryImpl(authApi, firebasePhoneAuthDataSource, sessionManager)
     }
 
     @Test
@@ -54,16 +54,17 @@ class AuthRepositoryImplTest {
         )
 
         coEvery { sessionManager.getAccessToken() } returns token
+        coEvery { sessionManager.getRefreshToken() } returns "mock_refresh_token"
         coEvery { authApi.getMe() } returns Response.success(apiResponse)
 
         // Act
         repository.getMe().test {
             val result = awaitItem()
-            
+
             // Assert
             assertEquals(userResponse.id, result.id)
             assertEquals(userResponse.fullName, result.fullName)
-            
+
             coVerify {
                 sessionManager.saveSession(
                     accessToken = token,

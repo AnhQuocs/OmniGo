@@ -53,6 +53,8 @@ class FoodViewModel @Inject constructor(
                 _uiState.update { current ->
                     current.copy(
                         cartRestaurantId = cart.restaurantId,
+                        cartRestaurantName = cart.restaurantName,
+                        cartItems = cart.items,
                         totalCartQuantity = cart.totalQuantity,
                         totalCartAmount = cart.totalAmount
                     )
@@ -195,6 +197,14 @@ class FoodViewModel @Inject constructor(
     ): List<Restaurant> {
         val filtered = RestaurantListing.filterByCategory(restaurants, category)
         return RestaurantListing.sort(filtered, sort, distances)
+    }
+
+    fun onUpdateCartQuantity(menuItemId: Long, quantity: Int) {
+        cartManager.updateQuantity(menuItemId, quantity)
+    }
+
+    fun onClearCart() {
+        cartManager.clearCart()
     }
 
     private fun observeSearch() {

@@ -45,8 +45,10 @@ class RideActivity : BaseComponentActivity() {
                 startDestination = "ride_booking"
             ) {
                 composable("ride_booking") {
+                    val promoCode = intent.getStringExtra("EXTRA_PROMO_CODE")
                     RideBookingScreen(
-                        onBackClick = { finish() }
+                        onBackClick = { finish() },
+                        initialPromoCode = promoCode
                     )
                 }
             }

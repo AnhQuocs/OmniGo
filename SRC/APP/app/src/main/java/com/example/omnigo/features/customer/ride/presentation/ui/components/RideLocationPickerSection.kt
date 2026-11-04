@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.presentation.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -162,15 +163,14 @@ fun RideLocationPickerSection(
             ) {
                 // Current Location Button
                 Surface(
+                    onClick = { onDetectCurrentLocation() },
+                    enabled = !isLocating,
                     shape = RoundedCornerShape(AppShape.ShapeM),
                     color = PrimaryColor.copy(alpha = 0.08f),
-                    modifier = Modifier
-                        .clickable(enabled = !isLocating) { onDetectCurrentLocation() }
-                        .border(
-                            width = Dimen.PaddingXXS,
-                            color = PrimaryColor.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(AppShape.ShapeM)
-                        )
+                    border = BorderStroke(
+                        width = Dimen.PaddingXXS,
+                        color = PrimaryColor.copy(alpha = 0.2f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(
@@ -205,16 +205,16 @@ fun RideLocationPickerSection(
                 // Quick Saved Locations chips
                 savedAddresses.take(2).forEach { saved ->
                     Surface(
-                        shape = RoundedCornerShape(AppShape.ShapeM),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.clickable {
+                        onClick = {
                             val point = LocationPoint.fromSavedAddress(saved)
                             if (pickupLocation == null) {
                                 onSelectPickup(point)
                             } else {
                                 onSelectDropoff(point)
                             }
-                        }
+                        },
+                        shape = RoundedCornerShape(AppShape.ShapeM),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     ) {
                         Row(
                             modifier = Modifier.padding(
@@ -288,11 +288,10 @@ private fun LocationRow(
         }
 
         Surface(
+            onClick = { onMapPickClick() },
             shape = RoundedCornerShape(AppShape.ShapeS),
             color = if (isPickup) PrimaryColor.copy(alpha = 0.08f) else SecondaryColor.copy(alpha = 0.08f),
-            modifier = Modifier
-                .padding(start = Dimen.PaddingXS)
-                .clickable { onMapPickClick() }
+            modifier = Modifier.padding(start = Dimen.PaddingXS)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS),

@@ -1,4 +1,4 @@
-﻿package com.example.omnigo.features.customer.profile.presentation.viewmodel
+package com.example.omnigo.features.customer.profile.presentation.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -7,64 +7,50 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.R
 import com.example.omnigo.core.datastore.SessionManager
+import com.example.omnigo.features.auth.domain.usecase.ChangePasswordUseCase
+import com.example.omnigo.features.auth.domain.usecase.DeleteAccountUseCase
 import com.example.omnigo.features.auth.domain.usecase.GetMeUseCase
 import com.example.omnigo.features.auth.domain.usecase.LogoutUseCase
-import com.example.omnigo.features.auth.domain.usecase.UpdateAvatarUseCase
-import com.example.omnigo.features.driver.domain.model.DriverApprovalStatus
+import com.example.omnigo.features.auth.domain.usecase.UpdateUserProfileUseCase
+import com.example.omnigo.features.customer.address.domain.usecase.DeleteAddressUseCase
+import com.example.omnigo.features.customer.address.domain.usecase.GetSavedAddressesUseCase
+import com.example.omnigo.features.customer.address.domain.usecase.SaveAddressUseCase
+import com.example.omnigo.features.customer.address.domain.usecase.UpdateSavedAddressUseCase
 import com.example.omnigo.features.customer.ride.domain.model.GetDriverBookingsResult
 import com.example.omnigo.features.driver.domain.usecase.GetDriverBookingsUseCase
 import com.example.omnigo.features.driver.domain.usecase.GetDriverProfileUseCase
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import com.example.omnigo.utils.ImageCompressor
+import com.example.omnigo.features.driver.domain.usecase.ResubmitDriverProfileUseCase
+import com.example.omnigo.features.driver.domain.usecase.UpdateDriverVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
-
-data class AccountUiState(
-    val userName: String = "Bùi Anh Quốc",
-    val userPhone: String = "0839072300",
-    val userEmail: String = "",
-    val userRole: String = "CUSTOMER",
-    val avatarUrl: String? = null,
-    val vehiclePlate: String? = null,
-    val approvalStatus: DriverApprovalStatus = DriverApprovalStatus.APPROVED,
-    val rating: Double = 4.9,
-    val totalTrips: Int = 256,
-    val joinedMonths: Int = 0,
-    val joinedDays: Long = 0,
-    val registrationDate: String = "15/04/2024",
-    val isLoading: Boolean = false,
-    val isUploadingAvatar: Boolean = false,
-    val showLogoutDialog: Boolean = false,
-    val showAvatarPicker: Boolean = false
-)
-
-sealed interface AccountUiEvent {
-    data object NavigateToLogin : AccountUiEvent
-    data class ShowToast(val message: String) : AccountUiEvent
-    data class ShowStringResToast(val resId: Int) : AccountUiEvent
-}
 
 @HiltViewModel
 class AccountViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val getMeUseCase: GetMeUseCase,
+    private val avatarHelper: AccountAvatarHelper,
+    private val changePasswordUseCase: ChangePasswordUseCase,
+    private val updateUserProfileUseCase: UpdateUserProfileUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val getSavedAddressesUseCase: GetSavedAddressesUseCase,
+    private val saveAddressUseCase: SaveAddressUseCase,
+    private val updateSavedAddressUseCase: UpdateSavedAddressUseCase,
+    private val deleteAddressUseCase: DeleteAddressUseCase,
+    private val getDriverProfileUseCase: GetDriverProfileUseCase,
+    private val getDriverBookingsUseCase: GetDriverBookingsUseCase,
+    private val updateDriverVehicleUseCase: UpdateDriverVehicleUseCase,
+    private val resubmitDriverProfileUseCase: ResubmitDriverProfileUseCase
 ) : ViewModel() {
-
-    private var updateAvatarUseCase: UpdateAvatarUseCase? = null
-    private var getMeUseCase: GetMeUseCase? = null
-    private var getDriverProfileUseCase: GetDriverProfileUseCase? = null
-    private var getDriverBookingsUseCase: GetDriverBookingsUseCase? = null
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
@@ -74,35 +60,25 @@ class AccountViewModel @Inject constructor(
 
     init {
         loadUserProfile()
-    }
-
-    @Inject
-    fun injectProfileDependencies(
-        updateAvatarUseCase: UpdateAvatarUseCase,
-        getMeUseCase: GetMeUseCase,
-        driverProfileUseCase: GetDriverProfileUseCase,
-        driverBookingsUseCase: GetDriverBookingsUseCase
-    ) {
-        this.updateAvatarUseCase = updateAvatarUseCase
-        this.getMeUseCase = getMeUseCase
-        this.getDriverProfileUseCase = driverProfileUseCase
-        this.getDriverBookingsUseCase = driverBookingsUseCase
         syncWithRemoteProfile()
         loadDriverProfileInfo()
         loadDriverBookingsCount()
     }
 
     fun loadDriverProfileInfo() {
-        val useCase = getDriverProfileUseCase ?: return
         viewModelScope.launch {
-            val userId = try { sessionManager.getUserId() } catch (_: Exception) { null }
-            useCase(userId).onSuccess { driverProfile ->
+            val userId = runCatching { sessionManager.getUserId() }.getOrNull()
+            getDriverProfileUseCase(userId).onSuccess { driverProfile ->
                 _uiState.update {
                     it.copy(
+                        driverId = driverProfile.driverId,
                         userName = driverProfile.fullName?.ifBlank { null } ?: it.userName,
                         userPhone = driverProfile.phoneNumber?.ifBlank { null } ?: it.userPhone,
                         avatarUrl = driverProfile.avatarUrl ?: it.avatarUrl,
                         vehiclePlate = driverProfile.vehiclePlate ?: it.vehiclePlate,
+                        vehicleType = driverProfile.vehicleType ?: it.vehicleType,
+                        vehicleBrand = driverProfile.vehicleBrand ?: it.vehicleBrand,
+                        licenseNumber = driverProfile.licenseNumber ?: it.licenseNumber,
                         approvalStatus = driverProfile.approvalStatus
                     )
                 }
@@ -111,132 +87,281 @@ class AccountViewModel @Inject constructor(
     }
 
     fun loadDriverBookingsCount() {
-        val useCase = getDriverBookingsUseCase ?: return
         viewModelScope.launch {
-            try {
-                val result = useCase()
-                if (result is GetDriverBookingsResult.Success) {
-                    _uiState.update {
-                        it.copy(totalTrips = result.bookings.size)
-                    }
+            val result = getDriverBookingsUseCase()
+            if (result is GetDriverBookingsResult.Success) {
+                val completedCount = result.bookings.count { it.status.name.equals("COMPLETED", ignoreCase = true) }
+                if (completedCount > 0) {
+                    _uiState.update { it.copy(totalTrips = completedCount) }
                 }
-            } catch (_: Exception) {}
+            }
         }
     }
 
     fun loadUserProfile() {
         viewModelScope.launch {
-            val fullName = sessionManager.getFullName()
-            val phone = sessionManager.getPhoneNumber()
-            val role = sessionManager.getRole()
-            val avatar = try { sessionManager.getAvatarUrl() } catch (_: Exception) { null }
-
             _uiState.update {
                 it.copy(
-                    userName = if (!fullName.isNullOrBlank()) fullName else it.userName,
-                    userPhone = if (!phone.isNullOrBlank()) phone else it.userPhone,
-                    userRole = if (!role.isNullOrBlank()) role else it.userRole,
-                    avatarUrl = if (!avatar.isNullOrBlank()) avatar else it.avatarUrl
+                    userName = sessionManager.getFullName() ?: it.userName,
+                    userPhone = sessionManager.getPhoneNumber() ?: it.userPhone,
+                    userRole = sessionManager.getRole() ?: it.userRole,
+                    avatarUrl = sessionManager.getAvatarUrl() ?: it.avatarUrl
                 )
             }
         }
     }
 
     fun syncWithRemoteProfile() {
-        val useCase = getMeUseCase ?: return
         viewModelScope.launch {
-            useCase()
-                .catch { /* Network or auth error, fallback to local session */ }
-                .collect { user ->
-                    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                    val regDate = try {
-                        user.createdAt.format(formatter)
-                    } catch (_: Exception) {
-                        null
-                    }
-                    val months = try {
-                        ChronoUnit.MONTHS.between(user.createdAt.toLocalDate(), LocalDate.now()).toInt()
-                    } catch (_: Exception) {
-                        0
-                    }
-                    val days = try {
-                        ChronoUnit.DAYS.between(user.createdAt.toLocalDate(), LocalDate.now()).coerceAtLeast(1)
-                    } catch (_: Exception) {
-                        1L
-                    }
+            try {
+                val user = getMeUseCase().firstOrNull() ?: return@launch
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                val formattedDate = runCatching { user.createdAt.format(formatter) }.getOrElse { _uiState.value.registrationDate }
+                val now = java.time.LocalDateTime.now()
+                val totalDays = java.time.Duration.between(user.createdAt, now).toDays().coerceAtLeast(0)
+                val months = (totalDays / 30).toInt().coerceAtLeast(0)
 
-                    _uiState.update {
-                        it.copy(
-                            userName = if (user.fullName.isNotBlank()) user.fullName else it.userName,
-                            userPhone = if (user.phoneNumber.isNotBlank()) user.phoneNumber else it.userPhone,
-                            userEmail = user.email.orEmpty(),
-                            userRole = user.role.name,
-                            avatarUrl = user.avatarUrl ?: it.avatarUrl,
-                            vehiclePlate = user.driverInfo?.licensePlate ?: it.vehiclePlate,
-                            registrationDate = regDate ?: it.registrationDate,
-                            joinedMonths = months,
-                            joinedDays = days
-                        )
-                    }
-                    if (!user.avatarUrl.isNullOrBlank()) {
-                        try { sessionManager.saveAvatarUrl(user.avatarUrl) } catch (_: Exception) {}
-                    }
+                _uiState.update {
+                    it.copy(
+                        userName = user.fullName,
+                        userPhone = user.phoneNumber,
+                        userEmail = user.email.orEmpty(),
+                        userRole = user.role.name,
+                        avatarUrl = user.avatarUrl ?: it.avatarUrl,
+                        registrationDate = formattedDate,
+                        joinedDays = totalDays,
+                        joinedMonths = months
+                    )
                 }
+            } catch (_: Exception) { }
         }
     }
 
-    fun onAvatarClick() {
-        _uiState.update { it.copy(showAvatarPicker = true) }
+    fun onAvatarClick() = _uiState.update { it.copy(showAvatarPicker = true) }
+    fun onDismissAvatarPicker() = _uiState.update { it.copy(showAvatarPicker = false) }
+    fun onOpenChangePassword() = _uiState.update { it.copy(showChangePasswordDialog = true, changePasswordError = null) }
+    fun onDismissChangePassword() = _uiState.update { it.copy(showChangePasswordDialog = false, changePasswordError = null) }
+
+    fun changePassword(oldPass: String, newPass: String, confirmPass: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isChangingPassword = true, changePasswordError = null) }
+            changePasswordUseCase(oldPass, newPass, confirmPass).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isChangingPassword = false, showChangePasswordDialog = false) }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.account_change_password_success))
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isChangingPassword = false, changePasswordError = error.message ?: "Đổi mật khẩu thất bại") }
+                }
+            )
+        }
     }
 
-    fun onDismissAvatarPicker() {
-        _uiState.update { it.copy(showAvatarPicker = false) }
+    fun onOpenEditProfile() = _uiState.update { it.copy(showEditProfileSheet = true, editProfileError = null) }
+    fun onDismissEditProfile() = _uiState.update { it.copy(showEditProfileSheet = false, editProfileError = null) }
+
+    fun updateProfile(fullName: String, email: String?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingProfile = true, editProfileError = null) }
+            updateUserProfileUseCase(fullName, email).fold(
+                onSuccess = { updatedUser ->
+                    _uiState.update {
+                        it.copy(
+                            userName = updatedUser.fullName,
+                            userEmail = updatedUser.email.orEmpty(),
+                            isUpdatingProfile = false,
+                            showEditProfileSheet = false,
+                            editProfileError = null
+                        )
+                    }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_edit_success))
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isUpdatingProfile = false, editProfileError = error.message ?: "Cập nhật thông tin thất bại") }
+                }
+            )
+        }
+    }
+
+    fun onOpenSavedAddresses() {
+        _uiState.update { it.copy(showSavedAddressesSheet = true) }
+        loadSavedAddresses()
+    }
+
+    fun onDismissSavedAddresses() = _uiState.update { it.copy(showSavedAddressesSheet = false) }
+
+    fun loadSavedAddresses() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSavedAddresses = true) }
+            getSavedAddressesUseCase().fold(
+                onSuccess = { list -> _uiState.update { it.copy(savedAddresses = list, isLoadingSavedAddresses = false) } },
+                onFailure = { _uiState.update { it.copy(isLoadingSavedAddresses = false) } }
+            )
+        }
+    }
+
+    fun saveAddress(label: String, addressText: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSavedAddresses = true) }
+            saveAddressUseCase(label = label, address = addressText, latitude = 10.7769, longitude = 106.7009, isDefault = false).fold(
+                onSuccess = {
+                    loadSavedAddresses()
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.saved_address_save_success))
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(isLoadingSavedAddresses = false) }
+                    _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Lỗi lưu địa chỉ"))
+                }
+            )
+        }
+    }
+
+    fun updateAddress(addressId: Long, label: String, addressText: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSavedAddresses = true) }
+            updateSavedAddressUseCase(addressId = addressId, label = label, address = addressText, latitude = 10.7769, longitude = 106.7009).fold(
+                onSuccess = {
+                    loadSavedAddresses()
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.saved_address_update_success))
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(isLoadingSavedAddresses = false) }
+                    _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Lỗi cập nhật địa chỉ"))
+                }
+            )
+        }
+    }
+
+    fun deleteAddress(addressId: Long) {
+        viewModelScope.launch {
+            deleteAddressUseCase(addressId).fold(
+                onSuccess = {
+                    loadSavedAddresses()
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.saved_address_delete_success))
+                },
+                onFailure = { err -> _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Lỗi xóa địa chỉ")) }
+            )
+        }
     }
 
     fun uploadAvatar(context: Context, uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingAvatar = true, showAvatarPicker = false) }
-            val part = ImageCompressor.compressAvatarToMultipart(context, uri)
-            performUploadAvatar(part)
+            avatarHelper.uploadFromUri(context, uri).fold(
+                onSuccess = { newUrl ->
+                    _uiState.update { it.copy(avatarUrl = newUrl, isUploadingAvatar = false) }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_success))
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isUploadingAvatar = false) }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_failed))
+                }
+            )
         }
     }
 
     fun uploadAvatarBitmap(bitmap: Bitmap) {
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingAvatar = true, showAvatarPicker = false) }
-            val part = ImageCompressor.compressBitmapToMultipart(bitmap)
-            performUploadAvatar(part)
+            avatarHelper.uploadFromBitmap(bitmap).fold(
+                onSuccess = { newUrl ->
+                    _uiState.update { it.copy(avatarUrl = newUrl, isUploadingAvatar = false) }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_success))
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isUploadingAvatar = false) }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_failed))
+                }
+            )
         }
     }
 
-    private suspend fun performUploadAvatar(part: MultipartBody.Part?) {
-        val useCase = updateAvatarUseCase
-        if (part == null || useCase == null) {
-            _uiState.update { it.copy(isUploadingAvatar = false) }
-            _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_failed))
-            return
-        }
+    fun onOpenUpdateVehicleDialog() = _uiState.update { it.copy(showUpdateVehicleDialog = true) }
+    fun onDismissUpdateVehicleDialog() = _uiState.update { it.copy(showUpdateVehicleDialog = false) }
+    fun onOpenResubmitSheet() = _uiState.update { it.copy(showResubmitSheet = true) }
+    fun onDismissResubmitSheet() = _uiState.update { it.copy(showResubmitSheet = false) }
 
-        val result = useCase(part)
-        result.fold(
-            onSuccess = { newUrl ->
-                _uiState.update { it.copy(avatarUrl = newUrl, isUploadingAvatar = false) }
-                _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_success))
-            },
-            onFailure = {
-                _uiState.update { it.copy(isUploadingAvatar = false) }
-                _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_upload_avatar_failed))
+    fun updateDriverVehicle(vehicleType: String, licensePlate: String, vehicleBrand: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingDriverVehicle = true) }
+            val driverId = _uiState.value.driverId.takeIf { it > 0L }
+            updateDriverVehicleUseCase(driverId = driverId, vehicleType = vehicleType, licensePlate = licensePlate, vehicleBrand = vehicleBrand)
+                .onSuccess { updated ->
+                    _uiState.update {
+                        it.copy(
+                            isUpdatingDriverVehicle = false,
+                            showUpdateVehicleDialog = false,
+                            vehiclePlate = updated.vehiclePlate ?: licensePlate,
+                            vehicleType = updated.vehicleType ?: vehicleType,
+                            vehicleBrand = updated.vehicleBrand ?: vehicleBrand
+                        )
+                    }
+                    _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.driver_vehicle_update_success))
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdatingDriverVehicle = false) }
+                    _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Không thể cập nhật xe"))
+                }
+        }
+    }
+
+    fun resubmitDriverProfile(
+        fullName: String,
+        licenseNumber: String,
+        vehicleType: String,
+        licensePlate: String,
+        vehicleBrand: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingDriverVehicle = true) }
+            val driverId = _uiState.value.driverId.takeIf { it > 0L }
+            resubmitDriverProfileUseCase(
+                driverId = driverId,
+                fullName = fullName,
+                email = _uiState.value.userEmail.ifBlank { null },
+                licenseNumber = licenseNumber,
+                vehicleType = vehicleType,
+                licensePlate = licensePlate,
+                vehicleBrand = vehicleBrand
+            ).onSuccess { updated ->
+                _uiState.update {
+                    it.copy(
+                        isUpdatingDriverVehicle = false,
+                        showResubmitSheet = false,
+                        approvalStatus = updated.approvalStatus,
+                        vehiclePlate = updated.vehiclePlate ?: licensePlate,
+                        vehicleType = updated.vehicleType ?: vehicleType,
+                        vehicleBrand = updated.vehicleBrand ?: vehicleBrand,
+                        licenseNumber = updated.licenseNumber ?: licenseNumber
+                    )
+                }
+                _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.driver_resubmit_success))
+            }.onFailure { err ->
+                _uiState.update { it.copy(isUpdatingDriverVehicle = false) }
+                _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Nộp lại hồ sơ thất bại"))
             }
-        )
+        }
     }
 
-    fun onLogoutClicked() {
-        _uiState.update { it.copy(showLogoutDialog = true) }
+    fun onOpenDeactivateDialog() = _uiState.update { it.copy(showDeactivateDialog = true) }
+    fun onDismissDeactivateDialog() = _uiState.update { it.copy(showDeactivateDialog = false) }
+
+    fun onConfirmDeactivateAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, showDeactivateDialog = false) }
+            deleteAccountUseCase().onSuccess {
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AccountUiEvent.ShowStringResToast(R.string.profile_deactivate_success))
+                _uiEvent.send(AccountUiEvent.NavigateToLogin)
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false) }
+                _uiEvent.send(AccountUiEvent.ShowToast(err.message ?: "Không thể vô hiệu hóa tài khoản"))
+            }
+        }
     }
 
-    fun onDismissLogoutDialog() {
-        _uiState.update { it.copy(showLogoutDialog = false) }
-    }
+    fun onLogoutClicked() = _uiState.update { it.copy(showLogoutDialog = true) }
+    fun onDismissLogoutDialog() = _uiState.update { it.copy(showLogoutDialog = false) }
 
     fun onConfirmLogout() {
         viewModelScope.launch {

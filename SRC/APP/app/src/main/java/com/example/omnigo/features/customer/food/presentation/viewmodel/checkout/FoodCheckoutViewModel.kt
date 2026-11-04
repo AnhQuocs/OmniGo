@@ -10,9 +10,16 @@ import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetai
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.model.RestaurantAvailability
+import com.example.omnigo.features.customer.food.domain.usecase.CalculateFoodDeliveryFeeUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.CreateFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
-import com.example.omnigo.features.customer.food.domain.util.GeoDistance
+import com.example.omnigo.features.customer.food.domain.util.DeliveryFeeCalculator
+import com.example.omnigo.features.customer.promos.domain.model.AppliedVoucherResult
+import com.example.omnigo.features.customer.promos.domain.model.Voucher
+import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideVoucherReviewCoordinator
+import com.example.omnigo.features.driver.earnings.domain.usecase.CreateOrderPaymentUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.DepositWalletUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase
 import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,15 +35,22 @@ class FoodCheckoutViewModel @Inject constructor(
     private val cartManager: CartManager,
     private val userLocationManager: UserLocationManager,
     private val createFoodOrderUseCase: CreateFoodOrderUseCase,
-    private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase
+    private val getRestaurantDetailUseCase: GetRestaurantDetailUseCase,
+    private val voucherCoordinator: RideVoucherReviewCoordinator? = null,
+    private val createOrderPaymentUseCase: CreateOrderPaymentUseCase? = null,
+    private val getWalletUseCase: GetDriverWalletUseCase? = null,
+    private val depositWalletUseCase: DepositWalletUseCase? = null,
+    private val calculateFoodDeliveryFeeUseCase: CalculateFoodDeliveryFeeUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FoodCheckoutUiState())
     val uiState: StateFlow<FoodCheckoutUiState> = _uiState.asStateFlow()
+    private var pendingOrderId: Long? = null
 
     init {
         observeCartState()
         observeLocationState()
+        loadWalletBalance()
     }
 
     private fun observeCartState() {
@@ -48,16 +62,14 @@ class FoodCheckoutViewModel @Inject constructor(
                 val restaurantName = cart.restaurantName
 
                 _uiState.update { current ->
-                    val fee = calculateDeliveryFee(current.restaurant, current.deliveryLatitude, current.deliveryLongitude)
                     current.copy(
                         restaurantId = restaurantId,
                         restaurantName = restaurantName,
                         items = itemsList,
-                        itemsSubtotal = subtotal,
-                        deliveryFee = fee,
-                        totalAmount = subtotal + fee
+                        itemsSubtotal = subtotal
                     )
                 }
+                updateDeliveryFee(_uiState.value.restaurant, _uiState.value.deliveryLatitude, _uiState.value.deliveryLongitude)
 
                 if (restaurantId != null && _uiState.value.restaurant?.id != restaurantId) {
                     loadRestaurantDetails(restaurantId)
@@ -72,15 +84,13 @@ class FoodCheckoutViewModel @Inject constructor(
                 if (location != null && _uiState.value.deliveryAddress.isBlank()) {
                     val fullAddress = location.fullAddress.ifBlank { location.addressName }
                     _uiState.update { current ->
-                        val fee = calculateDeliveryFee(current.restaurant, location.latitude, location.longitude)
                         current.copy(
                             deliveryAddress = fullAddress,
                             deliveryLatitude = location.latitude,
-                            deliveryLongitude = location.longitude,
-                            deliveryFee = fee,
-                            totalAmount = current.itemsSubtotal + fee
+                            deliveryLongitude = location.longitude
                         )
                     }
+                    updateDeliveryFee(_uiState.value.restaurant, location.latitude, location.longitude)
                 }
             }
         }
@@ -91,55 +101,130 @@ class FoodCheckoutViewModel @Inject constructor(
             when (val result = getRestaurantDetailUseCase(restaurantId)) {
                 is GetRestaurantDetailResult.Success -> {
                     _uiState.update { current ->
-                        val fee = calculateDeliveryFee(result.restaurant, current.deliveryLatitude, current.deliveryLongitude)
-                        current.copy(
-                            restaurant = result.restaurant,
-                            restaurantName = result.restaurant.name,
-                            deliveryFee = fee,
-                            totalAmount = current.itemsSubtotal + fee
-                        )
+                        current.copy(restaurant = result.restaurant, restaurantName = result.restaurant.name)
+                    }
+                    updateDeliveryFee(result.restaurant, _uiState.value.deliveryLatitude, _uiState.value.deliveryLongitude)
+                }
+                is GetRestaurantDetailResult.Error -> Unit
+            }
+        }
+    }
+
+    private fun updateDeliveryFee(restaurant: Restaurant?, lat: Double, lng: Double) {
+        val subtotal = _uiState.value.itemsSubtotal
+        val localFee = DeliveryFeeCalculator.calculate(restaurant, lat, lng)
+        _uiState.update { current ->
+            val finalFee = if (localFee > 0.0 || (lat != 0.0 && lng != 0.0)) localFee else current.deliveryFee
+            current.copy(deliveryFee = finalFee, totalAmount = subtotal + finalFee)
+        }
+
+        if (restaurant != null && restaurant.hasCoordinates && lat != 0.0 && lng != 0.0) {
+            viewModelScope.launch {
+                val remoteFee = calculateFoodDeliveryFeeUseCase?.invoke(restaurant, lat, lng)
+                if (remoteFee != null && remoteFee > 0.0) {
+                    _uiState.update { current ->
+                        current.copy(deliveryFee = remoteFee, totalAmount = current.itemsSubtotal + remoteFee)
                     }
                 }
-                is GetRestaurantDetailResult.Error -> {
-                    // Non-fatal, use basic restaurantName from cart
-                }
+            }
+        }
+    }
+
+    fun loadWalletBalance() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isWalletLoading = true) }
+            val walletRes = getWalletUseCase?.invoke()
+            _uiState.update {
+                it.copy(
+                    isWalletLoading = false,
+                    walletBalance = walletRes?.getOrNull()?.balance ?: it.walletBalance ?: 0.0
+                )
             }
         }
     }
 
     fun onPaymentMethodSelected(method: PaymentMethod) {
         _uiState.update { it.copy(selectedPaymentMethod = method) }
+        if (method == PaymentMethod.WALLET) loadWalletBalance()
     }
 
-    fun onDriverNoteChanged(note: String) {
-        _uiState.update { it.copy(driverNote = note) }
+    fun openQuickTopUp(show: Boolean) = _uiState.update { it.copy(showQuickTopUp = show) }
+
+    fun onQuickTopUpConfirm(amount: Double) {
+        if (amount < 10000.0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTopUpLoading = true) }
+            depositWalletUseCase?.invoke(amount = amount, method = "VNPAY")
+                ?.onSuccess { payUrl ->
+                    _uiState.update { it.copy(isTopUpLoading = false, showQuickTopUp = false, paymentWebViewUrl = payUrl) }
+                }
+                ?.onFailure { err ->
+                    _uiState.update { it.copy(isTopUpLoading = false, errorMessage = UiText.DynamicString(err.message ?: "Deposit failed")) }
+                } ?: _uiState.update { it.copy(isTopUpLoading = false) }
+        }
     }
 
-    fun onDeliveryAddressChanged(address: String, latitude: Double, longitude: Double) {
-        _uiState.update { current ->
-            val fee = calculateDeliveryFee(current.restaurant, latitude, longitude)
-            current.copy(
-                deliveryAddress = address,
-                deliveryLatitude = latitude,
-                deliveryLongitude = longitude,
-                deliveryFee = fee,
-                totalAmount = current.itemsSubtotal + fee
+    fun onPaymentWebViewDismiss() {
+        _uiState.update { it.copy(paymentWebViewUrl = null, createdOrderId = pendingOrderId ?: it.createdOrderId) }
+        pendingOrderId = null
+        loadWalletBalance()
+    }
+
+    fun onPaymentWebViewSuccess() {
+        _uiState.update { it.copy(paymentWebViewUrl = null, createdOrderId = pendingOrderId ?: it.createdOrderId) }
+        pendingOrderId = null
+        loadWalletBalance()
+    }
+
+    fun onPaymentWebViewFailed(message: String) {
+        _uiState.update {
+            it.copy(
+                paymentWebViewUrl = null,
+                errorMessage = UiText.StringResource(R.string.checkout_payment_failed_toast),
+                createdOrderId = pendingOrderId ?: it.createdOrderId
             )
         }
+        pendingOrderId = null
+        loadWalletBalance()
     }
 
-    fun onPlaceOrder() {
-        var canProceed = false
-        _uiState.update { current ->
-            if (current.isPlacingOrder) {
-                current
-            } else {
-                canProceed = true
-                current.copy(isPlacingOrder = true, errorMessage = null)
-            }
-        }
+    fun onDriverNoteChanged(note: String) = _uiState.update { it.copy(driverNote = note) }
 
-        if (!canProceed) return
+    fun onDeliveryAddressChanged(address: String, latitude: Double, longitude: Double) {
+        _uiState.update { it.copy(deliveryAddress = address, deliveryLatitude = latitude, deliveryLongitude = longitude) }
+        updateDeliveryFee(_uiState.value.restaurant, latitude, longitude)
+    }
+
+    fun openVoucherSheet() {
+        val amount = _uiState.value.totalAmount
+        _uiState.update { it.copy(showVoucherSheet = true, isApplyingVoucher = true) }
+        viewModelScope.launch {
+            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD") ?: emptyList()
+            _uiState.update { it.copy(applicableVouchers = list, isApplyingVoucher = false) }
+        }
+    }
+
+    fun dismissVoucherSheet() = _uiState.update { it.copy(showVoucherSheet = false) }
+
+    fun applyVoucherCode(code: String) {
+        val amount = _uiState.value.totalAmount
+        viewModelScope.launch {
+            _uiState.update { it.copy(isApplyingVoucher = true) }
+            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD")
+                ?.onSuccess { res ->
+                    _uiState.update { it.copy(appliedVoucher = res, isApplyingVoucher = false, showVoucherSheet = false) }
+                }
+                ?.onFailure { err ->
+                    _uiState.update { it.copy(isApplyingVoucher = false, errorMessage = UiText.DynamicString(err.message ?: "Invalid voucher")) }
+                } ?: _uiState.update { it.copy(isApplyingVoucher = false) }
+        }
+    }
+
+    fun removeVoucher() = _uiState.update { it.copy(appliedVoucher = null, showVoucherSheet = false) }
+
+    fun onPlaceOrder() {
+        if (_uiState.value.isPlacingOrder) return
+        _uiState.update { it.copy(isPlacingOrder = true, errorMessage = null) }
 
         val state = _uiState.value
         if (state.items.isEmpty() || state.restaurantId == null) {
@@ -163,9 +248,42 @@ class FoodCheckoutViewModel @Inject constructor(
             }
         }
 
+        // Pre-check for OmniPay Wallet
+        if (state.selectedPaymentMethod == PaymentMethod.WALLET) {
+            val balance = state.walletBalance ?: 0.0
+            if (balance < state.finalTotalAmount) {
+                _uiState.update {
+                    it.copy(
+                        isPlacingOrder = false,
+                        errorMessage = UiText.StringResource(R.string.checkout_error_insufficient_wallet),
+                        showQuickTopUp = true
+                    )
+                }
+                return
+            }
+            // Require explicit confirmation for Wallet payment
+            _uiState.update { it.copy(isPlacingOrder = false, showWalletPaymentConfirm = true) }
+            return
+        }
+
+        executePlaceOrder()
+    }
+
+    fun dismissWalletPaymentConfirm() {
+        _uiState.update { it.copy(showWalletPaymentConfirm = false) }
+    }
+
+    fun onConfirmWalletPayment() {
+        _uiState.update { it.copy(showWalletPaymentConfirm = false, isPlacingOrder = true) }
+        executePlaceOrder()
+    }
+
+    private fun executePlaceOrder() {
         viewModelScope.launch {
+            val state = _uiState.value
+            val restaurantId = state.restaurantId ?: return@launch
             val result = createFoodOrderUseCase(
-                restaurantId = state.restaurantId,
+                restaurantId = restaurantId,
                 dropOffAddress = state.deliveryAddress,
                 dropOffLatitude = state.deliveryLatitude,
                 dropOffLongitude = state.deliveryLongitude,
@@ -176,12 +294,37 @@ class FoodCheckoutViewModel @Inject constructor(
 
             when (result) {
                 is CreateFoodOrderResult.Success -> {
-                    cartManager.clearCart()
-                    _uiState.update {
-                        it.copy(
-                            isPlacingOrder = false,
-                            createdOrderId = result.order.id
+                    val applied = state.appliedVoucher
+                    if (applied != null && applied.voucherCode.isNotBlank()) {
+                        voucherCoordinator?.commitVoucher(
+                            code = applied.voucherCode,
+                            orderAmount = state.totalAmount,
+                            serviceType = "FOOD",
+                            orderId = result.order.id.toString()
                         )
+                    }
+
+                    var webViewUrl: String? = null
+                    if (state.selectedPaymentMethod != PaymentMethod.CASH) {
+                        val orderAmount = result.order.totalPrice ?: (result.order.itemsPrice + (result.order.deliveryFee ?: 0.0)).takeIf { it > 0.0 } ?: state.finalTotalAmount
+                        val paymentRes = createOrderPaymentUseCase?.invoke(
+                            bookingId = result.order.id,
+                            amount = orderAmount,
+                            method = state.selectedPaymentMethod.name,
+                            type = "FOOD_PAYMENT"
+                        )?.getOrNull()
+
+                        if (paymentRes?.startsWith("http") == true) {
+                            webViewUrl = paymentRes
+                        }
+                    }
+
+                    cartManager.clearCart()
+                    if (!webViewUrl.isNullOrBlank()) {
+                        pendingOrderId = result.order.id
+                        _uiState.update { it.copy(isPlacingOrder = false, paymentWebViewUrl = webViewUrl) }
+                    } else {
+                        _uiState.update { it.copy(isPlacingOrder = false, createdOrderId = result.order.id) }
                     }
                 }
                 is CreateFoodOrderResult.Error -> {
@@ -190,39 +333,11 @@ class FoodCheckoutViewModel @Inject constructor(
                     } else {
                         result.error.asUiText()
                     }
-                    _uiState.update {
-                        it.copy(
-                            isPlacingOrder = false,
-                            errorMessage = errorUiText
-                        )
-                    }
+                    _uiState.update { it.copy(isPlacingOrder = false, errorMessage = errorUiText) }
                 }
             }
         }
     }
-
-    fun onClearError() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    private fun calculateDeliveryFee(restaurant: Restaurant?, dropOffLat: Double, dropOffLng: Double): Double {
-        val baseFee = 15000.0
-        if (restaurant == null || !restaurant.hasCoordinates || (dropOffLat == 0.0 && dropOffLng == 0.0)) {
-            return baseFee
-        }
-
-        val distanceKm = GeoDistance.haversineKm(
-            dropOffLat,
-            dropOffLng,
-            restaurant.latitude,
-            restaurant.longitude
-        )
-
-        return if (distanceKm <= 2.0) {
-            baseFee
-        } else {
-            val extraKm = distanceKm - 2.0
-            baseFee + (extraKm * 5000.0).toInt()
-        }
-    }
+    fun onClearError() = _uiState.update { it.copy(errorMessage = null) }
+    fun onOrderCreatedHandled() = _uiState.update { it.copy(createdOrderId = null) }
 }

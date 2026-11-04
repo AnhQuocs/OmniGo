@@ -12,6 +12,9 @@ import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import com.example.omnigo.features.customer.food.domain.model.Restaurant
 import com.example.omnigo.features.customer.food.domain.usecase.CreateFoodOrderUseCase
 import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
+import com.example.omnigo.features.driver.earnings.domain.model.DriverWallet
+import com.example.omnigo.features.driver.earnings.domain.usecase.CreateOrderPaymentUseCase
+import com.example.omnigo.features.driver.earnings.domain.usecase.GetDriverWalletUseCase
 import com.example.omnigo.utils.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -245,5 +248,89 @@ class FoodCheckoutViewModelTest {
         assertFalse(state.isPlacingOrder)
         assertNotNull(state.errorMessage)
         io.mockk.coVerify(exactly = 0) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `onPlaceOrder with WALLET when balance is insufficient shows QuickTopUp`() = runTest {
+        val mockWalletUseCase = mockk<GetDriverWalletUseCase>()
+        coEvery { mockWalletUseCase() } returns Result.success(DriverWallet(balance = 10000.0))
+
+        val vm = FoodCheckoutViewModel(
+            cartManager = cartManager,
+            userLocationManager = userLocationManager,
+            createFoodOrderUseCase = createFoodOrderUseCase,
+            getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+            getWalletUseCase = mockWalletUseCase
+        )
+
+        userLocationManager.updateLocation(UserLocation(21.0150, 105.8520, "Nhà", "69 Nguyễn Hy Quang"))
+        cartManager.addItem(mockMenuItem, quantity = 2, restaurantName = "Phở Thìn Lò Đúc")
+        advanceUntilIdle()
+
+        vm.onPaymentMethodSelected(PaymentMethod.WALLET)
+        advanceUntilIdle()
+
+        vm.onPlaceOrder()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertFalse(state.isPlacingOrder)
+        assertTrue(state.showQuickTopUp)
+        assertFalse(state.showWalletPaymentConfirm)
+        assertNotNull(state.errorMessage)
+        assertNull(state.createdOrderId)
+        io.mockk.coVerify(exactly = 0) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `onPlaceOrder with WALLET shows confirmation and confirms payment successfully`() = runTest {
+        val mockWalletUseCase = mockk<GetDriverWalletUseCase>()
+        val mockPaymentUseCase = mockk<CreateOrderPaymentUseCase>()
+
+        coEvery { mockWalletUseCase() } returns Result.success(DriverWallet(balance = 500000.0))
+        coEvery { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) } returns CreateFoodOrderResult.Success(mockOrder)
+        coEvery { mockPaymentUseCase(any(), any(), any(), any()) } returns Result.success("WALLET_SUCCESS")
+
+        val vm = FoodCheckoutViewModel(
+            cartManager = cartManager,
+            userLocationManager = userLocationManager,
+            createFoodOrderUseCase = createFoodOrderUseCase,
+            getRestaurantDetailUseCase = getRestaurantDetailUseCase,
+            createOrderPaymentUseCase = mockPaymentUseCase,
+            getWalletUseCase = mockWalletUseCase
+        )
+
+        userLocationManager.updateLocation(UserLocation(21.0150, 105.8520, "Nhà", "69 Nguyễn Hy Quang"))
+        cartManager.addItem(mockMenuItem, quantity = 2, restaurantName = "Phở Thìn Lò Đúc")
+        advanceUntilIdle()
+
+        vm.onPaymentMethodSelected(PaymentMethod.WALLET)
+        advanceUntilIdle()
+
+        // 1. User clicks Place Order -> Confirmation Sheet opens
+        vm.onPlaceOrder()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.showWalletPaymentConfirm)
+        io.mockk.coVerify(exactly = 0) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+
+        // 2. User confirms payment -> Order created & wallet charged
+        vm.onConfirmWalletPayment()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertFalse(state.isPlacingOrder)
+        assertFalse(state.showWalletPaymentConfirm)
+        assertNull(state.paymentWebViewUrl)
+        assertEquals(mockOrder.id, state.createdOrderId)
+        io.mockk.coVerify(exactly = 1) { createFoodOrderUseCase(any(), any(), any(), any(), any(), any(), any()) }
+        io.mockk.coVerify(exactly = 1) { mockPaymentUseCase(mockOrder.id, any(), "WALLET", "FOOD_PAYMENT") }
+    }
+
+    @Test
+    fun `dismissWalletPaymentConfirm closes confirmation sheet without placing order`() = runTest {
+        viewModel.onPaymentMethodSelected(PaymentMethod.WALLET)
+        viewModel.dismissWalletPaymentConfirm()
+        assertFalse(viewModel.uiState.value.showWalletPaymentConfirm)
     }
 }

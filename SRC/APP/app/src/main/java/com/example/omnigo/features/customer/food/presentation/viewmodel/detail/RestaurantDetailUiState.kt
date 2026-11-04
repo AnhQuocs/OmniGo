@@ -21,6 +21,8 @@ data class RestaurantDetailUiState(
     val cartItems: Map<Long, CartItem> = emptyMap(),
     val totalCartAmount: Double = 0.0,
     val totalCartQuantity: Int = 0,
+    val cartRestaurantId: Long? = null,
+    val cartRestaurantName: String = "",
     val distanceKm: Double? = null,
     val pendingConflict: CartAddResult.RestaurantConflict? = null,
     val reviews: List<FoodReview> = emptyList(),

@@ -5,7 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +38,7 @@ import com.example.omnigo.features.customer.activity.presentation.ui.components.
 import com.example.omnigo.features.customer.activity.presentation.ui.components.ActivityOngoingListSection
 import com.example.omnigo.features.customer.activity.presentation.ui.components.ActivityServiceFilterRow
 import com.example.omnigo.features.customer.activity.presentation.ui.components.ActivityTabsSection
+import com.example.omnigo.features.customer.activity.presentation.ui.components.CustomerRideDetailBottomSheet
 import com.example.omnigo.features.customer.activity.presentation.viewmodel.ActivityTab
 import com.example.omnigo.features.customer.activity.presentation.viewmodel.ActivityViewModel
 import com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity
@@ -47,7 +49,7 @@ import com.example.omnigo.ui.theme.SecondaryColor
 import com.example.omnigo.ui.theme.TextPrimary
 import com.example.omnigo.ui.theme.TextSecondary
 
-private val TOP_BAR_HEIGHT = 60.dp
+private val TOP_BAR_HEIGHT = Dimen.HeightTopBar
 
 @Composable
 fun ActivityScreen(
@@ -124,7 +126,9 @@ fun ActivityScreen(
                                     FoodActivity.createOrderDetailIntent(context, order.id)
                                 )
                             },
-                            onRideBookingClick = { }
+                            onRideBookingClick = { booking ->
+                                viewModel.openHistoryBookingDetail(booking)
+                            }
                         )
                     } else {
                         ActivityOngoingListSection(
@@ -149,9 +153,21 @@ fun ActivityScreen(
                             }
                         )
                     }
+                    Spacer(modifier = Modifier.height(Dimen.HeightBottomNavPadding))
                 }
             }
         }
+    }
+
+    if (uiState.selectedHistoryBooking != null) {
+        CustomerRideDetailBottomSheet(
+            booking = uiState.selectedHistoryBooking!!,
+            existingReview = uiState.selectedBookingReview,
+            isLoading = uiState.isLoadingRideDetail,
+            isSubmittingReview = uiState.isSubmittingRideReview,
+            onSubmitReview = viewModel::submitHistoryBookingReview,
+            onDismiss = viewModel::dismissHistoryBookingDetail
+        )
     }
 
     if (uiState.cancelConfirmBookingId != null) {

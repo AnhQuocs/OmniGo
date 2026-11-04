@@ -54,8 +54,29 @@ data class DriverDeliveryOrder(
     val items: List<DriverDeliveryOrderItem> = emptyList(),
     val note: String? = null,
     val estimatedDeliveryMinutes: Int? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val platformFee: Double? = null,
+    val driverEarnings: Double? = null
 ) {
+    /**
+     * Cước giao hàng gộp (gross) của đơn đồ ăn.
+     */
+    val grossFee: Double
+        get() = if (deliveryFee > 0.0) deliveryFee else totalPrice
+
+    /**
+     * Thu nhập thực tế của tài xế từ đơn đồ ăn.
+     * Sử dụng phí thực tế của từng đơn, không tự tính lại bằng tỷ lệ 80%.
+     */
+    val actualEarnings: Double
+        get() = driverEarnings ?: (platformFee?.let { (grossFee - it).coerceAtLeast(0.0) } ?: grossFee)
+
+    /**
+     * Phí sàn thực tế khấu trừ từ đơn đồ ăn.
+     */
+    val actualPlatformFee: Double
+        get() = platformFee ?: (driverEarnings?.let { (grossFee - it).coerceAtLeast(0.0) } ?: 0.0)
+
     /**
      * Cash amount that driver must collect from customer upon delivery:
      * - If isPaid == true (Online/Wallet): 0.0 VND

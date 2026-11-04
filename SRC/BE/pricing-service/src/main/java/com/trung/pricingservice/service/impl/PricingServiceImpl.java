@@ -9,6 +9,7 @@ import com.trung.pricingservice.mapper.PricingMapper;
 import com.trung.pricingservice.repository.PricingConfigRepository;
 import com.trung.pricingservice.service.RouteCalculationService;
 import com.trung.pricingservice.service.PricingService;
+import com.trung.pricingservice.service.client.LocationClient;
 import com.trung.pricingservice.util.enums.SurgeLevel;
 import com.uber.h3core.H3Core;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +28,19 @@ public class PricingServiceImpl implements PricingService {
     private final PricingMapper pricingMapper;
     private final H3Core h3Core;
     private final RouteCalculationService routeCalculationService;
+    private final LocationClient locationClient;
 
     private static final int H3_RESOLUTION = 8; // Bán kính ô lục giác khoảng 700 mét
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     @Override
     public PricingResponse calculateDynamicPrice(PricingRequest request, int nearbyDriversCount) {
+        // The same customer/route quote is reused when creating the booking.
+        PricingResponse quote = configRepository.getRideQuote(request);
+        if (quote != null) return quote;
+        // Supply is authoritative: never trust a count sent by the mobile client.
+        nearbyDriversCount = locationClient.getNearbyDrivers(
+                request.getStartLongitude(), request.getStartLatitude(), 5.0).size();
         // Phân vùng điểm đón khách hàng vào ô lục giác H3
         String h3Index = h3Core.latLngToCellAddress(request.getStartLatitude(), request.getStartLongitude(), H3_RESOLUTION);
 
@@ -74,9 +82,10 @@ public class PricingServiceImpl implements PricingService {
         log.info("[H3-Surge] Cell: {} | Xe: {} ({}x) | Cầu: {} | Cung: {} -> Mức: {} ({}x) | Quãng đường: {} km (Nguồn: {})",
                 h3Index, vehicleType, vehicleMultiplier, totalDemand, nearbyDriversCount, surgeLevel.name(), surgeMultiplier, distance, route.getSource());
 
-        return pricingMapper.toPricingResponse(
+        PricingResponse response = pricingMapper.toPricingResponse(
                 baseConfig, distanceFare, durationFare, surgeLevel, surgeMultiplier, finalPrice, distance, estimatedDuration, h3Index
         );
+        return configRepository.saveRideQuote(request, response);
     }
 
     private double getVehicleMultiplier(String vehicleType, PricingConfig config) {

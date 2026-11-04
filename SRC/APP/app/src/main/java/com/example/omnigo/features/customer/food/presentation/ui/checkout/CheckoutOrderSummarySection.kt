@@ -44,7 +44,9 @@ fun CheckoutOrderSummarySection(
     itemsSubtotal: Double,
     deliveryFee: Double,
     totalAmount: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    voucherCode: String? = null,
+    discountAmount: Double = 0.0
 ) {
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
@@ -147,6 +149,25 @@ fun CheckoutOrderSummarySection(
                 )
             }
 
+            if (discountAmount > 0.0 && !voucherCode.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(AppSpacing.XS))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.voucher_discount_row, voucherCode),
+                        style = MaterialTheme.typography.s13.medium(),
+                        color = PrimaryColor
+                    )
+                    Text(
+                        text = "-${formatFoodPrice(discountAmount)}",
+                        style = MaterialTheme.typography.s13.bold(),
+                        color = PrimaryColor
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(AppSpacing.XXS))
 
             Text(
@@ -171,7 +192,7 @@ fun CheckoutOrderSummarySection(
                     color = TextPrimary
                 )
                 Text(
-                    text = formatFoodPrice(totalAmount),
+                    text = formatFoodPrice((totalAmount - discountAmount).coerceAtLeast(0.0)),
                     style = MaterialTheme.typography.s16.bold(),
                     color = PrimaryColor
                 )

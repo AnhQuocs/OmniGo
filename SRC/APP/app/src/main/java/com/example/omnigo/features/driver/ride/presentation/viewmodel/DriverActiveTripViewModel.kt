@@ -18,6 +18,7 @@ import com.example.omnigo.features.driver.domain.usecase.RejectRideBookingUseCas
 import com.example.omnigo.features.driver.domain.usecase.StartTripUseCase
 import com.example.omnigo.features.driver.domain.util.RideGeofenceCalculator
 import com.example.omnigo.features.driver.ride.data.local.DriverTripSessionManager
+import com.example.omnigo.features.driver.common.config.PlatformFeeConfig
 import com.example.omnigo.features.driver.ride.presentation.state.DriverActiveTripUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -80,6 +81,13 @@ class DriverActiveTripViewModel @Inject constructor(
         val paymentMethod = cachedBooking?.paymentMethod ?: navPaymentMethod ?: "CASH"
         val status = cachedBooking?.status ?: BookingStatus.ACCEPTED
 
+        val effectiveRate = cachedBooking?.commissionRate
+            ?: if (cachedBooking?.platformFee != null && price > 0.0) {
+                (cachedBooking.platformFee / price).coerceIn(0.0, 1.0)
+            } else {
+                PlatformFeeConfig.effectiveRate
+            }
+
         _uiState.update {
             it.copy(
                 bookingId = effectiveBookingId,
@@ -91,7 +99,10 @@ class DriverActiveTripViewModel @Inject constructor(
                 price = price,
                 paymentMethod = paymentMethod,
                 customerId = cachedBooking?.customerId,
-                customerAvatarUrl = cachedBooking?.customerAvatarUrl
+                customerAvatarUrl = cachedBooking?.customerAvatarUrl,
+                commissionRate = effectiveRate,
+                estimatedPlatformFee = cachedBooking?.platformFee,
+                estimatedDriverEarnings = cachedBooking?.driverEarnings
             )
         }
 

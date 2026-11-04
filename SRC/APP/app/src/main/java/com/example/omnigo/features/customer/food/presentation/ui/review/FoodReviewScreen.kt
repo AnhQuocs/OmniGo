@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Storefront
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -143,19 +145,22 @@ fun FoodReviewScreen(
                 contentPadding = PaddingValues(Dimen.PaddingM),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge)
             ) {
-                // Banner for Read-Only / Expired
                 if (uiState.isExpired || uiState.isReadOnly) {
                     item {
-                        ReviewStatusBanner(isExpired = uiState.isExpired)
+                        ReviewStatusBanner(
+                            isExpired = uiState.isExpired,
+                            canEdit = uiState.canEditExisting,
+                            onEditClick = viewModel::onStartEditingExistingReview
+                        )
                     }
                 }
 
-                // Section 1: Restaurant Rating & Comment
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(AppShape.ShapeM),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+                        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS)
                     ) {
                         Column(modifier = Modifier.padding(Dimen.PaddingM)) {
                             Text(
@@ -200,12 +205,12 @@ fun FoodReviewScreen(
                     }
                 }
 
-                // Section 2: Review Images Picker
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(AppShape.ShapeM),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+                        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS)
                     ) {
                         Box(modifier = Modifier.padding(Dimen.PaddingM)) {
                             ReviewImagePickerSection(
@@ -220,12 +225,12 @@ fun FoodReviewScreen(
                     }
                 }
 
-                // Section 3: Driver Rating & Tags
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(AppShape.ShapeM),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+                        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS)
                     ) {
                         Column(modifier = Modifier.padding(Dimen.PaddingM)) {
                             Text(
@@ -258,7 +263,6 @@ fun FoodReviewScreen(
                     }
                 }
 
-                // Section 4: Merchant Reply (if any)
                 uiState.existingReview?.merchantReply?.let { reply ->
                     item {
                         Card(
@@ -292,7 +296,6 @@ fun FoodReviewScreen(
                     }
                 }
 
-                // Section 5: Submit Button
                 if (!uiState.isReadOnly && !uiState.isExpired) {
                     item {
                         Button(
@@ -312,7 +315,13 @@ fun FoodReviewScreen(
                                 )
                             } else {
                                 Text(
-                                    text = stringResource(id = R.string.food_review_submit_button),
+                                    text = stringResource(
+                                        id = if (uiState.isEditingExisting) {
+                                            R.string.food_review_update_btn
+                                        } else {
+                                            R.string.food_review_submit_button
+                                        }
+                                    ),
                                     style = MaterialTheme.typography.s15.bold(),
                                     color = SurfaceLight
                                 )
@@ -326,18 +335,23 @@ fun FoodReviewScreen(
 }
 
 @Composable
-private fun ReviewStatusBanner(isExpired: Boolean) {
+private fun ReviewStatusBanner(
+    isExpired: Boolean,
+    canEdit: Boolean,
+    onEditClick: () -> Unit
+) {
     val bannerText = if (isExpired) {
         stringResource(id = R.string.food_review_banner_expired)
     } else {
         stringResource(id = R.string.food_review_banner_readonly)
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(TextSecondary.copy(alpha = 0.1f), RoundedCornerShape(AppShape.ShapeS))
-            .padding(Dimen.PaddingM)
+            .padding(Dimen.PaddingM),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.S)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -352,6 +366,26 @@ private fun ReviewStatusBanner(isExpired: Boolean) {
                 style = MaterialTheme.typography.s12.medium(),
                 color = TextSecondary
             )
+        }
+        if (canEdit) {
+            OutlinedButton(
+                onClick = onEditClick,
+                shape = RoundedCornerShape(AppShape.ShapeM),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = PrimaryColor,
+                    modifier = Modifier.size(Dimen.SizeS)
+                )
+                Spacer(modifier = Modifier.padding(AppSpacing.XXS))
+                Text(
+                    text = stringResource(id = R.string.food_review_edit_btn),
+                    style = MaterialTheme.typography.s13.bold(),
+                    color = PrimaryColor
+                )
+            }
         }
     }
 }

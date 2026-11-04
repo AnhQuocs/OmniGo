@@ -73,13 +73,9 @@ import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
 import com.example.omnigo.utils.s18
 import com.example.omnigo.utils.semiBold
+import com.example.omnigo.utils.formatVnd
+import com.example.omnigo.utils.lineThrough
 import java.text.DecimalFormat
-
-private fun vehicleImageRes(type: VehicleType): Int = when (type) {
-    VehicleType.CAR_4_SEAT -> R.drawable.omnicar4
-    VehicleType.CAR_7_SEAT -> R.drawable.omnicar7
-    VehicleType.BIKE, VehicleType.EXPRESS -> R.drawable.omnibike
-}
 
 @Composable
 fun RideActiveTripSheet(
@@ -141,7 +137,7 @@ fun RideActiveTripSheet(
                 modifier = Modifier.padding(vertical = Dimen.PaddingSM)
             )
 
-            TripFareRow(price = booking.price)
+            TripFareRow(booking = booking)
 
             if (booking.status == BookingStatus.ACCEPTED || booking.status == BookingStatus.ARRIVED) {
                 Spacer(modifier = Modifier.height(AppSpacing.XS))
@@ -255,111 +251,23 @@ private fun RoutePointRow(point: LocationPoint, dotColor: androidx.compose.ui.gr
 }
 
 @Composable
-private fun TripDriverRow(driver: BookingDriverProfile?, vehicleType: VehicleType) {
-    val context = LocalContext.current
-    val plate = driver?.vehiclePlate.orEmpty()
-    val vehicleModel = driver?.vehicleModel ?: driver?.vehicleType.orEmpty()
-
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(Dimen.SizeXXL)
-                .clip(CircleShape)
-                .background(PrimaryColor.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = PrimaryColor,
-                modifier = Modifier.size(Dimen.SizeL)
-            )
-        }
-        Spacer(modifier = Modifier.width(AppSpacing.M))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = driver?.driverName ?: stringResource(id = R.string.driver_trip_title),
-                    style = MaterialTheme.typography.s16.bold(),
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                Spacer(modifier = Modifier.width(AppSpacing.XS))
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = SecondaryColor,
-                    modifier = Modifier.size(Dimen.SizeS)
-                )
-                Text(
-                    text = stringResource(id = R.string.ride_trip_driver_rating_default),
-                    style = MaterialTheme.typography.s12.medium(),
-                    color = TextPrimary
-                )
-            }
-            Spacer(modifier = Modifier.height(AppSpacing.XXS))
-            if (plate.isNotBlank()) {
-                Surface(shape = RoundedCornerShape(AppShape.ShapeXXS), color = SurfaceVariantLight) {
-                    Text(
-                        text = plate,
-                        style = MaterialTheme.typography.s14.bold(),
-                        color = TextPrimary,
-                        modifier = Modifier.padding(horizontal = Dimen.PaddingS, vertical = Dimen.PaddingXXS)
-                    )
-                }
-            }
-            if (vehicleModel.isNotBlank()) {
-                Text(
-                    text = vehicleModel,
-                    style = MaterialTheme.typography.s12.normal(),
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-
-        Image(
-            painter = painterResource(id = vehicleImageRes(vehicleType)),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(width = Dimen.SizeXXLPlus, height = Dimen.SizeXXL)
-        )
-        Spacer(modifier = Modifier.width(AppSpacing.S))
-
-        IconButton(
-            onClick = {
-                val phone = driver?.driverPhone
-                if (!phone.isNullOrBlank()) {
-                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                }
-            },
-            modifier = Modifier
-                .size(Dimen.SizeXLPlus)
-                .clip(CircleShape)
-                .background(SuccessColor)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Call,
-                contentDescription = stringResource(id = R.string.ride_btn_call_driver),
-                tint = OnPrimaryColor,
-                modifier = Modifier.size(Dimen.SizeM)
-            )
-        }
+private fun TripFareRow(booking: Booking) {
+    val isDiscounted = booking.discountAmount > 0.0
+    val paymentMethodLabel = if (booking.paymentMethod?.uppercase() == "WALLET") {
+        stringResource(id = R.string.checkout_payment_wallet)
+    } else {
+        stringResource(id = R.string.ride_payment_cash_label)
     }
-}
 
-@Composable
-private fun TripFareRow(price: Double) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f, fill = false)
+        ) {
             Icon(
                 imageVector = Icons.Default.Payments,
                 contentDescription = null,
@@ -374,49 +282,45 @@ private fun TripFareRow(price: Double) {
                     color = TextTertiary
                 )
                 Text(
-                    text = stringResource(id = R.string.ride_payment_cash_label),
+                    text = paymentMethodLabel,
                     style = MaterialTheme.typography.s14.semiBold(),
                     color = TextPrimary
                 )
+                if (isDiscounted && !booking.voucherCode.isNullOrBlank()) {
+                    Text(
+                        text = stringResource(
+                            id = R.string.voucher_applied_badge,
+                            booking.voucherCode,
+                            booking.discountAmount.formatVnd()
+                        ),
+                        style = MaterialTheme.typography.s12.medium(),
+                        color = SuccessColor
+                    )
+                }
             }
         }
-        Text(
-            text = DecimalFormat("#,###").format(price) + " đ",
-            style = MaterialTheme.typography.s18.bold(),
-            color = PrimaryColor
-        )
-    }
-}
 
-@Composable
-private fun CancelTripDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(id = R.string.ride_cancel_active_trip_dialog_title),
-                style = MaterialTheme.typography.s18.bold()
-            )
-        },
-        text = {
-            Text(
-                text = stringResource(id = R.string.ride_cancel_active_trip_dialog_message),
-                style = MaterialTheme.typography.s14.normal(),
-                color = TextSecondary
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = ErrorColor)
-            ) {
-                Text(text = stringResource(id = R.string.ride_cancel_confirm_yes), color = OnPrimaryColor)
+        Spacer(modifier = Modifier.width(AppSpacing.S))
+
+        if (isDiscounted) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = booking.finalPrice.formatVnd(),
+                    style = MaterialTheme.typography.s18.bold(),
+                    color = PrimaryColor
+                )
+                Text(
+                    text = booking.price.formatVnd(),
+                    style = MaterialTheme.typography.s12.normal().lineThrough(),
+                    color = TextTertiary
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.ride_cancel_confirm_no), color = TextPrimary)
-            }
+        } else {
+            Text(
+                text = booking.price.formatVnd(),
+                style = MaterialTheme.typography.s18.bold(),
+                color = PrimaryColor
+            )
         }
-    )
+    }
 }

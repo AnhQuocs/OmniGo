@@ -57,7 +57,8 @@ import java.util.Locale
 @Composable
 fun DriverCompletedRideCard(
     booking: Booking,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     val isCompleted = booking.status == BookingStatus.COMPLETED
     val badgeBg = if (isCompleted) SuccessColor.copy(alpha = 0.12f) else ErrorContainer
@@ -69,9 +70,10 @@ fun DriverCompletedRideCard(
     }
 
     val timeStr = DriverTripsTimelineHelper.parseTime(booking.completedAt ?: booking.createdAt)
-    val netEarnings = booking.price * 0.80
+    val netEarnings = booking.actualEarnings
 
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = modifier

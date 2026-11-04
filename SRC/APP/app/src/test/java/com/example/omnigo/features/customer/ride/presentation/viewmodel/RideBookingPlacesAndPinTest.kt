@@ -60,7 +60,7 @@ class RideBookingPlacesAndPinTest {
         osrmRoutingService = mockk(relaxed = true) { coEvery { getRouteCoordinates(any(), any(), any(), any()) } returns emptyList() }
 
         viewModel = RideBookingViewModel(
-            calculateRidePricingUseCase = calculateRidePricingUseCase,
+            ridePricingHelper = RidePricingHelper(calculateRidePricingUseCase, osrmRoutingService),
             createRideBookingUseCase = mockk(relaxed = true),
             cancelRideBookingUseCase = mockk(relaxed = true),
             detectCurrentLocationUseCase = detectCurrentLocationUseCase,

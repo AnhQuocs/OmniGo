@@ -74,7 +74,8 @@ fun DriverHeroProfileCard(
     joinedDays: Long,
     isUploadingAvatar: Boolean,
     onAvatarClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRatingClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -242,7 +243,9 @@ fun DriverHeroProfileCard(
                         iconTint = RatingGold,
                         value = String.format(Locale.US, "%.1f", rating),
                         label = stringResource(id = R.string.driver_account_stat_rating_label),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onRatingClick)
                     )
 
                     // Stat 2: Trips (ic_shield_star)

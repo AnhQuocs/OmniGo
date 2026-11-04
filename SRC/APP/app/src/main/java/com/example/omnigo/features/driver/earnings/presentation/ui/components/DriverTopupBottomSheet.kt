@@ -61,7 +61,6 @@ fun DriverTopupBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val denominations = listOf(100_000.0, 200_000.0, 500_000.0, 1_000_000.0)
     var selectedAmount by remember { mutableStateOf(200_000.0) }
-    var selectedMethod by remember { mutableStateOf(0) } // 0: VietQR (VNPAY), 1: MoMo
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -144,17 +143,8 @@ fun DriverTopupBottomSheet(
             // Method 1: VietQR
             PaymentMethodSelectRow(
                 title = stringResource(id = R.string.driver_topup_method_qr),
-                isSelected = selectedMethod == 0,
-                onClick = { if (!isSubmitting) selectedMethod = 0 }
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.S))
-
-            // Method 2: MoMo
-            PaymentMethodSelectRow(
-                title = stringResource(id = R.string.driver_topup_method_momo),
-                isSelected = selectedMethod == 1,
-                onClick = { if (!isSubmitting) selectedMethod = 1 }
+                isSelected = true,
+                onClick = { }
             )
 
             Spacer(modifier = Modifier.height(AppSpacing.L))
@@ -162,8 +152,7 @@ fun DriverTopupBottomSheet(
             // Confirm Button
             Button(
                 onClick = {
-                    val methodCode = if (selectedMethod == 0) "VNPAY" else "MOMO"
-                    onConfirmTopup(selectedAmount, methodCode)
+                    onConfirmTopup(selectedAmount, "VNPAY")
                 },
                 enabled = !isSubmitting,
                 shape = RoundedCornerShape(AppShape.PillShape),

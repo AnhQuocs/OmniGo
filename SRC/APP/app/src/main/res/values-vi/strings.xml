@@ -31,6 +31,7 @@
     <string name="dont_have_account">Chưa có tài khoản?</string>
     <string name="register_now">Đăng ký ngay</string>
     <string name="logging_in">Đang đăng nhập…</string>
+    <string name="auth_session_expired">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.</string>
 
     <!-- REGISTER SCREEN -->
     <string name="register">Đăng ký</string>
@@ -656,7 +657,9 @@
     <string name="ride_cancel_confirm_no">Tiếp tục tìm</string>
     <string name="ride_search_timeout_message">Chưa tìm thấy tài xế phù hợp trong khu vực. Vui lòng
         thử lại sau ít phút.</string>
-    <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
+    <string name="ride_booking_cancelled_success">Đã hủy chuyến xe thành công.</string>
+    <string name="ride_driver_cancelled_toast">Tài xế đã hủy chuyến xe này.</string>
+    <string name="ride_trip_cancelled_by_system">Chuyến xe đã bị hủy.</string>
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
     <string name="ride_error_incomplete_locations">Vui lòng chọn đầy đủ điểm đón và điểm đến.</string>
@@ -788,8 +791,8 @@
         để hoàn thành chuyến đi.</string>
     <string name="driver_trip_settlement_title">Quyết toán chuyến đi</string>
     <string name="driver_trip_settlement_total_fare">Tổng cước phí</string>
-    <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn (20%)</string>
-    <string name="driver_trip_settlement_driver_income">Thu nhập thực nhận (80%)</string>
+    <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn</string>
+    <string name="driver_trip_settlement_driver_income">Thu nhập thực nhận</string>
     <string name="driver_trip_settlement_cash_collect">Thu tiền mặt: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Khách đã thanh toán qua ứng dụng (0 đ)</string>
     <string name="driver_trip_btn_finish_and_home">Tiếp tục nhận cuốc</string>
@@ -818,8 +821,8 @@
     <string name="driver_daily_report_trips_label">Số chuyến hoàn thành</string>
     <string name="driver_daily_report_trips_count_format">%1$d chuyến</string>
     <string name="driver_daily_report_gross_revenue">Tổng cước phí</string>
-    <string name="driver_daily_report_net_earnings">Thực nhận (80%)</string>
-    <string name="driver_daily_report_platform_fee">Chiết khấu sàn (20%)</string>
+    <string name="driver_daily_report_net_earnings">Thực nhận</string>
+    <string name="driver_daily_report_platform_fee">Chiết khấu sàn</string>
     <string name="driver_daily_report_cash">Tiền mặt: %1$s</string>
     <string name="driver_daily_report_app_paid">Qua ứng dụng: %1$s</string>
     <string name="driver_trips_active_trip_title">Chuyến xe đang thực hiện</string>
@@ -1027,6 +1030,20 @@
     <string name="driver_trips_btn_resume_food">Tiếp tục giao đơn</string>
     <string name="driver_trips_history_food_completed">Đã hoàn thành</string>
     <string name="driver_trips_history_food_cancelled">Đã hủy</string>
+
+    <!-- DRIVER ORDER DETAIL -->
+    <string name="driver_order_detail_title">Chi tiết Chuyến đi / Đơn hàng</string>
+    <string name="driver_order_detail_customer">Khách hàng</string>
+    <string name="driver_order_detail_call_customer">Gọi khách hàng</string>
+    <string name="driver_order_detail_restaurant">Nhà hàng / Điểm đón</string>
+    <string name="driver_order_detail_dropoff">Điểm giao hàng</string>
+    <string name="driver_order_detail_items">Danh sách món (%1$d)</string>
+    <string name="driver_order_detail_fare_breakdown">Chi tiết Thu nhập</string>
+    <string name="driver_order_detail_delivery_fee">Cước chuyến đi / Phí giao</string>
+    <string name="driver_order_detail_net_earnings">Thu nhập thực nhận</string>
+    <string name="driver_order_detail_payment_method">Phương thức thanh toán</string>
+    <string name="driver_order_detail_note">Ghi chú của khách</string>
+    <string name="driver_order_detail_close">Đóng</string>
     <string name="driver_earnings_today_summary_title">Hiệu suất hôm nay</string>
     <string name="driver_earnings_quest_10_trips">Hoàn thành 10 cuốc xe hôm nay</string>
     <string name="driver_earnings_quest_progress_format">Tiến độ: %1$d/%2$d cuốc</string>
@@ -1108,8 +1125,8 @@
     <string name="driver_earnings_total_week">Tổng thu nhập tuần này</string>
     <string name="driver_earnings_total_month">Tổng thu nhập tháng này</string>
     <string name="driver_earnings_trips_count_fmt">%1$d chuyến</string>
-    <string name="driver_earnings_net_received_label">Thực nhận (80%)</string>
-    <string name="driver_earnings_platform_fee_label">Chiết khấu sàn (20%)</string>
+    <string name="driver_earnings_net_received_label">Thực nhận</string>
+    <string name="driver_earnings_platform_fee_label">Chiết khấu sàn</string>
     <string name="driver_earnings_gross_fare_label">Tổng cước phí</string>
     <string name="driver_earnings_quest_reward">+50.000 đ</string>
     <string name="driver_earnings_chart_title">Biểu đồ thu nhập</string>
@@ -1147,7 +1164,7 @@
     <string name="driver_wallet_tab_income">Thu nhập cuốc xe</string>
     <string name="driver_wallet_deposit_subtitle">Số dư ví ký quỹ hiện tại</string>
     <string name="driver_wallet_income_subtitle">Tổng thu nhập thực nhận trong kỳ</string>
-    <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ 20% chiết khấu sàn.</string>
+    <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ chiết khấu sàn.</string>
     <string name="driver_wallet_note_success_only">Chỉ giao dịch đã thành công mới được cộng/trừ vào số dư ví.</string>
 
     <!-- Driver Account Redesign -->
@@ -1186,4 +1203,214 @@
     <string name="driver_support_email_title">Gửi email hỗ trợ</string>
     <string name="driver_support_email_desc">support@omnigo.vn</string>
     <string name="driver_map_compass_aligned">Bản đồ đã ở hướng chính Bắc</string>
+    <!-- Password Management -->
+    <string name="account_change_password">Đổi mật khẩu</string>
+    <string name="account_old_password">Mật khẩu hiện tại</string>
+    <string name="account_new_password">Mật khẩu mới</string>
+    <string name="account_confirm_new_password">Xác nhận mật khẩu mới</string>
+    <string name="account_change_password_success">Đổi mật khẩu thành công</string>
+    <string name="account_change_password_submit">Cập nhật mật khẩu</string>
+    <string name="auth_forgot_password_title">Đặt lại mật khẩu</string>
+    <string name="auth_forgot_password_desc">Nhập số điện thoại đăng ký để đặt lại mật khẩu</string>
+    <string name="auth_reset_password_success">Đặt lại mật khẩu thành công</string>
+    <string name="voucher_min_order_warning">Mua thêm %1$s để áp dụng mã này</string>
+    <string name="saved_address_title">Địa chỉ đã lưu</string>
+    <string name="saved_address_add">Thêm địa chỉ mới</string>
+    <string name="saved_address_empty">Chưa có địa chỉ nào được lưu</string>
+    <string name="saved_address_name_hint">Tên địa chỉ (VD: Nhà riêng, Công ty)</string>
+    <string name="saved_address_detail_hint">Tên đường, toà nhà, số nhà</string>
+    <string name="saved_address_delete_success">Đã xóa địa chỉ</string>
+    <string name="saved_address_save_success">Đã lưu địa chỉ</string>
+    <string name="saved_address_set_default">Đặt làm mặc định</string>
+    <!-- Customer Profile Redesign & Edit Profile -->
+    <string name="profile_edit_btn">Chỉnh sửa hồ sơ</string>
+    <string name="profile_edit_title">Chỉnh sửa thông tin</string>
+    <string name="profile_edit_fullname_hint">Nhập họ và tên</string>
+    <string name="profile_edit_email_hint">Nhập địa chỉ email</string>
+    <string name="profile_edit_save_btn">Lưu thay đổi</string>
+    <string name="profile_edit_success">Cập nhật thông tin thành công</string>
+    <string name="profile_edit_failed">Cập nhật thông tin thất bại</string>
+    <string name="profile_tier_member">Hội viên OmniGo</string>
+    <string name="profile_metric_trips">Cuốc xe</string>
+    <string name="profile_metric_orders">Đơn món</string>
+    <string name="profile_metric_promos">Ưu đãi</string>
+
+    <!-- Phase 1: Vouchers & Promotions -->
+    <string name="promos_history_btn">Lịch sử</string>
+    <string name="promos_history_title">Lịch sử sử dụng mã giảm giá</string>
+    <string name="promos_history_empty">Bạn chưa sử dụng mã giảm giá nào</string>
+    <string name="promos_empty">Chưa có mã khuyến mãi nào đang mở</string>
+    <string name="promos_saved_code_msg">Đã áp dụng mã %1$s! Giảm: -%2$s</string>
+    <string name="promos_code_copied_ready">Đã chọn mã %1$s sẵn sàng sử dụng</string>
+    <string name="voucher_sheet_title">Chọn mã khuyến mãi</string>
+    <string name="voucher_sheet_subtitle">Các mã giảm giá phù hợp nhất cho đơn của bạn</string>
+    <string name="voucher_remove_btn">Bỏ chọn</string>
+    <string name="voucher_applied_badge">Đã áp dụng: %1$s (-%2$s)</string>
+    <string name="voucher_pending_badge">Mã: %1$s</string>
+    <string name="voucher_discount_row">Giảm giá Voucher (%1$s)</string>
+    <string name="voucher_min_order_label">Đơn tối thiểu %1$s</string>
+    <string name="voucher_max_discount_label">Giảm tối đa %1$s</string>
+    <string name="voucher_usage_order_format">Đơn #%1$s • Tiết kiệm %2$s</string>
+    <string name="checkout_voucher_title">Khuyến mãi OmniGo</string>
+    <string name="checkout_voucher_select_hint">Chọn hoặc nhập mã giảm giá</string>
+    <string name="promos_hero_title">Săn Deal Hot OmniGo ✨</string>
+    <string name="promos_hero_subtitle">Tiết kiệm tới 50% cho mỗi cuốc xe &amp; bữa ăn mỗi ngày!</string>
+    <string name="promos_badge_total">%1$d mã khả dụng</string>
+    <string name="promos_filter_all_label">✨ Tất cả (%1$d)</string>
+    <string name="promos_filter_ride_label">🚗 Đặt xe (%1$d)</string>
+    <string name="promos_filter_food_label">🍔 Đồ ăn (%1$d)</string>
+    <string name="promos_tag_hot">HOT DEAL</string>
+    <string name="promos_tag_limited">SỐ LƯỢNG CÓ HẠN</string>
+    <string name="promos_off_label">GIẢM</string>
+    <string name="promos_service_all">TOÀN SÀN</string>
+    <string name="promos_service_ride">ĐẶT XE</string>
+    <string name="promos_service_food">ĐỒ ĂN</string>
+    <string name="promos_copy_success">Đã sao chép mã %1$s vào bộ nhớ tạm!</string>
+    <string name="promos_detail_btn">Chi tiết</string>
+    <string name="promos_detail_title">Chi tiết ưu đãi</string>
+    <string name="promos_detail_code">Mã ưu đãi</string>
+    <string name="promos_detail_service">Dịch vụ áp dụng</string>
+    <string name="promos_detail_min_order">Đơn hàng tối thiểu</string>
+    <string name="promos_detail_max_discount">Mức giảm tối đa</string>
+    <string name="promos_detail_validity">Hạn sử dụng</string>
+    <string name="promos_detail_limit">Giới hạn sử dụng</string>
+    <string name="promos_detail_limit_value">%1$d lượt/người</string>
+    <string name="promos_detail_close">Đóng</string>
+    <string name="promos_selected_badge">Đã chọn</string>
+    <string name="promos_empty_filter_btn">Xem tất cả ưu đãi</string>
+    <string name="promos_paste_btn">Dán</string>
+    <string name="promos_navigate_ride_toast">Mở đặt xe để sử dụng mã %1$s!</string>
+    <string name="promos_navigate_food_toast">Mở đặt món ngon để sử dụng mã %1$s!</string>
+    <string name="promos_choose_service_title">Chọn dịch vụ sử dụng mã</string>
+    <string name="promos_choose_service_desc">Mã %1$s có thể áp dụng cho cả Đặt xe và Đồ ăn. Bạn muốn dùng ngay cho dịch vụ nào?</string>
+    <string name="promos_choose_service_ride">Đặt xe ngay</string>
+    <string name="promos_choose_service_food">Đặt món ngay</string>
+    <string name="promos_btn_apply">Áp dụng</string>
+
+    <!-- Phase 2: Ride & Food Reviews + Driver Dual-Tab Reviews -->
+    <string name="ride_review_comment_hint">Chia sẻ trải nghiệm chuyến đi với tài xế (không bắt buộc)...</string>
+    <string name="ride_review_tag_safe">Lái xe an toàn</string>
+    <string name="ride_review_tag_clean">Xe sạch sẽ</string>
+    <string name="ride_review_tag_ontime">Đúng giờ</string>
+    <string name="ride_review_tag_friendly">Tài xế thân thiện</string>
+    <string name="ride_review_submitted_msg">Cảm ơn bạn đã gửi đánh giá chuyến đi!</string>
+    <string name="ride_detail_sheet_title">Chi tiết chuyến xe #%1$d</string>
+    <string name="ride_detail_driver_section">Thông tin tài xế</string>
+    <string name="ride_detail_review_section">Đánh giá chuyến đi của bạn</string>
+    <string name="ride_detail_rate_now_btn">Gửi đánh giá</string>
+    <string name="food_review_edit_btn">Chỉnh sửa đánh giá (trong 24h)</string>
+    <string name="food_review_update_btn">Cập nhật đánh giá</string>
+    <string name="food_review_updated_msg">Đã cập nhật đánh giá thành công!</string>
+    <string name="driver_reviews_menu_title">Đánh giá từ khách hàng</string>
+    <string name="driver_reviews_menu_sub">Xem đánh giá cuốc xe và giao đồ ăn</string>
+    <string name="driver_reviews_screen_title">Đánh giá của tôi</string>
+    <string name="driver_reviews_tab_ride">Đánh giá cuốc xe</string>
+    <string name="driver_reviews_tab_food">Đánh giá giao đồ ăn</string>
+    <string name="driver_reviews_total_count">%1$d lượt đánh giá</string>
+    <string name="driver_reviews_filter_all">Tất cả</string>
+    <string name="driver_reviews_empty">Chưa có đánh giá nào trong mục này</string>
+    <string name="driver_reviews_trip_ref">Chuyến #%1$d</string>
+    <string name="driver_reviews_order_ref">Đơn đồ ăn #%1$d</string>
+    <string name="driver_reviews_no_comment">Khách hàng đánh giá sao không kèm nhận xét</string>
+
+    <!-- Phase 3: Customer OmniPay Wallet & Online Payment -->
+    <string name="wallet_screen_title">Ví điện tử OmniPay</string>
+    <string name="wallet_balance_label">Số dư khả dụng</string>
+    <string name="wallet_btn_deposit">Nạp tiền</string>
+    <string name="wallet_btn_withdraw">Rút tiền</string>
+    <string name="wallet_deposit_dialog_title">Nạp tiền vào ví OmniPay</string>
+    <string name="wallet_withdraw_dialog_title">Rút tiền từ ví</string>
+    <string name="wallet_amount_hint">Nhập số tiền (tối thiểu 10.000đ)</string>
+    <string name="wallet_withdraw_success">Rút tiền thành công!</string>
+    <string name="wallet_deposit_redirect_msg">Đang chuyển hướng sang cổng thanh toán...</string>
+    <string name="order_pay_now_btn">Thanh toán ngay</string>
+    <string name="order_check_payment_btn">Kiểm tra thanh toán</string>
+    <string name="order_payment_status_paid">Đã thanh toán thành công!</string>
+    <string name="order_payment_status_unpaid">Giao dịch đang chờ thanh toán (%1$s)</string>
+
+    <!-- Phase 4: Redis OTP, Deactivate Account & Address Edit -->
+    <string name="auth_send_otp_btn">Gửi mã OTP</string>
+    <string name="auth_otp_sent_msg">Mã OTP 6 số đã được gửi tới %1$s</string>
+    <string name="auth_otp_input_label">Mã xác thực OTP (6 số)</string>
+    <string name="auth_otp_input_hint">Nhập 6 chữ số OTP</string>
+    <string name="auth_resend_otp_btn">Gửi lại mã OTP</string>
+    <string name="profile_deactivate_btn">Vô hiệu hóa tài khoản</string>
+    <string name="profile_deactivate_dialog_title">Vô hiệu hóa tài khoản?</string>
+    <string name="profile_deactivate_dialog_desc">Tài khoản của bạn sẽ bị vô hiệu hóa và đăng xuất ngay lập tức. Bạn có chắc chắn muốn tiếp tục?</string>
+    <string name="profile_deactivate_confirm_btn">Vô hiệu hóa</string>
+    <string name="profile_deactivate_success">Tài khoản đã được vô hiệu hóa</string>
+    <string name="saved_address_edit_title">Chỉnh sửa địa chỉ đã lưu</string>
+    <string name="saved_address_update_success">Đã cập nhật địa chỉ thành công</string>
+
+    <!-- Phase 5: Driver Vehicle Update & Resubmit -->
+    <string name="driver_vehicle_edit_btn">Cập nhật xe</string>
+    <string name="driver_vehicle_dialog_title">Cập nhật thông tin phương tiện</string>
+    <string name="driver_vehicle_type_label">Loại phương tiện</string>
+    <string name="driver_vehicle_plate_label">Biển số xe</string>
+    <string name="driver_vehicle_brand_label">Hãng xe / Dòng xe</string>
+    <string name="driver_vehicle_update_success">Cập nhật phương tiện thành công!</string>
+    <string name="driver_resubmit_btn">Nộp lại hồ sơ</string>
+    <string name="driver_resubmit_sheet_title">Nộp lại hồ sơ tài xế</string>
+    <string name="driver_resubmit_sheet_desc">Vui lòng kiểm tra và cập nhật thông tin, giấy tờ để gửi duyệt lại.</string>
+    <string name="driver_resubmit_license_label">Số giấy phép lái xe (GPLX)</string>
+    <string name="driver_resubmit_success">Đã nộp lại hồ sơ! Trạng thái đã chuyển sang Chờ duyệt.</string>
+    <string name="common_back">Quay lại</string>
+    <string name="common_retry">Thử lại</string>
+    <!-- OmniGo Payment System & Quick Top-up -->
+    <string name="checkout_wallet_balance_format">Số dư: %1$s</string>
+    <string name="checkout_wallet_insufficient">Số dư không đủ (Thiếu %1$s)</string>
+    <string name="checkout_wallet_sufficient">Số dư khả dụng</string>
+    <string name="checkout_wallet_top_up_btn">Nạp thêm</string>
+    <string name="checkout_error_insufficient_wallet">Số dư ví OmniPay không đủ. Vui lòng nạp thêm tiền!</string>
+    <string name="checkout_quick_top_up_title">Nạp tiền nhanh vào Ví OmniPay</string>
+    <string name="checkout_quick_top_up_subtitle">Nạp thêm để hoàn tất thanh toán đơn hàng</string>
+    <string name="checkout_quick_top_up_deficit_option">Số tiền còn thiếu (%1$s)</string>
+    <string name="checkout_quick_top_up_custom_amount">Hoặc chọn số tiền khác</string>
+    <string name="checkout_quick_top_up_btn">Xác nhận nạp tiền</string>
+    <string name="checkout_payment_gateway_title">Cổng thanh toán OmniGo</string>
+    <string name="checkout_payment_success_toast">Thanh toán thành công!</string>
+    <string name="checkout_payment_failed_toast">Thanh toán chưa hoàn tất hoặc đã bị hủy</string>
+    <string name="checkout_payment_loading">Đang kết nối cổng thanh toán…</string>
+    <string name="checkout_wallet_payment_success">Thanh toán qua ví OmniPay thành công!</string>
+    <!-- Fintech Payment V4 & Idempotency Sentinels -->
+    <string name="payment_sentinel_wallet_success">Thanh toán qua ví OmniPay thành công!</string>
+    <string name="payment_sentinel_already_paid">Đơn hàng này đã được thanh toán trước đó.</string>
+    <string name="payment_verifying_status">Đang xác thực kết quả thanh toán từ cổng…</string>
+    <string name="payment_status_pending_hint">Hệ thống đang chờ xác nhận từ cổng thanh toán. Vui lòng bấm kiểm tra lại sau ít phút.</string>
+    <string name="order_admission_blocked_food">Bạn có đơn đồ ăn chưa thanh toán (%1$s). Vui lòng hoàn tất trước khi đặt đơn mới.</string>
+    <string name="order_admission_blocked_ride">Bạn đang có chuyến xe chưa hoàn tất. Vui lòng xử lý trước khi đặt chuyến mới.</string>
+    <string name="order_admission_view_order_btn">Xem đơn ngay</string>
+    <!-- Food Cart Bottom Sheet -->
+    <string name="food_cart_sheet_title">Giỏ hàng</string>
+    <string name="food_cart_sheet_clear_all">Xóa tất cả</string>
+    <string name="food_cart_sheet_total">Tổng cộng</string>
+    <string name="food_cart_sheet_checkout">Thanh toán</string>
+    <string name="food_cart_sheet_empty">Giỏ hàng của bạn đang trống</string>
+    <string name="food_cart_sheet_view_restaurant">Xem thực đơn nhà hàng</string>
+    <string name="food_cart_sheet_note_prefix">Ghi chú: %1$s</string>
+    <string name="food_cd_clear_cart">Xóa toàn bộ giỏ hàng</string>
+    <string name="food_cd_close_cart">Đóng giỏ hàng</string>
+    <!-- Wallet Payment Confirmation -->
+    <string name="checkout_wallet_confirm_title">Xác nhận thanh toán</string>
+    <string name="checkout_wallet_confirm_amount_label">Số tiền thanh toán</string>
+    <string name="checkout_wallet_confirm_restaurant">Đơn hàng tại</string>
+    <string name="checkout_wallet_confirm_source">Nguồn tiền</string>
+    <string name="checkout_wallet_confirm_current_balance">Số dư hiện tại</string>
+    <string name="checkout_wallet_confirm_remaining_balance">Số dư còn lại</string>
+    <string name="checkout_wallet_confirm_btn_pay">Xác nhận &amp; Thanh toán</string>
+    <string name="checkout_wallet_confirm_btn_cancel">Hủy</string>
+    <!-- Wallet Modern Dialog Strings -->
+    <string name="wallet_deposit_dialog_subtitle">Nạp tiền an toàn và nhanh chóng qua Cổng VNPay</string>
+    <string name="wallet_withdraw_dialog_subtitle">Rút tiền về tài khoản ngân hàng liên kết 24/7</string>
+    <string name="wallet_method_vnpay_title">Cổng thanh toán VNPay</string>
+    <string name="wallet_method_vnpay_subtitle">Hỗ trợ VietQR, Thẻ ATM nội địa, Visa/Mastercard</string>
+    <string name="wallet_withdraw_bank_title">Tài khoản ngân hàng liên kết</string>
+    <string name="wallet_withdraw_bank_subtitle">Chuyển khoản nhanh liên ngân hàng 24/7</string>
+    <string name="wallet_deposit_btn_confirm">Xác nhận nạp tiền</string>
+    <string name="wallet_withdraw_btn_confirm">Xác nhận rút tiền</string>
+    <string name="wallet_withdraw_all">Rút tất cả</string>
+    <string name="wallet_available_balance">Khả dụng: %1$s</string>
+    <string name="wallet_amount_min_error">Số tiền tối thiểu là 10.000 ₫</string>
+    <string name="wallet_withdraw_max_error">Số tiền vượt quá số dư khả dụng</string>
+    <string name="wallet_btn_cancel">Hủy</string>
 </resources>
