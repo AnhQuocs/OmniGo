@@ -210,7 +210,7 @@ export const foodService = {
    */
   markOrderPaid: async (orderId) => {
     try {
-      const res = await post(`/api/v1/food-orders/${orderId}/paid`);
+      const res = await post(`/api/v1/payments/admin/food-orders/${orderId}/sync-payment`);
       return res?.data || res;
     } catch (error) {
       console.warn(`Lỗi xác nhận thanh toán đơn #${orderId}:`, error.message);
@@ -346,10 +346,20 @@ export const foodService = {
     }
   },
 
-  /**
-   * Cập nhật món ăn
-   * Endpoint: PUT /api/v1/items/{itemId}
+/**
+   * Cập nhật trạng thái Còn món / Hết món của món ăn
+   * Endpoint: PATCH /api/v1/items/{itemId}/availability
    */
+  updateItemAvailability: async (itemId, isAvailable) => {
+    try {
+      const res = await patch(`/api/v1/items/${itemId}/availability`, { isAvailable });
+      return res?.data || res;
+    } catch (error) {
+      console.warn(`Lỗi đổi trạng thái món ăn #${itemId}:`, error.message);
+      throw error;
+    }
+  },
+
   updateMenuItem: async (itemId, data) => {
     try {
       const res = await put(`/api/v1/items/${itemId}`, data);

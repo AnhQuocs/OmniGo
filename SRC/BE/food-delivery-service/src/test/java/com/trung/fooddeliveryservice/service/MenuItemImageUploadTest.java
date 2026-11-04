@@ -10,6 +10,8 @@ import com.trung.fooddeliveryservice.repository.RestaurantRepository;
 import com.trung.fooddeliveryservice.service.impl.MenuItemServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+
+import java.math.BigDecimal;
 import java.util.Optional;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,5 +51,52 @@ class MenuItemImageUploadTest {
         when(cloud.validateImageUrl("base64")).thenThrow(new ImageUploadException("Invalid image URL", HttpStatus.BAD_REQUEST));
         assertThrows(ImageUploadException.class, () -> service.updateMenuItem(1L, request, 2L));
         verify(items, never()).save(any());
+    }
+
+    @Test
+    void updateKeepsExistingImageWithoutRevalidating() throws Exception {
+        var existingUrl = "https://images.unsplash.com/photo-123";
+        var item = MenuItem.builder()
+                .id(1L)
+                .restaurant(Restaurant.builder().id(1L).ownerId(2L).build())
+                .name("Old Name")
+                .price(new BigDecimal("50000"))
+                .imageUrl(existingUrl)
+                .isAvailable(true)
+                .build();
+        when(items.findById(1L)).thenReturn(Optional.of(item));
+        when(items.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var request = new MenuItemRequest();
+        request.setName("New Name");
+        request.setPrice(new BigDecimal("60000"));
+        request.setImageUrl(existingUrl);
+        request.setIsAvailable(false);
+
+        var response = service.updateMenuItem(1L, request, 2L);
+        assertEquals(existingUrl, response.getImageUrl());
+        assertEquals(false, response.getIsAvailable());
+        verify(cloud, never()).validateImageUrl(any());
+        verify(items).save(argThat(saved -> !saved.getIsAvailable() && existingUrl.equals(saved.getImageUrl())));
+    }
+
+    @Test
+    void updateItemAvailabilityTogglesWithoutTouchingImageOrDetails() throws Exception {
+        var existingUrl = "https://example.com/external.jpg";
+        var item = MenuItem.builder()
+                .id(1L)
+                .restaurant(Restaurant.builder().id(1L).ownerId(2L).build())
+                .name("Lobster")
+                .price(new BigDecimal("350000"))
+                .imageUrl(existingUrl)
+                .isAvailable(true)
+                .build();
+        when(items.findById(1L)).thenReturn(Optional.of(item));
+        when(items.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.updateItemAvailability(1L, false, 2L);
+        assertEquals(false, response.getIsAvailable());
+        verify(cloud, never()).validateImageUrl(any());
+        verify(items).save(argThat(saved -> !saved.getIsAvailable() && existingUrl.equals(saved.getImageUrl())));
     }
 }

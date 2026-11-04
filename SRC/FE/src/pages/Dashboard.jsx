@@ -85,6 +85,7 @@ export const Dashboard = () => {
     pendingBookings: 0,
     totalGmv: 0,
     platformCommission: 0,
+    platformFeeRate: 20,
     totalTransactions: 0,
     successTransactions: 0,
     totalFoodOrders: 0,
@@ -209,6 +210,7 @@ export const Dashboard = () => {
         allTransactionsRes,
         foodStatsRes,
         restaurantsRes,
+        platformFeeRes,
       ] = await Promise.allSettled([
         userService.getAllUsers({ page: 0, size: 100 }),
         pricingService.getPricingConfig(),
@@ -218,6 +220,7 @@ export const Dashboard = () => {
         paymentService.getAllTransactions(),
         foodService.getFoodStats(),
         foodService.getAllRestaurants(),
+        paymentService.getPlatformFee(),
       ]);
 
       // Process Users & Drivers
@@ -261,7 +264,10 @@ export const Dashboard = () => {
         .reduce((sum, b) => sum + Number(b.price), 0);
 
       const totalGmv = Number(bStats.totalGmv ?? computedGmv ?? 0);
-      const platformCommission = Math.round(totalGmv * 0.20);
+      const dynamicFeeRate = platformFeeRes?.status === 'fulfilled' && platformFeeRes?.value?.percentage != null
+        ? Number(platformFeeRes.value.percentage)
+        : 20;
+      const platformCommission = Math.round(totalGmv * (dynamicFeeRate / 100));
 
       // Process Food Delivery
       const fStats = foodStatsRes.status === 'fulfilled' ? foodStatsRes.value : {};
@@ -283,6 +289,7 @@ export const Dashboard = () => {
         pendingBookings,
         totalGmv,
         platformCommission,
+        platformFeeRate: dynamicFeeRate,
         totalTransactions,
         successTransactions,
         totalFoodOrders,
@@ -464,9 +471,9 @@ export const Dashboard = () => {
                   <BarChart data={sparklineRevenue}><Bar dataKey="v" fill="#ff3366" radius={[2, 2, 0, 0]} /></BarChart>
                 </ResponsiveContainer>
               </Box>
-              <Tooltip title={`Doanh thu sàn thu 20% từ các cuốc xe hoàn thành: ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}>
+              <Tooltip title={`Doanh thu sàn thu ${stats.platformFeeRate || 20}% từ các cuốc xe hoàn thành: ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}>
                 <Chip
-                  label={`Phí sàn (20%): ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}
+                  label={`Phí sàn (${stats.platformFeeRate || 20}%): ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}
                   size="small"
                   sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}
                 />

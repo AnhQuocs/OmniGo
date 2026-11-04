@@ -1,6 +1,6 @@
 /**
  * Tiện ích xử lý và định dạng ngày giờ chuẩn Việt Nam (UTC+7, Asia/Ho_Chi_Minh).
- * Tự động chuyển đổi server timestamp (UTC) sang đúng múi giờ Việt Nam.
+ * Tự động chuyển đổi server timestamp (UTC hoặc LocalDateTime) sang đúng múi giờ Việt Nam.
  */
 
 export const parseToVietnamDate = (dateVal) => {
@@ -13,11 +13,11 @@ export const parseToVietnamDate = (dateVal) => {
   }
 
   let s = String(dateVal).trim();
-  if (!s || s === '—' || s === 'N/A') return null;
+  if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
 
   if (Array.isArray(dateVal)) {
     const [y, m, d = 1, h = 0, min = 0, sec = 0] = dateVal;
-    return new Date(Date.UTC(y, m - 1, d, h, min, sec));
+    return new Date(Date.UTC(y, m - 1, d, h - 7, min, sec));
   }
 
   // Chuẩn hóa định dạng "YYYY-MM-DD HH:mm:ss" sang ISO
@@ -25,9 +25,21 @@ export const parseToVietnamDate = (dateVal) => {
     s = s.replace(/\s+/, 'T');
   }
 
-  // Nếu ISO không có múi giờ, coi như UTC từ server lưu trữ
-  if (s.includes('T') && !s.endsWith('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(s)) {
-    s = s + 'Z';
+  // Nếu ISO có múi giờ cụ thể (Z hoặc +/-HH:mm)
+  if (s.endsWith('Z') || /[+-]\d{2}(:?\d{2})?$/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Nếu chuỗi ISO không có múi giờ (ví dụ "2026-11-04T10:07:21.546575"),
+  // chuỗi này vốn đã là giờ địa phương máy chủ Việt Nam (Asia/Ho_Chi_Minh, UTC+7) sinh ra từ LocalDateTime.
+  // Khi format qua Intl với timeZone: 'Asia/Ho_Chi_Minh', Date UTC cần được lùi 7 tiếng
+  // để khi bù múi giờ UTC+7 sẽ hiển thị đúng chính xác ngày giờ địa phương ban đầu.
+  const localMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?/);
+  if (localMatch) {
+    const [, y, m, d, h, min, sec = 0, ms = 0] = localMatch;
+    const msNum = Number(String(ms).padEnd(3, '0').slice(0, 3));
+    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(h) - 7, Number(min), Number(sec), msNum));
   }
 
   const d = new Date(s);
@@ -101,4 +113,3 @@ export const formatVietnamDate = (dateVal) => {
     return d.toLocaleDateString('vi-VN');
   }
 };
-

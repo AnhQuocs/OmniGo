@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Locale;
@@ -34,7 +35,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
         try {
             return upload(file.getBytes());
-        } catch (java.io.IOException error) {
+        } catch (IOException error) {
             log.error("Cannot read image for upload", error);
             throw new ImageUploadException("Không thể đọc ảnh tải lên. Vui lòng chọn lại ảnh.", HttpStatus.BAD_REQUEST);
         }
@@ -44,13 +45,9 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     public String validateImageUrl(String input) {
         if (input == null) return null;
         String url = input.trim();
-        if (url.isEmpty()) return null;
         if (!isCloudinaryImageUrl(url)) {
-            if (url.startsWith("http://") || url.startsWith("https://")) {
-                return url;
-            }
             throw new ImageUploadException(
-                    "Vui lòng upload ảnh trước",
+                    "Vui lòng upload ảnh bằng multipart/form-data trước, sau đó gửi URL Cloudinary được trả về.",
                     HttpStatus.BAD_REQUEST);
         }
         return url;

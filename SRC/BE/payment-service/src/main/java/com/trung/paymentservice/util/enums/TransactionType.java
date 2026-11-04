@@ -8,5 +8,6 @@ public enum TransactionType {
     WITHDRAWAL,
     FOOD_PAYMENT,
     FOOD_DELIVERY_INCOME,
+    FOOD_RESTAURANT_INCOME,
     REFUND
 }

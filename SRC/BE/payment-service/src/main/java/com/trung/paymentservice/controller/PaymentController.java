@@ -18,8 +18,10 @@ import com.trung.paymentservice.strategy.PaymentStrategy;
 import com.trung.paymentservice.util.enums.TransactionStatus;
 import com.trung.paymentservice.util.enums.TransactionType;
 import com.trung.paymentservice.util.enums.UserType;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +31,56 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.trung.paymentservice.service.PaymentRequestService;
+import com.trung.paymentservice.service.PaymentWorkflowService;
+import com.trung.paymentservice.service.PlatformFeeService;
+import com.trung.paymentservice.util.enums.PaymentMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.HtmlUtils;
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentController {
+
+    private final com.trung.paymentservice.service.OrderAdmissionService admission;
+    public record AdmissionRequest(Long customerId, String kind, String key, String fingerprint) {}
+    @PostMapping("/internal/order-admission")
+    public ResponseEntity<Void> reserveOrder(@RequestBody AdmissionRequest request) {
+        admission.reserve(request.customerId(), request.kind(), request.key(), request.fingerprint());
+        return ResponseEntity.noContent().build();
+    }
+
+    private final PlatformFeeService platformFeeService;
+    private final PaymentRequestService paymentRequests;
+    private final com.trung.paymentservice.service.PaymentIdempotency paymentIdempotency;
+    private final PaymentWorkflowService workflow;
+
+    @PostMapping("/internal/reconcile/{kind}/{id}")
+    public ResponseEntity<Void> reconcile(@PathVariable String kind, @PathVariable Long id) {
+        if (!Set.of("food", "ride").contains(kind)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        workflow.reconcile("food".equals(kind), id);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @GetMapping("/platform-fee")
+    public Map<String, BigDecimal> getPublicPlatformFee() {
+        return Map.of("percentage", platformFeeService.getPercentage());
+    }
+
+    @GetMapping("/admin/platform-fee")
+    public Map<String, BigDecimal> getPlatformFee() {
+        return Map.of("percentage", platformFeeService.getPercentage());
+    }
+
+    @PutMapping("/admin/platform-fee")
+    public Map<String, BigDecimal> updatePlatformFee(@RequestBody Map<String, BigDecimal> request) {
+        return Map.of("percentage", platformFeeService.update(request.get("percentage")));
+    }
 
     private final WalletService walletService;
     private final PaymentMapper paymentMapper;
@@ -42,6 +89,26 @@ public class PaymentController {
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final PaymentFactory paymentFactory;
+
+    @PostMapping("/internal/drivers/{driverId}/booking-fees")
+    public BigDecimal getBookingFees(@PathVariable Long driverId, @RequestBody List<Long> bookingIds) {
+        return walletRepository.findByUserIdAndUserType(driverId, UserType.DRIVER)
+                .map(wallet -> transactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId()).stream()
+                        .filter(t -> t.getStatus() == TransactionStatus.SUCCESS
+                                && t.getTransactionType() == TransactionType.COMMISSION_FEE
+                                && t.getOrderId().startsWith("FEE_KAFKA_") && bookingIds.contains(t.getBookingId()))
+                        .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
+                .orElse(BigDecimal.ZERO);
+    }
+
+    @PostMapping("/admin/food-orders/{id}/sync-payment")
+    public ResponseEntity<Void> syncFoodPayment(@PathVariable Long id) {
+        var paid = transactionRepository.findByBookingIdAndTransactionTypeOrderByIdDesc(id, TransactionType.FOOD_PAYMENT).stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && transactionRepository.findByOrderId("REFUND_PAYMENT_" + t.getId()).isEmpty()).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Chưa có giao dịch thành công được xác thực"));
+        workflow.fulfill(paid.getId());
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/admin/wallets")
     public ResponseEntity<List<Wallet>> getAllWalletsAdmin() {
@@ -61,6 +128,9 @@ public class PaymentController {
             return UserType.CUSTOMER;
         }
         String clean = roleStr.toUpperCase().replace("ROLE_", "").trim();
+        if ("MERCHANT".equals(clean)) {
+            return UserType.RESTAURANT;
+        }
         try {
             return UserType.valueOf(clean);
         } catch (IllegalArgumentException e) {
@@ -73,7 +143,8 @@ public class PaymentController {
         boolean isSuccess = transactionRepository.findByBookingId(bookingId)
                 .stream()
                 .anyMatch(tx -> tx.getTransactionType() == TransactionType.TRIP_PAYMENT
-                        && tx.getStatus() == TransactionStatus.SUCCESS);
+                        && tx.getStatus() == TransactionStatus.SUCCESS
+                        && transactionRepository.findByOrderId("REFUND_PAYMENT_" + tx.getId()).isEmpty());
         return ResponseEntity.ok(isSuccess ? "SUCCESS" : "PENDING");
     }
 
@@ -81,27 +152,30 @@ public class PaymentController {
     public ResponseEntity<String> checkFoodOrderPaymentStatus(@PathVariable Long orderId) {
         boolean isSuccess = transactionRepository.findByBookingId(orderId)
                 .stream()
-                .anyMatch(tx -> (tx.getTransactionType() == TransactionType.FOOD_PAYMENT || tx.getTransactionType() == TransactionType.TRIP_PAYMENT)
-                        && tx.getStatus() == TransactionStatus.SUCCESS);
+                .anyMatch(tx -> (tx.getTransactionType() == TransactionType.FOOD_PAYMENT)
+                        && tx.getStatus() == TransactionStatus.SUCCESS
+                        && transactionRepository.findByOrderId("REFUND_PAYMENT_" + tx.getId()).isEmpty());
         return ResponseEntity.ok(isSuccess ? "SUCCESS" : "PENDING");
     }
 
     @PostMapping("/internal/food-order-payout")
     public ResponseEntity<Void> payoutFoodOrder(@RequestBody FoodOrderPayoutRequest request) {
         log.info("Nhận yêu cầu payout đơn giao đồ ăn: {}", request);
-        walletService.processFoodOrderPayout(request);
+        workflow.reconcile(true, request.getOrderId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/internal/refund-order")
     public ResponseEntity<Void> refundOrder(@RequestBody RefundRequest request) {
         log.info("Nhận yêu cầu hoàn tiền cho đơn hàng: {}", request);
-        walletService.processRefund(request);
+        workflow.reconcile(true, request.getOrderId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/payment/create")
     public ResponseEntity<PaymentUrlResponse> createUniversalPayment(
+            @RequestHeader("Idempotency-Key") String key,
+            @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam String method,
             @RequestParam String type,
@@ -111,8 +185,7 @@ public class PaymentController {
 
         log.info("Khởi tạo thanh toán. Cổng: {}, Luồng: {}, Số tiền: {}", method, type, amount);
 
-        PaymentStrategy strategy = paymentFactory.getStrategy(method);
-        PaymentUrlResponse response = strategy.createPayment(userId, driverId, bookingId, amount, type);
+        PaymentUrlResponse response = paymentIdempotency.create(key, userId, role, method, type, bookingId, amount);
 
         return ResponseEntity.ok(response);
     }
@@ -132,9 +205,8 @@ public class PaymentController {
             @RequestHeader(value = "X-User-Role", defaultValue = "CUSTOMER") String roleStr,
             @RequestParam Double amount,
             @RequestParam(required = false, defaultValue = "Nạp tiền vào ví") String note) {
-        UserType userType = parseUserType(roleStr);
-        var wallet = walletService.depositWallet(userId, userType, amount, note);
-        return ResponseEntity.ok(paymentMapper.toWalletResponse(wallet));
+        throw new ResponseStatusException(HttpStatus.GONE,
+                "Nạp tiền phải qua cổng thanh toán được xác thực");
     }
 
     @PostMapping("/wallet/withdraw")
@@ -162,23 +234,33 @@ public class PaymentController {
     }
 
     @GetMapping("/momo/return")
-    public ResponseEntity<String> handleMomoReturn(
-            @RequestParam("orderId") String orderId,
-            @RequestParam("resultCode") Integer resultCode,
-            @RequestParam(value = "message", defaultValue = "") String message,
-            @RequestParam(value = "extraData", defaultValue = "") String extraData) {
-        momoService.processMomoReturn(orderId, resultCode, extraData);
-        return renderReturnHtml(resultCode == 0 ? "00" : "FAIL", orderId, message);
+    public ResponseEntity<String> handleMomoReturn(@RequestParam("orderId") String orderId) {
+        return renderStoredResult(orderId, PaymentMethod.MOMO);
     }
-
     @GetMapping("/vnpay/return")
-    public ResponseEntity<String> handleVnpayReturn(
-            @RequestParam("vnp_TxnRef") String orderId,
-            @RequestParam("vnp_ResponseCode") String responseCode,
-            @RequestParam("vnp_OrderInfo") String orderInfo) {
-
-        vnpayService.processVnpayReturn(orderId, responseCode, orderInfo);
-        return renderReturnHtml(responseCode, orderId, "Giao dịch kết thúc");
+    public ResponseEntity<String> handleVnpayReturn(@RequestParam Map<String, String> parameters) {
+        String orderId = parameters.get("vnp_TxnRef");
+        if (orderId == null) {
+            orderId = "";
+        }
+        if (parameters.containsKey("vnp_SecureHash")) {
+            try {
+                vnpayService.processIpn(parameters);
+            } catch (Exception e) {
+                log.warn("Lỗi xử lý vnpay/return qua processIpn: {}", e.getMessage());
+            }
+        }
+        return renderStoredResult(orderId, PaymentMethod.VNPAY);
+    }
+    @GetMapping("/vnpay/ipn")
+    public Map<String,String> handleVnpayIpn(@RequestParam Map<String,String> parameters) {
+        return vnpayService.processIpn(parameters);
+    }
+    private ResponseEntity<String> renderStoredResult(String orderId, PaymentMethod method) {
+        Transaction tx = transactionRepository.findByOrderId(orderId).filter(t -> t.getPaymentMethod() == method).orElse(null);
+        String code = tx != null && tx.getStatus() == TransactionStatus.SUCCESS ? "00" : "PENDING";
+        return renderReturnHtml(code, HtmlUtils.htmlEscape(orderId),
+                "Trạng thái lấy từ hệ thống. Nếu đang chờ xác nhận, vui lòng kiểm tra lại trong ứng dụng.");
     }
 
     @PutMapping("/booking/{bookingId}/cancel-pending")
@@ -207,12 +289,15 @@ public class PaymentController {
         map.put("totalTransactions", total);
         map.put("successTransactions", successCount);
         map.put("totalVolume", totalVolume);
+        map.put("netRevenue", all.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.COMMISSION_FEE)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
 
         return ResponseEntity.ok(map);
     }
 
     private ResponseEntity<String> renderReturnHtml(String code, String orderId, String subText) {
-        String title = "00".equals(code) ? "Thanh Toán Thành Công!" : "Thanh Toán Thất Bại";
+        String title = "00".equals(code) ? "Thanh Toán Thành Công!" : "Chưa xác nhận thanh toán";
         String icon = "00".equals(code) ? "✅" : "❌";
         String color = "00".equals(code) ? "#2e7d32" : "#d32f2f";
 

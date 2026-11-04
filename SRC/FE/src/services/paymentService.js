@@ -1,6 +1,12 @@
-import { get } from './api';
+import { get, post, put } from './api';
 
 export const paymentService = {
+  getPlatformFee: () => get('/api/v1/payments/admin/platform-fee'),
+  getPublicPlatformFee: () => get('/api/v1/payments/platform-fee'),
+  updatePlatformFee: (percentage) => put('/api/v1/payments/admin/platform-fee', { percentage }),
+  getMyWallet: () => get('/api/v1/payments/wallet'),
+  getMyTransactions: () => get('/api/v1/payments/transactions'),
+  withdrawWallet: (amount) => post(`/api/v1/payments/wallet/withdraw?amount=${amount}`),
   /**
    * Lấy toàn bộ danh sách giao dịch & thanh toán từ payment-service
    * Endpoint BE: GET /api/v1/payments/admin/transactions

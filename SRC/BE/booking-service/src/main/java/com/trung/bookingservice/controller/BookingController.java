@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import com.trung.bookingservice.util.enums.ReportPeriod;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BookingController {
 
+    private final com.trung.bookingservice.service.OrderCreationGuard creationGuard;
     private final BookingServiceImpl bookingService;
     private final FoodDeliveryDispatchService foodDeliveryDispatchService;
     private final BookingDriverService bookingDriverService;
@@ -42,16 +44,19 @@ public class BookingController {
                 .success(true)
                 .message("Lấy thông tin tài xế thành công")
                 .data(bookingDriverService.getDriver(bookingId, customerId))
-                .timestamp(java.time.LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build());
     }
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> createBooking(
+            @RequestHeader("Idempotency-Key") String key,
             @RequestHeader("X-User-Id") Long customerId,
             @Valid @RequestBody BookingRequest request) throws BadRequestException {
 
-        return ResponseEntity.ok(bookingService.createBooking(customerId, request));
+        return ResponseEntity.ok(creationGuard.create(customerId, key, request, BookingResponse.class,
+                BookingResponse::getBookingId, () -> bookingService.createBooking(customerId, request)));
     }
 
     @PutMapping("/{bookingId}/accept")

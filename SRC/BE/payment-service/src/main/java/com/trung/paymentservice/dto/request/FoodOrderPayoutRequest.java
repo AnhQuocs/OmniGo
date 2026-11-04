@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FoodOrderPayoutRequest {
+    private Long restaurantOwnerId;
+    private BigDecimal foodAmount;
     private Long driverId;
     private Long orderId;
     private BigDecimal deliveryFee;

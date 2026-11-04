@@ -22,6 +22,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  Rating,
   Avatar,
   Divider,
   Stack,
@@ -46,8 +48,11 @@ import {
   AccessTime as TimeIcon,
   Badge as BadgeIcon,
   CreditCard as PaymentIcon,
+  Star as StarIcon,
+  FormatQuote as QuoteIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import BookingReviewModal from '../components/booking/BookingReviewModal';
 import toast from 'react-hot-toast';
 import bookingService from '../services/bookingService';
 import userService from '../services/userService';
@@ -100,6 +105,34 @@ export const Bookings = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [bookingForReview, setBookingForReview] = useState(null);
+  const [currentReview, setCurrentReview] = useState(null);
+  const [selectedBookingReview, setSelectedBookingReview] = useState(null);
+
+  const handleOpenReview = async (b) => {
+    setBookingForReview(b);
+    setReviewModalOpen(true);
+    setCurrentReview(null);
+    try {
+      const rev = await bookingService.getBookingReview(b.id);
+      setCurrentReview(rev);
+    } catch {
+      setCurrentReview(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedBooking && selectedBooking.id && selectedBooking.status === 'COMPLETED') {
+      bookingService.getBookingReview(selectedBooking.id).then((rev) => {
+        setSelectedBookingReview(rev);
+      });
+    } else {
+      setSelectedBookingReview(null);
+    }
+  }, [selectedBooking]);
+
+
 
   const queryParams = new URLSearchParams(location.search);
   const statusFilter = queryParams.get('status')?.toUpperCase() || 'ALL';
@@ -592,26 +625,50 @@ export const Bookings = () => {
 
                       {/* Thao tác (Action: Xem chi tiết) */}
                       <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                        <Tooltip title="Xem chi tiết chuyến xe">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSelectedBooking(b)}
-                            sx={{
-                              color: '#008cff',
-                              bgcolor: 'rgba(0, 140, 255, 0.08)',
-                              border: '1px solid rgba(0, 140, 255, 0.2)',
-                              borderRadius: 1.5,
-                              p: 0.8,
-                              '&:hover': {
-                                bgcolor: 'rgba(0, 140, 255, 0.18)',
-                                transform: 'scale(1.05)',
-                              },
-                              transition: 'all 0.2s',
-                            }}
-                          >
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                          <Tooltip title="Xem chi tiết chuyến xe">
+                            <IconButton
+                              size="small"
+                              onClick={() => setSelectedBooking(b)}
+                              sx={{
+                                color: '#008cff',
+                                bgcolor: 'rgba(0, 140, 255, 0.08)',
+                                border: '1px solid rgba(0, 140, 255, 0.2)',
+                                borderRadius: 1.5,
+                                p: 0.8,
+                                '&:hover': {
+                                  bgcolor: 'rgba(0, 140, 255, 0.18)',
+                                  transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {b.status === 'COMPLETED' && (
+                            <Tooltip title="Xem đánh giá của khách">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenReview(b)}
+                                sx={{
+                                  color: '#f59e0b',
+                                  bgcolor: 'rgba(245, 158, 11, 0.1)',
+                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                  borderRadius: 1.5,
+                                  p: 0.8,
+                                  '&:hover': {
+                                    bgcolor: 'rgba(245, 158, 11, 0.2)',
+                                    transform: 'scale(1.05)',
+                                  },
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <StarIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );
@@ -976,13 +1033,114 @@ export const Bookings = () => {
                         </Box>
                       </Box>
                     </Card>
-                  </Grid>
+                                    </Grid>
                 </Grid>
+
+                {/* Row 4: Đánh giá từ Khách hàng về Tài xế & Chuyến đi */}
+                {selectedBooking.status === 'COMPLETED' && (
+                  <Card sx={{ p: 2.5, bgcolor: '#FFFDF5', border: '1px solid #FDE68A', borderRadius: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#B45309', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <StarIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
+                        Đánh Giá từ Khách Hàng về Chuyến Đi & Tài Xế
+                      </Typography>
+                      {selectedBookingReview && (
+                        <Chip
+                          label={`${selectedBookingReview.rating || 5} Sao`}
+                          size="small"
+                          sx={{ bgcolor: '#FEF3C7', color: '#B45309', fontWeight: 800, height: 22 }}
+                        />
+                      )}
+                    </Box>
+
+                    {selectedBookingReview ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Rating value={selectedBookingReview.rating || 5} readOnly size="medium" />
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#B45309' }}>
+                            {selectedBookingReview.rating === 5 ? 'Rất hài lòng & An toàn (5 sao)' : `${selectedBookingReview.rating} sao`}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            bgcolor: '#FFFFFF',
+                            border: '1px solid #FEF3C7',
+                            borderRadius: 2,
+                            color: selectedBookingReview.comment ? '#1E293B' : '#94A3B8',
+                            fontSize: '0.88rem',
+                            lineHeight: 1.5,
+                            fontStyle: selectedBookingReview.comment ? 'normal' : 'italic',
+                          }}
+                        >
+                          {selectedBookingReview.comment || '(Khách hàng không để lại nhận xét bằng lời)'}
+                        </Box>
+                        {selectedBookingReview.createdAt && (
+                          <Typography variant="caption" sx={{ color: '#92400E' }}>
+                            Thời gian đánh giá: {formatDateTime(selectedBookingReview.createdAt)}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Box sx={{ p: 2, bgcolor: '#FFFFFF', border: '1px dashed #CBD5E1', borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#64748B', fontStyle: 'italic' }}>
+                          Khách hàng chưa để lại đánh giá cho chuyến xe này.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Card>
+                )}
               </Box>
             );
           })()}
         </DialogContent>
+
+        <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #E2E8F0', justifyContent: 'space-between' }}>
+          {selectedBooking && selectedBooking.status === 'COMPLETED' ? (
+            <Button
+              onClick={() => {
+                const b = selectedBooking;
+                setSelectedBooking(null);
+                handleOpenReview(b);
+              }}
+              variant="contained"
+              startIcon={<StarIcon />}
+              sx={{
+                bgcolor: '#F59E0B',
+                '&:hover': { bgcolor: '#D97706' },
+                fontWeight: 700,
+                textTransform: 'none',
+                borderRadius: 2,
+              }}
+            >
+              Xem Đánh Giá
+            </Button>
+          ) : <Box />}
+          <Button
+            onClick={() => setSelectedBooking(null)}
+            variant="contained"
+            sx={{
+              bgcolor: '#0F172A',
+              '&:hover': { bgcolor: '#1E293B' },
+              fontWeight: 700,
+              textTransform: 'none',
+              borderRadius: 2,
+            }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
       </Dialog>
+
+      {/* MODAL: CHI TIẾT ĐÁNH GIÁ CHUYẾN XE */}
+      <BookingReviewModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        booking={bookingForReview}
+        review={currentReview}
+        customer={bookingForReview ? usersMap[bookingForReview.customerId] : null}
+        driver={bookingForReview ? (driverProfilesMap[bookingForReview.driverId] || usersMap[bookingForReview.driverId]) : null}
+      />
     </Box>
   );
 };

@@ -30,8 +30,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/internal/**").permitAll()
                         .requestMatchers("/ws-booking/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/v1/bookings/admin/**").permitAll()
-                        .requestMatchers("/api/v1/bookings/**").permitAll()
+                        .requestMatchers("/api/v1/bookings/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/bookings/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -11,6 +11,7 @@ import com.trung.paymentservice.event.BookingCompletedEvent;
 import com.trung.paymentservice.repository.TransactionRepository;
 import com.trung.paymentservice.repository.WalletRepository;
 import com.trung.paymentservice.service.MomoEncoder;
+import com.trung.paymentservice.service.PaymentWorkflowService;
 import com.trung.paymentservice.service.WalletService;
 import com.trung.paymentservice.strategy.PaymentStrategy;
 import com.trung.paymentservice.util.enums.PaymentMethod;
@@ -28,11 +29,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Objects;
 import java.net.URI;
 import java.util.UUID;
 
@@ -41,6 +47,8 @@ import java.util.UUID;
 @Slf4j
 public class MomoService implements PaymentStrategy {
 
+    private final com.trung.paymentservice.service.PendingPaymentStore pendingPayments;
+    private final PaymentWorkflowService workflow;
     private final MomoConfig momoConfig;
     private final MomoEncoder momoEncoder;
     private final TransactionRepository transactionRepository;
@@ -70,165 +78,59 @@ public class MomoService implements PaymentStrategy {
         String requestType = getRequestType();
 
         if ("CUSTOMER_DEPOSIT".equalsIgnoreCase(type)) {
-            Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
-            orderId = "DEPOSIT_CUST_" + userId + "_" + System.currentTimeMillis();
+            orderId = "DEPOSIT_CUST_" + userId + "_" + UUID.randomUUID().toString();
             String requestId = UUID.randomUUID().toString();
             String extraData = "USER_TYPE=CUSTOMER;USER_ID=" + userId;
 
-            savePendingTransaction(wallet.getId(), null, orderId, amount, TransactionType.DEPOSIT);
+            pendingPayments.create(userId, UserType.CUSTOMER, null, null, orderId, requestId, amount, TransactionType.DEPOSIT);
             momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi khach hang #" + userId, requestType, extraData);
         } else if ("DEPOSIT".equalsIgnoreCase(type) || "DRIVER_DEPOSIT".equalsIgnoreCase(type)) {
-            Wallet wallet = walletService.getOrCreateWallet(userId, UserType.DRIVER);
-            orderId = "DEPOSIT_" + userId + "_" + System.currentTimeMillis();
+            orderId = "DEPOSIT_" + userId + "_" + UUID.randomUUID().toString();
             String requestId = UUID.randomUUID().toString();
             String extraData = "USER_TYPE=DRIVER;USER_ID=" + userId;
 
-            savePendingTransaction(wallet.getId(), null, orderId, amount, TransactionType.DEPOSIT);
+            pendingPayments.create(userId, UserType.DRIVER, null, null, orderId, requestId, amount, TransactionType.DEPOSIT);
             momoResponse = executeMomoApi(orderId, requestId, amount, "Nap tien vi tai xe #" + userId, requestType, extraData);
         } else if ("FOOD_PAYMENT".equalsIgnoreCase(type)) {
-            Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
-            orderId = "FOOD_" + bookingId + "_" + System.currentTimeMillis();
+            orderId = "FOOD_" + bookingId + "_" + UUID.randomUUID().toString();
             String requestId = UUID.randomUUID().toString();
             String extraData = "BOOKING_ID=" + bookingId + ";TYPE=FOOD_PAYMENT";
 
-            savePendingTransaction(customerWallet.getId(), bookingId, orderId, amount, TransactionType.FOOD_PAYMENT);
+            pendingPayments.create(userId, UserType.CUSTOMER, bookingId, driverId, orderId, requestId, amount, TransactionType.FOOD_PAYMENT);
             momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan don mon #" + bookingId, requestType, extraData);
         } else {
-            Wallet customerWallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
-            orderId = "TRIP_" + bookingId + "_" + System.currentTimeMillis();
+            orderId = "TRIP_" + bookingId + "_" + UUID.randomUUID().toString();
             String requestId = UUID.randomUUID().toString();
             String extraData = "BOOKING_ID=" + bookingId + ";DRIVER_ID=" + driverId;
 
-            savePendingTransaction(customerWallet.getId(), bookingId, orderId, amount, TransactionType.TRIP_PAYMENT);
+            pendingPayments.create(userId, UserType.CUSTOMER, bookingId, driverId, orderId, requestId, amount, TransactionType.TRIP_PAYMENT);
             momoResponse = executeMomoApi(orderId, requestId, amount, "Thanh toan cuoc xe #" + bookingId, requestType, extraData);
         }
 
+        // Only explicit terminal rejections are safe to retry. Duplicate/processing/unknown codes stay pending.
+        if (momoResponse != null && momoResponse.getResultCode() != null
+                && java.util.Set.of(20, 21, 22, 1001, 1006).contains(momoResponse.getResultCode())
+                && Objects.equals(orderId, momoResponse.getOrderId())
+                && Objects.equals(momoConfig.getPartnerCode(), momoResponse.getPartnerCode())) {
+            pendingPayments.rejectCreation(orderId);
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "MoMo đã từ chối khởi tạo giao dịch. Vui lòng kiểm tra thông tin rồi thử lại.");
+        }
+        if (momoResponse == null || !Integer.valueOf(0).equals(momoResponse.getResultCode()) || momoResponse.getPayUrl() == null || momoResponse.getPayUrl().isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Không tạo được giao dịch MoMo");
         return PaymentUrlResponse.builder()
                 .orderId(orderId)
                 .paymentUrl(momoResponse != null ? momoResponse.getPayUrl() : null)
                 .build();
     }
 
-    private void savePendingTransaction(Long walletId, Long bookingId, String orderId, BigDecimal amount, TransactionType type) {
-        Transaction transaction = Transaction.builder()
-                .walletId(walletId)
-                .bookingId(bookingId)
-                .orderId(orderId)
-                .amount(amount)
-                .transactionType(type)
-                .paymentMethod(PaymentMethod.MOMO)
-                .status(TransactionStatus.PENDING)
-                .build();
-        transactionRepository.save(transaction);
-    }
-
-    @Transactional
-    public void processMomoIpn(MomoIpnRequest ipnRequest) {
-        if (!verifyIpnSignature(ipnRequest)) {
-            log.error("CẢNH BÁO: Chữ ký MoMo IPN không hợp lệ! OrderId: {}", ipnRequest.getOrderId());
-            throw new RuntimeException("Chữ ký IPN không hợp lệ!");
-        }
-
-        Transaction transaction = transactionRepository.findByOrderId(ipnRequest.getOrderId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch: " + ipnRequest.getOrderId()));
-
-        if (transaction.getStatus() == TransactionStatus.SUCCESS) return;
-
-        if (ipnRequest.getResultCode() != null && ipnRequest.getResultCode() == 0) {
-            transaction.setStatus(TransactionStatus.SUCCESS);
-            transaction.setGatewayTransId(ipnRequest.getTransId());
-            transactionRepository.save(transaction);
-
-            if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                Wallet wallet = walletRepository.findById(transaction.getWalletId()).orElse(null);
-                if (wallet != null) {
-                    walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
-                } else {
-                    Long userId = parseDataFromExtra(ipnRequest.getExtraData(), "USER_ID=");
-                    String userTypeStr = parseDataFromExtraStr(ipnRequest.getExtraData(), "USER_TYPE=");
-                    UserType userType = "CUSTOMER".equalsIgnoreCase(userTypeStr) ? UserType.CUSTOMER : UserType.DRIVER;
-                    if (userId != null) walletService.creditWallet(userId, userType, transaction.getAmount().doubleValue());
-                }
-            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
-                notifyFoodOrderPaid(transaction.getBookingId());
-            } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
-                Long driverId = parseDataFromExtra(ipnRequest.getExtraData(), "DRIVER_ID=");
-                creditDriverForTrip(driverId, transaction);
-            }
-        } else {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-        }
-    }
-
-    @Transactional
-    public void processMomoReturn(String orderId, Integer resultCode, String extraData) {
-        Transaction transaction = transactionRepository.findByOrderId(orderId).orElse(null);
-        if (transaction == null || transaction.getStatus() == TransactionStatus.SUCCESS) return;
-
-        if (resultCode == 0) {
-            transaction.setStatus(TransactionStatus.SUCCESS);
-            transactionRepository.save(transaction);
-
-            if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                Wallet wallet = walletRepository.findById(transaction.getWalletId()).orElse(null);
-                if (wallet != null) {
-                    walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
-                } else {
-                    Long userId = parseDataFromExtra(extraData, "USER_ID=");
-                    String userTypeStr = parseDataFromExtraStr(extraData, "USER_TYPE=");
-                    UserType userType = "CUSTOMER".equalsIgnoreCase(userTypeStr) ? UserType.CUSTOMER : UserType.DRIVER;
-                    if (userId != null) walletService.creditWallet(userId, userType, transaction.getAmount().doubleValue());
-                }
-            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
-                notifyFoodOrderPaid(transaction.getBookingId());
-            } else if (transaction.getTransactionType() == TransactionType.TRIP_PAYMENT) {
-                Long driverId = parseDataFromExtra(extraData, "DRIVER_ID=");
-                creditDriverForTrip(driverId, transaction);
-            }
-        } else if (resultCode == 1006) {
-            transaction.setStatus(TransactionStatus.CANCELED);
-            transactionRepository.save(transaction);
-        } else {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-        }
-    }
-
-    private void notifyFoodOrderPaid(Long orderId) {
-        if (orderId == null) return;
-        try {
-            String url = (foodDeliveryBaseUrl != null ? foodDeliveryBaseUrl : "http://localhost:8086") + "/api/v1/food-orders/" + orderId + "/paid";
-            restTemplate.exchange(url, HttpMethod.POST, null, Void.class);
-            log.info("Đã thông báo sang food-delivery-service ({}/api/v1/food-orders/{}/paid): Đơn hàng #{} đã thanh toán thành công", foodDeliveryBaseUrl, orderId, orderId);
-        } catch (Exception e) {
-            log.error("Lỗi thông báo cập nhật thanh toán đơn đồ ăn #{}: {}", orderId, e.getMessage());
-        }
-    }
-
-    private void creditDriverForTrip(Long driverId, Transaction customerTransaction) {
-        if (driverId == null) return;
-        Wallet driverWallet = walletService.getOrCreateWallet(driverId, UserType.DRIVER);
-
-        walletService.creditWallet(driverId, UserType.DRIVER, customerTransaction.getAmount().doubleValue());
-
-        Transaction driverIncomeTx = Transaction.builder()
-                .walletId(driverWallet.getId())
-                .bookingId(customerTransaction.getBookingId())
-                .orderId("INC_" + customerTransaction.getOrderId())
-                .amount(customerTransaction.getAmount())
-                .transactionType(TransactionType.TRIP_INCOME)
-                .paymentMethod(PaymentMethod.WALLET)
-                .status(TransactionStatus.SUCCESS)
-                .build();
-        transactionRepository.save(driverIncomeTx);
-
-        BookingCompletedEvent event = BookingCompletedEvent.builder()
-                .bookingId(customerTransaction.getBookingId())
-                .driverId(driverId)
-                .amount(customerTransaction.getAmount().doubleValue())
-                .build();
-        walletService.deductCommission(event);
+    public void processMomoIpn(MomoIpnRequest request) {
+        if (!verifyIpnSignature(request) || !Objects.equals(momoConfig.getPartnerCode(), request.getPartnerCode()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid signature or merchant");
+        Transaction tx = transactionRepository.findByOrderId(request.getOrderId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (request.getAmount() == null || (tx.getRequestId() != null && !tx.getRequestId().equals(request.getRequestId())))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid request");
+        workflow.accept(request.getOrderId(), PaymentMethod.MOMO, BigDecimal.valueOf(request.getAmount()), request.getTransId(), Integer.valueOf(0).equals(request.getResultCode()));
     }
 
     private boolean verifyIpnSignature(MomoIpnRequest req) {
@@ -240,7 +142,9 @@ public class MomoService implements PaymentStrategy {
                     + "&payType=" + req.getPayType() + "&requestId=" + req.getRequestId()
                     + "&responseTime=" + req.getResponseTime() + "&resultCode=" + req.getResultCode()
                     + "&transId=" + req.getTransId();
-            return momoEncoder.signHmacSHA256(rawSignature, momoConfig.getSecretKey()).equals(req.getSignature());
+            String expected = momoEncoder.signHmacSHA256(rawSignature, momoConfig.getSecretKey());
+            return req.getSignature() != null && expected != null && !expected.isBlank()
+                    && MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII), req.getSignature().getBytes(StandardCharsets.US_ASCII));
         } catch (Exception e) {
             return false;
         }
@@ -292,7 +196,15 @@ public class MomoService implements PaymentStrategy {
             return restTemplate.postForEntity(targetUrl, entity, MomoCreateResponse.class).getBody();
         } catch (HttpStatusCodeException ex) {
             log.error("MoMo API báo lỗi HTTP Status: {}, Response Body: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            throw new RuntimeException("MoMo từ chối yêu cầu: " + ex.getResponseBodyAsString());
+            // A structured rejection can arrive with HTTP 4xx. Never interpret a bare HTTP error as a final result.
+            try {
+                var response = new com.fasterxml.jackson.databind.ObjectMapper()
+                        .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                        .readValue(ex.getResponseBodyAsString(), MomoCreateResponse.class);
+                if (Objects.equals(orderId, response.getOrderId()) && Objects.equals(requestId, response.getRequestId())
+                        && Objects.equals(momoConfig.getPartnerCode(), response.getPartnerCode())) return response;
+            } catch (Exception ignored) { /* Keep the independently persisted pending attempt. */ }
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Chưa xác định kết quả khởi tạo MoMo; giữ giao dịch cũ để kiểm tra");
         } catch (Exception e) {
             log.error("Lỗi hệ thống khi gọi MoMo: ", e);
             throw new RuntimeException("Lỗi kết nối MoMo do hệ thống nội bộ");

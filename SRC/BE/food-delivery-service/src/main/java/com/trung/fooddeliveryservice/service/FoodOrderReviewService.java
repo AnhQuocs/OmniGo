@@ -3,6 +3,7 @@ package com.trung.fooddeliveryservice.service;
 import com.trung.fooddeliveryservice.dto.request.CreateFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.ReplyFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.UpdateFoodReviewRequest;
+import com.trung.fooddeliveryservice.dto.response.DriverReviewSummaryResponse;
 import com.trung.fooddeliveryservice.dto.response.FoodReviewResponse;
 import com.trung.fooddeliveryservice.dto.response.RestaurantReviewSummaryResponse;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
@@ -29,4 +30,6 @@ public interface FoodOrderReviewService {
             throws ResourceNotFoundException;
 
     RestaurantReviewSummaryResponse getRestaurantReviews(Long restaurantId, Integer rating, Pageable pageable);
+
+    DriverReviewSummaryResponse getDriverReviews(Long driverId, Integer rating, Pageable pageable);
 }

@@ -61,6 +61,18 @@ export const authService = {
    * Làm mới Access Token
    * Endpoint BE: POST /api/v1/auth/refresh
    */
+  /**
+   * Đổi mật khẩu tài khoản (Admin & Restaurant)
+   * Endpoint BE: POST /api/v1/auth/change-password
+   */
+  changePassword: async ({ oldPassword, newPassword, confirmPassword }) => {
+    return await post('/api/v1/auth/change-password', {
+      oldPassword,
+      newPassword,
+      confirmPassword,
+    });
+  },
+
   refreshToken: async () => {
     return await post('/api/v1/auth/refresh', {});
   },

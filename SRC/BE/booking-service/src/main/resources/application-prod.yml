@@ -15,15 +15,16 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration
     show-sql: false
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    out-of-order: true
+    validate-on-migrate: false
+    locations: classpath:db/migration
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}

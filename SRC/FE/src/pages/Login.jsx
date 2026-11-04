@@ -111,8 +111,8 @@ export const Login = () => {
       return;
     }
     const cleanPhone = registerData.ownerPhone.replace(/\D/g, '').trim();
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      toast.error('Số điện thoại đăng nhập của chủ quán phải gồm đúng 10 số');
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^(0[3|5|7|8|9])[0-9]{8}$/.test(cleanPhone)) {
+      toast.error('Số điện thoại đăng ký của chủ quán phải gồm đúng 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)');
       return;
     }
     if (!registerData.password || registerData.password.length < 6) {
@@ -190,8 +190,8 @@ export const Login = () => {
       toast.error('Vui lòng nhập số điện thoại');
       return;
     }
-    if (cleanPhone.length !== 10 || !/^(0[3|5|7|8|9])[0-9]{8}$/.test(cleanPhone)) {
-      setPhoneError('Số điện thoại phải gồm đúng 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)');
+    if (!/^[0-9]{10}$/.test(cleanPhone)) {
+      setPhoneError('Số điện thoại phải gồm đúng 10 chữ số');
       toast.error('Số điện thoại phải gồm đúng 10 chữ số');
       return;
     }

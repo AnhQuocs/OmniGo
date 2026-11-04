@@ -9,15 +9,26 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 @Component
 @Slf4j
 public class GatewayAuthenticationFilter extends OncePerRequestFilter {
+    @Value("${app.internal-api-token:}")
+    private String gatewayToken;
+    private boolean trustedGateway(HttpServletRequest request) {
+        String supplied = request.getHeader("X-Gateway-Token");
+        return gatewayToken != null && !gatewayToken.isBlank() && supplied != null
+                && MessageDigest.isEqual(gatewayToken.getBytes(StandardCharsets.UTF_8), supplied.getBytes(StandardCharsets.UTF_8));
+    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -35,7 +46,7 @@ public class GatewayAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (role != null && (userId != null || phoneNumber != null)) {
+        if (trustedGateway(request) && role != null && (userId != null || phoneNumber != null)) {
             try {
                 String cleanRole = role.toUpperCase().replace("ROLE_", "");
                 List<SimpleGrantedAuthority> authorities = List.of(

@@ -28,6 +28,8 @@ import {
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import UndoDeleteSnackbar from '../../components/common/UndoDeleteSnackbar';
+import useUndoDelete from '../../hooks/useUndoDelete';
 import MenuItemImageField from '../../components/food/MenuItemImageField';
 
 export const MerchantMenu = () => {
@@ -51,6 +53,27 @@ export const MerchantMenu = () => {
   const [imageFile, setImageFile] = useState(null);
 
   // Confirm Delete Dialog State
+    // Undo Delete Hook (5s countdown)
+  const {
+    pendingItem: pendingDeleteFood,
+    secondsLeft: deleteSecondsLeft,
+    progressPercent: deleteProgressPercent,
+    startDeleteWithUndo,
+    handleUndo: handleUndoDeleteFood,
+    handleDismiss: handleDismissDeleteFood,
+  } = useUndoDelete({
+    itemType: 'món ăn',
+    onCommitDelete: async (item) => {
+      await foodService.deleteMenuItem(item.id);
+    },
+    onRestoreItem: (item) => {
+      setMenuItems((prev) => {
+        if (prev.some((m) => m.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+    },
+  });
+
   const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -107,21 +130,29 @@ export const MerchantMenu = () => {
   const handleToggleAvailable = async (item) => {
     try {
       const updated = !item.isAvailable;
-      await foodService.updateMenuItem(item.id, {
-        restaurantId: restaurant.id,
-        name: item.name,
-        category: item.category,
-        price: item.price,
-        description: item.description,
-        imageUrl: item.imageUrl,
-        isAvailable: updated,
-      });
+      try {
+        await foodService.updateItemAvailability(item.id, updated);
+      } catch (patchErr) {
+        if (patchErr.response?.status === 404 || patchErr.response?.status === 405) {
+          await foodService.updateMenuItem(item.id, {
+            restaurantId: restaurant.id,
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            isAvailable: updated,
+          });
+        } else {
+          throw patchErr;
+        }
+      }
       toast.success(`Đã chuyển món sang: ${updated ? 'Còn món' : 'Hết món'}`);
       setMenuItems((prev) =>
         prev.map((m) => (m.id === item.id ? { ...m, isAvailable: updated } : m))
       );
-    } catch {
-      toast.error('Lỗi đổi trạng thái món ăn');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi đổi trạng thái món ăn');
     }
   };
 
@@ -129,19 +160,14 @@ export const MerchantMenu = () => {
     setDeleteConfirmItem(item);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deleteConfirmItem) return;
-    try {
-      setDeleting(true);
-      await foodService.deleteMenuItem(deleteConfirmItem.id);
-      toast.success('Đã xóa món ăn thành công!');
-      setMenuItems((prev) => prev.filter((m) => m.id !== deleteConfirmItem.id));
-      setDeleteConfirmItem(null);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi xóa món ăn');
-    } finally {
-      setDeleting(false);
-    }
+    const itemToDelete = deleteConfirmItem;
+    // Ẩn ngay thẻ món ăn khỏi danh sách
+    setMenuItems((prev) => prev.filter((m) => m.id !== itemToDelete.id));
+    setDeleteConfirmItem(null);
+    // Kích hoạt thanh đếm ngược 5s để hoàn tác
+    startDeleteWithUndo(itemToDelete);
   };
 
   const handleSubmitForm = async (e) => {
@@ -167,7 +193,7 @@ export const MerchantMenu = () => {
         category: formData.category.trim() || 'Món chính',
         price: parseFloat(formData.price),
         description: formData.description.trim(),
-        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+        imageUrl: imageUrl || (editingItem ? editingItem.imageUrl : null),
         isAvailable: formData.isAvailable,
       };
 
@@ -463,16 +489,27 @@ export const MerchantMenu = () => {
         content={
           deleteConfirmItem ? (
             <span>
-              Bạn có chắc chắn muốn xóa món <b>"{deleteConfirmItem.name}"</b> khỏi thực đơn không? Thao tác này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa món <b>"{deleteConfirmItem.name}"</b> khỏi thực đơn không? Thẻ món ăn sẽ được ẩn ngay và bạn có 5 giây để hoàn tác nếu đổi ý.
             </span>
           ) : ''
         }
         confirmText="Xác nhận xóa"
         cancelText="Hủy"
         confirmColor="error"
-        loading={deleting}
-        onClose={() => !deleting && setDeleteConfirmItem(null)}
+        loading={false}
+        onClose={() => setDeleteConfirmItem(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Thanh Hoàn tác 5s sau khi xóa */}
+      <UndoDeleteSnackbar
+        open={Boolean(pendingDeleteFood)}
+        itemName={pendingDeleteFood?.name}
+        itemType="món ăn"
+        secondsLeft={deleteSecondsLeft}
+        progressPercent={deleteProgressPercent}
+        onUndo={handleUndoDeleteFood}
+        onDismiss={handleDismissDeleteFood}
       />
     </Box>
   );

@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -92,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
                     .timestamp(LocalDateTime.now())
                     .error(null)
                     .build();
-        } catch (org.springframework.security.authentication.LockedException | org.springframework.security.authentication.DisabledException ex) {
+        } catch (LockedException | DisabledException ex) {
             String reasonMsg = userOpt.map(User::getLockedReason).filter(r -> r != null && !r.trim().isEmpty()).orElse("Vi phạm quy định hệ thống");
             throw new InvalidCredentialsException("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Lý do: " + reasonMsg);
         } catch (AuthenticationException ex) {

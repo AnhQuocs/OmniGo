@@ -2,6 +2,13 @@ server:
   port: ${PAYMENT_SERVICE_PORT}
 
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      database: ${PAYMENT_REDIS_DB:5}
+      connect-timeout: 2s
+      timeout: 2s
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${PAYMENT_DATABASE}
     username: ${POSTGRES_USER}
@@ -10,16 +17,16 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: false
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
@@ -83,4 +90,4 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 app:
-  food-delivery-url: ${FOOD_DELIVERY_URL:https://api.ridehailingsystem.online}
+  food-delivery-url: ${FOOD_DELIVERY_URL:https://api.ridehailingsystem.online}

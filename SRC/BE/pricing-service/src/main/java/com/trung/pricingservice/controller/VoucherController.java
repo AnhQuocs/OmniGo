@@ -1,9 +1,11 @@
 package com.trung.pricingservice.controller;
 
 import com.trung.pricingservice.dto.request.ApplyVoucherRequest;
+import com.trung.pricingservice.dto.request.CommitVoucherRequest;
 import com.trung.pricingservice.dto.response.ApiResponse;
 import com.trung.pricingservice.dto.response.ApplyVoucherResponse;
 import com.trung.pricingservice.dto.response.VoucherResponse;
+import com.trung.pricingservice.entity.VoucherUsage;
 import com.trung.pricingservice.service.VoucherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +59,7 @@ public class VoucherController {
 
     @PostMapping("/commit")
     public ResponseEntity<ApiResponse<ApplyVoucherResponse>> commitVoucher(
-            @Valid @RequestBody com.trung.pricingservice.dto.request.CommitVoucherRequest request,
+            @Valid @RequestBody CommitVoucherRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
 
         if ((request.getUserId() == null || request.getUserId().isBlank()) && headerUserId != null) {
@@ -109,13 +111,13 @@ public class VoucherController {
     }
 
     @GetMapping("/my-usages")
-    public ResponseEntity<ApiResponse<List<com.trung.pricingservice.entity.VoucherUsage>>> getMyVoucherUsages(
+    public ResponseEntity<ApiResponse<List<VoucherUsage>>> getMyVoucherUsages(
             @RequestHeader(value = "X-User-Id", required = false) String headerUserId,
             @RequestParam(required = false) String userId) {
 
         String effectiveUserId = (userId != null && !userId.isBlank()) ? userId : headerUserId;
         if (effectiveUserId == null || effectiveUserId.isBlank()) {
-            return ResponseEntity.ok(ApiResponse.<List<com.trung.pricingservice.entity.VoucherUsage>>builder()
+            return ResponseEntity.ok(ApiResponse.<List<VoucherUsage>>builder()
                     .success(true)
                     .message("User ID không hợp lệ")
                     .data(List.of())
@@ -123,8 +125,8 @@ public class VoucherController {
                     .build());
         }
 
-        List<com.trung.pricingservice.entity.VoucherUsage> usages = voucherService.getUserVoucherUsages(effectiveUserId);
-        return ResponseEntity.ok(ApiResponse.<List<com.trung.pricingservice.entity.VoucherUsage>>builder()
+        List<VoucherUsage> usages = voucherService.getUserVoucherUsages(effectiveUserId);
+        return ResponseEntity.ok(ApiResponse.<List<VoucherUsage>>builder()
                 .success(true)
                 .message("Lấy lịch sử dùng voucher của bạn thành công")
                 .data(usages)

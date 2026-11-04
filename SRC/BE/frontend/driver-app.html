@@ -40,7 +40,7 @@
             display: none;
         }
 
-        .momo-btn {
+        .payment-btn {
             background-color: #a50064;
             color: white;
             padding: 8px 15px;
@@ -185,7 +185,8 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <button onclick="openDriverProfileModal()" style="background:#0284c7; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">👤 Hồ Sơ & Phương Tiện</button>
-        <button onclick="openDriverTripHistoryModal()" style="background:#20c997; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">📜 Lịch Sử Cuốc Xe</button>
+        <button onclick="openDriverReviewsModal()" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Của Tôi</button>
+        <button onclick="openDriverTripHistoryModal()" style="background:#20c997; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">📜 Lịch Sử Hoạt Động</button>
         <button onclick="openDriverChangePasswordModal()" style="background:#6c757d; color:white; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">🔒 Đổi Mật Khẩu</button>
         <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
     </div>
@@ -257,24 +258,93 @@
 </div>
 
 
-<!-- Modal Lịch sử cuốc xe riêng của Tài xế (Phase 3) -->
+<!-- Modal Lịch Sử Chuyến Đi & Đơn Hàng (Tài xế) -->
 <div id="driver-trip-history-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:white; padding:22px; border-radius:10px; width:720px; max-width:92%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
-            <h3 style="margin:0; color:#20c997; display:flex; align-items:center; gap:8px;">📜 Lịch Sử Cuốc Xe Riêng (Tài xế)</h3>
+    <div style="background:white; padding:22px; border-radius:12px; width:760px; max-width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 28px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px;">
+            <h3 style="margin:0; color:#20c997; display:flex; align-items:center; gap:8px;">📜 Lịch Sử Chuyến Đi & Đơn Hàng (Tài xế)</h3>
             <button onclick="closeDriverTripHistoryModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">✕</button>
         </div>
         
-        <!-- Filter Tabs -->
-        <div style="display:flex; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
+        <!-- Service Type Switcher: Cuốc xe vs Đơn giao đồ ăn -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; background:#f1f5f9; padding:4px; border-radius:8px;">
+            <button id="driver-history-service-ride-btn" class="driver-history-service-btn" onclick="switchDriverServiceHistoryTab('RIDE')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:#20c997; color:white; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🚗 Cuốc Xe Chở Khách
+            </button>
+            <button id="driver-history-service-food-btn" class="driver-history-service-btn" onclick="switchDriverServiceHistoryTab('FOOD')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:transparent; color:#475569; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🍔 Đơn Giao Đồ Ăn
+            </button>
+        </div>
+
+        <!-- Filter Tabs cho Cuốc xe -->
+        <div id="driver-ride-filters" style="display:flex; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
             <button class="driver-trip-tab active" onclick="switchDriverTripTab('', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #20c997; background:#20c997; color:white; cursor:pointer; font-weight:600; font-size:12px;">Tất cả</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('COMPLETED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Hoàn thành</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('CANCELLED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đã hủy</button>
             <button class="driver-trip-tab" onclick="switchDriverTripTab('ACCEPTED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đang đón/chạy</button>
         </div>
 
+        <!-- Filter Tabs cho Đơn đồ ăn -->
+        <div id="driver-food-filters" style="display:none; gap:8px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px; flex-wrap:wrap;">
+            <button class="driver-food-tab active" onclick="switchDriverFoodHistoryTab('', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #f97316; background:#f97316; color:white; cursor:pointer; font-weight:600; font-size:12px;">Tất cả</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('COMPLETED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Hoàn thành</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('DELIVERING', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đang giao</button>
+            <button class="driver-food-tab" onclick="switchDriverFoodHistoryTab('CANCELLED', this)" style="padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-weight:600; font-size:12px;">Đã hủy</button>
+        </div>
+
+        <!-- Container danh sách Cuốc xe -->
         <div id="driver-trips-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
             <div style="text-align:center; color:#64748b; padding:20px;">Đang tải danh sách cuốc xe...</div>
+        </div>
+
+        <!-- Container danh sách Đơn đồ ăn -->
+        <div id="driver-food-orders-list" style="display:none; flex:1; overflow-y:auto; flex-direction:column; gap:10px; padding-right:4px;">
+            <div style="text-align:center; color:#64748b; padding:20px;">Đang tải danh sách đơn đồ ăn...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đánh Giá Của Tài Xế (Tách Biệt Đặt Xe & Đồ Ăn) -->
+<div id="driver-reviews-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:22px; border-radius:12px; width:760px; max-width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 28px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+            <h3 style="margin:0; color:#d97706; display:flex; align-items:center; gap:8px;">⭐ Đánh Giá & Phản Hồi Từ Khách Hàng</h3>
+            <button onclick="closeDriverReviewsModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">✕</button>
+        </div>
+
+        <!-- Service Switcher: Đặt xe vs Đồ ăn -->
+        <div style="display:flex; gap:8px; margin-bottom:14px; background:#fef3c7; padding:4px; border-radius:8px; border:1px solid #fde68a;">
+            <button id="rev-tab-ride" class="driver-rev-service-tab active" onclick="switchDriverReviewServiceTab('RIDE')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:#d97706; color:white; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🚗 Đánh Giá Cuốc Xe
+            </button>
+            <button id="rev-tab-food" class="driver-rev-service-tab" onclick="switchDriverReviewServiceTab('FOOD')" style="flex:1; padding:8px 14px; border-radius:6px; border:none; background:transparent; color:#92400e; cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🍔 Đánh Giá Giao Đồ Ăn
+            </button>
+        </div>
+
+        <!-- Rating Summary Box (Average + Star breakdown + Star filters) -->
+        <div id="driver-review-summary-box" style="background:#fffbeb; border:1px solid #fef3c7; border-radius:10px; padding:14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="font-size:36px; font-weight:800; color:#d97706; line-height:1;" id="rev-avg-score">5.0</div>
+                <div>
+                    <div id="rev-stars-display" style="font-size:16px; color:#f59e0b;">⭐⭐⭐⭐⭐</div>
+                    <div style="font-size:12px; color:#78350f; font-weight:600; margin-top:2px;">Dựa trên <b id="rev-total-count">0</b> lượt đánh giá</div>
+                </div>
+            </div>
+            <!-- Star filter pills -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="driver-rev-star-pill active" onclick="filterDriverReviewsByStar(null, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #d97706; background:#d97706; color:white; cursor:pointer; font-size:11px; font-weight:700;">Tất cả</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(5, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">5 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(4, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">4 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(3, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">3 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(2, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">2 ⭐</button>
+                <button class="driver-rev-star-pill" onclick="filterDriverReviewsByStar(1, this)" style="padding:4px 10px; border-radius:16px; border:1px solid #cbd5e1; background:white; color:#334155; cursor:pointer; font-size:11px; font-weight:600;">1 ⭐</button>
+            </div>
+        </div>
+
+        <!-- Container danh sách đánh giá -->
+        <div id="driver-reviews-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
+            <div style="text-align:center; color:#64748b; padding:20px;">Đang tải đánh giá của tài xế...</div>
         </div>
     </div>
 </div>
@@ -454,7 +524,7 @@
             VND
             <button onclick="fetchWallet()" style="margin-left:10px; cursor:pointer;">🔄 Làm mới</button>
         </p>
-        <button class="momo-btn" onclick="depositMoney()">+ Nạp tiền</button>
+        <button class="payment-btn" onclick="depositMoney()">+ Nạp tiền qua VNPay</button>
         <button class="history-btn" onclick="withdrawMoney()" style="background-color: #007bff;">- Rút tiền</button>
         <button class="history-btn" onclick="fetchTransactions()">Xem lịch sử giao dịch</button>
         <ul id="tx-list"
@@ -469,20 +539,110 @@
         <label for="report-date">Ngày tham chiếu (để trống: hôm nay):</label>
         <input id="report-date" type="date">
         <button class="history-btn" onclick="fetchDailyReport()" style="background-color: #fd7e14;">📊 Xem báo cáo thu nhập</button>
-        <button class="history-btn" onclick="openDriverTripHistoryModal()" style="background-color: #20c997; margin-left: 6px;">📜 Lịch sử cuốc xe riêng</button>
+        <button class="history-btn" onclick="openDriverTripHistoryModal()" style="background-color: #20c997; margin-left: 6px;">📜 Lịch sử hoạt động</button>
+        <button class="history-btn" onclick="openDriverReviewsModal()" style="background-color: #f59e0b; margin-left: 6px;">⭐ Đánh giá của tôi</button>
 
-        <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 15px; border-radius: 8px; border: 2px dashed #fd7e14;">
-            <h4 style="margin-top: 0; color: #fd7e14;">📈 TỔNG KẾT DOANH THU THEO KỲ</h4>
-            <div style="font-size: 15px; line-height: 1.8;">
-                <div>🚗 Tổng số cuốc xe hoàn thành: <b id="rep-trips" style="color: blue;">0</b> cuốc</div>
-                <hr style="border-top: 1px solid #eee;">
-                <div>💰 Tổng doanh thu cước phí: <b id="rep-revenue">0 đ</b></div>
-                <div>💵 <b>Tiền mặt đang cầm của khách: <span id="rep-cash" style="color: green;">0 đ</span></b></div>
-                <div>💳 Tiền khách trả qua App: <b id="rep-app">0 đ</b></div>
-                <hr style="border-top: 1px solid #eee;">
-                <div>📉 Tổng phí sàn đã trừ (20%): <b id="rep-commission" style="color: red;">-0 đ</b></div>
-                <div style="margin-top: 10px; padding: 10px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 5px; text-align: center;">
-                    ✨ Thu nhập ròng của bạn: <span id="rep-net-income" style="font-size: 18px;">0 đ</span>
+        <div id="daily-report-panel" style="display: none; margin-top: 15px; background: #fff; padding: 18px; border-radius: 10px; border: 2px dashed #fd7e14; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <h4 style="margin: 0; color: #fd7e14; font-size: 16px;">📈 TỔNG KẾT DOANH THU THEO KỲ (XE & ĐỒ ĂN)</h4>
+                <span id="rep-period-badge" style="font-size: 12px; font-weight: bold; background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 6px; border: 1px solid #ffcc80;"></span>
+            </div>
+
+            <!-- TỔNG KẾT CHUNG (XE & ĐỒ ĂN) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 14px; font-size: 14.5px; line-height: 1.85;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📦 <b>Tổng đơn & cuốc hoàn thành:</b></span>
+                    <b id="rep-total-orders" style="color: #0284c7; font-size: 15px;">0 đơn/cuốc</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>💰 <b>Tổng doanh thu cước phí:</b></span>
+                    <b id="rep-total-revenue" style="color: #0f172a; font-size: 15px;">0 đ</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #475569;">
+                    <span>💵 Tiền mặt đang cầm của khách:</span>
+                    <b id="rep-total-cash" style="color: #16a34a;">0 đ</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #475569;">
+                    <span>💳 Tiền khách trả qua App / Online:</span>
+                    <b id="rep-total-app" style="color: #0284c7;">0 đ</b>
+                </div>
+                <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📉 <b>Tổng phí sàn khấu trừ:</b></span>
+                    <b id="rep-total-commission" style="color: #dc2626;">-0 đ</b>
+                </div>
+                <div style="margin-top: 10px; padding: 12px; background: #e2f0d9; color: #274e13; font-weight: bold; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14.5px;">✨ Thu nhập ròng tổng cộng:</span>
+                    <span id="rep-total-net-income" style="font-size: 18px; color: #15803d;">0 đ</span>
+                </div>
+            </div>
+
+            <!-- PHÂN TÍCH CHI TIẾT TỪNG DỊCH VỤ -->
+            <div style="font-weight: 700; color: #334155; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">
+                📊 Phân tích chi tiết theo dịch vụ:
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+                <!-- CỘT 1: ĐƠN ĐẶT XE (RIDE HAILING) -->
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 13.5px; line-height: 1.75; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="font-weight: bold; color: #1d4ed8; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        <span>🚗</span> Đơn Đặt Xe (Ride Hailing)
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Số cuốc xe:</span>
+                        <b id="rep-ride-trips" style="color: #1d4ed8;">0 cuốc</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Doanh thu cước xe:</span>
+                        <b id="rep-ride-revenue">0 đ</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Tiền mặt:</span>
+                        <span id="rep-ride-cash">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Qua App/Ví:</span>
+                        <span id="rep-ride-app">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #dc2626;">
+                        <span>Phí sàn trừ:</span>
+                        <b id="rep-ride-commission">-0 đ</b>
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; color: #1d4ed8;">
+                        <span>Thực nhận xe:</span>
+                        <span id="rep-ride-net">0 đ</span>
+                    </div>
+                </div>
+
+                <!-- CỘT 2: ĐƠN ĐỒ ĂN (FOOD DELIVERY) -->
+                <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px; font-size: 13.5px; line-height: 1.75; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="font-weight: bold; color: #ea580c; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        <span>🍔</span> Đơn Giao Đồ Ăn (Food Delivery)
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Số đơn giao món:</span>
+                        <b id="rep-food-orders" style="color: #ea580c;">0 đơn</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Doanh thu cước ship:</span>
+                        <b id="rep-food-revenue">0 đ</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Tiền mặt:</span>
+                        <span id="rep-food-cash">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #64748b;">
+                        <span>- Qua App/Ví:</span>
+                        <span id="rep-food-app">0 đ</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #dc2626;">
+                        <span>Phí sàn trừ:</span>
+                        <b id="rep-food-commission">-0 đ</b>
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; color: #ea580c;">
+                        <span>Thực nhận ship:</span>
+                        <span id="rep-food-net">0 đ</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -564,6 +724,8 @@
     <ul id="log"></ul>
 </div>
 
+<script src="payment-flow.js"></script>
+<script src="request-idempotency.js"></script>
 <script>
     const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_BASE_URL = isLocal ? 'http://localhost:8080' : 'https://api.ridehailingsystem.online';
@@ -584,6 +746,168 @@
     let currentTripBooking = null;
     let driverRoutePolyline = null;
     let currentDecodedRoutePoints = [];
+
+    // ===== TIỆN ÍCH ĐỊNH DẠNG NGÀY GIỜ CHUẨN VIỆT NAM (UTC+7, Asia/Ho_Chi_Minh) =====
+    function parseToVietnamDate(dateVal) {
+        if (!dateVal) return null;
+        if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+        if (typeof dateVal === 'number') {
+            const d = new Date(dateVal > 1e11 ? dateVal : dateVal * 1000);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        let s = String(dateVal).trim();
+        if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'null' || s === 'undefined') return null;
+
+        if (Array.isArray(dateVal)) {
+            const [y, m, d = 1, h = 0, min = 0, sec = 0] = dateVal;
+            return new Date(Date.UTC(y, m - 1, d, h - 7, min, sec));
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) {
+            s = s.replace(/\s+/, 'T');
+        }
+
+        if (s.endsWith('Z') || /[+-]\d{2}(:?\d{2})?$/.test(s)) {
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        const localMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?/);
+        if (localMatch) {
+            const [, y, m, d, h, min, sec = 0, ms = 0] = localMatch;
+            const msNum = Number(String(ms).padEnd(3, '0').slice(0, 3));
+            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(h) - 7, Number(min), Number(sec), msNum));
+        }
+
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatVietnamDateTime(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return dateVal && String(dateVal).trim() ? String(dateVal) : '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour12: false
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('hour')}:${get('minute')} ${get('day')}/${get('month')}/${get('year')}`;
+        } catch (e) {
+            return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+    }
+
+    function formatVietnamShortTime(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+                hour12: false
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('hour')}:${get('minute')} ${get('day')}-${get('month')}`;
+        } catch (e) {
+            return formatVietnamDateTime(dateVal);
+        }
+    }
+
+    function formatVietnamDate(dateVal) {
+        const d = parseToVietnamDate(dateVal);
+        if (!d) return '—';
+        try {
+            const parts = new Intl.DateTimeFormat('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).formatToParts(d);
+            const get = (type) => parts.find(p => p.type === type)?.value || '';
+            return `${get('day')}/${get('month')}/${get('year')}`;
+        } catch (e) {
+            return d.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+    }
+
+    // ===== TIỆN ÍCH CHUẨN HÓA VÀ ĐỊNH DẠNG ĐỊA CHỈ CUỐC XE & ĐƠN HÀNG =====
+    const KNOWN_LOCATIONS_MAP = {
+        '21.0245,105.8574': 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+        '21.0585,105.8202': 'Hồ Tây, Phường Quảng An, Tây Hồ, Hà Nội',
+        '21.0285,105.8542': 'Đinh Tiên Hoàng, Hoàn Kiếm, Hà Nội',
+        '21.0285,105.8544': 'Hồ Hoàn Kiếm, Tràng Tiền, Hà Nội',
+        '21.0031,105.8431': 'Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+        '21.0042,105.8437': 'Đại học Bách Khoa, Hai Bà Trưng, Hà Nội',
+        '21.0378,105.7836': 'Duy Tân, Cầu Giấy, Hà Nội',
+        '21.0135,105.7988': 'Trung Hòa, Cầu Giấy, Hà Nội',
+        '21.0333,105.7891': 'Cầu Giấy, 123 Đường Cầu Giấy, Hà Nội',
+        '21.0333,105.8500': 'Điện Biên Phủ, Ba Đình, Hà Nội',
+        '21.0307,105.7845': 'Trần Thái Tông, Cầu Giấy, Hà Nội',
+        '21.0175,105.8540': 'Phố Huế, Hai Bà Trưng, Hà Nội',
+        '21.0185,105.8266': 'Hoàng Cầu, Đống Đa, Hà Nội',
+        '21.0280,105.7780': 'Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội',
+        '21.0173,105.7839': 'Keangnam Landmark 72, Nam Từ Liêm, Hà Nội',
+        '21.0028,105.8159': 'Royal City, 72A Nguyễn Trãi, Thanh Xuân, Hà Nội',
+        '21.2212,105.8072': 'Sân bay Nội Bài (Ga T1), Sóc Sơn, Hà Nội'
+    };
+
+    function formatBookingAddress(addr, lat, lng, defaultLabel = 'Địa chỉ') {
+        let s = (addr || '').trim();
+        const isHouseNumberOnly = /^\s*(số\s*)?\d{1,5}[a-zA-Z]?\s*$/i.test(s);
+        const isPlusCode = /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}(\s*.*)?$/i.test(s);
+        const isPlaceholder = !s || s === '—' || s === 'N/A' || s === 'null' || s === 'undefined' ||
+            /^vị trí\s*(gps|hiện tại|của bạn|của tôi|\(?\d)/i.test(s) ||
+            /^tọa độ/i.test(s) ||
+            s.toLowerCase().includes('vị trí gps') ||
+            s.toLowerCase().includes('gps của bạn') ||
+            s.toLowerCase().includes('gps hiện tại');
+
+        if (!isHouseNumberOnly && !isPlusCode && !isPlaceholder && s.length >= 8) {
+            return s;
+        }
+
+        let areaInfo = '';
+        const nLat = Number(lat);
+        const nLng = Number(lng);
+        if (!isNaN(nLat) && !isNaN(nLng) && nLat !== 0 && nLng !== 0) {
+            const key = `${nLat.toFixed(4)},${nLng.toFixed(4)}`;
+            if (KNOWN_LOCATIONS_MAP[key]) {
+                areaInfo = KNOWN_LOCATIONS_MAP[key];
+            } else if (nLat >= 20.8 && nLat <= 21.4 && nLng >= 105.6 && nLng <= 106.1) {
+                if (nLat > 21.05) areaInfo = 'Tây Hồ, Hà Nội';
+                else if (nLat > 21.03 && nLng >= 105.81) areaInfo = 'Ba Đình, Hà Nội';
+                else if (nLng <= 105.78 && nLat >= 21.01) areaInfo = 'SVĐ QG Mỹ Đình, Quận Nam Từ Liêm, Hà Nội';
+                else if (nLng < 105.805 && nLat >= 21.02) areaInfo = 'Cầu Giấy, Hà Nội';
+                else if (nLng >= 105.815 && nLng <= 105.845 && nLat >= 21.005 && nLat <= 21.030) areaInfo = 'Hoàng Cầu, Đống Đa, Hà Nội';
+                else if (nLat < 20.99 && nLng < 105.79) areaInfo = 'Hà Đông, Hà Nội';
+                else if (nLat < 21.01 && nLng >= 105.84) areaInfo = 'Hai Bà Trưng, Hà Nội';
+                else if (nLat >= 21.015 && nLat <= 21.04 && nLng >= 105.84) areaInfo = 'Hoàn Kiếm, Hà Nội';
+                else areaInfo = 'Hà Nội';
+            } else {
+                areaInfo = `Tọa độ (${nLat.toFixed(4)}, ${nLng.toFixed(4)})`;
+            }
+        }
+
+        if (isHouseNumberOnly) {
+            const num = s.replace(/^[^\d]*/, '').trim();
+            return areaInfo ? `Số ${num}, ${areaInfo}` : `Số ${num}, Hà Nội`;
+        }
+
+        if (areaInfo) {
+            return areaInfo;
+        }
+
+        return s || defaultLabel;
+    }
 
     // Google Polyline Decoder (Chuẩn Google Polyline Algorithm)
     function decodePolyline(encoded) {
@@ -640,7 +964,9 @@
         }
     }
 
+    const requestIntents = DemoRequestIdempotency.create(localStorage, () => crypto.randomUUID());
     async function fetchWithAuth(url, options = {}) {
+        const requestIntent = requestIntents.prepare('DRIVER:' + DRIVER_ID, url, options);
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = 'Bearer ' + getStoredToken();
         if (DRIVER_ID) {
@@ -665,6 +991,7 @@
                 throw new Error("Phiên đăng nhập đã hết hạn hoàn toàn. Vui lòng đăng nhập lại!");
             }
         }
+        await requestIntents.completeResponse(requestIntent, response);
         return response;
     }
 
@@ -818,7 +1145,14 @@
             }
         } else {
             // APPROVED
-            if (workingArea) workingArea.style.display = 'block';
+            if (workingArea) {
+                workingArea.style.display = 'block';
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 50);
+                    setTimeout(() => map.invalidateSize(), 250);
+                    setTimeout(() => map.invalidateSize(), 600);
+                }
+            }
         }
     }
 
@@ -912,9 +1246,13 @@
     ];
 
     let driverSearchTimeout = null;
+    let driverSearchVersion = 0;
+    const driverAddressCache = new Map();
 
     function handleDriverAddressFocus(value) {
         if (!value || value.trim().length === 0) {
+            clearTimeout(driverSearchTimeout);
+            driverSearchVersion++;
             renderDriverAutocomplete(POPULAR_DRIVER_LOCATIONS.slice(0, 6), true);
         } else {
             handleDriverAddressInputDebounced(value);
@@ -923,6 +1261,7 @@
 
     function handleDriverAddressInputDebounced(query) {
         if (driverSearchTimeout) clearTimeout(driverSearchTimeout);
+        const version = ++driverSearchVersion;
         const dropdown = document.getElementById('driver-autocomplete-dropdown');
         if (!dropdown) return;
 
@@ -932,35 +1271,42 @@
         }
 
         dropdown.style.display = 'block';
-        dropdown.innerHTML = `<div class="autocomplete-loading">🔍 Đang tìm kiếm "${query}"...</div>`;
+        dropdown.textContent = '🔍 Đang tìm kiếm địa chỉ...';
 
         driverSearchTimeout = setTimeout(async () => {
             const results = await fetchDriverAddressSuggestions(query);
-            renderDriverAutocomplete(results, false);
-        }, 300);
+            if (version === driverSearchVersion) renderDriverAutocomplete(results, false);
+        }, 600);
     }
 
     async function fetchDriverAddressSuggestions(query) {
         const qNorm = query.trim().toLowerCase();
+        if (driverAddressCache.has(qNorm)) return driverAddressCache.get(qNorm);
         
         let localMatches = POPULAR_DRIVER_LOCATIONS.filter(p => 
             p.name.toLowerCase().includes(qNorm) || p.desc.toLowerCase().includes(qNorm)
         );
 
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=6&addressdetails=1`;
-            const res = await fetch(url, { headers: { 'Accept-Language': 'vi,en' } });
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query.trim())}&lat=21.0285&lon=105.8544&limit=8`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
             if (res.ok) {
                 const data = await res.json();
-                const remoteMatches = data.map(item => {
-                    let parts = (item.display_name || '').split(',');
-                    let mainName = parts[0] ? parts[0].trim() : item.display_name;
-                    let subAddress = parts.slice(1, 4).join(',').trim();
+                const remoteMatches = (data.features || []).filter(feature =>
+                    feature.properties?.countrycode?.toUpperCase() === 'VN' &&
+                    Number.isFinite(feature.geometry?.coordinates?.[0]) &&
+                    Number.isFinite(feature.geometry?.coordinates?.[1])
+                ).map(feature => {
+                    const item = feature.properties;
+                    const [lng, lat] = feature.geometry.coordinates;
+                    const mainName = item.name || [item.housenumber, item.street].filter(Boolean).join(' ') || query.trim();
+                    const subAddress = [...new Set([item.street, item.district || item.suburb,
+                        item.city || item.state, item.country].filter(Boolean))].join(', ');
                     return {
                         name: mainName,
-                        desc: subAddress || item.display_name,
-                        lat: parseFloat(item.lat),
-                        lng: parseFloat(item.lon),
+                        desc: subAddress || mainName,
+                        lat,
+                        lng,
                         category: item.type || 'Bản đồ',
                         icon: '📍'
                     };
@@ -971,8 +1317,12 @@
                     let exists = combined.some(c => Math.abs(c.lat - rm.lat) < 0.001 && Math.abs(c.lng - rm.lng) < 0.001);
                     if (!exists) combined.push(rm);
                 });
-                return combined.slice(0, 7);
+                const results = combined.slice(0, 7);
+                if (driverAddressCache.size >= 50) driverAddressCache.delete(driverAddressCache.keys().next().value);
+                driverAddressCache.set(qNorm, results);
+                return results;
             }
+            console.warn('Dịch vụ tìm địa chỉ trả HTTP', res.status);
         } catch (e) {
             console.warn("Lỗi tìm kiếm geocoding cho tài xế:", e);
         }
@@ -1125,10 +1475,85 @@
         }, { enableHighAccuracy: true, timeout: 8000 });
     }
 
+    // ⚡ CAO CẤP: Tải Tile Map OpenStreetMap chuẩn, hoàn toàn miễn phí & không có watermark / API key
+    function createRobustTileLayer() {
+        const primaryTemplate = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const fallbackMirrors = [
+            'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+            'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
+        ];
+
+        const RobustTileLayer = L.TileLayer.extend({
+            createTile: function(coords, done) {
+                const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
+                let retryStep = 0;
+
+                tile.onerror = () => {
+                    if (retryStep < fallbackMirrors.length) {
+                        const mirror = fallbackMirrors[retryStep];
+                        retryStep++;
+                        const subdomains = ['a', 'b', 'c'];
+                        const s = subdomains[Math.floor(Math.random() * subdomains.length)];
+                        const nextUrl = mirror
+                            .replace('{s}', s)
+                            .replace('{z}', coords.z)
+                            .replace('{x}', coords.x)
+                            .replace('{y}', coords.y);
+                        setTimeout(() => {
+                            tile.src = nextUrl;
+                        }, 150 * retryStep);
+                    }
+                };
+                return tile;
+            }
+        });
+
+        return new RobustTileLayer(primaryTemplate, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            subdomains: ['a', 'b', 'c'],
+            maxZoom: 19,
+            minZoom: 3,
+            keepBuffer: 8,
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            updateInterval: 100,
+            crossOrigin: true
+        });
+    }
+
+    function setupMapAutoResize(mapInstance, mapElementId = 'map') {
+        if (!mapInstance) return;
+        const el = document.getElementById(mapElementId);
+        if (!el) return;
+
+        // Kích hoạt nhiều nhịp để đảm bảo layout reflow hoàn tất
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 50);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
+        setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 600);
+
+        window.addEventListener('resize', () => {
+            if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+        });
+
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                if (mapInstance) mapInstance.invalidateSize({ debounceMove: true });
+            });
+            ro.observe(el);
+        }
+    }
+
     function initMap() {
-        if (map) map.remove();
-        map = L.map('map').setView([currentDriverLat, currentDriverLng], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(map);
+        if (map) {
+            try { map.remove(); } catch(e) {}
+            map = null;
+        }
+        map = L.map('map', {
+            zoomControl: true,
+            fadeAnimation: true
+        }).setView([currentDriverLat, currentDriverLng], 14);
+        createRobustTileLayer().addTo(map);
+        setupMapAutoResize(map, 'map');
 
         const carIcon = L.divIcon({
             className: 'car-icon',
@@ -1196,6 +1621,10 @@
         }).then(async res => {
             if (!res.ok) throw new Error("Lỗi hệ thống, không thể bật app!");
             initMap();
+            if (map) {
+                setTimeout(() => map.invalidateSize(), 100);
+                setTimeout(() => map.invalidateSize(), 400);
+            }
 
             let locSocket = new SockJS(`${WS_BASE_URL}/ws-location`);
             stompLocationClient = Stomp.over(locSocket);
@@ -1337,11 +1766,18 @@
                     currentFoodRestaurantName = foodOrder.restaurantName || 'Quán ăn';
                     currentFoodRestaurantAddress = foodOrder.restaurantAddress || '';
                     currentFoodDropOffAddress = foodOrder.dropOffAddress || '';
+                    currentFoodCustomerName = foodOrder.customerName || '';
+                    currentFoodCustomerPhone = foodOrder.customerPhone || '';
+                    currentFoodItemsSummary = foodOrder.itemsSummary || '';
+
+                    let custHead = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                    let itemsHtml = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
 
                     document.getElementById('box-title').innerText = "🍲 CÓ ĐƠN GIAO ĐỒ ĂN MỚI!";
                     document.getElementById('match-info').innerHTML = `
                         <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                        ${itemsHtml}
+                        <b>Giao đến:</b> ${custHead}${currentFoodDropOffAddress}<br>
                         <b>Thanh toán:</b> <b style="color:${currentFoodPaymentMethod === 'CASH' ? '#d97706' : '#0284c7'};">${currentFoodPaymentMethod === 'CASH' ? '💵 Tiền mặt khi nhận (COD)' : '💳 Đã thanh toán online trước'}</b><br>
                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b><br>
                         <span style="color:#64748b; font-size:11px;">(Đang tính toán tuyến đường OSRM Engine...)</span>
@@ -1371,9 +1807,12 @@
                                 let durStr = route.durationMinutes || 10;
                                 let matchInfoEl = document.getElementById('match-info');
                                 if (matchInfoEl) {
+                                    let cHead = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                                    let itmHtml = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
                                     matchInfoEl.innerHTML = `
                                         <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                                        ${itmHtml}
+                                        <b>Giao đến:</b> ${cHead}${currentFoodDropOffAddress}<br>
                                         <b>Lộ trình OSRM:</b> <span style="color:#f97316; font-weight:700;">${distStr} km (~${durStr} phút)</span> [${route.source || 'OSRM'}]<br>
                                         <b>Thanh toán:</b> <b style="color:${currentFoodPaymentMethod === 'CASH' ? '#d97706' : '#0284c7'};">${currentFoodPaymentMethod === 'CASH' ? '💵 Tiền mặt khi nhận (COD)' : '💳 Đã thanh toán online trước'}</b><br>
                                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b>
@@ -1394,6 +1833,9 @@
     let currentFoodRestaurantName = '';
     let currentFoodRestaurantAddress = '';
     let currentFoodDropOffAddress = '';
+    let currentFoodCustomerName = '';
+    let currentFoodCustomerPhone = '';
+    let currentFoodItemsSummary = '';
 
     function driverCancelFoodOrder(orderId) {
         clearInterval(driverTimerInterval);
@@ -1450,10 +1892,14 @@
                     }
                 }
 
-                document.getElementById('box-title').innerText = `🍲 ĐANG GIAO ĐƠN #${orderId}`;
+                let cHeadAcc = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                let itmAcc = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
+
+                document.getElementById('box-title').innerText = `🍲 ĐANG LẤY MÓN ĐƠN #${orderId}`;
                 document.getElementById('match-info').innerHTML = `
                     <b>Quán:</b> ${currentFoodRestaurantName} (📍 ${currentFoodRestaurantAddress})<br>
-                    <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                    ${itmAcc}
+                    <b>Giao đến:</b> ${cHeadAcc}${currentFoodDropOffAddress}<br>
                     <b>Hình thức:</b> <b style="color:${currentFoodPaymentMethod==='CASH'?'#d97706':'#0284c7'};">${currentFoodPaymentMethod==='CASH' ? '💵 TIỀN MẶT (Thu khách: ' + Math.round(currentFoodTotalPrice).toLocaleString('vi-VN') + ' đ)' : '💳 ĐÃ TRẢ TRƯỚC (Không thu tiền)'}</b><br>
                     <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b>
                 `;
@@ -1538,9 +1984,13 @@
                         }
                     }
 
+                    let cHeadDel = currentFoodCustomerName ? `${escapeHtml(currentFoodCustomerName)} ${currentFoodCustomerPhone ? '(' + escapeHtml(currentFoodCustomerPhone) + ')' : ''} - ` : '';
+                    let itmDel = currentFoodItemsSummary ? `<b>🍱 Món ăn:</b> <span style="color:#ea580c; font-weight:700;">${escapeHtml(currentFoodItemsSummary)}</span><br>` : '';
+
                     document.getElementById('box-title').innerText = `🚀 ĐANG GIAO ĐƠN #${orderId}`;
                     document.getElementById('match-info').innerHTML = `
-                        <b>Giao đến:</b> ${currentFoodDropOffAddress}<br>
+                        ${itmDel}
+                        <b>Giao đến:</b> ${cHeadDel}${currentFoodDropOffAddress}<br>
                         <b>Hình thức:</b> <b style="color:${currentFoodPaymentMethod==='CASH'?'#d97706':'#0284c7'};">${currentFoodPaymentMethod==='CASH' ? '💵 TIỀN MẶT (Thu khách: ' + Math.round(currentFoodTotalPrice).toLocaleString('vi-VN') + ' đ)' : '💳 ĐÃ TRẢ TRƯỚC (Không thu tiền)'}</b><br>
                         <b>Cước ship nhận được:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(currentFoodDeliveryFee).toLocaleString('vi-VN')} VND</b><br>
                         <span style="color:#0284c7; font-weight:bold;">🚀 Đang di chuyển giao món cho khách hàng theo lộ trình OSRM...</span>
@@ -1647,7 +2097,7 @@
                 <div style="margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 5px; text-align: center;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; color: #dc3545;">Thu tiền cước từ khách:</p>
                     <button onclick="finishTrip('CASH')" style="background-color: #28a745; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💵 TIỀN MẶT</button>
-                    <button onclick="finishTrip('APP')" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💳 TRẢ QUA APP</button>
+                    <button onclick="finishTrip('APP')" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💳 VÍ OMNIPAY</button>
                 </div>
             `;
         }
@@ -1655,15 +2105,19 @@
     }
 
     // ⚡ Bổ sung hàm xử lý Logic thanh toán khi chốt cuốc
+    let finishingTrip = false;
     function finishTrip(paymentMethod) {
+        if (finishingTrip) return;
         if (!currentBookingId) return;
 
         let confirmMsg = paymentMethod === 'CASH'
             ? "Xác nhận ĐÃ THU TIỀN MẶT từ khách hàng?"
-            : "Xác nhận hoàn thành cuốc và YÊU CẦU KHÁCH THANH TOÁN QUA APP (MoMo/VNPay)?";
+            : "Xác nhận hoàn thành cuốc và YÊU CẦU KHÁCH THANH TOÁN QUA APP (OmniPay)?";
 
         if (!confirm(confirmMsg)) return;
 
+        finishingTrip = true;
+        const paymentBookingId = currentBookingId;
         let actionButtons = document.getElementById('action-buttons');
         let originalButtons = actionButtons.innerHTML;
         actionButtons.innerHTML = `<i style="color: gray;">Hệ thống đang xử lý...</i>`;
@@ -1682,14 +2136,15 @@
 
             if (paymentMethod === 'CASH') {
                 actionButtons.innerHTML = `<i>Đã hoàn tất bằng TIỀN MẶT!</i>`;
-                alert("✅ Hoàn thành chuyến đi bằng TIỀN MẶT!\nHệ thống đã tự động trừ 20% phí sàn.");
+                alert("✅ Hoàn thành chuyến đi bằng TIỀN MẶT!\nPhí sàn được quyết toán theo tỷ lệ cấu hình hiện tại.");
                 setTimeout(() => fetchWallet(), 1500);
                 setTimeout(() => closeMatchBoxAndReset(), 1500);
             } else {
                 // CHẾ ĐỘ CHỜ KHÁCH THANH TOÁN
+                watchDriverPayment(paymentBookingId);
                 actionButtons.innerHTML = `
                     <div id="waiting-payment-alert" style="margin-top: 10px; padding: 10px; background-color: #fff3cd; color: #856404; font-weight: bold; border-radius: 5px; border: 1px solid #ffeeba;">
-                        ⏳ Đang chờ khách thanh toán qua Ví MoMo/VNPay...
+                        ⏳ Đang chờ khách thanh toán qua Ví OmniPay...
                     </div>
                 `;
 
@@ -1698,18 +2153,19 @@
 
                 driverPaymentCheckInterval = setInterval(() => {
                     pollCount++;
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/payments/booking/${currentBookingId}/payment-status`)
-                        .then(res => res.text())
-                        .then(status => {
-                            if (status === 'SUCCESS') {
+                    DemoPaymentFlow.create({ request: fetchWithAuth, base: API_BASE_URL, identity: () => DRIVER_ID })
+                        .paid('RIDE', paymentBookingId)
+                        .then(paid => {
+                            if (currentBookingId !== paymentBookingId) { clearInterval(driverPaymentCheckInterval); return; }
+                            if (paid) {
                                 clearInterval(driverPaymentCheckInterval);
                                 actionButtons.innerHTML = `<div style="padding: 10px; background-color: #d4edda; color: #155724; font-weight: bold; border-radius: 5px; text-align: center;">✅ Khách đã thanh toán thành công!</div>`;
-                                alert("🎉 TING TING! KHÁCH HÀNG ĐÃ THANH TOÁN THÀNH CÔNG.\nTiền cước đã được cộng thẳng vào ví của bạn.");
+                                alert("🎉 TING TING! KHÁCH HÀNG ĐÃ THANH TOÁN THÀNH CÔNG.\nHệ thống đang quyết toán tiền cước vào ví của bạn.");
                                 fetchWallet();
                                 fetchTransactions();
                                 setTimeout(() => closeMatchBoxAndReset(), 2500);
                             }
-                        });
+                        }).catch(() => { /* Keep the unpaid state on network errors. */ });
 
                     if (pollCount >= 60) { // Chờ tối đa 3 phút
                         clearInterval(driverPaymentCheckInterval);
@@ -1727,7 +2183,7 @@
         }).catch(err => {
             alert("Lỗi: " + err.message);
             actionButtons.innerHTML = originalButtons; // Lỗi thì hiện lại nút cũ
-        });
+        }).finally(() => { finishingTrip = false; });
     }
 
     function closeMatchBoxAndReset() {
@@ -1835,13 +2291,9 @@
     }
 
     function depositMoney() {
-        let method = prompt("Nhập cổng muốn nạp (MOMO hoặc VNPAY):", "MOMO");
-        if (!method || (method.toUpperCase() !== 'MOMO' && method.toUpperCase() !== 'VNPAY')) {
-            alert("Phương thức thanh toán không hợp lệ!");
-            return;
-        }
+        const method = 'VNPAY';
 
-        let amountStr = prompt("Nhập số tiền muốn nạp vào ví (VND):", "50000");
+        let amountStr = prompt("Nhập số tiền muốn nạp vào ví OmniPay qua VNPay (VND):", "50000");
         if (!amountStr) return;
         let amount = parseFloat(amountStr);
         if (isNaN(amount) || amount <= 0) {
@@ -1897,12 +2349,22 @@
     }
 
     // ⚡ Đã xử lý lại format UTC để hiển thị chuẩn giờ VN
-    function fetchTransactions() {
+    async function fetchTransactions() {
         let listEl = document.getElementById('tx-list');
         if (listEl.style.display === "block") {
             listEl.style.display = "none";
             return;
         }
+
+        try {
+                let feeRes = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/platform-fee`);
+                if (feeRes.ok) {
+                    let feeData = await feeRes.json();
+                    if (feeData && feeData.percentage !== undefined) {
+                        window._currentPlatformFeeRate = Number(feeData.percentage);
+                    }
+                }
+        } catch(e) {}
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
             headers: {'X-User-Id': DRIVER_ID, 'X-User-Role': 'DRIVER'}
@@ -1945,22 +2407,22 @@
                     } else if (tx.transactionType === 'FOOD_DELIVERY_INCOME') {
                         desc = isFailedOrCanceled ? `❌ Hủy thu nhập giao đồ ăn đơn #${tx.bookingId}` : `🍲 Thu nhập cước ship giao đồ ăn đơn #${tx.bookingId}`;
                     } else if (tx.transactionType === 'COMMISSION_FEE') {
-                        desc = isFailedOrCanceled ? `❌ Hủy trừ phí hoa hồng đơn/cuốc #${tx.bookingId}` : `📉 Trừ phí hoa hồng sàn (20%) đơn/cuốc #${tx.bookingId}`;
+                        let ratePercent = window._currentPlatformFeeRate ?? 20;
+                        if (tx.bookingId) {
+                            let inc = txList.find(t => t.bookingId === tx.bookingId && (t.transactionType === 'FOOD_DELIVERY_INCOME' || t.transactionType === 'TRIP_INCOME'));
+                            if (inc && inc.amount > 0) {
+                                ratePercent = Math.round((Number(tx.amount) / Number(inc.amount)) * 100);
+                            }
+                        }
+                        let rateText = (ratePercent !== null && ratePercent !== undefined) ? ` (${ratePercent}%)` : '';
+                        desc = isFailedOrCanceled ? `❌ Hủy trừ phí hoa hồng đơn/cuốc #${tx.bookingId}` : `📉 Trừ phí hoa hồng sàn${rateText} đơn/cuốc #${tx.bookingId}`;
                     } else if (tx.transactionType === 'WITHDRAWAL') {
                         desc = isFailedOrCanceled ? `❌ Lệnh rút tiền bị hủy` : `🏧 Rút tiền về tài khoản cá nhân`;
                     } else {
                         desc = tx.transactionType;
                     }
 
-                    // ⚡ Ép đuôi 'Z' để cộng chuẩn 7 tiếng
-                    let dateStr = '';
-                    if (tx.createdAt) {
-                        let utcTime = tx.createdAt.endsWith('Z') ? tx.createdAt : tx.createdAt + 'Z';
-                        let dateObj = new Date(utcTime);
-                        let time = dateObj.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
-                        let date = dateObj.toLocaleDateString('vi-VN');
-                        dateStr = `${time} ${date}`;
-                    }
+                    let dateStr = tx.createdAt ? formatVietnamDateTime(tx.createdAt) : '';
 
                     listEl.innerHTML += `
                     <li style="border-bottom:1px solid #eee; padding:10px 0; line-height: 1.5;">
@@ -2016,38 +2478,162 @@
         }).catch(err => alert("❌ THAO TÁC THẤT BẠI: \n" + err.message));
     }
 
-    function fetchDailyReport() {
-        let panel = document.getElementById('daily-report-panel');
+    async function fetchDailyReport() {
+        const panel = document.getElementById('daily-report-panel');
         panel.style.display = 'none';
-        const params = new URLSearchParams({ period: document.getElementById('report-period').value });
-        const date = document.getElementById('report-date').value;
-        if (date) params.set('date', date);
 
-        fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`,  {
-            method: 'GET',
-            headers: { 'X-User-Id': DRIVER_ID }
-        })
-            .then(async res => {
-                if (!res.ok) throw new Error("Không thể lấy dữ liệu báo cáo");
-                return res.json();
-            })
-            .then(data => {
-                let report = data.data || data;
+        const period = document.getElementById('report-period').value;
+        const dateInput = document.getElementById('report-date').value;
+        const params = new URLSearchParams({ period });
+        if (dateInput) params.set('date', dateInput);
 
-                document.getElementById('rep-trips').innerText = report.totalTrips;
-                document.getElementById('rep-revenue').innerText = report.totalRevenue.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-cash').innerText = report.cashCollected.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-app').innerText = report.appCollected.toLocaleString('vi-VN') + " đ";
-                document.getElementById('rep-commission').innerText = "-" + report.commissionFee.toLocaleString('vi-VN') + " đ";
+        // 1. Xác định mốc thời gian lọc (startDate, endDateExclusive)
+        let anchor = dateInput ? new Date(dateInput + 'T00:00:00') : new Date();
+        if (isNaN(anchor.getTime())) anchor = new Date();
 
-                let netIncome = report.totalRevenue - report.commissionFee;
-                document.getElementById('rep-net-income').innerText = netIncome.toLocaleString('vi-VN') + " đ";
+        let startDate, endDateExclusive;
+        let periodBadgeText = '';
+        if (period === 'DAY') {
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate(), 0, 0, 0, 0);
+            endDateExclusive = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + 1, 0, 0, 0, 0);
+            periodBadgeText = `Ngày: ${formatVietnamDate(startDate)}`;
+        } else if (period === 'WEEK') {
+            const day = anchor.getDay();
+            const diff = anchor.getDate() - day + (day === 0 ? -6 : 1);
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), diff, 0, 0, 0, 0);
+            endDateExclusive = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const endSunday = new Date(endDateExclusive.getTime() - 1000);
+            periodBadgeText = `Tuần: ${formatVietnamDate(startDate)} - ${formatVietnamDate(endSunday)}`;
+        } else if (period === 'MONTH') {
+            startDate = new Date(anchor.getFullYear(), anchor.getMonth(), 1, 0, 0, 0, 0);
+            endDateExclusive = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1, 0, 0, 0, 0);
+            periodBadgeText = `Tháng: ${anchor.getMonth() + 1}/${anchor.getFullYear()}`;
+        }
 
-                panel.style.display = 'block';
-            })
-            .catch(err => {
-                alert("Lỗi tải báo cáo: " + err.message);
+        try {
+            // 2. Fetch song song:
+            // - Báo cáo cuốc xe từ booking-service
+            // - Danh sách đơn đồ ăn tài xế từ food-delivery-service
+            // - Giao dịch ví tài xế từ payment-service (để lấy phí sàn thực tế đã trừ)
+            const [rideRes, foodRes, txRes, feeRes] = await Promise.allSettled([
+                fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/daily-report?${params}`, {
+                    method: 'GET',
+                    headers: { 'X-User-Id': DRIVER_ID }
+                }).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/driver`).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/payments/transactions`, {
+                    headers: { 'X-User-Id': DRIVER_ID, 'X-User-Role': 'DRIVER' }
+                }).then(r => r.ok ? r.json() : null),
+                fetchWithAuth(`${API_BASE_URL}/api/v1/payments/platform-fee`).then(r => r.ok ? r.json() : null)
+            ]);
+
+            // 3. Số liệu Đơn Đặt Xe (Ride Hailing)
+            if (feeRes.status === "fulfilled" && feeRes.value && feeRes.value.percentage !== undefined) window._currentPlatformFeeRate = Number(feeRes.value.percentage);
+            const rideData = (rideRes.status === 'fulfilled' && rideRes.value) ? (rideRes.value.data || rideRes.value) : {};
+            const rideTrips = Number(rideData.totalTrips || 0);
+            const rideRevenue = Number(rideData.totalRevenue || 0);
+            const rideCash = Number(rideData.cashCollected || 0);
+            const rideApp = Number(rideData.appCollected || 0);
+            const rideCommission = Number(rideData.commissionFee || 0);
+            const rideNet = rideRevenue - rideCommission;
+
+            // 4. Số liệu Đơn Giao Đồ Ăn (Food Delivery)
+            let foodOrdersList = [];
+            if (foodRes.status === 'fulfilled' && foodRes.value) {
+                foodOrdersList = foodRes.value.data || foodRes.value || [];
+                if (!Array.isArray(foodOrdersList)) foodOrdersList = [];
+            }
+
+            let driverTxs = [];
+            if (txRes.status === 'fulfilled' && txRes.value) {
+                driverTxs = txRes.value.data || txRes.value || [];
+                if (!Array.isArray(driverTxs)) driverTxs = [];
+            }
+
+            let foodOrders = 0;
+            let foodRevenue = 0;
+            let foodCash = 0;
+            let foodApp = 0;
+            let foodCommission = 0;
+
+            const feePct = (typeof window._currentPlatformFeeRate === "number" && window._currentPlatformFeeRate >= 0) ? window._currentPlatformFeeRate : 20;
+
+            foodOrdersList.forEach(order => {
+                const isCompleted = order.status === 'COMPLETED' || order.status === 'DELIVERED';
+                if (!isCompleted) return;
+
+                const rawTime = order.updatedAt || order.createdAt;
+                const orderDate = parseToVietnamDate(rawTime);
+                if (!orderDate) return;
+
+                if (orderDate >= startDate && orderDate < endDateExclusive) {
+                    foodOrders++;
+                    const feeAmt = Number(order.deliveryFee || 0);
+                    foodRevenue += feeAmt;
+
+                    const isCash = String(order.paymentMethod).toUpperCase() === 'CASH';
+                    if (isCash) {
+                        foodCash += feeAmt;
+                    } else {
+                        foodApp += feeAmt;
+                    }
+
+                    // Tìm phí sàn khấu trừ chính xác từ transaction ví
+                    const matchedFeeTx = driverTxs.find(t =>
+                        t.bookingId === order.id &&
+                        t.transactionType === 'COMMISSION_FEE' &&
+                        t.status === 'SUCCESS'
+                    );
+                    if (matchedFeeTx) {
+                        foodCommission += Number(matchedFeeTx.amount || 0);
+                    } else {
+                        foodCommission += Math.round(feeAmt * (feePct / 100));
+                    }
+                }
             });
+
+            const foodNet = foodRevenue - foodCommission;
+
+            // 5. Tổng kết chung (All in one)
+            const totalOrders = rideTrips + foodOrders;
+            const totalRevenue = rideRevenue + foodRevenue;
+            const totalCash = rideCash + foodCash;
+            const totalApp = rideApp + foodApp;
+            const totalCommission = rideCommission + foodCommission;
+            const totalNet = totalRevenue - totalCommission;
+
+            // 6. Hiển thị lên giao diện
+            document.getElementById('rep-period-badge').innerText = periodBadgeText;
+
+            // Tổng hợp chung
+            document.getElementById('rep-total-orders').innerText = `${totalOrders} đơn/cuốc (${rideTrips} xe + ${foodOrders} đồ ăn)`;
+            document.getElementById('rep-total-revenue').innerText = totalRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-cash').innerText = totalCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-app').innerText = totalApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-commission').innerText = "-" + totalCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-total-net-income').innerText = totalNet.toLocaleString('vi-VN') + " đ";
+
+            // Chi tiết đặt xe
+            document.getElementById('rep-ride-trips').innerText = `${rideTrips} cuốc`;
+            document.getElementById('rep-ride-revenue').innerText = rideRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-cash').innerText = rideCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-app').innerText = rideApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-commission').innerText = "-" + rideCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-ride-net').innerText = rideNet.toLocaleString('vi-VN') + " đ";
+
+            // Chi tiết đồ ăn
+            document.getElementById('rep-food-orders').innerText = `${foodOrders} đơn`;
+            document.getElementById('rep-food-revenue').innerText = foodRevenue.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-cash').innerText = foodCash.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-app').innerText = foodApp.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-commission').innerText = "-" + foodCommission.toLocaleString('vi-VN') + " đ";
+            document.getElementById('rep-food-net').innerText = foodNet.toLocaleString('vi-VN') + " đ";
+
+            panel.style.display = 'block';
+        } catch (err) {
+            console.error("Lỗi tải báo cáo:", err);
+            alert("Lỗi tải báo cáo: " + err.message);
+        }
     }
 
     // ==========================================
@@ -2081,8 +2667,8 @@
     function normalizeDriverVehicleType(type) {
         if (!type) return 'BIKE';
         const upper = type.toString().trim().toUpperCase();
-        if (upper.includes('4')) return 'CAR_4_SEAT';
-        if (upper.includes('7')) return 'CAR_7_SEAT';
+        if (upper.includes('4') || upper.includes('CAR_4') || upper === 'CAR') return 'CAR_4_SEAT';
+        if (upper.includes('7') || upper.includes('CAR_7')) return 'CAR_7_SEAT';
         return 'BIKE';
     }
 
@@ -2116,7 +2702,13 @@
 
         // Vehicle info
         const vType = normalizeDriverVehicleType(profile.vehicleType);
-        document.getElementById('driver-profile-vehicle-type').value = vType;
+        const selVType = document.getElementById('driver-profile-vehicle-type');
+        if (selVType) {
+            selVType.value = vType;
+            if (selVType.selectedIndex === -1) {
+                selVType.value = 'BIKE';
+            }
+        }
         document.getElementById('driver-profile-license-plate').value = profile.licensePlate || '';
         document.getElementById('driver-profile-vehicle-model').value = profile.vehicleModel || '';
 
@@ -2300,6 +2892,9 @@
                 currentDriverProfile.vehicleModel = vehicleModel;
                 if (updated && typeof updated === 'object') {
                     currentDriverProfile = { ...currentDriverProfile, ...updated };
+                    if (!currentDriverProfile.vehicleType) {
+                        currentDriverProfile.vehicleType = vehicleType;
+                    }
                 }
                 localStorage.setItem('user', JSON.stringify(currentDriverProfile));
 
@@ -2390,17 +2985,55 @@
     }
 
     // ==========================================
-    // ⚡ PHA 3: LỊCH SỬ CUỐC XE RIÊNG CỦA TÀI XẾ
+    // ⚡ PHA 3: LỊCH SỬ CHUYẾN ĐI & ĐƠN HÀNG CỦA TÀI XẾ
     // ==========================================
+    let currentDriverHistoryService = 'RIDE'; // 'RIDE' | 'FOOD'
     let currentDriverTripStatusFilter = '';
+    let currentDriverFoodStatusFilter = '';
 
     function openDriverTripHistoryModal() {
         document.getElementById('driver-trip-history-modal').style.display = 'flex';
-        fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        if (currentDriverHistoryService === 'RIDE') {
+            fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        } else {
+            fetchDriverFoodOrderHistory(currentDriverFoodStatusFilter);
+        }
     }
 
     function closeDriverTripHistoryModal() {
         document.getElementById('driver-trip-history-modal').style.display = 'none';
+    }
+
+    function switchDriverServiceHistoryTab(service) {
+        currentDriverHistoryService = service;
+        const rideBtn = document.getElementById('driver-history-service-ride-btn');
+        const foodBtn = document.getElementById('driver-history-service-food-btn');
+        const rideFilters = document.getElementById('driver-ride-filters');
+        const foodFilters = document.getElementById('driver-food-filters');
+        const rideList = document.getElementById('driver-trips-list');
+        const foodList = document.getElementById('driver-food-orders-list');
+
+        if (service === 'RIDE') {
+            rideBtn.style.background = '#20c997';
+            rideBtn.style.color = 'white';
+            foodBtn.style.background = 'transparent';
+            foodBtn.style.color = '#475569';
+            rideFilters.style.display = 'flex';
+            foodFilters.style.display = 'none';
+            rideList.style.display = 'flex';
+            foodList.style.display = 'none';
+            fetchDriverBookingHistory(currentDriverTripStatusFilter);
+        } else {
+            foodBtn.style.background = '#f97316';
+            foodBtn.style.color = 'white';
+            rideBtn.style.background = 'transparent';
+            rideBtn.style.color = '#475569';
+            rideFilters.style.display = 'none';
+            foodFilters.style.display = 'flex';
+            rideList.style.display = 'none';
+            foodList.style.display = 'flex';
+            fetchDriverFoodOrderHistory(currentDriverFoodStatusFilter);
+        }
     }
 
     function switchDriverTripTab(status, btnEl) {
@@ -2418,8 +3051,354 @@
         fetchDriverBookingHistory(status);
     }
 
+    function switchDriverFoodHistoryTab(status, btnEl) {
+        currentDriverFoodStatusFilter = status;
+        document.querySelectorAll('.driver-food-tab').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#334155';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (btnEl) {
+            btnEl.style.background = '#f97316';
+            btnEl.style.color = 'white';
+            btnEl.style.borderColor = '#f97316';
+        }
+        fetchDriverFoodOrderHistory(status);
+    }
+
+    async function fetchDriverFoodOrderHistory(status = '') {
+        const listEl = document.getElementById('driver-food-orders-list');
+        listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu đơn giao đồ ăn...</div>';
+
+        try {
+            const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-orders/driver`);
+            if (!res.ok) {
+                listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Không thể tải lịch sử đơn đồ ăn (HTTP ${res.status})</div>`;
+                return;
+            }
+
+            const data = await res.json();
+            let orders = data.data || data || [];
+            if (!Array.isArray(orders)) orders = [];
+
+            // Lọc theo trạng thái nếu có
+            if (status) {
+                if (status === 'COMPLETED') {
+                    orders = orders.filter(o => o.status === 'COMPLETED' || o.status === 'DELIVERED');
+                } else if (status === 'DELIVERING') {
+                    orders = orders.filter(o => ['DELIVERING', 'PREPARING', 'READY_FOR_PICKUP', 'ACCEPTED'].includes(o.status));
+                } else if (status === 'CANCELLED') {
+                    orders = orders.filter(o => ['CANCELLED', 'REJECTED', 'NO_DRIVER_FOUND'].includes(o.status));
+                } else {
+                    orders = orders.filter(o => o.status === status);
+                }
+            }
+
+            if (orders.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                        <div style="font-size:36px; margin-bottom:8px;">🍔</div>
+                        <div style="font-weight:600;">Chưa có đơn đồ ăn nào ${status ? 'với trạng thái này' : ''}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = orders.map(o => {
+                let badgeColor = '#64748b';
+                let badgeBg = '#f1f5f9';
+                let statusVi = o.status;
+
+                if (o.status === 'COMPLETED' || o.status === 'DELIVERED') {
+                    badgeColor = '#16a34a'; badgeBg = '#dcfce7'; statusVi = 'Đã giao thành công';
+                } else if (o.status === 'DELIVERING') {
+                    badgeColor = '#0284c7'; badgeBg = '#e0f2fe'; statusVi = 'Đang giao hàng';
+                } else if (o.status === 'READY_FOR_PICKUP') {
+                    badgeColor = '#7e22ce'; badgeBg = '#f3e8ff'; statusVi = 'Món đã sẵn sàng - Chờ lấy';
+                } else if (o.status === 'PREPARING') {
+                    badgeColor = '#d97706'; badgeBg = '#fef3c7'; statusVi = 'Quán đang làm món';
+                } else if (o.status === 'ACCEPTED') {
+                    badgeColor = '#0369a1'; badgeBg = '#e0f2fe'; statusVi = 'Đã nhận đơn';
+                } else if (o.status === 'CANCELLED' || o.status === 'REJECTED') {
+                    badgeColor = '#dc2626'; badgeBg = '#fee2e2'; statusVi = 'Đã hủy';
+                } else if (o.status === 'NO_DRIVER_FOUND') {
+                    badgeColor = '#64748b'; badgeBg = '#f1f5f9'; statusVi = 'Không tìm thấy tài xế';
+                }
+
+                const dateStr = o.createdAt ? formatVietnamDateTime(o.createdAt) : 'Gần đây';
+                const shipFeeFormatted = Number(o.deliveryFee || 0).toLocaleString('vi-VN') + ' đ';
+                const totalPriceFormatted = Number(o.totalPrice || 0).toLocaleString('vi-VN') + ' đ';
+
+                // Danh sách món ăn
+                let itemsSummary = 'Món đặt theo đơn';
+                if (Array.isArray(o.orderItems) && o.orderItems.length > 0) {
+                    itemsSummary = o.orderItems.map(it => `${it.itemName || it.dishName || it.name || 'Món'} x${it.quantity || 1}`).join(', ');
+                }
+
+                return `
+                    <div style="border:1px solid #fed7aa; border-radius:10px; padding:14px; background:#ffffff; box-shadow:0 1px 4px rgba(249,115,22,0.06); margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div>
+                                <b style="color:#c2410c; font-size:14px;">🍔 Đơn đồ ăn #${o.id}</b>
+                                <span style="font-size:11px; color:#64748b; margin-left:8px;">🕒 ${dateStr}</span>
+                            </div>
+                            <span style="padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700; color:${badgeColor}; background:${badgeBg};">
+                                ${statusVi}
+                            </span>
+                        </div>
+
+                        <!-- Điểm lấy món (Quán ăn) -->
+                        <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; line-height:1.5;">
+                            <span style="font-size:16px;">🏪</span>
+                            <div style="flex:1;">
+                                <b style="color:#ea580c;">Quán: ${escapeHtml(o.restaurantName || 'Cửa hàng')}</b>
+                                <div style="font-size:12px; color:#64748b;">${escapeHtml(o.restaurantAddress || 'Địa chỉ quán')}</div>
+                            </div>
+                        </div>
+
+                        <!-- Điểm giao món (Khách hàng) -->
+                        <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; line-height:1.5;">
+                            <span style="font-size:16px;">📍</span>
+                            <div style="flex:1;">
+                                <b style="color:#0f172a;">Giao đến: ${escapeHtml(o.customerName || ('Khách hàng #' + (o.customerId || '')))} ${o.customerPhone ? '<span style="color:#2563eb; font-weight:600;">(' + escapeHtml(o.customerPhone) + ')</span>' : ''}</b>
+                                <div style="font-size:12px; color:#475569;">${escapeHtml(o.deliveryAddress || 'Địa chỉ khách')}</div>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách món -->
+                        <div style="background:#fff7ed; padding:8px 12px; border-radius:6px; font-size:12px; color:#9a3412; margin-bottom:10px; border:1px solid #ffedd5;">
+                            🍱 <b>Món ăn:</b> ${escapeHtml(itemsSummary)}
+                        </div>
+
+                        <!-- Cước ship tài xế nhận & Tổng đơn -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px dashed #fed7aa; font-size:13px;">
+                            <div>🛵 <b>Cước ship nhận:</b> <b style="color:#16a34a; font-size:14px;">${shipFeeFormatted}</b></div>
+                            <div>💰 <b>Tổng đơn:</b> <b style="color:#d97706;">${totalPriceFormatted}</b> <span style="font-size:11px; color:#64748b;">(${o.paymentMethod || 'ONLINE'})</span></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            listEl.innerHTML = `<div style="text-align:center; color:#dc2626; padding:20px;">Lỗi tải dữ liệu đơn đồ ăn: ${e.message}</div>`;
+        }
+    }
+
+    // ==========================================
+    // ⭐ PHA 4: ĐÁNH GIÁ TÀI XẾ (TÁCH BIỆT ĐẶT XE & ĐỒ ĂN)
+    // ==========================================
+    let currentDriverReviewService = 'RIDE'; // 'RIDE' | 'FOOD'
+    let currentDriverReviewStarFilter = null;
+
+    function openDriverReviewsModal() {
+        document.getElementById('driver-reviews-modal').style.display = 'flex';
+        loadDriverReviews();
+    }
+
+    function closeDriverReviewsModal() {
+        document.getElementById('driver-reviews-modal').style.display = 'none';
+    }
+
+    function switchDriverReviewServiceTab(service) {
+        currentDriverReviewService = service;
+        currentDriverReviewStarFilter = null;
+        const rideBtn = document.getElementById('rev-tab-ride');
+        const foodBtn = document.getElementById('rev-tab-food');
+
+        if (service === 'RIDE') {
+            rideBtn.style.background = '#d97706';
+            rideBtn.style.color = 'white';
+            foodBtn.style.background = 'transparent';
+            foodBtn.style.color = '#92400e';
+        } else {
+            foodBtn.style.background = '#ea580c';
+            foodBtn.style.color = 'white';
+            rideBtn.style.background = 'transparent';
+            rideBtn.style.color = '#92400e';
+        }
+        resetDriverReviewStarPills();
+        loadDriverReviews();
+    }
+
+    function filterDriverReviewsByStar(star, btnEl) {
+        currentDriverReviewStarFilter = star;
+        document.querySelectorAll('.driver-rev-star-pill').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#334155';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (btnEl) {
+            const activeColor = currentDriverReviewService === 'RIDE' ? '#d97706' : '#ea580c';
+            btnEl.style.background = activeColor;
+            btnEl.style.color = 'white';
+            btnEl.style.borderColor = activeColor;
+        }
+        loadDriverReviews();
+    }
+
+    function resetDriverReviewStarPills() {
+        const pills = document.querySelectorAll('.driver-rev-star-pill');
+        const activeColor = currentDriverReviewService === 'RIDE' ? '#d97706' : '#ea580c';
+        pills.forEach((p, idx) => {
+            if (idx === 0) {
+                p.style.background = activeColor;
+                p.style.color = 'white';
+                p.style.borderColor = activeColor;
+            } else {
+                p.style.background = 'white';
+                p.style.color = '#334155';
+                p.style.borderColor = '#cbd5e1';
+            }
+        });
+    }
+
+    function renderDriverReviewsSummary(avgScore, totalCount) {
+        const scoreEl = document.getElementById('rev-avg-score');
+        const starsEl = document.getElementById('rev-stars-display');
+        const countEl = document.getElementById('rev-total-count');
+
+        const score = Number(avgScore || 5.0).toFixed(1);
+        if (scoreEl) scoreEl.textContent = score;
+        if (countEl) countEl.textContent = totalCount || 0;
+
+        if (starsEl) {
+            const fullStars = Math.round(Number(avgScore || 5.0));
+            starsEl.textContent = '⭐'.repeat(Math.max(1, Math.min(5, fullStars)));
+        }
+    }
+
+    function renderReviewEmptyOrError(message) {
+        const listEl = document.getElementById('driver-reviews-list');
+        listEl.innerHTML = `
+            <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                <div style="font-size:36px; margin-bottom:8px;">💬</div>
+                <div style="font-weight:600;">${escapeHtml(message)}</div>
+            </div>
+        `;
+    }
+
+    async function loadDriverReviews() {
+        const listEl = document.getElementById('driver-reviews-list');
+        listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu đánh giá...</div>';
+
+        const driverId = DRIVER_ID || 1;
+        const starParam = currentDriverReviewStarFilter ? `?rating=${currentDriverReviewStarFilter}` : '';
+
+        if (currentDriverReviewService === 'RIDE') {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver/${driverId}/reviews${starParam}`);
+                if (!res.ok) {
+                    renderReviewEmptyOrError('Chưa có đánh giá nào cho các chuyến xe.');
+                    renderDriverReviewsSummary(5.0, 0);
+                    return;
+                }
+                const data = await res.json();
+                const summary = data.data || data || {};
+                renderDriverReviewsSummary(summary.averageRating || 5.0, summary.totalReviews || 0);
+                renderDriverReviewsList(summary.reviews || [], 'RIDE');
+            } catch (e) {
+                renderReviewEmptyOrError('Lỗi kết nối đánh giá đặt xe: ' + e.message);
+            }
+        } else {
+            try {
+                const res = await fetchWithAuth(`${API_BASE_URL}/api/v1/food-reviews/driver/${driverId}${starParam}`);
+                if (!res.ok) {
+                    renderReviewEmptyOrError('Chưa có đánh giá nào cho các đơn giao đồ ăn.');
+                    renderDriverReviewsSummary(5.0, 0);
+                    return;
+                }
+                const data = await res.json();
+                const summary = data.data || data || {};
+                renderDriverReviewsSummary(summary.averageRating || 5.0, summary.totalReviews || 0);
+
+                let reviews = [];
+                if (summary.reviews && Array.isArray(summary.reviews.content)) {
+                    reviews = summary.reviews.content;
+                } else if (Array.isArray(summary.reviews)) {
+                    reviews = summary.reviews;
+                }
+                renderDriverReviewsList(reviews, 'FOOD');
+            } catch (e) {
+                renderReviewEmptyOrError('Lỗi kết nối đánh giá giao đồ ăn: ' + e.message);
+            }
+        }
+    }
+
+    function renderDriverReviewsList(reviews, serviceType) {
+        const listEl = document.getElementById('driver-reviews-list');
+
+        if (!Array.isArray(reviews) || reviews.length === 0) {
+            listEl.innerHTML = `
+                <div style="text-align:center; padding:30px 20px; color:#64748b;">
+                    <div style="font-size:36px; margin-bottom:8px;">${serviceType === 'RIDE' ? '🚕' : '🛵'}</div>
+                    <div style="font-weight:600;">Chưa có đánh giá nào ${currentDriverReviewStarFilter ? 'với số sao này' : 'từ khách hàng'}</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Các nhận xét sau khi khách hoàn thành ${serviceType === 'RIDE' ? 'chuyến đi' : 'đơn hàng'} sẽ xuất hiện tại đây.</div>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = reviews.map(r => {
+            const rating = Number(r.driverRating || r.rating || 5);
+            const comment = (serviceType === 'RIDE' ? r.comment : (r.driverComment || r.comment)) || '';
+            const customerName = r.customerName || 'Khách hàng';
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0284c7&color=fff&size=64`;
+            const avatarUrl = r['customerAvatarUrl'] || defaultAvatar;
+            const dateStr = r.createdAt ? formatVietnamDateTime(r.createdAt) : 'Gần đây';
+            const contextTag = serviceType === 'RIDE' ? `Cuốc xe #${r.bookingId || r.id}` : `Đơn đồ ăn #${r.orderId || r.id}`;
+
+            return `
+                <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img src="${avatarUrl}" onerror="this.src='${defaultAvatar}'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #e2e8f0;">
+                            <div>
+                                <b style="color:#0f172a; font-size:13px;">${escapeHtml(customerName)}</b>
+                                <div style="font-size:11px; color:#64748b;">🕒 ${dateStr} • <span style="color:#0284c7; font-weight:600;">${contextTag}</span></div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#f59e0b; font-size:14px; letter-spacing:1px;">${'⭐'.repeat(Math.max(1, Math.min(5, rating)))}</div>
+                            <span style="font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:10px;">${rating} / 5</span>
+                        </div>
+                    </div>
+                    ${comment ? `<div style="background:#f8fafc; border-radius:6px; padding:8px 12px; font-size:13px; color:#334155; border-left:3px solid #f59e0b; margin-top:6px;">"${escapeHtml(comment)}"</div>` : `<div style="font-size:12px; color:#94a3b8; font-style:italic;">Khách hàng không để lại nhận xét bằng lời.</div>`}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     const customerInfoCache = {};
 
+    /**
+     * @typedef {Object} DriverBookingItem
+     * @property {number} [bookingId]
+     * @property {number} [customerId]
+     * @property {string} [customerName]
+     * @property {string} [customerAvatarUrl]
+     * @property {string} [driverAvatarUrl]
+     * @property {string} [status]
+     * @property {number} [price]
+     * @property {number} [distanceInKm]
+     * @property {string} [vehicleType]
+     * @property {string} [paymentMethod]
+     * @property {string} [pickupAddress]
+     * @property {string} [dropoffAddress]
+     * @property {number} [startLatitude]
+     * @property {number} [startLongitude]
+     * @property {number} [endLatitude]
+     * @property {number} [endLongitude]
+     * @property {string} [createdAt]
+     */
     async function fetchDriverBookingHistory(status = '') {
         const listEl = document.getElementById('driver-trips-list');
         listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Đang tải dữ liệu cuốc xe...</div>';
@@ -2454,7 +3433,7 @@
                 else if (b.status === 'ACCEPTED') { badgeColor = '#0284c7'; badgeBg = '#e0f2fe'; statusVi = 'Đã nhận'; }
                 else if (b.status === 'IN_PROGRESS') { badgeColor = '#7e22ce'; badgeBg = '#f3e8ff'; statusVi = 'Đang di chuyển'; }
 
-                const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('vi-VN') : 'Gần đây';
+                const dateStr = b.createdAt ? formatVietnamDateTime(b.createdAt) : 'Gần đây';
                 const priceFormatted = Number(b.price || 0).toLocaleString('vi-VN') + ' đ';
 
                 // Cự ly format chuẩn cắt sau dấu phẩy 2 chữ số (VD: 5.40 km)
@@ -2466,20 +3445,11 @@
                 // Tên & Avatar khách hàng
                 const customerDisplayName = b.customerName || ('Khách #' + (b.customerId || ''));
                 const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(customerDisplayName)}&background=0284c7&color=fff&size=64`;
-                const avatarUrl = b.customerAvatarUrl || defaultAvatar;
+                const avatarUrl = b['customerAvatarUrl'] || defaultAvatar;
 
-                // Lấy toàn bộ response ra hiển thị lên điểm đón, điểm đến
-                let pickupDisplay = (b.pickupAddress && b.pickupAddress.trim()) ? b.pickupAddress.trim() : '';
-                if (!pickupDisplay && b.startLatitude != null && b.startLongitude != null) {
-                    pickupDisplay = `Tọa độ (${Number(b.startLatitude).toFixed(5)}, ${Number(b.startLongitude).toFixed(5)})`;
-                }
-                if (!pickupDisplay) pickupDisplay = 'Vị trí đón GPS';
-
-                let dropoffDisplay = (b.dropoffAddress && b.dropoffAddress.trim()) ? b.dropoffAddress.trim() : '';
-                if (!dropoffDisplay && b.endLatitude != null && b.endLongitude != null) {
-                    dropoffDisplay = `Tọa độ (${Number(b.endLatitude).toFixed(5)}, ${Number(b.endLongitude).toFixed(5)})`;
-                }
-                if (!dropoffDisplay) dropoffDisplay = 'Vị trí trả GPS';
+                // Lấy toàn bộ response ra hiển thị lên điểm đón, điểm đến (định dạng thông minh chống sót số nhà "131")
+                let pickupDisplay = formatBookingAddress(b.pickupAddress, b.startLatitude, b.startLongitude, 'Vị trí đón');
+                let dropoffDisplay = formatBookingAddress(b.dropoffAddress, b.endLatitude, b.endLongitude, 'Vị trí trả');
 
                 return `
                     <div style="border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.05); margin-bottom:12px;">
@@ -2533,7 +3503,7 @@
 
             // Tự động truy vấn bù Tên & Avatar nếu cuốc xe cũ trong DB chưa lưu tên/avatar
             bookings.forEach(async b => {
-                if (b.customerId && (!b.customerName || !b.customerAvatarUrl)) {
+                if (b.customerId && (!b.customerName || !b['customerAvatarUrl'])) {
                     try {
                         let u = customerInfoCache[b.customerId];
                         if (!u) {
@@ -2561,5 +3531,6 @@
     }
 
 </script>
+<script src="driver-payment-flow.js"></script>
 </body>
 </html>

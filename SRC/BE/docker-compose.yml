@@ -20,7 +20,7 @@ services:
         limits:
           memory: 384M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx200m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms128m -Xmx200m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${DISCOVERY_SERVICE_PORT}
       SPRING_SERVER_PORT: ${DISCOVERY_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -43,7 +43,8 @@ services:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${API_GATEWAY_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
@@ -65,7 +66,7 @@ services:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${USER_DRIVER_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -103,7 +104,7 @@ services:
         limits:
           memory: 450M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx250m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms128m -Xmx250m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${LOCATION_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -125,7 +126,9 @@ services:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      APP_PAYMENT_SERVICE_URL: http://payment-service:8085
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${BOOKING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -154,7 +157,7 @@ services:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${PRICING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -181,12 +184,17 @@ services:
   payment-service:
     <<: *java-app
     image: vmt1609/payment-service:latest
+    build:
+      context: ./payment-service
     deploy:
       resources:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      APP_BOOKING_URL: http://booking-service:8083
+      APP_FOOD_DELIVERY_URL: http://food-delivery-service:8086
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${PAYMENT_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -194,6 +202,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
+      SPRING_DATA_REDIS_DATABASE: ${PAYMENT_REDIS_DB:-5}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
       MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
@@ -211,6 +222,7 @@ services:
     depends_on:
       - discovery-service
       - postgres
+      - redis
       - kafka
       - fluentd
 
@@ -226,7 +238,9 @@ services:
         limits:
           memory: 512M
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+      APP_PAYMENT_SERVICE_URL: http://payment-service:8085
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${FOOD_DELIVERY_SERVICE_PORT:-8086}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
@@ -267,6 +281,7 @@ services:
     networks:
       - ride-hailing
     environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${USER_DRIVER_DATABASE}
@@ -277,7 +292,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy volatile-lru
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy volatile-lru
     ports:
       - "127.0.0.1:6379:6379"
     deploy:

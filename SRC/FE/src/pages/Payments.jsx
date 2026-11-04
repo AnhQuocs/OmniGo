@@ -18,6 +18,7 @@ import {
   Alert,
   Button,
   ButtonGroup,
+  Tooltip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -26,6 +27,7 @@ import {
   AccountBalanceWallet as WalletIcon,
   CheckCircle as SuccessIcon,
   AttachMoney as MoneyIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -44,6 +46,7 @@ export const Payments = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [platformFeeRate, setPlatformFeeRate] = useState(null);
 
   // Sync filter from URL query param
   useEffect(() => {
@@ -61,6 +64,17 @@ export const Payments = () => {
     setPage(0);
   }, [location.search]);
 
+  const fetchPlatformFeeRate = async () => {
+    try {
+      const data = await paymentService.getPlatformFee();
+      if (data && data.percentage != null) {
+        setPlatformFeeRate(data.percentage);
+      }
+    } catch (err) {
+      console.warn('Không thể tải tỷ lệ sàn:', err);
+    }
+  };
+
   const fetchTransactions = async () => {
     setLoading(true);
     setError(null);
@@ -76,8 +90,13 @@ export const Payments = () => {
     }
   };
 
-  useEffect(() => {
+  const loadAllData = () => {
     fetchTransactions();
+    fetchPlatformFeeRate();
+  };
+
+  useEffect(() => {
+    loadAllData();
   }, []);
 
   const handleTabChange = (val) => {
@@ -206,6 +225,7 @@ export const Payments = () => {
     return formatVietnamDateTime(dateStr);
   };
 
+  const netRevenue = transactions.filter((t) => t.status === 'SUCCESS' && t.transactionType === 'COMMISSION_FEE').reduce((sum, t) => sum + Number(t.amount || 0), 0);
   const totalCount = transactions.length;
   const successCount = transactions.filter((t) => t.status === 'SUCCESS').length;
   const totalVolume = transactions
@@ -257,7 +277,7 @@ export const Payments = () => {
         <Button
           variant="contained"
           startIcon={<RefreshIcon />}
-          onClick={fetchTransactions}
+          onClick={loadAllData}
           disabled={loading}
           sx={{ bgcolor: '#008cff', '&:hover': { bgcolor: '#0070cc' }, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
         >
@@ -266,52 +286,271 @@ export const Payments = () => {
       </Box>
 
       {/* 4 Summary Stats Mini Cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5, width: '100%' }}>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(0, 140, 255, 0.1)', color: '#008cff', display: 'flex' }}>
-              <PaymentIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+      <Grid container spacing={1.5} alignItems="stretch" sx={{ mb: 2.5, width: '100%' }}>
+        <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              width: '100%',
+              height: '100%',
+              minHeight: { xs: 78, sm: 86 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              borderRadius: 2.5,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              border: '1px solid #E2E8F0',
+              boxSizing: 'border-box',
+            }}
+          >
+            <Box
+              sx={{
+                width: { xs: 40, sm: 44 },
+                height: { xs: 40, sm: 44 },
+                borderRadius: 2,
+                bgcolor: 'rgba(0, 140, 255, 0.1)',
+                color: '#008cff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <PaymentIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
             </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng giao dịch</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, fontSize: { xs: '1rem', sm: '1.25rem' } }}>{totalCount}</Typography>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                  display: 'block',
+                  lineHeight: 1.2,
+                }}
+              >
+                Tổng giao dịch
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  lineHeight: 1.25,
+                  mt: 0.3,
+                  color: 'text.primary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {totalCount}
+              </Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', display: 'flex' }}>
-              <SuccessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+
+        <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              width: '100%',
+              height: '100%',
+              minHeight: { xs: 78, sm: 86 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              borderRadius: 2.5,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              border: '1px solid #E2E8F0',
+              boxSizing: 'border-box',
+            }}
+          >
+            <Box
+              sx={{
+                width: { xs: 40, sm: 44 },
+                height: { xs: 40, sm: 44 },
+                borderRadius: 2,
+                bgcolor: 'rgba(21, 202, 32, 0.15)',
+                color: '#15ca20',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <SuccessIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
             </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Thành công</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#15ca20', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{successCount}</Typography>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                  display: 'block',
+                  lineHeight: 1.2,
+                }}
+              >
+                Thành công
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  color: '#15ca20',
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  lineHeight: 1.25,
+                  mt: 0.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {successCount}
+              </Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 51, 102, 0.15)', color: '#ff3366', display: 'flex' }}>
-              <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+
+        <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
+          <Card
+            sx={{
+              p: { xs: 1.5, sm: 2 },
+              width: '100%',
+              height: '100%',
+              minHeight: { xs: 78, sm: 86 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              borderRadius: 2.5,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              border: '1px solid #E2E8F0',
+              boxSizing: 'border-box',
+            }}
+          >
+            <Box
+              sx={{
+                width: { xs: 40, sm: 44 },
+                height: { xs: 40, sm: 44 },
+                borderRadius: 2,
+                bgcolor: 'rgba(255, 51, 102, 0.15)',
+                color: '#ff3366',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <MoneyIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
             </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tổng GMV</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#ff3366', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                  display: 'block',
+                  lineHeight: 1.2,
+                }}
+              >
+                Tổng GMV
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  color: '#ff3366',
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  lineHeight: 1.25,
+                  mt: 0.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {Number(totalVolume).toLocaleString('vi-VN')} đ
               </Typography>
             </Box>
           </Card>
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(255, 184, 0, 0.15)', color: '#ffb800', display: 'flex' }}>
-              <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Cuốc đã trả</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d97706', fontSize: { xs: '1rem', sm: '1.25rem' } }}>{tripPaymentsCount}</Typography>
-            </Box>
-          </Card>
+
+        <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
+          <Tooltip
+            title={
+              platformFeeRate != null
+                ? `Tổng phí sàn (${platformFeeRate}%) đã ghi nhận từ các giao dịch thành công`
+                : 'Tổng phí sàn đã ghi nhận từ các giao dịch thành công'
+            }
+            arrow
+            placement="top"
+          >
+            <Card
+              sx={{
+                p: { xs: 1.5, sm: 2 },
+                width: '100%',
+                height: '100%',
+                minHeight: { xs: 78, sm: 86 },
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                borderRadius: 2.5,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                border: '1px solid #E2E8F0',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              <Box
+                sx={{
+                  width: { xs: 40, sm: 44 },
+                  height: { xs: 40, sm: 44 },
+                  borderRadius: 2,
+                  bgcolor: 'rgba(255, 184, 0, 0.15)',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <WalletIcon sx={{ fontSize: { xs: 20, sm: 22 } }} />
+              </Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Doanh thu thực nhận
+                  </Typography>
+                  <InfoIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    color: '#d97706',
+                    fontSize: { xs: '1rem', sm: '1.25rem' },
+                    lineHeight: 1.25,
+                    mt: 0.3,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {netRevenue.toLocaleString('vi-VN')} đ
+                </Typography>
+              </Box>
+            </Card>
+          </Tooltip>
         </Grid>
       </Grid>
 

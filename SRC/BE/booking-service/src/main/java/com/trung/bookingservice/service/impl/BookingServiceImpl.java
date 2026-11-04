@@ -1,5 +1,9 @@
 package com.trung.bookingservice.service.impl;
 
+import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.Set;
+
 import com.trung.bookingservice.dto.request.BookingRequest;
 import com.trung.bookingservice.dto.request.PricingRequest;
 import com.trung.bookingservice.dto.response.ApiResponse;
@@ -15,6 +19,7 @@ import com.trung.bookingservice.service.BookingAvatarService;
 import com.trung.bookingservice.service.BookingCustomerService;
 import com.trung.bookingservice.service.BookingService;
 import com.trung.bookingservice.service.DispatchConfigService;
+import com.trung.bookingservice.service.FinancialOutbox;
 import com.trung.bookingservice.service.DriverVehicleService;
 import com.trung.bookingservice.service.client.LocationClient;
 import com.trung.bookingservice.service.client.PricingClient;
@@ -22,8 +27,10 @@ import com.trung.bookingservice.service.client.UserDriverClient;
 import com.trung.bookingservice.util.LocationUtils;
 import com.trung.bookingservice.util.enums.BookingStatus;
 import com.trung.bookingservice.util.enums.DriverStatus;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +45,23 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
+
 import com.trung.bookingservice.util.enums.ReportPeriod;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.trung.bookingservice.service.client.PaymentClient;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BookingServiceImpl implements BookingService {
 
+    private final FinancialOutbox financialOutbox;
+    private final PaymentClient paymentClient;
     private final BookingRepository bookingRepository;
     private final LocationClient locationClient;
     private final SimpMessagingTemplate messagingTemplate;
@@ -231,7 +244,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookingResponse cancelBooking(Long customerId, Long bookingId) throws ResourceNotFoundException, BadRequestException {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithLock(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến đi."));
 
         if (!customerId.equals(booking.getCustomerId())) {
@@ -344,7 +357,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookingResponse cancelBookingByDriver(Long driverId, Long bookingId) throws ResourceNotFoundException, BadRequestException {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithLock(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến đi."));
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             log.warn("Tài xế {} từ chối nhưng cuốc xe {} đã bị hệ thống thu hồi trước đó do hết giờ.", driverId, bookingId);
@@ -460,13 +473,17 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookingResponse updateBookingStatus(Long driverId, Long bookingId, BookingStatus newStatus) throws ResourceNotFoundException, BadRequestException {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithLock(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến đi."));
 
         if (!driverId.equals(booking.getDriverId())) {
             throw new BadRequestException("Tài xế không có quyền thao tác trên chuyến đi này.");
         }
 
+        if (booking.getStatus() == newStatus) return convertToResponse(booking, booking.getDistanceInKm() == null ? 0.0 : booking.getDistanceInKm());
+        if (!((newStatus == BookingStatus.ARRIVED && booking.getStatus() == BookingStatus.ACCEPTED)
+                || (newStatus == BookingStatus.IN_PROGRESS && booking.getStatus() == BookingStatus.ARRIVED)))
+            throw new BadRequestException("Trạng thái chuyến đi không hợp lệ");
         booking.setStatus(newStatus);
         bookingRepository.save(booking);
 
@@ -489,30 +506,22 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookingResponse completeTrip(Long driverId, Long bookingId, String paymentMethod) throws ResourceNotFoundException, BadRequestException {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithLock(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến đi."));
 
         if (!driverId.equals(booking.getDriverId())) {
             throw new BadRequestException("Tài xế không có quyền hoàn thành chuyến đi này.");
         }
 
+        if (booking.getStatus() == BookingStatus.COMPLETED) return convertToResponse(booking, booking.getDistanceInKm() == null ? 0.0 : booking.getDistanceInKm());
+        if (booking.getStatus() != BookingStatus.IN_PROGRESS) throw new BadRequestException("Chỉ hoàn thành chuyến đang chạy");
+        if (!Set.of("CASH", "APP", "WALLET", "MOMO", "VNPAY", "ONLINE").contains(paymentMethod.toUpperCase(Locale.ROOT)))
+            throw new BadRequestException("Phương thức thanh toán không hợp lệ");
         booking.setStatus(BookingStatus.COMPLETED);
         booking.setCompletedAt(LocalDateTime.now());
-        booking.setPaymentMethod(paymentMethod);
+        booking.setPaymentMethod(paymentMethod.toUpperCase(Locale.ROOT));
         bookingRepository.save(booking);
-
-        if ("CASH".equalsIgnoreCase(paymentMethod)) {
-            BookingCompletedEvent event = BookingCompletedEvent.builder()
-                    .bookingId(booking.getId())
-                    .driverId(driverId)
-                    .customerId(booking.getCustomerId())
-                    .amount(booking.getPrice())
-                    .build();
-            kafkaTemplate.send("booking-completed-topic", event);
-            log.info("Chuyến đi {} hoàn thành bằng TIỀN MẶT. Đã gửi Kafka thu phí sàn.", bookingId);
-        } else {
-            log.info("Chuyến đi {} hoàn thành qua APP. Đang chờ khách thanh toán...", bookingId);
-        }
+        financialOutbox.enqueue(bookingId);
 
         userDriverClient.updateDriverStatusInternal(driverId, DriverStatus.ONLINE);
 
@@ -579,7 +588,10 @@ public class BookingServiceImpl implements BookingService {
         report.put("totalRevenue", totalRevenue);
         report.put("cashCollected", cashCollected);
         report.put("appCollected", appCollected);
-        report.put("commissionFee", totalRevenue * 0.20);
+        BigDecimal commissionFee = todayBookings.isEmpty() ? BigDecimal.ZERO
+                : paymentClient.getBookingFees(driverId, todayBookings.stream().map(Booking::getId).toList());
+        report.put("commissionFee", commissionFee);
+        report.put("driverEarnings", BigDecimal.valueOf(totalRevenue).subtract(commissionFee));
 
         return ApiResponse.<Map<String, Object>>builder()
                 .success(true)

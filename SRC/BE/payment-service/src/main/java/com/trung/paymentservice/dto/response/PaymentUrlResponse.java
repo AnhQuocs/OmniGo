@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
+@lombok.NoArgsConstructor
+@lombok.AllArgsConstructor
 @Builder
 public class PaymentUrlResponse {
     private String orderId;

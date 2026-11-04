@@ -58,6 +58,26 @@ public class DriverVehicleService {
         return null;
     }
 
+    public void updateVehicleTypeCache(Long driverId, String vehicleType) {
+        if (driverId == null) return;
+        String cacheKey = VEHICLE_CACHE_PREFIX + driverId;
+        try {
+            if (vehicleType != null && !vehicleType.isBlank()) {
+                redisTemplate.opsForValue().set(cacheKey, vehicleType, 10, TimeUnit.MINUTES);
+                log.info("Đã cập nhật cache vehicleType tài xế {} thành {}", driverId, vehicleType);
+            } else {
+                redisTemplate.delete(cacheKey);
+                log.info("Đã xóa cache vehicleType tài xế {}", driverId);
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi cập nhật cache vehicleType tài xế {}: {}", driverId, e.getMessage());
+        }
+    }
+
+    public void evictVehicleTypeCache(Long driverId) {
+        updateVehicleTypeCache(driverId, null);
+    }
+
     public String normalizeVehicleType(String rawType) {
         if (rawType == null || rawType.isBlank()) {
             return "CAR_4_SEAT";

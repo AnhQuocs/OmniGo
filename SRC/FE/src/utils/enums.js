@@ -3,12 +3,13 @@
  */
 
 export const TRANSACTION_TYPE_MAP = {
-  COMMISSION_FEE: 'Phí sàn (20%)',
+  COMMISSION_FEE: 'Phí hoa hồng sàn',
   DEPOSIT: 'Nạp tiền ví',
   TRIP_PAYMENT: 'Thanh toán cuốc xe',
   TRIP_INCOME: 'Thu nhập cuốc xe',
   FOOD_PAYMENT: 'Thanh toán đơn món',
   FOOD_DELIVERY_INCOME: 'Thu nhập giao món',
+  FOOD_RESTAURANT_INCOME: 'Thu nhập quán ăn',
   WITHDRAWAL: 'Rút tiền ví',
   REFUND: 'Hoàn tiền',
 };

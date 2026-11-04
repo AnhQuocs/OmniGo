@@ -29,6 +29,7 @@ import MerchantMenu from './pages/merchant/MerchantMenu';
 import MerchantSettings from './pages/merchant/MerchantSettings';
 import MerchantMap from './pages/merchant/MerchantMap';
 import MerchantReviews from './pages/merchant/MerchantReviews';
+import MerchantWallet from './pages/merchant/MerchantWallet';
 
 export function App() {
   return (
@@ -78,6 +79,7 @@ export function App() {
                 <Route index element={<Navigate to="/merchant/orders" replace />} />
                 <Route path="orders" element={<MerchantOrders />} />
                 <Route path="analytics" element={<MerchantAnalytics />} />
+                <Route path="wallet" element={<MerchantWallet />} />
                 <Route path="menu" element={<MerchantMenu />} />
                 <Route path="reviews" element={<MerchantReviews />} />
                 <Route path="settings" element={<MerchantSettings />} />

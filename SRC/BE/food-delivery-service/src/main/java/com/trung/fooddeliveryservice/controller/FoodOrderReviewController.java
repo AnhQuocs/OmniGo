@@ -4,6 +4,7 @@ import com.trung.fooddeliveryservice.dto.request.CreateFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.ReplyFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.request.UpdateFoodReviewRequest;
 import com.trung.fooddeliveryservice.dto.response.ApiResponse;
+import com.trung.fooddeliveryservice.dto.response.DriverReviewSummaryResponse;
 import com.trung.fooddeliveryservice.dto.response.FoodReviewResponse;
 import com.trung.fooddeliveryservice.dto.response.RestaurantReviewSummaryResponse;
 import com.trung.fooddeliveryservice.exception.BadRequestException;
@@ -84,6 +85,20 @@ public class FoodOrderReviewController {
         Pageable pageable = PageRequest.of(page, size);
         RestaurantReviewSummaryResponse response = reviewService.getRestaurantReviews(restaurantId, rating, pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách đánh giá quán thành công"));
+    }
+
+    @GetMapping({"/food-reviews/driver/{driverId}", "/food-reviews/driver"})
+    public ResponseEntity<ApiResponse<DriverReviewSummaryResponse>> getDriverReviews(
+            @PathVariable(required = false) Long driverId,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) throws UnauthorizedException {
+        if (driverId == null) {
+            driverId = SecurityUtils.getCurrentUserId();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        DriverReviewSummaryResponse response = reviewService.getDriverReviews(driverId, rating, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách đánh giá tài xế thành công"));
     }
 
     @PostMapping("/food-reviews/{id}/reply")

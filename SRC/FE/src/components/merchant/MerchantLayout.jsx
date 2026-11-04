@@ -29,12 +29,15 @@ import {
   Menu as HamburgerIcon,
   BarChart as AnalyticsIcon,
   Star as StarIcon,
+  LockReset as LockResetIcon,
+  AccountBalanceWallet as WalletIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/authSlice';
 import foodService from '../../services/foodService';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../common/ConfirmDialog';
+import ChangePasswordModal from '../common/ChangePasswordModal';
 
 export const MerchantLayout = () => {
   const navigate = useNavigate();
@@ -55,6 +58,7 @@ export const MerchantLayout = () => {
   const [lastReviewTotal, setLastReviewTotal] = useState(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   // Fetch Current Restaurant Info
   const fetchMyRestaurant = async () => {
@@ -176,6 +180,7 @@ export const MerchantLayout = () => {
   const navItems = [
     { label: 'Đơn hàng', path: '/merchant/orders', icon: <OrderIcon fontSize="small" /> },
     { label: 'Thống kê', path: '/merchant/analytics', icon: <AnalyticsIcon fontSize="small" /> },
+    { label: 'Ví doanh thu', path: '/merchant/wallet', icon: <WalletIcon fontSize="small" /> },
     { label: 'Thực đơn', path: '/merchant/menu', icon: <MenuIcon fontSize="small" /> },
     {
       label: unrepliedReviewCount > 0 ? `Đánh giá (${unrepliedReviewCount})` : 'Đánh giá',
@@ -521,6 +526,9 @@ export const MerchantLayout = () => {
             <MenuItem onClick={() => { setUserAnchor(null); navigate('/merchant/settings'); }} sx={{ fontSize: '0.88rem', fontWeight: 600, gap: 1 }}>
               <SettingsIcon fontSize="small" sx={{ color: '#64748B' }} /> Cài đặt quán
             </MenuItem>
+            <MenuItem onClick={() => { setUserAnchor(null); setChangePasswordOpen(true); }} sx={{ fontSize: '0.88rem', fontWeight: 600, gap: 1 }}>
+              <LockResetIcon fontSize="small" sx={{ color: '#64748B' }} /> Đổi mật khẩu
+            </MenuItem>
             <Divider sx={{ my: 0.5 }} />
             <MenuItem onClick={handleOpenLogoutConfirm} sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#EF4444', gap: 1 }}>
               <LogoutIcon fontSize="small" /> Đăng xuất
@@ -733,6 +741,12 @@ export const MerchantLayout = () => {
         confirmColor="error"
         iconType="logout"
         loading={loggingOut}
+      />
+          {/* CHANGE PASSWORD MODAL */}
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        user={user}
       />
     </Box>
   );
