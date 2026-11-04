@@ -285,7 +285,7 @@
             transition: all 0.2s;
         }
 
-        .momo-btn {
+        .payment-btn {
             background-color: #a50064;
             color: white;
             padding: 8px 15px;
@@ -886,9 +886,7 @@
         <button id="btnCancelTrip" onclick="cancelCurrentTrip(false)" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; display: none; border-radius: 5px;">
             HỦY CHUYẾN ĐI
         </button>
-        <button id="btnPayWallet" class="momo-btn" onclick="payTrip('WALLET')" style="background-color: #16a34a;">💳 Ví OmniPay (Trừ số dư)</button>
-        <button id="btnPayMomo" class="momo-btn" onclick="payTrip('MOMO')">Thanh toán MoMo</button>
-        <button id="btnPayVnpay" class="momo-btn" onclick="payTrip('VNPAY')" style="background-color: #005691;">Thanh toán VNPay</button>
+        <button id="btnPayWallet" class="payment-btn" onclick="payTrip('WALLET')" style="background-color: #16a34a;">💳 Ví OmniPay (Trừ số dư)</button>
     </div>
 
     <h3 style="margin-top: 15px;">Nhật ký hệ thống:</h3>
@@ -1291,8 +1289,6 @@
             <div class="form-group">
                 <label class="form-label">💳 Kênh nạp tiền</label>
                 <select id="cust-deposit-method" class="form-control">
-                    <option value="DIRECT">⚡ Nạp Trực Tiếp (Mô phỏng tức thì vào ví)</option>
-                    <option value="MOMO">📱 Cổng MoMo (Mở trang thanh toán)</option>
                     <option value="VNPAY">💳 Cổng VNPay (Mở trang thanh toán)</option>
                 </select>
             </div>
@@ -1413,8 +1409,6 @@
             <select id="order-payment-method" class="form-control">
                 <option value="CASH">💵 Tiền mặt khi nhận hàng (COD)</option>
                 <option value="WALLET">💳 Ví OmniPay (Trừ số dư ví)</option>
-                <option value="MOMO">📱 Ví Điện Tử MoMo</option>
-                <option value="VNPAY">💳 Cổng VNPay</option>
             </select>
         </div>
 
@@ -5266,8 +5260,6 @@
         const card = document.getElementById('trip-card');
         const text = document.getElementById('trip-status-text');
         const btnCancel = document.getElementById('btnCancelTrip');
-        const btnMomo = document.getElementById('btnPayMomo');
-        const btnVnpay = document.getElementById('btnPayVnpay');
         const btnWallet = document.getElementById('btnPayWallet');
 
         card.style.display = 'block';
@@ -5277,8 +5269,6 @@
             card.style.borderColor = "#c8e1b7";
             text.innerHTML = `Đang tìm tài xế gần bạn nhất...`;
             btnCancel.style.display = "inline-block";
-            btnMomo.style.display = "none";
-            btnVnpay.style.display = "none";
             if (btnWallet) btnWallet.style.display = "none";
             startCustomerTimer(30);
         } else if (event.status === 'ACCEPTED' || event.status === 'DRIVER_ASSIGNED') {
@@ -5289,8 +5279,6 @@
             card.style.borderColor = "#c8e1b7";
             text.innerHTML = `🎉 <b>Tài xế #${event.driverId}</b> đã nhận chuyến! Đang đến đón bạn.`;
             btnCancel.style.display = "inline-block";
-            btnMomo.style.display = "none";
-            btnVnpay.style.display = "none";
             if (btnWallet) btnWallet.style.display = "none";
             logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã nhận chuyến.`);
         } else if (event.status === 'ARRIVED') {
@@ -5301,8 +5289,6 @@
             card.style.borderColor = "#c8e1b7";
             text.innerHTML = `🚖 <b>Tài xế #${event.driverId}</b> đã đến điểm đón! Vui lòng lên xe.`;
             btnCancel.style.display = "inline-block";
-            btnMomo.style.display = "none";
-            btnVnpay.style.display = "none";
             if (btnWallet) btnWallet.style.display = "none";
             logSystem(event.bookingId || currentBookingId, event.status, `Tài xế #${event.driverId} đã đến điểm đón.`);
         } else if (event.status === 'IN_PROGRESS') {
@@ -5311,8 +5297,6 @@
             card.style.backgroundColor = "#e2f0d9";
             card.style.borderColor = "#c8e1b7";
             btnCancel.style.display = "none";
-            btnMomo.style.display = "none";
-            btnVnpay.style.display = "none";
             if (btnWallet) btnWallet.style.display = "none";
             text.innerHTML = `🚕 Chuyến đi đang diễn ra. Chúc bạn có trải nghiệm an toàn!`;
             logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi đang diễn ra.`);
@@ -5333,8 +5317,6 @@
             }
 
             if (event.paymentMethod === 'CASH') {
-                btnMomo.style.display = "none";
-                btnVnpay.style.display = "none";
                 if (btnWallet) btnWallet.style.display = "none";
                 text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế.${discountInfo}<br><div style="margin-top:8px;"><button onclick="openRideReviewModal(${event.bookingId || currentBookingId})" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Chuyến Đi</button></div>`;
                 logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
@@ -5347,8 +5329,6 @@
                     updateRidePricingDisplay();
                 }, 6000);
             } else {
-                btnMomo.style.display = "inline-block";
-                btnVnpay.style.display = "inline-block";
                 if (btnWallet) btnWallet.style.display = "inline-block";
                 text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b> Cước phí cần thanh toán: <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b>.${discountInfo}<br><span style="font-size:13px; color:#475569;">Vui lòng chọn phương thức thanh toán bên dưới:</span>`;
                 logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất. Cước phí: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
@@ -5357,8 +5337,6 @@
             clearInterval(customerTimerInterval);
             document.getElementById('customer-timer').style.display = "none";
             btnCancel.style.display = "none";
-            btnMomo.style.display = "none";
-            btnVnpay.style.display = "none";
             if (btnWallet) btnWallet.style.display = "none";
             card.style.backgroundColor = "#fee2e2";
             card.style.borderColor = "#fca5a5";
@@ -5416,8 +5394,6 @@
         const card = document.getElementById('trip-card');
         const text = document.getElementById('trip-status-text');
         const btnCancel = document.getElementById('btnCancelTrip');
-        const btnMomo = document.getElementById('btnPayMomo');
-        const btnVnpay = document.getElementById('btnPayVnpay');
         const btnWallet = document.getElementById('btnPayWallet');
 
         // Hiển thị trạng thái đang khởi tạo
@@ -5426,8 +5402,6 @@
         card.style.borderColor = "#c8e1b7";
         text.innerText = "Đang gửi yêu cầu đặt xe tới hệ thống...";
         btnCancel.style.display = "none";
-        btnMomo.style.display = "none";
-        btnVnpay.style.display = "none";
         if (btnWallet) btnWallet.style.display = "none";
 
         return fetchWithAuth(`${API_BASE_URL}/api/v1/bookings`, {
@@ -5569,8 +5543,6 @@
                     if (status === 'SUCCESS') {
                         clearInterval(paymentCheckInterval);
                         if (document.getElementById('btnPayWallet')) document.getElementById('btnPayWallet').style.display = "none";
-                        if (document.getElementById('btnPayMomo')) document.getElementById('btnPayMomo').style.display = "none";
-                        if (document.getElementById('btnPayVnpay')) document.getElementById('btnPayVnpay').style.display = "none";
                         document.getElementById('trip-status-text').innerHTML = `🎉 <b>THANH TOÁN THÀNH CÔNG!</b> Cảm ơn bạn đã sử dụng dịch vụ.`;
                         logSystem(bookingId, 'PAID', 'Thanh toán cước chuyến đi thành công.');
                         alert("🎉 Thanh toán chuyến đi thành công!");
@@ -5725,44 +5697,23 @@
         const amount = parseFloat(amountInput.value);
         if (isNaN(amount) || amount <= 0) return alert("Vui lòng nhập số tiền nạp hợp lệ (> 0 đ)!");
 
-        const method = document.getElementById('cust-deposit-method').value;
+        const method = 'VNPAY';
 
-        if (method === 'DIRECT') {
-            try {
-                let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/wallet/deposit?amount=${amount}&note=Nạp tiền trực tiếp vào ví`, {
-                    method: 'POST',
-                    headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
-                });
-                let data = await res.json();
-                if (res.ok) {
-                    alert(`🎉 Nạp thành công +${amount.toLocaleString('vi-VN')} đ vào ví OmniPay!`);
-                    fetchCustomerWallet(true);
-                    fetchCustomerTransactions();
-                    switchCustomerWalletTab('history');
-                } else {
-                    alert("❌ Lỗi nạp tiền: " + (data.message || 'Không thể nạp tiền'));
-                }
-            } catch (err) {
-                alert("Lỗi kết nối khi nạp tiền: " + err.message);
+        try {
+            let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${method}&type=CUSTOMER_DEPOSIT&amount=${amount}`, {
+                method: 'POST',
+                headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
+            });
+            let data = await res.json();
+            if (res.ok && data.paymentUrl) {
+                window.open(data.paymentUrl, '_blank');
+                alert(`🚀 Đang chuyển hướng tới cổng ${method} để nạp ${amount.toLocaleString('vi-VN')} đ.\nVui lòng hoàn tất thanh toán trên tab mới mở.`);
+                switchCustomerWalletTab('history');
+            } else {
+                alert("❌ Lỗi mở cổng thanh toán: " + (data.message || 'Không thể tạo liên kết nạp tiền'));
             }
-        } else {
-            // MOMO / VNPAY online deposit
-            try {
-                let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/payments/payment/create?method=${method}&type=CUSTOMER_DEPOSIT&amount=${amount}`, {
-                    method: 'POST',
-                    headers: { 'X-User-Id': customerId.toString(), 'X-User-Role': 'CUSTOMER' }
-                });
-                let data = await res.json();
-                if (res.ok && data.paymentUrl) {
-                    window.open(data.paymentUrl, '_blank');
-                    alert(`🚀 Đang chuyển hướng tới cổng ${method} để nạp ${amount.toLocaleString('vi-VN')} đ.\nVui lòng hoàn tất thanh toán trên tab mới mở.`);
-                    switchCustomerWalletTab('history');
-                } else {
-                    alert("❌ Lỗi mở cổng thanh toán: " + (data.message || 'Không thể tạo liên kết nạp tiền'));
-                }
-            } catch (err) {
-                alert("Lỗi kết nối cổng thanh toán: " + err.message);
-            }
+        } catch (err) {
+            alert("Lỗi kết nối cổng thanh toán: " + err.message);
         }
     }
 

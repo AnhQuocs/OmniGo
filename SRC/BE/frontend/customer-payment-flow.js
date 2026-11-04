@@ -47,10 +47,10 @@ function refreshOutstanding() {
             const row = document.createElement('div');
             row.textContent = `${order.kind === 'FOOD' ? 'Đồ ăn' : 'Chuyến xe'} #${order.id}: ${Number(order.amount || 0).toLocaleString('vi-VN')} đ — ${order.method === 'CASH' ? 'Tiền mặt' : (order.method || 'Chưa rõ phương thức')} — ${order.status} — ${order.payable ? 'Chưa xác nhận thanh toán' : 'Đang chờ hoàn tất đơn / thu tiền'}. `;
             if (order.payable) {
-                const methods = ['WALLET', 'MOMO', 'VNPAY'].includes(order.method) ? [order.method] : ['WALLET', 'MOMO', 'VNPAY'];
+                const methods = ['WALLET'];
                 for (const method of methods) {
                     const button = document.createElement('button');
-                    button.textContent = `Thanh toán / tiếp tục ${method}`;
+                    button.textContent = 'Thanh toán bằng ví OmniPay';
                     button.onclick = async () => {
                         button.disabled = true;
                         try { await payExistingOrder(order, method); } finally { button.disabled = false; }
@@ -83,15 +83,10 @@ function bookRide() { return guardedOrder(bookRideUnchecked); }
 function submitFoodOrder() { return guardedOrder(submitFoodOrderUnchecked); }
 
 async function payExistingOrder(order, method) {
-    // Open synchronously from the click so browsers do not block the gateway tab.
-    const popup = method !== 'WALLET' ? window.open('about:blank', '_blank') : null;
-    if (popup) popup.opener = null;
-    let navigated = false;
+    method = 'WALLET';
     try {
-        const confirmed = await customerPayments.pay(order, method, url => {
-            if (!popup) throw new Error('Trình duyệt chặn tab thanh toán. Hãy cho phép cửa sổ bật lên rồi bấm tiếp tục.');
-            popup.location.replace(url);
-            navigated = true;
+        const confirmed = await customerPayments.pay(order, method, () => {
+            throw new Error('Đơn đang có giao dịch qua cổng thanh toán cần được xác minh trước khi trả bằng ví OmniPay.');
         });
         if (confirmed) {
             alert('Đã xác nhận thanh toán thành công. Hệ thống đang cập nhật đơn và ví.');
@@ -104,13 +99,11 @@ async function payExistingOrder(order, method) {
                 assignedDriverId = null;
             }
         } else {
-            alert('Chưa xác nhận thanh toán. Mở cổng thanh toán không có nghĩa đã trả tiền; hãy hoàn tất giao dịch. Đơn mới vẫn bị khóa.');
+            alert('Chưa xác nhận thanh toán bằng ví OmniPay. Vui lòng kiểm tra số dư và trạng thái giao dịch trước khi thử lại.');
         }
         await refreshOutstanding();
     } catch (error) {
         alert(`${error.message}\nKhông tạo lại đơn hoặc đổi phương thức khi giao dịch đang xử lý. Hệ thống sẽ kiểm tra lại trạng thái.`);
-    } finally {
-        if (popup && !navigated) popup.close();
     }
 }
 window.addEventListener('load', () => refreshOutstanding().catch(() => {}));
