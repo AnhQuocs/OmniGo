@@ -1,5 +1,6 @@
 package com.trung.bookingservice.dto.request;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +19,9 @@ public class BookingRequest {
 
     @NotNull(message = "Điểm đến không được để trống")
     private Double endLatitude;
+
+    @Pattern(regexp = "CASH|WALLET")
+    private String paymentMethod = "CASH";
 
     private String vehicleType;
     private String pickupAddress;

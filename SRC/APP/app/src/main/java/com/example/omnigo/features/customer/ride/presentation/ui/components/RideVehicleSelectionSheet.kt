@@ -106,6 +106,8 @@ fun RideVehicleSelectionSheet(
     isCalculating: Boolean,
     onSelectVehicle: (VehicleType) -> Unit,
     onConfirmBooking: () -> Unit,
+    selectedPaymentMethod: String = "CASH",
+    onSelectPaymentMethod: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -155,6 +157,18 @@ fun RideVehicleSelectionSheet(
 
             Spacer(modifier = Modifier.height(AppSpacing.S))
 
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)) {
+                androidx.compose.material3.FilterChip(
+                    selected = selectedPaymentMethod == "CASH",
+                    onClick = { onSelectPaymentMethod("CASH") },
+                    label = { Text("Tiền mặt") }
+                )
+                androidx.compose.material3.FilterChip(
+                    selected = selectedPaymentMethod == "WALLET",
+                    onClick = { onSelectPaymentMethod("WALLET") },
+                    label = { Text("Ví OmniPay · trả trước") }
+                )
+            }
             // Payment and Voucher row (Xanh SM style)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -176,7 +190,7 @@ fun RideVehicleSelectionSheet(
                     )
                     Spacer(modifier = Modifier.width(AppSpacing.XS))
                     Text(
-                        text = stringResource(id = R.string.ride_payment_cash_label),
+                        text = if (selectedPaymentMethod == "WALLET") "Ví OmniPay" else stringResource(id = R.string.ride_payment_cash_label),
                         style = MaterialTheme.typography.s14.semiBold(),
                         color = TextPrimary
                     )

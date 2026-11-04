@@ -91,6 +91,7 @@ public class BookingServiceImpl implements BookingService {
         boolean hasActiveBooking = bookingRepository.existsByCustomerIdAndStatusIn(
                 customerId,
                 List.of(
+                        BookingStatus.AWAITING_PAYMENT,
                         BookingStatus.PENDING,
                         BookingStatus.ACCEPTED,
                         BookingStatus.ARRIVED,
@@ -153,7 +154,9 @@ public class BookingServiceImpl implements BookingService {
                 .startLatitude(request.getStartLatitude())
                 .endLongitude(request.getEndLongitude())
                 .endLatitude(request.getEndLatitude())
-                .status(BookingStatus.PENDING)
+                .status("WALLET".equals(request.getPaymentMethod()) ? BookingStatus.AWAITING_PAYMENT : BookingStatus.PENDING)
+                .paymentMethod(request.getPaymentMethod() == null ? "CASH" : request.getPaymentMethod())
+                .prepaid("WALLET".equals(request.getPaymentMethod()))
                 .price(pricingInfo.getTotalPrice())
                 .vehicleType(request.getVehicleType())
                 .distanceInKm(pricingInfo.getDistanceInKm())
@@ -165,6 +168,11 @@ public class BookingServiceImpl implements BookingService {
         log.info("Khách hàng {} đặt xe (Loại: {}). Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
                 customerId, request.getVehicleType(), String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice(), maxRideRadius);
 
+        if (booking.isPrepaid()) return convertToResponse(booking, booking.getDistanceInKm());
+        return dispatchBooking(booking, maxRideRadius, allNearbyDrivers);
+    }
+
+    private BookingResponse dispatchBooking(Booking booking, Double maxRideRadius, List<DriverNearbyResponse> allNearbyDrivers) {
         double[] searchRadiuses = (maxRideRadius <= 3.0)
                 ? new double[]{maxRideRadius}
                 : ((maxRideRadius <= 6.0) ? new double[]{3.0, maxRideRadius} : new double[]{3.0, 5.0, maxRideRadius});
@@ -180,9 +188,9 @@ public class BookingServiceImpl implements BookingService {
 
                 // 1. Kiểm tra loại phương tiện của tài xế có khớp với yêu cầu cuốc xe không
                 String driverVehicleType = driverVehicleService.getDriverVehicleType(driverId);
-                if (!driverVehicleService.isVehicleTypeMatching(request.getVehicleType(), driverVehicleType)) {
+                if (!driverVehicleService.isVehicleTypeMatching(booking.getVehicleType(), driverVehicleType)) {
                     log.info("Bỏ qua tài xế ID {} vì loại xe ({}) không khớp với yêu cầu cuốc ({})",
-                            driverId, driverVehicleType, request.getVehicleType());
+                            driverId, driverVehicleType, booking.getVehicleType());
                     continue;
                 }
 
@@ -215,7 +223,7 @@ public class BookingServiceImpl implements BookingService {
                             "booking:driver:" + booking.getId(), driverId.toString(), 20, TimeUnit.SECONDS
                     );
 
-                    BookingResponse response = convertToResponse(booking, pricingInfo.getDistanceInKm());
+                    BookingResponse response = convertToResponse(booking, booking.getDistanceInKm());
 
                     // Bắn WebSocket mời nhận cuốc
                     messagingTemplate.convertAndSendToUser(
@@ -233,14 +241,32 @@ public class BookingServiceImpl implements BookingService {
                 }
             }
 
-            log.info("Khách hàng {}: Không có tài xế rảnh trong bán kính {} km, đang mở rộng bán kính...", customerId, radius);
+            log.info("Khách hàng {}: Không có tài xế rảnh trong bán kính {} km, đang mở rộng bán kính...", booking.getCustomerId(), radius);
         }
 
         // Nếu quét hết các nấc bán kính mà vẫn không giành được tài xế nào
         log.warn("Đã mở rộng đến bán kính tối đa {} km nhưng không có tài xế nào rảnh.", maxRideRadius);
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-        return convertToResponse(booking, pricingInfo.getDistanceInKm());
+        financialOutbox.enqueue(booking.getId());
+        return convertToResponse(booking, booking.getDistanceInKm());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public BookingResponse markPrepaid(Long id) throws ResourceNotFoundException {
+        Booking booking = bookingRepository.findByIdWithLock(id).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến"));
+        if (booking.getStatus() != BookingStatus.AWAITING_PAYMENT || !booking.isPrepaid())
+            return convertToResponse(booking, booking.getDistanceInKm());
+        booking.setPaid(true);
+        booking.setStatus(BookingStatus.PENDING);
+        bookingRepository.saveAndFlush(booking);
+        double radius = dispatchConfigService.getMaxRideDistanceKm();
+        return dispatchBooking(booking, radius, locationClient.getNearbyDrivers(booking.getStartLongitude(), booking.getStartLatitude(), radius));
+    }
+
+    public BookingResponse currentResponse(Long id) {
+        Booking booking = bookingRepository.findById(id).orElseThrow();
+        return convertToResponse(booking, booking.getDistanceInKm());
     }
 
     @Override
@@ -253,7 +279,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Bạn không có quyền thao tác trên chuyến đi này.");
         }
 
-        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.ACCEPTED) {
+        if (booking.getStatus() != BookingStatus.AWAITING_PAYMENT && booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.ACCEPTED) {
             throw new BadRequestException("Không thể hủy chuyến đi này. Trạng thái hiện tại: " + booking.getStatus());
         }
 
@@ -517,6 +543,8 @@ public class BookingServiceImpl implements BookingService {
 
         if (booking.getStatus() == BookingStatus.COMPLETED) return convertToResponse(booking, booking.getDistanceInKm() == null ? 0.0 : booking.getDistanceInKm());
         if (booking.getStatus() != BookingStatus.IN_PROGRESS) throw new BadRequestException("Chỉ hoàn thành chuyến đang chạy");
+        if (booking.getPaymentMethod() != null) paymentMethod = booking.getPaymentMethod();
+        if (booking.isPrepaid() && !booking.isPaid()) throw new BadRequestException("Chuyến chưa thanh toán");
         if (!Set.of("CASH", "APP", "WALLET", "MOMO", "VNPAY", "ONLINE").contains(paymentMethod.toUpperCase(Locale.ROOT)))
             throw new BadRequestException("Phương thức thanh toán không hợp lệ");
         booking.setStatus(BookingStatus.COMPLETED);
@@ -738,6 +766,7 @@ public class BookingServiceImpl implements BookingService {
                 .price(booking.getPrice())
                 .vehicleType(booking.getVehicleType())
                 .paymentMethod(booking.getPaymentMethod())
+                .prepaid(booking.isPrepaid()).paid(booking.isPaid())
                 .pickupAddress(pickup)
                 .dropoffAddress(dropoff)
                 .createdAt(booking.getCreatedAt())

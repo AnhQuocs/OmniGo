@@ -27,6 +27,8 @@ public class BookingResponse {
     private Double price;
     private String vehicleType;
     private String paymentMethod;
+    private boolean prepaid;
+    private boolean paid;
     private String pickupAddress;
     private String dropoffAddress;
     private LocalDateTime createdAt;

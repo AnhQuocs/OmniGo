@@ -854,6 +854,11 @@
                     <span id="ride-discount-tag" style="display:none; background:#fee2e2; color:#dc2626; font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">-0 đ</span>
                 </div>
             </div>
+            <label for="ride-payment-method">Thanh toán chuyến xe</label>
+            <select id="ride-payment-method" class="form-control">
+                <option value="CASH">Tiền mặt khi đến nơi</option>
+                <option value="WALLET">Ví OmniPay · trừ ví khi đặt xe</option>
+            </select>
             <button id="btnBook" class="btn-action" onclick="bookRide()" style="background-color: #28a745; color: white; padding: 12px 28px; font-size: 16px; font-weight: 800; border-radius: 8px; box-shadow: 0 4px 12px rgba(40,167,69,0.3); cursor:pointer;">
                 🚕 ĐẶT XE NGAY
             </button>
@@ -5316,9 +5321,9 @@
                 discountInfo = `<br><span style="font-size:12px; color:#16a34a;">(Đã áp voucher [${appliedRideVoucher.voucher?.code}]: Giảm -${discount.toLocaleString('vi-VN')} đ)</span>`;
             }
 
-            if (event.paymentMethod === 'CASH') {
+            if (event.paymentMethod === 'CASH' || (event.prepaid && event.paid)) {
                 if (btnWallet) btnWallet.style.display = "none";
-                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>TIỀN MẶT</b> cho tài xế.${discountInfo}<br><div style="margin-top:8px;"><button onclick="openRideReviewModal(${event.bookingId || currentBookingId})" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Chuyến Đi</button></div>`;
+                text.innerHTML = `🏁 <b>Chuyến đi hoàn tất!</b><br>Bạn đã thanh toán <b>${effectiveTripPrice.toLocaleString('vi-VN')} đ</b> bằng <b>${event.prepaid && event.paid ? "VÍ OMNIPAY (ĐÃ TRẢ TRƯỚC)" : "TIỀN MẶT"}</b>.${discountInfo}<br><div style="margin-top:8px;"><button onclick="openRideReviewModal(${event.bookingId || currentBookingId})" style="background:#f59e0b; color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">⭐ Đánh Giá Chuyến Đi</button></div>`;
                 logSystem(event.bookingId || currentBookingId, event.status, `Chuyến đi hoàn tất bằng TIỀN MẶT: ${effectiveTripPrice.toLocaleString('vi-VN')} đ.`);
 
                 setTimeout(() => {
@@ -5388,7 +5393,8 @@
             endLongitude: endPoint[1],
             pickupAddress: pickupAddr,
             dropoffAddress: dropoffAddr,
-            vehicleType: currentVehicleType
+            vehicleType: currentVehicleType,
+            paymentMethod: document.getElementById("ride-payment-method").value
         };
 
         const card = document.getElementById('trip-card');
@@ -5432,6 +5438,12 @@
                     }
 
                     currentBookingId = booking.id || booking.bookingId;
+                    fetchCustomerWallet(true);
+                    if (booking.status === "AWAITING_PAYMENT") {
+                        text.textContent = "Đang xác nhận thanh toán ví OmniPay trước khi tìm tài xế...";
+                        btnCancel.style.display = "inline-block";
+                        return;
+                    }
                     card.style.backgroundColor = "#e2f0d9";
                     card.style.borderColor = "#c8e1b7";
                     text.innerText = "Đang quét tìm tài xế gần bạn...";

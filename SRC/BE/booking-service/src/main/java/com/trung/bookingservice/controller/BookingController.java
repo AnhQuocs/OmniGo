@@ -1,5 +1,6 @@
 package com.trung.bookingservice.controller;
 
+import com.trung.bookingservice.service.RidePrepaymentWorker;
 import com.trung.bookingservice.dto.request.BookingRequest;
 import com.trung.bookingservice.dto.response.ApiResponse;
 import com.trung.bookingservice.dto.response.BookingResponse;
@@ -32,6 +33,7 @@ public class BookingController {
 
     private final com.trung.bookingservice.service.OrderCreationGuard creationGuard;
     private final BookingServiceImpl bookingService;
+    private final RidePrepaymentWorker prepayments;
     private final FoodDeliveryDispatchService foodDeliveryDispatchService;
     private final BookingDriverService bookingDriverService;
 
@@ -55,8 +57,10 @@ public class BookingController {
             @RequestHeader("X-User-Id") Long customerId,
             @Valid @RequestBody BookingRequest request) throws BadRequestException {
 
-        return ResponseEntity.ok(creationGuard.create(customerId, key, request, BookingResponse.class,
-                BookingResponse::getBookingId, () -> bookingService.createBooking(customerId, request)));
+        BookingResponse created = creationGuard.create(customerId, key, request, BookingResponse.class,
+                BookingResponse::getBookingId, () -> bookingService.createBooking(customerId, request));
+        prepayments.pay(created.getBookingId());
+        return ResponseEntity.ok(bookingService.currentResponse(created.getBookingId()));
     }
 
     @PutMapping("/{bookingId}/accept")
