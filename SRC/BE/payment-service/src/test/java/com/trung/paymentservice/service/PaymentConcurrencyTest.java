@@ -90,6 +90,66 @@ class PaymentConcurrencyTest {
         } finally { pool.shutdownNow(); }
     }
     private void balance(Long walletId, String amount) { assertEquals(0, wallets.findById(walletId).orElseThrow().getBalance().compareTo(new BigDecimal(amount))); }
+    @Test void legacyTypeConstraintRollsBackOnlinePayoutUntilMigrationThenRetrySettlesOnce() throws Exception {
+        var jdbc=new JdbcTemplate(context.getBean(DataSource.class));
+        Wallet customer=wallet(1,UserType.CUSTOMER,"0"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        payment(customer,"paid",TransactionType.FOOD_PAYMENT,TransactionStatus.SUCCESS,"120000");
+        jdbc.execute("alter table transactions drop constraint if exists transactions_transaction_type_check");
+        jdbc.execute("alter table transactions add constraint transactions_transaction_type_check check (transaction_type in ('DEPOSIT','TRIP_PAYMENT','TRIP_INCOME','COMMISSION_FEE','WITHDRAWAL','FOOD_PAYMENT','FOOD_DELIVERY_INCOME','REFUND'))");
+        try {
+            when(orders.get(true,99L)).thenReturn(order("COMPLETED","MOMO"));
+            var failure=assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> workflow.reconcile(true,99L));
+            assertTrue(failure.getMostSpecificCause().getMessage().contains("transactions_transaction_type_check"));
+            balance(driver.getId(),"0"); balance(restaurant.getId(),"0");
+            assertEquals(1,txs.count());
+        } finally {
+            // Apply the real upgrade to the legacy schema, not Hibernate's fresh schema.
+            try (var input=new org.springframework.core.io.ClassPathResource("db/migration/V6__update_transaction_type_check.sql").getInputStream()) {
+                String sql=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+                context.getBean(TransactionTemplate.class).executeWithoutResult(status -> jdbc.execute(sql));
+            }
+        }
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
+        assertEquals(5,txs.count());
+        assertEquals(2,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.COMMISSION_FEE).count());
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbc.update("update transactions set transaction_type='INVALID' where order_id='paid'"));
+    }
+    @Test void vnpayFoodPaidBeforeDriverAssignmentSettlesAfterDelivery() throws Exception {
+        foodPaidBeforeDriverAssignment(PaymentMethod.VNPAY);
+    }
+    @Test void walletFoodPaidBeforeDriverAssignmentSettlesAfterDelivery() throws Exception {
+        foodPaidBeforeDriverAssignment(PaymentMethod.WALLET);
+    }
+    private void foodPaidBeforeDriverAssignment(PaymentMethod method) throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        var awaiting=order("AWAITING_PAYMENT",method.name());
+        awaiting.put("driverId",null);
+        when(orders.get(true,99L)).thenReturn(awaiting);
+        Transaction tx;
+        if (method == PaymentMethod.WALLET) {
+            var response=context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("120000"),"FOOD_PAYMENT");
+            tx=txs.findByOrderId(response.getOrderId()).orElseThrow();
+        } else {
+            tx=payment(customer,"before-driver",TransactionType.FOOD_PAYMENT,TransactionStatus.PENDING,"120000");
+            tx.setPaymentMethod(method); tx.setDriverId(null); tx=txs.save(tx);
+            workflow.accept(tx.getOrderId(),method,new BigDecimal("120000"),"gateway-confirmed",true);
+        }
+        workflow.fulfill(tx.getId());
+        assertTrue(txs.findById(tx.getId()).orElseThrow().isFulfillmentDone());
+        balance(driver.getId(),"0"); balance(restaurant.getId(),"0");
+        for (String status : List.of("PENDING","PREPARING","READY_FOR_PICKUP","DELIVERING")) {
+            when(orders.get(true,99L)).thenReturn(order(status,method.name()));
+            workflow.reconcile(true,99L);
+            balance(driver.getId(),"0"); balance(restaurant.getId(),"0");
+        }
+        when(orders.get(true,99L)).thenReturn(order("COMPLETED",method.name()));
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
+        assertEquals(2,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.COMMISSION_FEE).count());
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.FOOD_DELIVERY_INCOME).count());
+    }
     @Test void rejectedCreationSurvivesRollbackAndNeverOverwritesSuccessfulCallback() {
         var outer = context.getBean(TransactionTemplate.class);
         var store = context.getBean(PendingPaymentStore.class);

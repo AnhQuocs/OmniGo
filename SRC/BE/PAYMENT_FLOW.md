@@ -33,6 +33,11 @@
 
 ## Khôi phục khi lỗi
 
+- Online đã COMPLETED nhưng outbox báo `InternalServerError`, còn CASH quyết toán được: kiểm tra `transactions_transaction_type_check` trong payment DB. Schema cũ có thể thiếu `FOOD_RESTAURANT_INCOME`; khi ghi doanh thu quán, PostgreSQL từ chối và rollback cả quyết toán quán/tài xế. Migration payment `V6__update_transaction_type_check.sql` cập nhật ràng buộc, giữ nguyên sổ giao dịch. Deploy payment-service để Flyway chạy V6; các đơn còn trong outbox sẽ tự retry sau khoảng 30 giây khi các dịch vụ hoạt động. Không xóa outbox, sửa số dư hay đổi `fulfillment_done` của giao dịch thanh toán để xử lý lỗi này.
+
+- Local báo `relation "financial_outbox" already exists` khi chạy V20: cập nhật code và khởi động lại booking/food. V20 và V21 dùng `CREATE TABLE IF NOT EXISTS`, giữ dữ liệu của bảng đã tạo trước khi Flyway ghi lịch sử. Không xóa bảng hoặc tắt Flyway. Bản sửa này áp dụng khi V20/V21 chưa được ghi thành công; môi trường đã áp dụng bản SQL cũ cần kiểm tra cấu trúc và checksum trước khi triển khai, không tự động chạy `repair`.
+- Sửa lỗi khởi động không tự thêm các đơn lịch sử vào hàng đợi trống. Các đơn cũ cần kiểm tra giao dịch thành công, hoàn tiền và bút toán chi trả trước khi yêu cầu đối soát lại.
+
 - Bảng `financial_outbox` của booking/food lưu mã đơn cần đối soát cùng giao dịch thay đổi trạng thái. Worker gửi lại sau lỗi; các cột `attempts`, `next_attempt_at`, `last_error` hỗ trợ theo dõi.
 - Payment đã nhận IPN thành công được lưu `SUCCESS` trước khi đồng bộ đơn/quyết toán. Các cột `fulfillment_done`, `fulfillment_attempts`, `fulfillment_next_attempt_at` trong `transactions` lưu tiến độ. Lỗi mạng/Redis giữ công việc để thử lại.
 - Không xóa bản ghi chờ để giải quyết lỗi. Sửa kết nối/token/dữ liệu rồi để worker chạy lại. Không sửa số dư ví bằng tay.
