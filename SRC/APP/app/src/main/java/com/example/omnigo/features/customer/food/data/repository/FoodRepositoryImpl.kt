@@ -84,7 +84,7 @@ class FoodRepositoryImpl @Inject constructor(
 
     override suspend fun createFoodOrder(command: FoodOrderCreateCommand): CreateFoodOrderResult {
         val itemsFingerprint = command.items.map { "${it.menuItemId}x${it.quantity}" }.sorted().joinToString()
-        val fingerprint = "FOOD_${command.restaurantId}_${itemsFingerprint}_${command.dropOffLatitude}_${command.dropOffLongitude}"
+        val fingerprint = "FOOD_${command.restaurantId}_${itemsFingerprint}_${command.dropOffLatitude}_${command.dropOffLongitude}_${command.paymentMethod.code}_${command.voucherCode}"
         val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER, fingerprint)
         return try {
             val response = foodApi.createFoodOrder(idempotencyKey = key, request = command.toRequest())

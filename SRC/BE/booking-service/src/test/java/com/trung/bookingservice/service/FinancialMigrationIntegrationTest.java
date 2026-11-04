@@ -39,8 +39,10 @@ class FinancialMigrationIntegrationTest {
             }
             var flyway = Flyway.configure().dataSource(ds).schemas(schema).baselineVersion("19").load();
             flyway.baseline();
-            assertEquals(3, flyway.migrate().migrationsExecuted);
+            assertEquals(4, flyway.migrate().migrationsExecuted);
             flyway.validate();
+            assertEquals(0, jdbc.queryForObject("select discount_amount from bookings where id=1", java.math.BigDecimal.class).signum());
+            assertNull(jdbc.queryForObject("select original_amount from bookings where id=1", java.math.BigDecimal.class));
             assertEquals(false, jdbc.queryForObject("select prepaid from bookings where id=1", Boolean.class));
             jdbc.update("insert into bookings(id,status,prepaid) values (2,'AWAITING_PAYMENT',true)");
             assertEquals(0, flyway.migrate().migrationsExecuted);

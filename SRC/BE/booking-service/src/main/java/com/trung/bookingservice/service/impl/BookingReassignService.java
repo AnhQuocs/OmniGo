@@ -129,6 +129,7 @@ public class BookingReassignService {
                             .status(currentBooking.getStatus())
                             .distanceInKm(distanceInKm)
                             .price(currentBooking.getPrice())
+                    .originalAmount(currentBooking.getOriginalAmount()).discountAmount(currentBooking.getDiscountAmount()).voucherCode(currentBooking.getVoucherCode())
                             .paymentMethod(currentBooking.getPaymentMethod())
                             .prepaid(currentBooking.isPrepaid()).paid(currentBooking.isPaid())
                             .pickupAddress(currentBooking.getPickupAddress())
@@ -166,6 +167,7 @@ public class BookingReassignService {
                     .endLatitude(finalBooking.getEndLatitude())
                     .distanceInKm(0.0)
                     .price(finalBooking.getPrice())
+                    .originalAmount(finalBooking.getOriginalAmount()).discountAmount(finalBooking.getDiscountAmount()).voucherCode(finalBooking.getVoucherCode())
                     .pickupAddress(finalBooking.getPickupAddress())
                     .dropoffAddress(finalBooking.getDropoffAddress())
                     .status(BookingStatus.CANCELLED)
@@ -176,7 +178,7 @@ public class BookingReassignService {
 
             // Tự động revert lại voucher cho khách hàng vì đây là lỗi hệ thống không tìm được tài xế
             try {
-                pricingClient.rollbackVoucher(null, finalBooking.getCustomerId().toString(), finalBooking.getId().toString());
+                if (finalBooking.getVoucherCode() == null) pricingClient.rollbackVoucher(null, finalBooking.getCustomerId().toString(), finalBooking.getId().toString());
                 log.info("Đã tự động revert voucher cho khách hàng ID {} cuốc xe #{} do không tìm thấy tài xế", finalBooking.getCustomerId(), finalBooking.getId());
             } catch (Exception ex) {
                 log.warn("Lỗi khi tự động rollback voucher cho cuốc xe #{}: {}", finalBooking.getId(), ex.getMessage());

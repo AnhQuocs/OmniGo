@@ -35,6 +35,26 @@ class RidePrepaymentTest {
         assertTrue(result.isPrepaid()); assertFalse(result.isPaid()); assertEquals("WALLET",result.getPaymentMethod());
         verifyNoInteractions(messaging,outbox);
     }
+    @Test void voucherIsRedeemedBeforePrepaymentWithDiscountedPrice() throws Exception {
+        when(dispatch.getMaxRideDistanceKm()).thenReturn(5.0);
+        when(location.getNearbyDrivers(anyDouble(),anyDouble(),anyDouble())).thenReturn(List.of());
+        PricingResponse quote=new PricingResponse(); quote.setTotalPrice(50000); quote.setDistanceInKm(2.0);
+        when(pricing.calculatePrice(any(),anyInt())).thenReturn(quote);
+        when(repository.save(any())).thenAnswer(i -> { Booking b=i.getArgument(0); b.setId(99L); return b; });
+        BookingRequest request=new BookingRequest(); request.setPaymentMethod("WALLET");
+        request.setStartLatitude(21.0);request.setStartLongitude(105.0);request.setEndLatitude(21.1);request.setEndLongitude(105.1);
+        var vouchers=mock(OrderVoucherService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"orderVouchers",vouchers);
+        request.setVoucherCode("SAVE20"); request.setExpectedPrice(50000.0);
+        when(vouchers.redeem("SAVE20",1L,99L,new java.math.BigDecimal("50000.0"))).thenReturn(new java.math.BigDecimal("20000"));
+        var result=service.createBooking(1L,request);
+        assertEquals(30000.0,result.getPrice()); assertEquals("SAVE20",result.getVoucherCode());
+        assertEquals(0,result.getOriginalAmount().compareTo(new java.math.BigDecimal("50000")));
+        assertEquals(0,result.getDiscountAmount().compareTo(new java.math.BigDecimal("20000")));
+        assertEquals(BookingStatus.AWAITING_PAYMENT,result.getStatus());
+        assertTrue(result.isPrepaid()); assertFalse(result.isPaid()); assertEquals("WALLET",result.getPaymentMethod());
+        verifyNoInteractions(messaging,outbox);
+    }
     @Test void confirmedPrepaymentWithNoDriverCancelsAndSchedulesRefund() throws Exception {
         Booking b=active("WALLET",true,false); b.setStatus(BookingStatus.AWAITING_PAYMENT); b.setDriverId(null);
         when(dispatch.getMaxRideDistanceKm()).thenReturn(5.0);

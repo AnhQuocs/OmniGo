@@ -51,9 +51,10 @@ data class FoodOrder(
     val estimatedDeliveryMinutes: Int? = null,
     val createdAt: String = "",
     val voucherCode: String? = null,
-    val voucherDiscount: Double = 0.0
+    val voucherDiscount: Double = 0.0,
+    val originalAmount: Double? = null
 ) {
-    /** Amount the customer actually pays: backend total minus locally-tracked voucher discount. */
+    /** Authoritative amount after voucher, calculated by the backend. */
     val payableTotal: Double
-        get() = ((totalPrice ?: (itemsPrice + (deliveryFee ?: 0.0))) - voucherDiscount).coerceAtLeast(0.0)
+        get() = (totalPrice ?: (itemsPrice + (deliveryFee ?: 0.0))).coerceAtLeast(0.0)
 }

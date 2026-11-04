@@ -18,5 +18,6 @@ fun FoodOrderCreateCommand.toRequest(): FoodOrderRequest =
             )
         },
         note = note,
-        paymentMethod = paymentMethod.code
+        paymentMethod = paymentMethod.code,
+        voucherCode = voucherCode
     )

@@ -38,6 +38,9 @@ public class FoodOrderResponse implements Serializable {
     private Double deliveryLongitude;
     private String note;
     private String paymentMethod;
+    private BigDecimal originalAmount;
+    private BigDecimal discountAmount;
+    private String voucherCode;
     private Boolean isPaid;
     private OrderCancelledBy cancelledBy;
     private String cancelReason;

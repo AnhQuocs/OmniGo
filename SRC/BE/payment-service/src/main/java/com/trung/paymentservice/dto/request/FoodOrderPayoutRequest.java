@@ -17,5 +17,6 @@ public class FoodOrderPayoutRequest {
     private Long driverId;
     private Long orderId;
     private BigDecimal deliveryFee;
+    private BigDecimal discountAmount;
     private String paymentMethod;
 }

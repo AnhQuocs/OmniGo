@@ -59,6 +59,9 @@ import com.trung.bookingservice.service.client.PaymentClient;
 @RequiredArgsConstructor
 @Slf4j
 public class BookingServiceImpl implements BookingService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.trung.bookingservice.service.OrderVoucherService orderVouchers;
+
 
     private final FinancialOutbox financialOutbox;
     private final PaymentClient paymentClient;
@@ -160,8 +163,16 @@ public class BookingServiceImpl implements BookingService {
                 .distanceInKm(pricingInfo.getDistanceInKm())
                 .createdAt(LocalDateTime.now())
                 .build();
+        booking.setOriginalAmount(java.math.BigDecimal.valueOf(booking.getPrice()));
+        booking.setDiscountAmount(java.math.BigDecimal.ZERO);
         bookingRepository.save(booking);
         bookingRepository.flush();
+        if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
+            booking.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), customerId, booking.getId(), booking.getOriginalAmount()));
+            booking.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));
+            booking.setPrice(booking.getOriginalAmount().subtract(booking.getDiscountAmount()).doubleValue());
+            bookingRepository.saveAndFlush(booking);
+        }
 
         log.info("Khách hàng {} đặt xe (Loại: {}). Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
                 customerId, request.getVehicleType(), String.format("%.2f", pricingInfo.getDistanceInKm()), pricingInfo.getSurgeMultiplier(), pricingInfo.getTotalPrice(), maxRideRadius);
@@ -465,6 +476,7 @@ public class BookingServiceImpl implements BookingService {
                 .endLatitude(booking.getEndLatitude())
                 .distanceInKm(distance)
                 .price(booking.getPrice())
+                .originalAmount(booking.getOriginalAmount()).discountAmount(booking.getDiscountAmount()).voucherCode(booking.getVoucherCode())
                 .status(BookingStatus.CANCELLED)
                 .build();
 
@@ -569,6 +581,9 @@ public class BookingServiceImpl implements BookingService {
         wsMessage.put("status", response.getStatus().toString());
         wsMessage.put("driverId", response.getDriverId());
         wsMessage.put("price", response.getPrice());
+        wsMessage.put("originalAmount", response.getOriginalAmount());
+        wsMessage.put("discountAmount", response.getDiscountAmount());
+        wsMessage.put("voucherCode", response.getVoucherCode());
         wsMessage.put("paymentMethod", paymentMethod);
         wsMessage.put("prepaid", booking.isPrepaid()); wsMessage.put("paid", booking.isPaid());
 
@@ -610,7 +625,7 @@ public class BookingServiceImpl implements BookingService {
         double appCollected = 0;
 
         for (Booking b : todayBookings) {
-            totalRevenue += b.getPrice();
+            totalRevenue += b.getOriginalAmount() == null ? b.getPrice() : b.getOriginalAmount().doubleValue();
             if ("CASH".equalsIgnoreCase(b.getPaymentMethod())) {
                 cashCollected += b.getPrice();
             } else if ("APP".equalsIgnoreCase(b.getPaymentMethod())) {
@@ -769,6 +784,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .distanceInKm(roundedDistance)
                 .price(booking.getPrice())
+                .originalAmount(booking.getOriginalAmount()).discountAmount(booking.getDiscountAmount()).voucherCode(booking.getVoucherCode())
                 .vehicleType(booking.getVehicleType())
                 .paymentMethod(booking.getPaymentMethod())
                 .prepaid(booking.isPrepaid()).paid(booking.isPaid())

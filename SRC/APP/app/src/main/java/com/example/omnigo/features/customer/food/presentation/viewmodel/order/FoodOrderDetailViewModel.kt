@@ -114,7 +114,7 @@ class FoodOrderDetailViewModel @Inject constructor(
                         } else {
                             result.order
                         }
-                        val resolvedOrder = voucherStore?.get(paidOrder.id)?.let { (code, discount) ->
+                        val resolvedOrder = voucherStore?.get(paidOrder.id)?.takeIf { paidOrder.originalAmount == null }?.let { (code, discount) ->
                             paidOrder.copy(voucherCode = code, voucherDiscount = discount)
                         } ?: paidOrder
                         current.copy(
@@ -173,7 +173,6 @@ class FoodOrderDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isActionLoading = true, isCancelDialogOpen = false) }
             when (val result = cancelFoodOrderUseCase(orderId, reasonCode, reason)) {
                 is CancelFoodOrderResult.Success -> {
-                    voucherCoordinator?.rollbackVoucher(code = "", orderId = orderId.toString())
                     _uiState.update { it.copy(isActionLoading = false, order = result.order, actionMessage = UiText.StringResource(R.string.order_cancel_success)) }
                 }
                 is CancelFoodOrderResult.Error -> {

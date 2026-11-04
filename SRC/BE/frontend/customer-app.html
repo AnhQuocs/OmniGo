@@ -3359,6 +3359,7 @@
             deliveryLongitude: parseFloat(document.getElementById('order-delivery-lng').value) || 105.789123,
             note: document.getElementById('order-note').value,
             paymentMethod: chosenPaymentMethod,
+            voucherCode: appliedFoodVoucher?.voucher?.code || null,
             items: cart.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity }))
         };
 
@@ -3375,27 +3376,7 @@
                 let orderId = createdOrder.id;
                 let totalPrice = createdOrder.totalPrice || 0;
 
-                // Cam kết (Commit) sử dụng voucher khi đơn đồ ăn đã được tạo thành công
-                if (appliedFoodVoucher && appliedFoodVoucher.voucher?.code) {
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/commit`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-User-Id': customerId.toString() },
-                        body: JSON.stringify({
-                            code: appliedFoodVoucher.voucher.code,
-                            userId: customerId.toString(),
-                            orderId: orderId.toString(),
-                            serviceType: 'FOOD_DELIVERY',
-                            originalAmount: appliedFoodVoucher.originalAmount || 0,
-                            discountAmount: appliedFoodVoucher.discountAmount || 0,
-                            finalAmount: appliedFoodVoucher.finalAmount || totalPrice
-                        })
-                    }).then(r => r.json()).then(resp => {
-                        if (resp.success) {
-                            console.log("Đã commit voucher food thành công:", resp);
-                        }
-                    }).catch(e => console.warn("Lỗi commit voucher food:", e));
-                    appliedFoodVoucher = null;
-                }
+                appliedFoodVoucher = null;
 
                 cart = [];
                 updateCartUI();
@@ -5315,10 +5296,8 @@
 
             let effectiveTripPrice = currentTripPrice;
             let discountInfo = '';
-            if (appliedRideVoucher && appliedRideVoucher.valid) {
-                let discount = appliedRideVoucher.discountAmount || 0;
-                effectiveTripPrice = Math.max(0, currentTripPrice - discount);
-                discountInfo = `<br><span style="font-size:12px; color:#16a34a;">(Đã áp voucher [${appliedRideVoucher.voucher?.code}]: Giảm -${discount.toLocaleString('vi-VN')} đ)</span>`;
+            if (event.discountAmount > 0) {
+                discountInfo = `<br><span style="font-size:12px; color:#16a34a;">Đã giảm ${Number(event.discountAmount).toLocaleString('vi-VN')} đ</span>`;
             }
 
             if (event.paymentMethod === 'CASH' || (event.prepaid && event.paid)) {
@@ -5347,22 +5326,14 @@
             card.style.borderColor = "#fca5a5";
 
             if (isClientCanceling) {
-                text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">⚠️ Mã ưu đãi đã sử dụng sẽ không được hoàn lại do bạn chủ động tự hủy chuyến.</span>`;
-                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Khách hàng đã chủ động hủy chuyến đi (Không hoàn lại voucher).`);
+                text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">Hệ thống sẽ tự động xử lý hoàn lượt voucher sau khi xác nhận hủy.</span>`;
+                logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Khách hàng đã chủ động hủy chuyến đi .`);
             } else {
-                text.innerHTML = `🚫 <b>Không tìm thấy tài xế rảnh / Chuyến đi bị hủy:</b> Hệ thống đã tự động hủy chuyến đi do tất cả tài xế trong khu vực đang bận hoặc tài xế từ chối.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">✅ Mã khuyến mãi đã được tự động hoàn trả lại tài khoản của bạn!</span>`;
+                text.innerHTML = `🚫 <b>Không tìm thấy tài xế rảnh / Chuyến đi bị hủy:</b> Hệ thống đã tự động hủy chuyến đi do tất cả tài xế trong khu vực đang bận hoặc tài xế từ chối.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">Hệ thống đang xử lý hoàn lượt voucher.</span>`;
                 logSystem(event.bookingId || currentBookingId, 'CANCELLED', `Chuyến đi bị hủy bởi hệ thống/tài xế. Đã hoàn lại voucher cho khách.`);
 
                 // Tự động rollback voucher vì đây là lỗi hệ thống / tài xế hủy, không phải khách tự hủy
-                if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
-                    let vCode = appliedRideVoucher.voucher.code;
-                    let targetOrderId = event.bookingId || currentBookingId;
-                    fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/rollback?code=${encodeURIComponent(vCode)}&userId=${customerId || ''}&orderId=${targetOrderId || ''}`, {
-                        method: 'POST'
-                    }).then(r => r.json()).then(res => {
-                        logSystem(targetOrderId, 'VOUCHER_REFUNDED', `Đã hoàn lại lượt sử dụng mã ưu đãi '${vCode}'.`);
-                    }).catch(e => console.warn("Lỗi hoàn voucher:", e));
-                }
+
             }
 
             setTimeout(() => {
@@ -5394,7 +5365,8 @@
             pickupAddress: pickupAddr,
             dropoffAddress: dropoffAddr,
             vehicleType: currentVehicleType,
-            paymentMethod: document.getElementById("ride-payment-method").value
+            paymentMethod: document.getElementById("ride-payment-method").value,
+            voucherCode: appliedRideVoucher?.voucher?.code || null
         };
 
         const card = document.getElementById('trip-card');
@@ -5451,26 +5423,6 @@
                     startCustomerTimer(30);
                     logSystem(currentBookingId, 'SEARCHING', 'Đang quét tìm tài xế rảnh trong khu vực...');
 
-                    // Cam kết (Commit) sử dụng voucher khi cuốc xe đã được tạo thành công
-                    if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
-                        fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/commit`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-User-Id': customerId.toString() },
-                            body: JSON.stringify({
-                                code: appliedRideVoucher.voucher.code,
-                                userId: customerId.toString(),
-                                orderId: currentBookingId.toString(),
-                                serviceType: 'RIDE_HAILING',
-                                originalAmount: appliedRideVoucher.originalAmount || currentTripBasePrice,
-                                discountAmount: appliedRideVoucher.discountAmount || 0,
-                                finalAmount: appliedRideVoucher.finalAmount || currentTripBasePrice
-                            })
-                        }).then(r => r.json()).then(resp => {
-                            if (resp.success) {
-                                logSystem(currentBookingId, 'VOUCHER_USED', `Đã ghi nhận sử dụng voucher '${appliedRideVoucher.voucher.code}' (Giảm ${Math.round(appliedRideVoucher.discountAmount).toLocaleString('vi-VN')} đ) cho cuốc xe #${currentBookingId}.`);
-                            }
-                        }).catch(e => console.warn("Lỗi commit voucher ride:", e));
-                    }
                     return;
                 }
             }
@@ -5498,23 +5450,16 @@
         if (isTimeout) {
             card.style.backgroundColor = "#fee2e2";
             card.style.borderColor = "#fca5a5";
-            text.innerHTML = `🚫 <b>Hết thời gian tìm kiếm:</b> Không có tài xế nào nhận chuyến. Hệ thống đã tự động hủy chuyến đi.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">✅ Mã khuyến mãi đã được hoàn trả lại tài khoản của bạn!</span>`;
+            text.innerHTML = `🚫 <b>Hết thời gian tìm kiếm:</b> Không có tài xế nào nhận chuyến. Hệ thống đã tự động hủy chuyến đi.<br><span style="color:#16a34a; font-size:12px; font-weight:600;">Hệ thống đang xử lý hoàn lượt voucher.</span>`;
             logSystem(bId, 'TIMEOUT', 'Hết thời gian tìm kiếm tài xế (30s). Tự động hủy chuyến.');
 
             // Tự động revert lại voucher cho khách vì đây là timeout không tìm thấy tài xế
-            if (appliedRideVoucher && appliedRideVoucher.voucher?.code) {
-                let vCode = appliedRideVoucher.voucher.code;
-                fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/rollback?code=${encodeURIComponent(vCode)}&userId=${customerId || ''}&orderId=${bId || ''}`, {
-                    method: 'POST'
-                }).then(r => r.json()).then(res => {
-                    logSystem(bId, 'VOUCHER_REFUNDED', `Đã hoàn lại lượt sử dụng mã ưu đãi '${vCode}' do không tìm thấy tài xế.`);
-                }).catch(e => console.warn("Lỗi revert voucher khi timeout:", e));
-            }
+
         } else {
             card.style.backgroundColor = "#fee2e2";
             card.style.borderColor = "#fca5a5";
-            text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">⚠️ Mã ưu đãi đã sử dụng sẽ không được hoàn lại do bạn chủ động tự hủy chuyến.</span>`;
-            logSystem(bId, 'CANCELLED', 'Khách hàng chủ động bấm hủy chuyến (Mã ưu đãi không được hoàn lại).');
+            text.innerHTML = `❌ <b>Bạn đã hủy chuyến đi thành công.</b><br><span style="color:#dc2626; font-size:12px;">Hệ thống sẽ tự động xử lý hoàn lượt voucher sau khi xác nhận hủy.</span>`;
+            logSystem(bId, 'CANCELLED', 'Khách hàng chủ động bấm hủy chuyến .');
         }
 
         fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/${bId}/cancel`, {

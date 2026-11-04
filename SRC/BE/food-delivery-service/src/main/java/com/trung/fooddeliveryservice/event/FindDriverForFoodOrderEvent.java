@@ -27,6 +27,7 @@ public class FindDriverForFoodOrderEvent implements Serializable {
     private Double dropOffLatitude;
     private Double dropOffLongitude;
     private BigDecimal totalPrice;
+    private BigDecimal originalAmount;
     private BigDecimal deliveryFee;
     private String paymentMethod;
     private Boolean isPaid;

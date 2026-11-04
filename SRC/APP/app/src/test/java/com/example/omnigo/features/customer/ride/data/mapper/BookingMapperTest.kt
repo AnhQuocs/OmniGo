@@ -12,6 +12,15 @@ class BookingMapperTest {
     private val gson = Gson()
 
     @Test
+    fun `maps authoritative voucher totals without double discount`() {
+        val response = gson.fromJson("""{"bookingId":1,"price":30000,"originalAmount":50000,"discountAmount":20000,"voucherCode":"SAVE20","platformFee":10000}""", BookingResponse::class.java)
+        val booking = response.toDomain()
+        assertEquals(30000.0, booking.finalPrice, 0.001)
+        assertEquals(40000.0, booking.actualEarnings, 0.001)
+        assertEquals("SAVE20", booking.voucherCode)
+    }
+
+    @Test
     fun `maps backend booking response correctly to domain entity`() {
         val json = """
             {

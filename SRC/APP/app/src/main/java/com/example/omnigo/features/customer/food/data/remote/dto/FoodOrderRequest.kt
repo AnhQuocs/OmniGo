@@ -25,5 +25,6 @@ data class FoodOrderRequest(
     @SerializedName("note")
     val note: String? = null,
     @SerializedName("paymentMethod")
-    val paymentMethod: String
+    val paymentMethod: String,
+    @SerializedName("voucherCode") val voucherCode: String? = null
 )

@@ -45,6 +45,7 @@ public class FoodOrderMapper {
                 .driverId(order.getDriverId())
                 .status(order.getStatus())
                 .totalPrice(order.getTotalPrice())
+                .originalAmount(order.getOriginalAmount()).discountAmount(order.getDiscountAmount()).voucherCode(order.getVoucherCode())
                 .deliveryFee(order.getDeliveryFee())
                 .deliveryAddress(order.getDeliveryAddress())
                 .deliveryLatitude(order.getDeliveryLatitude())

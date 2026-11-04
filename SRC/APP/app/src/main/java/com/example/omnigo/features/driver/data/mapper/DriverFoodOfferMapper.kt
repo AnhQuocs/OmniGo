@@ -22,6 +22,7 @@ object DriverFoodOfferMapper {
             dropOffLongitude = dto.dropOffLongitude,
             deliveryFee = dto.deliveryFee ?: 0.0,
             totalPrice = dto.totalPrice ?: 0.0,
+            originalAmount = dto.originalAmount,
             isPaid = dto.isPaid ?: false,
             paymentMethod = dto.paymentMethod,
             timeoutSeconds = DriverFoodOffer.DEFAULT_TIMEOUT_SECONDS,

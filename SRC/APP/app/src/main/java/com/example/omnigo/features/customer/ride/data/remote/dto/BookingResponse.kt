@@ -56,5 +56,8 @@ data class BookingResponse(
     @SerializedName(value = "driverEarnings", alternate = ["netEarnings", "netIncome", "driverIncome"])
     val driverEarnings: Double? = null,
     @SerializedName(value = "commissionRate", alternate = ["platformFeeRate", "feeRate", "commissionPercentage"])
-    val commissionRate: Double? = null
+    val commissionRate: Double? = null,
+    @SerializedName("originalAmount") val originalAmount: Double? = null,
+    @SerializedName("discountAmount") val discountAmount: Double? = null,
+    @SerializedName("voucherCode") val voucherCode: String? = null
 )

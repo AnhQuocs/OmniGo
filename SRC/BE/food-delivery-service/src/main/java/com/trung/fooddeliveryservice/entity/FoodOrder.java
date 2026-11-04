@@ -65,6 +65,13 @@ public class FoodOrder extends BaseEntity {
 
     @Column(name = "payment_method", length = 30)
     private String paymentMethod;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal originalAmount;
+    @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+    @Column(length = 50)
+    private String voucherCode;
 
     @Column(name = "is_paid", nullable = false)
     @Builder.Default

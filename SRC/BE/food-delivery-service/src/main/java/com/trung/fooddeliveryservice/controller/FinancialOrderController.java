@@ -25,6 +25,8 @@ public class FinancialOrderController {
         data.put("driverId", order.getDriverId()); data.put("status", order.getStatus().name());
         data.put("paymentMethod", order.getPaymentMethod());
         data.put("amount", order.getTotalPrice());
+        data.put("originalAmount", order.getOriginalAmount() == null ? order.getTotalPrice() : order.getOriginalAmount());
+        data.put("discountAmount", order.getDiscountAmount());
         data.put("deliveryFee", order.getDeliveryFee());
         data.put("restaurantOwnerId", order.getRestaurant().getOwnerId());
         data.put("paid", order.getIsPaid());

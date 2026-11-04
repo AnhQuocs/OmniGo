@@ -318,7 +318,12 @@ public class WalletServiceImpl implements WalletService {
         BigDecimal netIncome = deliveryFee.subtract(commissionFee);
 
         // Cộng thu nhập ròng tiền ship (sau khi trừ phí sàn cấu hình) vào ví tài xế
-        wallet.setBalance(wallet.getBalance().add(cash ? commissionFee.negate() : netIncome));
+        BigDecimal voucherCredit = cash && request.getDiscountAmount() != null ? request.getDiscountAmount().max(BigDecimal.ZERO) : BigDecimal.ZERO;
+        wallet.setBalance(wallet.getBalance().add(cash ? voucherCredit.subtract(commissionFee) : netIncome));
+        if (voucherCredit.signum() > 0) transactionRepository.save(Transaction.builder()
+                .walletId(wallet.getId()).bookingId(orderId).orderId("FOOD_VOUCHER_" + orderId)
+                .amount(voucherCredit).transactionType(TransactionType.FOOD_DELIVERY_INCOME)
+                .paymentMethod(PaymentMethod.WALLET).status(TransactionStatus.SUCCESS).fulfillmentDone(true).build());
         walletRepository.save(wallet);
 
         PaymentMethod driverPaymentMethod = PaymentMethod.WALLET;

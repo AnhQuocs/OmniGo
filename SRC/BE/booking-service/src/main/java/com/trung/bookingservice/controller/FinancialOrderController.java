@@ -28,6 +28,8 @@ public class FinancialOrderController {
         data.put("driverId", order.getDriverId()); data.put("status", order.getStatus().name());
         data.put("paymentMethod", order.getPaymentMethod());
         data.put("amount", order.getPrice());
+        data.put("originalAmount", order.getOriginalAmount() == null ? order.getPrice() : order.getOriginalAmount());
+        data.put("discountAmount", order.getDiscountAmount());
         data.put("prepaid", order.isPrepaid()); data.put("paid", order.isPaid());
         return data;
     }

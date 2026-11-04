@@ -52,6 +52,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class FoodOrderServiceImpl implements FoodOrderService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.trung.fooddeliveryservice.service.OrderVoucherService orderVouchers;
+
 
     private final FinancialOutbox financialOutbox;
     private final TransactionTemplate transactionTemplate;
@@ -180,6 +183,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setTotalPrice(itemsTotal.add(deliveryFee));
         order.setOrderItems(orderItems);
 
+        order.setOriginalAmount(order.getTotalPrice());
+        order.setDiscountAmount(BigDecimal.ZERO);
+        if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
+            foodOrderRepository.saveAndFlush(order);
+            order.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), order.getCustomerId(), order.getId(), order.getOriginalAmount()));
+            order.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));
+            order.setTotalPrice(order.getOriginalAmount().subtract(order.getDiscountAmount()));
+        }
         FoodOrder savedOrder = saveAndNotifyStatus(order);
         log.info("Tạo thành công đơn hàng ID {} cho khách hàng ID {}, tổng tiền: {} đ (chờ nhà hàng duyệt)", savedOrder.getId(), customerId, savedOrder.getTotalPrice());
 
@@ -338,6 +349,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                         .dropOffLatitude(saved.getDeliveryLatitude())
                         .dropOffLongitude(saved.getDeliveryLongitude())
                         .totalPrice(saved.getTotalPrice())
+                .originalAmount(saved.getOriginalAmount())
                         .deliveryFee(saved.getDeliveryFee())
                         .paymentMethod(saved.getPaymentMethod())
                         .isPaid(saved.getIsPaid())
@@ -653,6 +665,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .dropOffLatitude(saved.getDeliveryLatitude())
                 .dropOffLongitude(saved.getDeliveryLongitude())
                 .totalPrice(saved.getTotalPrice())
+                .originalAmount(saved.getOriginalAmount())
                 .deliveryFee(saved.getDeliveryFee())
                 .paymentMethod(saved.getPaymentMethod())
                 .isPaid(saved.getIsPaid())
@@ -715,6 +728,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     private void triggerVoucherRollback(Long customerId, Long orderId) {
+        // New vouchers are released by the durable compensation worker after the cancellation commits.
+        if (foodOrderRepository.findById(orderId).map(o -> o.getVoucherCode() != null).orElse(false)) return;
         try {
             List<String> targetUrls = new ArrayList<>();
             String paramStr = String.format("?userId=%s&orderId=%s",

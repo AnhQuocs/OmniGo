@@ -201,7 +201,7 @@ class FoodCheckoutViewModel @Inject constructor(
         val amount = _uiState.value.totalAmount
         _uiState.update { it.copy(showVoucherSheet = true, isApplyingVoucher = true) }
         viewModelScope.launch {
-            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD") ?: emptyList()
+            val list = voucherCoordinator?.loadApplicableVouchers(amount, "FOOD_DELIVERY") ?: emptyList()
             _uiState.update { it.copy(applicableVouchers = list, isApplyingVoucher = false) }
         }
     }
@@ -212,7 +212,7 @@ class FoodCheckoutViewModel @Inject constructor(
         val amount = _uiState.value.totalAmount
         viewModelScope.launch {
             _uiState.update { it.copy(isApplyingVoucher = true) }
-            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD")
+            voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD_DELIVERY")
                 ?.onSuccess { res ->
                     _uiState.update { it.copy(appliedVoucher = res, isApplyingVoucher = false, showVoucherSheet = false) }
                 }
@@ -291,23 +291,12 @@ class FoodCheckoutViewModel @Inject constructor(
                 dropOffLongitude = state.deliveryLongitude,
                 items = state.items,
                 note = state.driverNote.ifBlank { null },
-                paymentMethod = state.selectedPaymentMethod
+                paymentMethod = state.selectedPaymentMethod,
+                voucherCode = state.appliedVoucher?.voucherCode
             )
 
             when (result) {
                 is CreateFoodOrderResult.Success -> {
-                    val applied = state.appliedVoucher
-                    if (applied != null && applied.voucherCode.isNotBlank()) {
-                        voucherStore?.save(result.order.id, applied.voucherCode, applied.discountAmount)
-                        voucherCoordinator?.commitVoucher(
-                            code = applied.voucherCode,
-                            orderAmount = state.totalAmount,
-                            serviceType = "FOOD",
-                            orderId = result.order.id.toString(),
-                            discountAmount = applied.discountAmount
-                        )
-                    }
-
                     var webViewUrl: String? = null
                     var paymentError: UiText? = null
                     if (state.selectedPaymentMethod != PaymentMethod.CASH) {
