@@ -290,6 +290,10 @@ class RideBookingViewModel @Inject constructor(
         }
     }
 
+    fun selectPaymentMethod(method: String) {
+        if (method in listOf("CASH", "WALLET")) _uiState.update { it.copy(selectedPaymentMethod = method) }
+    }
+
     fun createBooking() {
         val pickup = _uiState.value.pickupLocation
         val dropoff = _uiState.value.dropoffLocation
@@ -305,6 +309,7 @@ class RideBookingViewModel @Inject constructor(
             val selectedType = _uiState.value.selectedVehicleType
             val result = createRideBookingUseCase(
                 startLatitude = pickup.latitude, startLongitude = pickup.longitude, endLatitude = dropoff.latitude, endLongitude = dropoff.longitude,
+                paymentMethod = _uiState.value.selectedPaymentMethod,
                 vehicleType = selectedType.name, pickupAddress = pickup.name.ifBlank { pickup.address }, dropoffAddress = dropoff.name.ifBlank { dropoff.address },
                 expectedPrice = expectedPrice
             )

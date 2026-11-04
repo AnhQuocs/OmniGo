@@ -72,3 +72,11 @@ Tài liệu cổng tham chiếu: [MoMo IPN](https://developers.momo.vn/v3/vi/doc
 - Food giữ nguyên HTTP status của ResponseStatusException, gồm 409 (đang xử lý/xung đột), 422 (thất bại chắc chắn), 503 (dịch vụ chưa sẵn sàng).
 - MoMo: các lỗi khởi tạo 20/21/22 và thất bại 1001/1006, có đúng mã đơn và merchant, được lưu FAILED trong transaction độc lập rồi trả 422. Mã trùng 40/41, đang xử lý, không rõ kết quả, lỗi HTTP không có dữ liệu xác định hoặc timeout vẫn giữ pending để đối soát. Không tự đánh dấu thất bại chỉ vì HTTP lỗi. Cập nhật FAILED có điều kiện, không ghi đè SUCCESS của IPN.
 - Tham chiếu mã kết quả: https://developers.momo.vn/v3/docs/payment/api/result-handling/resultcode/
+
+## Ví OmniPay trả trước cho chuyến xe
+
+- App và demo gửi `paymentMethod: CASH | WALLET` khi tạo booking. Backend lưu lựa chọn, không cho tham số hoàn thành của tài xế ghi đè. Thiếu trường này mặc định CASH cho client cũ.
+- Deploy booking-service, payment-service và các client cùng bản. Migration booking V22 bổ sung `prepaid`, `paid` và trạng thái `AWAITING_PAYMENT`; chuyến lịch sử mặc định không trả trước.
+- WALLET: tạo booking chờ thanh toán và commit trước, rồi gọi payment trừ ví theo giá backend. Payment ghi giao dịch bền vững trước khi xác nhận sang booking. Chỉ sau xác nhận mới mời tài xế. Worker thử lại khi mất kết nối, khóa theo mã chuyến chống trừ trùng. Thiếu số dư được hủy, trả lỗi 422; không mời tài xế.
+- Tiền khách trả trước chưa chi cho tài xế cho đến COMPLETED. Tài xế nhận tiền cước trừ phí sàn một lần. Hủy/không tìm được tài xế được hoàn về ví khách qua worker đối soát. Không sửa `fulfillment_done` thủ công.
+- Demo tài xế hiện phương thức và nhãn trả trước từ backend; IN_PROGRESS có nút “Đã đến nơi · Hoàn thành chuyến”, không chọn lại phương thức. Nút này hoàn tất qua endpoint `/complete`; không thêm một trạng thái đến điểm trả riêng. Tải lại trang khôi phục chuyến ACCEPTED/ARRIVED/IN_PROGRESS.

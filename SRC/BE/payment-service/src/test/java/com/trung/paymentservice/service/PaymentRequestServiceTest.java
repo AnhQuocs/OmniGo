@@ -12,6 +12,20 @@ class PaymentRequestServiceTest {
     private final PaymentFactory factory=mock(PaymentFactory.class);
     private final PaymentRequestService service=new PaymentRequestService(mock(PaymentLocks.class),orders,mock(TransactionRepository.class),factory);
     private Map<String,Object> order() { return new HashMap<>(Map.of("customerId",1L,"amount",new BigDecimal("120000"),"paymentMethod","MOMO","status","AWAITING_PAYMENT")); }
+    @Test void prepaidRideAllowsWalletBeforeDriverAssignmentButRejectsGateway() {
+        var snapshot=order(); snapshot.put("paymentMethod","WALLET"); snapshot.put("prepaid",true);
+        when(orders.get(false,99L)).thenReturn(snapshot);
+        var repository=mock(TransactionRepository.class);
+        var strategy=mock(com.trung.paymentservice.strategy.PaymentStrategy.class);
+        when(factory.getStrategy("WALLET")).thenReturn(strategy);
+        when(strategy.createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT"))
+            .thenReturn(com.trung.paymentservice.dto.response.PaymentUrlResponse.builder().orderId("wallet-ref").paymentUrl("WALLET_SUCCESS").build());
+        when(repository.findByOrderId("wallet-ref")).thenReturn(Optional.of(com.trung.paymentservice.entity.Transaction.builder().build()));
+        var requests=new PaymentRequestService(mock(PaymentLocks.class),orders,repository,factory);
+        assertEquals("WALLET_SUCCESS",requests.create(1L,"CUSTOMER","WALLET","TRIP_PAYMENT",99L,new BigDecimal("120000")).getPaymentUrl());
+        verify(strategy).createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT");
+        assertThrows(ResponseStatusException.class,()->requests.create(1L,"CUSTOMER","VNPAY","TRIP_PAYMENT",99L,new BigDecimal("120000")));
+    }
     @Test void rejectsAnotherCustomersOrderAndClientSuppliedPrice() {
         when(orders.get(true,99L)).thenReturn(order());
         assertThrows(ResponseStatusException.class,()->service.create(2L,"CUSTOMER","MOMO","FOOD_PAYMENT",99L,new BigDecimal("120000")));

@@ -129,6 +129,8 @@ public class BookingReassignService {
                             .status(currentBooking.getStatus())
                             .distanceInKm(distanceInKm)
                             .price(currentBooking.getPrice())
+                            .paymentMethod(currentBooking.getPaymentMethod())
+                            .prepaid(currentBooking.isPrepaid()).paid(currentBooking.isPaid())
                             .pickupAddress(currentBooking.getPickupAddress())
                             .dropoffAddress(currentBooking.getDropoffAddress())
                             .build();

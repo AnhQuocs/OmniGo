@@ -85,9 +85,18 @@ public class PaymentWorkflowService {
             order = orders.get(true, tx.getBookingId());
             if (FinancialOrderClient.cancelled(order) || FinancialOrderClient.cash(order)) refund(tx);
         } else {
+            boolean prepaid = Boolean.TRUE.equals(order.get("prepaid")) && tx.getPaymentMethod() == PaymentMethod.WALLET;
+            if (prepaid && "AWAITING_PAYMENT".equals(order.get("status"))) {
+                orders.markRidePaid(tx.getBookingId());
+                order = orders.get(false, tx.getBookingId());
+                if (FinancialOrderClient.cancelled(order)) {
+                    refund(tx); tx.setFulfillmentDone(true); transactions.save(tx); return;
+                }
+            }
+            if (prepaid && !"COMPLETED".equals(order.get("status"))) return;
             if (!"COMPLETED".equals(order.get("status"))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Cuốc xe chưa hoàn thành");
             Long driverId = FinancialOrderClient.id(order, "driverId");
-            if (driverId == null || !Objects.equals(driverId, tx.getDriverId())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Sai tài xế nhận tiền");
+            if (driverId == null || (!prepaid && !Objects.equals(driverId, tx.getDriverId()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Sai tài xế nhận tiền");
             String incomeId = "RIDE_INCOME_" + tx.getBookingId();
             if (transactions.findByOrderId(incomeId).isEmpty()) {
                 Wallet driver = walletService.creditWallet(driverId, UserType.DRIVER, tx.getAmount().doubleValue());
@@ -116,6 +125,10 @@ public class PaymentWorkflowService {
                     .deliveryFee(FinancialOrderClient.money(order, "deliveryFee"))
                     .foodAmount(FinancialOrderClient.money(order, "amount").subtract(FinancialOrderClient.money(order, "deliveryFee")).max(BigDecimal.ZERO))
                     .paymentMethod(String.valueOf(order.get("paymentMethod"))).build());
+        } else if (Boolean.TRUE.equals(order.get("prepaid"))) {
+            for (Transaction payment : payments) {
+                if (payment.getStatus() == TransactionStatus.SUCCESS && transactions.findByOrderId("REFUND_PAYMENT_" + payment.getId()).isEmpty()) fulfill(payment.getId());
+            }
         } else if (FinancialOrderClient.cash(order)) {
             walletService.deductCommission(BookingCompletedEvent.builder().bookingId(id).driverId(FinancialOrderClient.id(order, "driverId"))
                     .amount(FinancialOrderClient.money(order, "amount").doubleValue()).build());

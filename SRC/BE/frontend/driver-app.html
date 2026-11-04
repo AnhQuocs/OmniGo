@@ -1714,7 +1714,7 @@
 
                     document.getElementById('box-title').innerText = "🔔 CÓ CUỐC XE MỚI (OSRM ROUTE)!";
                     document.getElementById('match-info').innerHTML = `
-                        Khách ID: <b>#${booking.customerId}</b><br>
+                        Khách ID: <b>#${booking.customerId}</b><br>${ridePaymentLabel(booking)}<br>
                         Thu nhập chuyến: <b style="color:#16a34a; font-size:16px;">${Math.round(booking.price).toLocaleString('vi-VN')} VND</b><br>
                         <i style="color:#0284c7; font-size:12px;">Đang tải lộ trình chính xác từ OSRM Engine...</i>
                     `;
@@ -1745,13 +1745,15 @@
                             let pickupText = booking.pickupAddress ? `<br><b>🟢 Điểm đón:</b> <span style="color:#16a34a;">${booking.pickupAddress}</span>` : '';
                             let dropoffText = booking.dropoffAddress ? `<br><b>🔴 Điểm đến:</b> <span style="color:#dc2626;">${booking.dropoffAddress}</span>` : '';
                             document.getElementById('match-info').innerHTML = `
-                                <b>Khách hàng:</b> #${booking.customerId}${pickupText}${dropoffText}<br>
+                                <b>Khách hàng:</b> #${booking.customerId}${pickupText}${dropoffText}<br>${ridePaymentLabel(booking)}<br>
                                 <b>Lộ trình:</b> <span style="color:#2563eb; font-weight:700;">${distStr} km (~${durStr} phút)</span> [${route.source || 'OSRM'}]<br>
                                 <b>Thu nhập cuốc:</b> <b style="color:#16a34a; font-size:16px;">${Math.round(booking.price).toLocaleString('vi-VN')} VND</b><br>
                                 <span style="font-size:11px; color:#64748b;">(Hệ thống cam kết tài xế nhận đủ doanh thu kể cả khách áp voucher)</span>
                             `;
                         }).catch(e => console.warn("Lỗi load route cho driver:", e));
                 });
+
+                restoreActiveRide();
 
                 // Lắng nghe đơn Giao Đồ Ăn (Food Delivery)
                 stompBookingClient.subscribe('/user/queue/driver/food-match', function (message) {
@@ -2093,24 +2095,54 @@
                 <button onclick="driverCancelRide()" style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; margin-left: 10px;">HỦY CUỐC XE</button>
             `;
         } else if (nextActionKey === 'complete') {
-            nextBtn = `
-                <div style="margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 5px; text-align: center;">
-                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #dc3545;">Thu tiền cước từ khách:</p>
-                    <button onclick="finishTrip('CASH')" style="background-color: #28a745; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💵 TIỀN MẶT</button>
-                    <button onclick="finishTrip('APP')" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; width: 48%;">💳 VÍ OMNIPAY</button>
-                </div>
-            `;
+            nextBtn = rideCompletionButton();
         }
         callBookingApi(`${API_BASE_URL}/api/v1/bookings/${currentBookingId}/${endpointAction}`, successMsg, nextBtn, endpointAction);
     }
 
+    function ridePaymentLabel(booking) {
+        if (booking?.prepaid && booking?.paid) return '💳 Đã thanh toán trước bằng OmniPay — không thu tiền khách';
+        if (booking?.paymentMethod === 'CASH') return '💵 Tiền mặt — thu tiền khách khi đến nơi';
+        return '💳 Thanh toán qua ứng dụng';
+    }
+
+    function rideCompletionButton() {
+        return `<p>${ridePaymentLabel(currentTripBooking)}</p><button onclick="finishTrip()" style="background:#16a34a;color:white;padding:12px;border:0;border-radius:6px;font-weight:bold;">ĐÃ ĐẾN NƠI · HOÀN THÀNH CHUYẾN</button>`;
+    }
+
+    async function restoreActiveRide() {
+        if (!getStoredToken() || currentBookingId || currentFoodOrderId) return;
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/bookings/driver`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const booking = (data.data || data).find(b => ['ACCEPTED', 'ARRIVED', 'IN_PROGRESS'].includes(b.status));
+            if (!booking || currentBookingId || currentFoodOrderId) return;
+            currentTripBooking = booking;
+            currentBookingId = booking.bookingId || booking.id;
+            currentTripPrice = booking.price;
+            isOnTrip = true;
+            document.getElementById('match-box').style.display = 'block';
+            document.getElementById('box-title').textContent = `CHUYẾN #${currentBookingId} · ${booking.status}`;
+            document.getElementById('match-info').textContent = ridePaymentLabel(booking);
+            document.getElementById('driver-timer').style.display = 'none';
+            document.getElementById('action-buttons').innerHTML = booking.status === 'IN_PROGRESS' ? rideCompletionButton()
+                : booking.status === 'ARRIVED' ? `<button onclick="updateTripStatus('start', 'Hành trình đang diễn ra...', 'complete')">BẮT ĐẦU HÀNH TRÌNH</button>`
+                : `<button onclick="updateTripStatus('arrived', 'Đã đến điểm đón!', 'start')">ĐÃ ĐẾN ĐIỂM ĐÓN</button>`;
+        } catch (error) { console.warn('Chưa khôi phục được chuyến đang chạy', error); }
+    }
+    window.addEventListener('load', restoreActiveRide);
+    window.addEventListener('focus', restoreActiveRide);
+
     // ⚡ Bổ sung hàm xử lý Logic thanh toán khi chốt cuốc
     let finishingTrip = false;
-    function finishTrip(paymentMethod) {
+    function finishTrip() {
+        const paymentMethod = currentTripBooking?.paymentMethod || "CASH";
+        const prepaid = currentTripBooking?.prepaid && currentTripBooking?.paid;
         if (finishingTrip) return;
         if (!currentBookingId) return;
 
-        let confirmMsg = paymentMethod === 'CASH'
+        let confirmMsg = prepaid ? "Khách đã thanh toán trước. Xác nhận đã đến nơi và hoàn thành chuyến?" : paymentMethod === 'CASH'
             ? "Xác nhận ĐÃ THU TIỀN MẶT từ khách hàng?"
             : "Xác nhận hoàn thành cuốc và YÊU CẦU KHÁCH THANH TOÁN QUA APP (OmniPay)?";
 
@@ -2134,7 +2166,11 @@
         }).then(data => {
             document.getElementById('box-title').innerText = `🚀 TRẠNG THÁI: COMPLETED`;
 
-            if (paymentMethod === 'CASH') {
+            if (prepaid) {
+                actionButtons.innerHTML = '<b>Đã hoàn tất — khách đã trả trước bằng OmniPay.</b>';
+                fetchWallet(); fetchTransactions();
+                setTimeout(() => { fetchWallet(); closeMatchBoxAndReset(); }, 1500);
+            } else if (paymentMethod === 'CASH') {
                 actionButtons.innerHTML = `<i>Đã hoàn tất bằng TIỀN MẶT!</i>`;
                 alert("✅ Hoàn thành chuyến đi bằng TIỀN MẶT!\nPhí sàn được quyết toán theo tỷ lệ cấu hình hiện tại.");
                 setTimeout(() => fetchWallet(), 1500);
@@ -2231,6 +2267,7 @@
                 }
                 return res.json();
             }).then(data => {
+            currentTripBooking = { ...currentTripBooking, ...data };
             clearInterval(driverTimerInterval);
             document.getElementById('driver-timer').style.display = "none";
             alert(successMessage);

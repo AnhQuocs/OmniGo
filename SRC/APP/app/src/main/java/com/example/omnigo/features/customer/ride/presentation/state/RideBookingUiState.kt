@@ -50,6 +50,7 @@ enum class LocationTarget {
 }
 
 data class RideBookingUiState(
+    val selectedPaymentMethod: String = "CASH",
     val pickupLocation: LocationPoint? = null,
     val dropoffLocation: LocationPoint? = null,
     val savedAddresses: List<SavedAddress> = emptyList(),

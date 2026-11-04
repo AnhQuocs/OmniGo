@@ -99,6 +99,22 @@ class RideBookingViewModelTest {
     }
 
     @Test
+    fun `wallet selection reaches create booking and unsupported method does not replace it`() = runTest {
+        initViewModel()
+        advanceUntilIdle()
+        viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
+        advanceUntilIdle()
+        viewModel.selectPaymentMethod("WALLET")
+        viewModel.selectPaymentMethod("VNPAY")
+        assertEquals("WALLET", viewModel.uiState.value.selectedPaymentMethod)
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any(), 45000.0, "WALLET") } returns CreateRideBookingResult.Success(sampleBooking)
+        viewModel.createBooking()
+        testScheduler.runCurrent()
+        io.mockk.coVerify(exactly = 1) { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any(), 45000.0, "WALLET") }
+        assertEquals(sampleBooking, viewModel.uiState.value.currentBooking)
+    }
+
+    @Test
     fun `initialization loads saved addresses and autodetects pickup location`() = runTest {
         initViewModel()
         advanceUntilIdle()

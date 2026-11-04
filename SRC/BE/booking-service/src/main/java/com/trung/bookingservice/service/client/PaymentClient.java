@@ -16,6 +16,9 @@ public interface PaymentClient {
             return template -> template.header("X-Internal-Token", token);
         }
     }
+    @PostMapping("/api/v1/payments/internal/rides/{id}/prepay")
+    void prepay(@PathVariable("id") Long id);
+
     @PostMapping("/api/v1/payments/internal/drivers/{driverId}/booking-fees")
     BigDecimal getBookingFees(@PathVariable("driverId") Long driverId, @RequestBody List<Long> bookingIds);
 }

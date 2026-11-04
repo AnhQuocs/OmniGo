@@ -60,6 +60,8 @@ public class Booking {
     private String vehicleType;
 
     private String paymentMethod;
+    private boolean prepaid;
+    private boolean paid;
 
     private LocalDateTime createdAt;
     private LocalDateTime acceptedAt;

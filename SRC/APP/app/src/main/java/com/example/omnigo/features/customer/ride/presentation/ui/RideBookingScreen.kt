@@ -287,6 +287,8 @@ fun RideBookingScreen(
                 onSelectVehicle = viewModel::selectVehicleType,
                 onOpenVoucherSheet = viewModel::openVoucherSheet,
                 onConfirmBooking = viewModel::createBooking,
+                selectedPaymentMethod = uiState.selectedPaymentMethod,
+                onSelectPaymentMethod = viewModel::selectPaymentMethod,
                 modifier = Modifier.fillMaxWidth()
             )
         }

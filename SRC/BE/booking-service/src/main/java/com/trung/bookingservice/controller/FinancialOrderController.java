@@ -10,6 +10,9 @@ import java.util.*;
 @RequestMapping("/api/v1/internal/financial")
 public class FinancialOrderController {
     private final BookingRepository repository;
+    private final com.trung.bookingservice.service.impl.BookingServiceImpl bookings;
+    @PostMapping("/orders/{id}/paid")
+    public void paid(@PathVariable Long id) throws com.trung.bookingservice.exception.ResourceNotFoundException { bookings.markPrepaid(id); }
     private final com.trung.bookingservice.service.OrderCreationGuard creationGuard;
     @GetMapping("/attempts/{customer}/{key}")
     public Map<String,Object> attempt(@PathVariable Long customer, @PathVariable String key) { return creationGuard.attempt(customer, key); }
@@ -25,6 +28,7 @@ public class FinancialOrderController {
         data.put("driverId", order.getDriverId()); data.put("status", order.getStatus().name());
         data.put("paymentMethod", order.getPaymentMethod());
         data.put("amount", order.getPrice());
+        data.put("prepaid", order.isPrepaid()); data.put("paid", order.isPaid());
         return data;
     }
 }

@@ -55,9 +55,10 @@ class RideBookingRepositoryImpl @Inject constructor(
         vehicleType: String?,
         pickupAddress: String?,
         dropoffAddress: String?,
-        expectedPrice: Double?
+        expectedPrice: Double?,
+        paymentMethod: String
     ): CreateRideBookingResult {
-        val fingerprint = "BOOKING_${startLatitude}_${startLongitude}_${endLatitude}_${endLongitude}_${vehicleType}_${expectedPrice}"
+        val fingerprint = "BOOKING_${startLatitude}_${startLongitude}_${endLatitude}_${endLongitude}_${vehicleType}_${expectedPrice}_${paymentMethod}"
         val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_BOOKING, fingerprint)
         return try {
             val request = BookingRequest(
@@ -68,7 +69,8 @@ class RideBookingRepositoryImpl @Inject constructor(
                 vehicleType = vehicleType,
                 pickupAddress = pickupAddress,
                 dropoffAddress = dropoffAddress,
-                expectedPrice = expectedPrice
+                expectedPrice = expectedPrice,
+                paymentMethod = paymentMethod
             )
             val response = rideBookingApi.createBooking(idempotencyKey = key, request = request)
             idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_BOOKING)
