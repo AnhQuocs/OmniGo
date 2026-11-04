@@ -25,13 +25,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FoodOrderController {
 
+    private final com.trung.fooddeliveryservice.service.OrderCreationGuard creationGuard;
     private final FoodOrderService foodOrderService;
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<FoodOrderResponse>> createOrder(
+            @RequestHeader("Idempotency-Key") String key,
             @Valid @RequestBody FoodOrderCreateRequest request) throws ResourceNotFoundException, BadRequestException, UnauthorizedException {
         Long customerId = SecurityUtils.getCurrentUserId();
-        FoodOrderResponse response = foodOrderService.createOrder(request, customerId);
+        FoodOrderResponse response = creationGuard.create(customerId, key, request, FoodOrderResponse.class,
+                FoodOrderResponse::getId, () -> foodOrderService.createOrder(request, customerId));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response, "Đặt món thành công, hệ thống đang tìm tài xế giao hàng"));
     }

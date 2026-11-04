@@ -3,10 +3,17 @@ package com.trung.userdriverservice.exception;
 import com.trung.userdriverservice.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -80,7 +87,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler({org.springframework.security.authentication.LockedException.class, org.springframework.security.authentication.DisabledException.class})
+    @ExceptionHandler({LockedException.class, DisabledException.class})
     public ResponseEntity<ApiResponse<Object>> handleAccountLockedExceptions(Exception ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
@@ -91,8 +98,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
                 .message("Bạn không có quyền truy cập tài nguyên này")
@@ -102,21 +109,21 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
-    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
-            org.springframework.web.bind.MissingServletRequestParameterException.class})
+    @ExceptionHandler({MissingServletRequestPartException.class,
+            MissingServletRequestParameterException.class})
     public ResponseEntity<ApiResponse<Object>> handleMissingUploadPart(Exception ex) {
         return ResponseEntity.badRequest().body(ApiResponse.<Object>builder().success(false)
                 .message("Thiếu dữ liệu bắt buộc: " + ex.getMessage()).error("BAD_REQUEST").build());
     }
 
-    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<Object>> handleUnsupportedContentType(Exception ex) {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ApiResponse.<Object>builder()
                 .success(false).message("Content-Type không được hỗ trợ. API upload ảnh yêu cầu multipart/form-data.")
                 .error("UNSUPPORTED_MEDIA_TYPE").build());
     }
 
-    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Object>> handleUploadTooLarge(Exception ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ApiResponse.<Object>builder()
                 .success(false).message("Ảnh vượt quá dung lượng upload cho phép.").error("PAYLOAD_TOO_LARGE").build());

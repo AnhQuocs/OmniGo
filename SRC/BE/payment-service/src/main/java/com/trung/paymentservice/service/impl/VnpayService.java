@@ -20,16 +20,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.trung.paymentservice.service.PaymentWorkflowService;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class VnpayService implements PaymentStrategy {
 
+    private final PaymentWorkflowService workflow;
     private final VnpayConfig vnpayConfig;
     private final VnpayEncoder vnpayEncoder;
     private final TransactionRepository transactionRepository;
@@ -55,26 +62,27 @@ public class VnpayService implements PaymentStrategy {
         if ("CUSTOMER_DEPOSIT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             walletId = wallet.getId();
-            orderId = "VNPDEP_CUST_" + userId + "_" + System.currentTimeMillis();
+            orderId = "VNPDEP_CUST_" + userId + "_" + UUID.randomUUID().toString();
             txType = TransactionType.DEPOSIT;
         } else if ("DEPOSIT".equalsIgnoreCase(type) || "DRIVER_DEPOSIT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.DRIVER);
             walletId = wallet.getId();
-            orderId = "VNPDEP_" + userId + "_" + System.currentTimeMillis();
+            orderId = "VNPDEP_" + userId + "_" + UUID.randomUUID().toString();
             txType = TransactionType.DEPOSIT;
         } else if ("FOOD_PAYMENT".equalsIgnoreCase(type)) {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             walletId = wallet.getId();
-            orderId = "VNPFOOD_" + bookingId + "_" + System.currentTimeMillis();
+            orderId = "VNPFOOD_" + bookingId + "_" + UUID.randomUUID().toString();
             txType = TransactionType.FOOD_PAYMENT;
         } else {
             Wallet wallet = walletService.getOrCreateWallet(userId, UserType.CUSTOMER);
             walletId = wallet.getId();
-            orderId = "VNPTRI_" + bookingId + "_" + System.currentTimeMillis();
+            orderId = "VNPTRI_" + bookingId + "_" + UUID.randomUUID().toString();
             txType = TransactionType.TRIP_PAYMENT;
         }
 
         Transaction transaction = Transaction.builder()
+                .driverId(driverId)
                 .walletId(walletId)
                 .bookingId(bookingId)
                 .orderId(orderId)
@@ -110,75 +118,31 @@ public class VnpayService implements PaymentStrategy {
         return PaymentUrlResponse.builder().orderId(orderId).paymentUrl(paymentUrl).build();
     }
 
-    @Transactional
-    public void processVnpayReturn(String orderId, String responseCode, String orderInfo) {
-        Transaction transaction = transactionRepository.findByOrderId(orderId).orElse(null);
-        if (transaction == null || transaction.getStatus() == TransactionStatus.SUCCESS) return;
-
-        if ("00".equals(responseCode)) {
-            transaction.setStatus(TransactionStatus.SUCCESS);
-            transaction.setGatewayTransId("VNP_" + System.currentTimeMillis());
-            transactionRepository.save(transaction);
-
-            Wallet wallet = walletRepository.findById(transaction.getWalletId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy ví tương ứng với giao dịch"));
-
-            if (transaction.getTransactionType() == TransactionType.DEPOSIT) {
-                walletService.creditWallet(wallet.getUserId(), wallet.getUserType(), transaction.getAmount().doubleValue());
-            } else if (transaction.getTransactionType() == TransactionType.FOOD_PAYMENT) {
-                notifyFoodOrderPaid(transaction.getBookingId());
-            } else {
-                Long driverId = parseData(orderInfo, "DR=");
-                creditDriverForTrip(driverId, transaction);
-            }
-        } else {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-        }
-    }
-
-    private void notifyFoodOrderPaid(Long orderId) {
-        if (orderId == null) return;
+    public Map<String,String> processIpn(Map<String,String> params) {
+        String signature = params.get("vnp_SecureHash");
+        Map<String,String> signed = new TreeMap<>();
+        params.forEach((key,value) -> {
+            if (key.startsWith("vnp_") && !key.equals("vnp_SecureHash") && !key.equals("vnp_SecureHashType") && value != null && !value.isEmpty()) signed.put(key,value);
+        });
+        String data = signed.entrySet().stream().map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII))
+                .collect(Collectors.joining("&"));
+        String expected = vnpayEncoder.hmacSHA512(vnpayConfig.getHashSecret(), data);
+        if (signature == null || expected == null || expected.isBlank() || !MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.US_ASCII), signature.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII)))
+            return Map.of("RspCode", "97", "Message", "Invalid signature");
+        if (!Objects.equals(vnpayConfig.getTmnCode(), params.get("vnp_TmnCode"))) return Map.of("RspCode", "97", "Message", "Invalid merchant");
+        BigDecimal amount;
+        try { amount = new BigDecimal(params.get("vnp_Amount")).divide(new BigDecimal("100")); }
+        catch (Exception e) { return Map.of("RspCode", "04", "Message", "Invalid amount"); }
         try {
-            String url = (foodDeliveryBaseUrl != null ? foodDeliveryBaseUrl : "http://localhost:8086") + "/api/v1/food-orders/" + orderId + "/paid";
-            restTemplate.exchange(url, HttpMethod.POST, null, Void.class);
-            org.slf4j.LoggerFactory.getLogger(VnpayService.class).info("Đã thông báo sang food-delivery-service ({}/api/v1/food-orders/{}/paid): Đơn hàng #{} đã thanh toán thành công qua VNPay", foodDeliveryBaseUrl, orderId, orderId);
-        } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(VnpayService.class).error("Lỗi thông báo cập nhật thanh toán đơn đồ ăn #{}: {}", orderId, e.getMessage());
+            String txnStatus = params.get("vnp_TransactionStatus");
+            boolean isSuccess = "00".equals(params.get("vnp_ResponseCode")) && (txnStatus == null || "00".equals(txnStatus));
+            boolean applied = workflow.accept(params.get("vnp_TxnRef"), PaymentMethod.VNPAY, amount, params.get("vnp_TransactionNo"), isSuccess);
+            return Map.of("RspCode", applied ? "00" : "02", "Message", applied ? "Confirm Success" : "Already confirmed");
+        } catch (ResponseStatusException e) {
+            if (e.getStatusCode().value() == 404) return Map.of("RspCode", "01", "Message", "Order not found");
+            if (e.getStatusCode().value() == 400) return Map.of("RspCode", "04", "Message", "Invalid payment data");
+            throw e;
         }
-    }
-
-    private void creditDriverForTrip(Long driverId, Transaction customerTransaction) {
-        if (driverId == null) return;
-        Wallet driverWallet = walletService.getOrCreateWallet(driverId, UserType.DRIVER);
-        walletService.creditWallet(driverId, UserType.DRIVER, customerTransaction.getAmount().doubleValue());
-
-        Transaction driverIncomeTx = Transaction.builder()
-                .walletId(driverWallet.getId())
-                .bookingId(customerTransaction.getBookingId())
-                .orderId("INC_" + customerTransaction.getOrderId())
-                .amount(customerTransaction.getAmount())
-                .transactionType(TransactionType.TRIP_INCOME)
-                .paymentMethod(PaymentMethod.WALLET)
-                .status(TransactionStatus.SUCCESS)
-                .build();
-        transactionRepository.save(driverIncomeTx);
-
-        BookingCompletedEvent event = BookingCompletedEvent.builder()
-                .bookingId(customerTransaction.getBookingId())
-                .driverId(driverId)
-                .amount(customerTransaction.getAmount().doubleValue())
-                .build();
-
-        walletService.deductCommission(event);
-    }
-
-    private Long parseData(String orderInfo, String key) {
-        try {
-            for (String param : orderInfo.split(";")) {
-                if (param.startsWith(key)) return Long.parseLong(param.split("=")[1]);
-            }
-        } catch (Exception ignored) {}
-        return null;
     }
 }

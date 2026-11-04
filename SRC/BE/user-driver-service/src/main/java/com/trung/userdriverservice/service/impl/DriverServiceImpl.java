@@ -38,6 +38,14 @@ import java.util.Map;
 import com.trung.userdriverservice.dto.request.RegisterFcmTokenRequest;
 import com.trung.userdriverservice.service.UserFcmTokenService;
 import java.util.stream.Collectors;
+import com.trung.userdriverservice.service.client.BookingClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.connection.RedisStringCommands;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.types.Expiration;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +61,61 @@ public class DriverServiceImpl implements DriverService {
     private final RefreshTokenService refreshTokenService;
     private final CloudinaryService cloudinaryService;
     private final UserFcmTokenService fcmTokenService;
+    private final BookingClient bookingClient;
+    private final StringRedisTemplate redisTemplate;
+
+    @Value("${BOOKING_REDIS_DB:2}")
+    private int bookingRedisDb;
+
+    public void syncVehicleCache(Long driverId, String vehicleType) {
+        if (driverId == null) return;
+        String cacheKey = "driver:vehicle_type:" + driverId;
+        String normalized = normalizeVehicleType(vehicleType);
+
+        // 1. Cập nhật trực tiếp vào Booking Redis DB (DB 2)
+        try {
+            redisTemplate.execute((RedisCallback<Void>) connection -> {
+                try {
+                    connection.select(bookingRedisDb);
+                    if (normalized != null && !normalized.isBlank()) {
+                        connection.stringCommands().set(
+                                cacheKey.getBytes(StandardCharsets.UTF_8),
+                                normalized.getBytes(StandardCharsets.UTF_8),
+                                Expiration.from(10, TimeUnit.MINUTES),
+                                RedisStringCommands.SetOption.UPSERT
+                        );
+                    } else {
+                        connection.keyCommands().del(cacheKey.getBytes(StandardCharsets.UTF_8));
+                    }
+                } catch (Exception e) {
+                    log.debug("Direct Redis connection select({}) warning: {}", bookingRedisDb, e.getMessage());
+                }
+                return null;
+            });
+            log.info("Đã cập nhật trực tiếp Redis DB {} key {} = {}", bookingRedisDb, cacheKey, normalized);
+        } catch (Exception e) {
+            log.warn("Không thể cập nhật trực tiếp Redis DB {}: {}", bookingRedisDb, e.getMessage());
+        }
+
+        // 2. Cập nhật thêm Redis DB 0 của user-driver-service
+        try {
+            if (normalized != null && !normalized.isBlank()) {
+                redisTemplate.opsForValue().set(cacheKey, normalized, 10, TimeUnit.MINUTES);
+            } else {
+                redisTemplate.delete(cacheKey);
+            }
+        } catch (Exception e) {
+            log.debug("Lỗi ghi Redis DB 0 key {}: {}", cacheKey, e.getMessage());
+        }
+
+        // 3. Thông báo Feign sang booking-service cập nhật bộ nhớ đệm
+        try {
+            bookingClient.syncDriverVehicleCache(driverId, normalized);
+            log.info("Đã gọi Feign sang booking-service syncDriverVehicleCache({}, {})", driverId, normalized);
+        } catch (Exception e) {
+            log.warn("Lỗi gọi Feign sang booking-service syncDriverVehicleCache {}: {}", driverId, e.getMessage());
+        }
+    }
 
     private String resolveDocumentImage(String image) {
         return cloudinaryService.validateImageUrl(image);
@@ -178,6 +241,7 @@ public class DriverServiceImpl implements DriverService {
         if (request.getGplxFrontImage() != null) profile.setGplxFrontImage(resolveDocumentImage(request.getGplxFrontImage()));
         if (request.getGplxBackImage() != null) profile.setGplxBackImage(resolveDocumentImage(request.getGplxBackImage()));
         driverProfileRepository.save(profile);
+        syncVehicleCache(driverId, profile.getVehicleType());
 
         return ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -234,6 +298,7 @@ public class DriverServiceImpl implements DriverService {
         profile.setVehicleModel(request.getVehicleModel());
         profile.setVehicleType(normalizeVehicleType(request.getVehicleType()));
         driverProfileRepository.save(profile);
+        syncVehicleCache(driverId, profile.getVehicleType());
 
         return ApiResponse.<UserResponse>builder()
                 .data(userMapper.toUserResponse(profile.getUser()))
@@ -284,6 +349,7 @@ public class DriverServiceImpl implements DriverService {
         profile.setRejectionReason(null);
         profile.setStatus(DriverStatus.OFFLINE);
         driverProfileRepository.save(profile);
+        syncVehicleCache(driverId, profile.getVehicleType());
 
         return ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -313,6 +379,10 @@ public class DriverServiceImpl implements DriverService {
         DriverStatus newStatus = isActive ? DriverStatus.ONLINE : DriverStatus.OFFLINE;
         profile.setStatus(newStatus);
         driverProfileRepository.save(profile);
+
+        if (isActive && profile.getVehicleType() != null) {
+            syncVehicleCache(driverId, profile.getVehicleType());
+        }
 
         if (newStatus == DriverStatus.OFFLINE) {
             try {

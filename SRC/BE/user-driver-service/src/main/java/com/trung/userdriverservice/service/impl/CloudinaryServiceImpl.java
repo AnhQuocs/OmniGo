@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
         try {
             return upload(file.getBytes());
-        } catch (java.io.IOException error) {
+        } catch (IOException error) {
             log.error("Cannot read image for upload", error);
             throw new ImageUploadException("Không thể đọc ảnh tải lên. Vui lòng chọn lại ảnh.", HttpStatus.BAD_REQUEST);
         }

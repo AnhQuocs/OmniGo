@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,9 +42,9 @@ public class UserController {
     private final UserFcmTokenService fcmTokenService;
     private final UserSavedAddressService savedAddressService;
 
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Object>> handleAvatarUploadFailure(
-            org.springframework.web.server.ResponseStatusException ex) {
+            ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode()).body(ApiResponse.builder()
                 .success(false).message(ex.getReason()).timestamp(LocalDateTime.now()).build());
     }

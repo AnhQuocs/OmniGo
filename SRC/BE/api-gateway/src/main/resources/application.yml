@@ -3,3 +3,6 @@ spring:
     name: api-gateway
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+
+app:
+  internal-api-token: ${INTERNAL_API_TOKEN:omnipay-internal-shared-secret-token-32bytes-min}

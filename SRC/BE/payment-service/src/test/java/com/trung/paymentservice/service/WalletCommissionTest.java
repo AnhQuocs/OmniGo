@@ -22,6 +22,7 @@ class WalletCommissionTest {
         when(redis.opsForValue().get(PlatformFeeService.REDIS_KEY)).thenReturn("12.5");
         Wallet driver = Wallet.builder().id(1L).userId(11L).userType(UserType.DRIVER).balance(BigDecimal.ZERO).build();
         Wallet restaurant = Wallet.builder().id(2L).userId(22L).userType(UserType.RESTAURANT).balance(BigDecimal.ZERO).build();
+        when(wallets.findByUserIdAndUserType(11L, UserType.DRIVER)).thenReturn(Optional.of(driver));
         when(wallets.findByUserIdAndUserTypeWithLock(11L, UserType.DRIVER)).thenReturn(Optional.of(driver));
         when(wallets.findByUserIdAndUserTypeWithLock(22L, UserType.RESTAURANT)).thenReturn(Optional.of(restaurant));
         when(wallets.findByUserIdAndUserType(22L, UserType.RESTAURANT)).thenReturn(Optional.of(restaurant));
@@ -29,12 +30,12 @@ class WalletCommissionTest {
         when(transactions.save(any())).thenAnswer(inv -> { Transaction tx = inv.getArgument(0); ledger.add(tx); return tx; });
         when(transactions.findByOrderId(anyString())).thenAnswer(inv -> ledger.stream().filter(t -> t.getOrderId().equals(inv.getArgument(0))).findFirst());
         when(transactions.findByWalletIdOrderByCreatedAtDesc(1L)).thenAnswer(inv -> ledger.stream().filter(t -> t.getWalletId().equals(1L)).toList());
-        WalletServiceImpl service = new WalletServiceImpl(new PlatformFeeService(configs, redis), wallets, transactions, mock(RestTemplate.class));
+        WalletServiceImpl service = new WalletServiceImpl(mock(jakarta.persistence.EntityManager.class), mock(PaymentLocks.class), new PlatformFeeService(configs, redis), wallets, transactions, mock(RestTemplate.class));
         FoodOrderPayoutRequest request = FoodOrderPayoutRequest.builder().driverId(11L).restaurantOwnerId(22L).orderId(99L)
                 .foodAmount(new BigDecimal("100000")).deliveryFee(new BigDecimal("20000")).paymentMethod(method).build();
         service.processFoodOrderPayout(request);
         assertEquals(0, restaurant.getBalance().compareTo(new BigDecimal(expectedRestaurantBalance)));
-        assertEquals(0, driver.getBalance().compareTo(new BigDecimal("17500")));
+        assertEquals(0, driver.getBalance().compareTo(new BigDecimal("CASH".equals(method) ? "-2500" : "17500")));
         BigDecimal totalFees = ledger.stream().filter(t -> t.getTransactionType() == TransactionType.COMMISSION_FEE)
                 .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         assertEquals(0, totalFees.compareTo(new BigDecimal("15000")));
@@ -43,6 +44,6 @@ class WalletCommissionTest {
         service.processFoodOrderPayout(request);
         assertEquals(count, ledger.size());
         assertEquals(0, restaurant.getBalance().compareTo(new BigDecimal(expectedRestaurantBalance)));
-        assertEquals(0, driver.getBalance().compareTo(new BigDecimal("17500")));
+        assertEquals(0, driver.getBalance().compareTo(new BigDecimal("CASH".equals(method) ? "-2500" : "17500")));
     }
 }

@@ -2,6 +2,13 @@ server:
   port: ${PAYMENT_SERVICE_PORT}
 
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      database: ${PAYMENT_REDIS_DB:5}
+      connect-timeout: 2s
+      timeout: 2s
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${PAYMENT_DATABASE}
     username: ${POSTGRES_USER}
@@ -83,4 +90,4 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 app:
-  food-delivery-url: ${FOOD_DELIVERY_URL:https://api.ridehailingsystem.online}
+  food-delivery-url: ${FOOD_DELIVERY_URL:https://api.ridehailingsystem.online}

@@ -43,6 +43,7 @@ services:
         limits:
           memory: 512M
     environment:
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
       JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${API_GATEWAY_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -125,6 +126,8 @@ services:
         limits:
           memory: 512M
     environment:
+      APP_PAYMENT_SERVICE_URL: http://payment-service:8085
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
       JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${BOOKING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -186,6 +189,9 @@ services:
         limits:
           memory: 512M
     environment:
+      APP_BOOKING_URL: http://booking-service:8083
+      APP_FOOD_DELIVERY_URL: http://food-delivery-service:8086
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
       JAVA_TOOL_OPTIONS: "-Xms160m -Xmx280m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${PAYMENT_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -230,6 +236,8 @@ services:
         limits:
           memory: 512M
     environment:
+      APP_PAYMENT_SERVICE_URL: http://payment-service:8085
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
       JAVA_TOOL_OPTIONS: "-Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${FOOD_DELIVERY_SERVICE_PORT:-8086}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
