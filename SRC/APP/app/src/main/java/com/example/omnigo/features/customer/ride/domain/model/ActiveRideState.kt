@@ -12,6 +12,8 @@ data class ActiveRideState(
     val pickupAddress: String = "",
     val dropoffAddress: String = "",
     val price: Double = 0.0,
+    val discountAmount: Double = 0.0,
+    val voucherCode: String? = null,
     val paymentMethod: String? = null,
     val liveDistanceKm: Double? = null,
     val liveEtaMinutes: Int? = null,
@@ -20,6 +22,9 @@ data class ActiveRideState(
     val statusMessage: String? = null,
     val routeCoordinates: List<Pair<Double, Double>> = emptyList()
 ) {
+    val finalPrice: Double
+        get() = (price - discountAmount).coerceAtLeast(0.0)
+
     val isTripActive: Boolean
         get() = status == BookingStatus.ACCEPTED ||
                 status == BookingStatus.ARRIVED ||

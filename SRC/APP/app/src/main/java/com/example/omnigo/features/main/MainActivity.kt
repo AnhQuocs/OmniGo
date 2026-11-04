@@ -1,5 +1,6 @@
 package com.example.omnigo.features.main
 
+import com.example.omnigo.utils.showToast
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -73,11 +74,7 @@ fun MainApp(goToAuth: Boolean, sessionManager: SessionManager? = null) {
     sessionManager?.let { sm ->
         LaunchedEffect(Unit) {
             sm.sessionExpiredEvent.collect {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.auth_session_expired),
-                    Toast.LENGTH_LONG
-                ).show()
+                context.showToast(R.string.auth_session_expired)
                 navController.navigate("auth_root") {
                     popUpTo(0) { inclusive = true }
                 }

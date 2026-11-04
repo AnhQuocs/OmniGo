@@ -6,8 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.omnigo.R
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -46,8 +50,7 @@ import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.s10
-import com.example.omnigo.utils.s12
-import com.example.omnigo.utils.s14
+import com.example.omnigo.utils.s13
 
 @Composable
 fun AccountQuickDashboard(
@@ -58,22 +61,27 @@ fun AccountQuickDashboard(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)
     ) {
         // OmniPay Card
         Card(
+            onClick = onWalletClick,
             modifier = Modifier
                 .weight(1.3f)
-                .clickable(onClick = onWalletClick),
-            shape = RoundedCornerShape(AppShape.ShapeL),
+                .fillMaxHeight(),
+            shape = RoundedCornerShape(AppShape.ShapeM),
             colors = CardDefaults.cardColors(containerColor = SurfaceLight),
             elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS),
             border = BorderStroke(Dimen.BorderHairline, CardBorderColor)
         ) {
             Column(
-                modifier = Modifier.padding(Dimen.PaddingS),
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(Dimen.PaddingS),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -114,17 +122,23 @@ fun AccountQuickDashboard(
 
                 Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-                Text(
-                    text = stringResource(id = R.string.profile_quick_wallet),
-                    style = MaterialTheme.typography.s10.medium(),
-                    color = TextSecondary
-                )
+                Column {
+                    Text(
+                        text = stringResource(id = R.string.profile_quick_wallet),
+                        style = MaterialTheme.typography.s10.medium(),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                Text(
-                    text = balance,
-                    style = MaterialTheme.typography.s14.bold(),
-                    color = TextPrimary
-                )
+                    Text(
+                        text = balance,
+                        style = MaterialTheme.typography.s13.bold(),
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
 
@@ -157,15 +171,18 @@ private fun QuickActionElevatedCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(AppShape.ShapeL),
+        onClick = onClick,
+        modifier = modifier.fillMaxHeight(),
+        shape = RoundedCornerShape(AppShape.ShapeM),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationS),
         border = BorderStroke(Dimen.BorderHairline, CardBorderColor)
     ) {
         Column(
-            modifier = Modifier.padding(Dimen.PaddingS),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimen.PaddingS),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
@@ -184,17 +201,23 @@ private fun QuickActionElevatedCard(
 
             Spacer(modifier = Modifier.height(AppSpacing.XS))
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.s10.medium(),
-                color = TextSecondary
-            )
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.s10.medium(),
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.s12.bold(),
-                color = TextPrimary
-            )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.s13.bold(),
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

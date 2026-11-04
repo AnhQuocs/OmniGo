@@ -1,6 +1,7 @@
 package com.example.omnigo.features.driver.ride.presentation.state
 
 import com.example.omnigo.features.customer.ride.domain.model.BookingStatus
+import com.example.omnigo.features.driver.common.config.PlatformFeeConfig
 
 data class DriverActiveTripUiState(
     val bookingId: Long = 0L,
@@ -17,6 +18,9 @@ data class DriverActiveTripUiState(
     val customerAvatarUrl: String? = null,
     val price: Double = 0.0,
     val paymentMethod: String = "CASH",
+    val commissionRate: Double = PlatformFeeConfig.effectiveRate,
+    val estimatedPlatformFee: Double? = null,
+    val estimatedDriverEarnings: Double? = null,
     val currentLatitude: Double? = null,
     val currentLongitude: Double? = null,
     val distanceToTargetMeters: Double? = null,
@@ -30,11 +34,18 @@ data class DriverActiveTripUiState(
     val errorMessage: String? = null,
     val actionMessage: String? = null
 ) {
+    /**
+     * Phí sàn ước tính dựa trên tỷ lệ cấu hình hoặc phí thực tế từ hệ thống.
+     * Tuyệt đối không hardcode giá trị cố định price * 0.20.
+     */
     val platformFee: Double
-        get() = price * 0.20
+        get() = estimatedPlatformFee ?: PlatformFeeConfig.calculateEstimatedFee(price, commissionRate)
 
+    /**
+     * Thu nhập ước tính của tài xế dựa trên giá cước và tỷ lệ cấu hình.
+     */
     val driverEarnings: Double
-        get() = price * 0.80
+        get() = estimatedDriverEarnings ?: PlatformFeeConfig.calculateEstimatedEarnings(price, commissionRate)
 
     val isCashPayment: Boolean
         get() = paymentMethod.equals("CASH", ignoreCase = true)
@@ -53,4 +64,7 @@ data class DriverActiveTripUiState(
 
     val isCompleted: Boolean
         get() = status == BookingStatus.COMPLETED
+
+    val isFinished: Boolean
+        get() = status == BookingStatus.COMPLETED || status == BookingStatus.CANCELLED
 }

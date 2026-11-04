@@ -37,7 +37,9 @@ object DriverDeliveryOrderMapper {
             items = mappedItems,
             note = dto.note?.trim(),
             estimatedDeliveryMinutes = dto.estimatedDeliveryMinutes,
-            createdAt = dto.createdAt
+            createdAt = dto.createdAt,
+            platformFee = dto.platformFee,
+            driverEarnings = dto.driverEarnings
         )
     }
 

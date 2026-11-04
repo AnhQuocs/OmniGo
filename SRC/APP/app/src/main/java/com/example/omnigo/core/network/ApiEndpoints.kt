@@ -93,4 +93,5 @@ object ApiEndpoints {
     const val PAYMENT_CREATE = "$API_V1/payments/payment/create"
     const val BOOKING_PAYMENT_STATUS = "$API_V1/payments/booking/{bookingId}/payment-status"
     const val FOOD_ORDER_PAYMENT_STATUS = "$API_V1/payments/food-order/{orderId}/payment-status"
+    const val PLATFORM_FEE = "$API_V1/payments/platform-fee"
 }

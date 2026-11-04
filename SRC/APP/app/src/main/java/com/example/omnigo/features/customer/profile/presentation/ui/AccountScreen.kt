@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.profile.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.Toast
@@ -103,8 +104,8 @@ fun AccountScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is AccountUiEvent.NavigateToLogin -> onNavigateToLogin()
-                is AccountUiEvent.ShowToast -> Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                is AccountUiEvent.ShowStringResToast -> Toast.makeText(context, context.getString(event.resId), Toast.LENGTH_SHORT).show()
+                is AccountUiEvent.ShowToast -> context.showToast(event.message)
+                is AccountUiEvent.ShowStringResToast -> context.showToast(event.resId)
             }
         }
     }

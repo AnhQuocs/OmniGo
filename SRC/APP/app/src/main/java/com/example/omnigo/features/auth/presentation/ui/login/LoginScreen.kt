@@ -1,5 +1,6 @@
 package com.example.omnigo.features.auth.presentation.ui.login
 
+import com.example.omnigo.utils.showToast
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,7 +72,7 @@ fun LoginScreen(
 
     LaunchedEffect(resetPasswordUiState) {
         if (resetPasswordUiState is ResetPasswordUiState.Success) {
-            Toast.makeText(context, context.getString(R.string.auth_reset_password_success), Toast.LENGTH_LONG).show()
+            context.showToast(R.string.auth_reset_password_success)
             showForgotPasswordDialog = false
             authViewModel.resetResetPasswordState()
         }

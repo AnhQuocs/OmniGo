@@ -161,6 +161,7 @@ private fun DriverMenuItemCard(
     onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         modifier = Modifier
@@ -170,7 +171,6 @@ private fun DriverMenuItemCard(
                 color = CardBorderColor,
                 shape = RoundedCornerShape(AppShape.ShapeL)
             )
-            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier

@@ -17,7 +17,7 @@ object VoucherMapper {
             VoucherDiscountType.FIXED_AMOUNT
         }
         return Voucher(
-            id = dto.id ?: 0L,
+            id = dto.id ?: if (!dto.code.isNullOrBlank()) kotlin.math.abs(dto.code.hashCode().toLong()) else 0L,
             code = dto.code.orEmpty(),
             name = dto.name.orEmpty().ifBlank { dto.code.orEmpty() },
             description = dto.description.orEmpty(),

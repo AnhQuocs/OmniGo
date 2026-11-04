@@ -4,23 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.R
-import com.example.omnigo.features.customer.food.domain.model.CancelFoodOrderResult
-import com.example.omnigo.features.customer.food.domain.model.FoodOrder
-import com.example.omnigo.features.customer.food.domain.model.GetDriverProfileResult
-import com.example.omnigo.features.customer.food.domain.model.GetFoodOrderDetailResult
-import com.example.omnigo.features.customer.food.domain.model.GetMenuItemsResult
-import com.example.omnigo.features.customer.food.domain.model.GetRestaurantDetailResult
-import com.example.omnigo.features.customer.food.domain.model.MenuItem
-import com.example.omnigo.features.customer.food.domain.model.RetryDriverResult
-import com.example.omnigo.features.customer.food.domain.model.SwitchToCashResult
+import com.example.omnigo.features.customer.food.domain.model.*
 import com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
-import com.example.omnigo.features.customer.food.domain.usecase.CancelFoodOrderUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.GetDriverProfileUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.GetFoodOrderDetailUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantDetailUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.GetRestaurantItemsUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.RetryDriverUseCase
-import com.example.omnigo.features.customer.food.domain.usecase.SwitchToCashUseCase
+import com.example.omnigo.features.customer.food.domain.usecase.*
 import com.example.omnigo.features.customer.ride.presentation.viewmodel.RideVoucherReviewCoordinator
 import com.example.omnigo.features.driver.earnings.domain.usecase.CreateOrderPaymentUseCase
 import com.example.omnigo.features.driver.earnings.domain.usecase.GetFoodOrderPaymentStatusUseCase
@@ -28,6 +14,7 @@ import com.example.omnigo.utils.UiText
 import com.example.omnigo.utils.asUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +43,7 @@ class FoodOrderDetailViewModel @Inject constructor(
     val uiState: StateFlow<FoodOrderDetailUiState> = _uiState.asStateFlow()
     private var driverProfileJob: Job? = null
     private var trackingStateJob: Job? = null
+    private var paymentPollingJob: Job? = null
 
     init {
         loadOrderDetail(orderId)
@@ -101,10 +89,8 @@ class FoodOrderDetailViewModel @Inject constructor(
         if (id <= 0) {
             _uiState.update {
                 it.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    errorMessage = UiText.StringResource(R.string.order_detail_invalid_order_id),
-                    canRetry = false
+                    isLoading = false, isRefreshing = false,
+                    errorMessage = UiText.StringResource(R.string.order_detail_invalid_order_id), canRetry = false
                 )
             }
             return
@@ -118,25 +104,29 @@ class FoodOrderDetailViewModel @Inject constructor(
 
             when (val result = getFoodOrderDetailUseCase(id)) {
                 is GetFoodOrderDetailResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            order = result.order,
-                            driverProfile = if (it.order?.driverId == result.order.driverId) it.driverProfile else null,
-                            errorMessage = null,
-                            canRetry = true
+                    _uiState.update { current ->
+                        val wasPaid = current.order?.isPaid == true
+                        val isPaidNow = result.order.isPaid == true || wasPaid
+                        val resolvedOrder = if (isPaidNow && result.order.isPaid != true) {
+                            result.order.copy(isPaid = true)
+                        } else {
+                            result.order
+                        }
+                        current.copy(
+                            isLoading = false, isRefreshing = false, order = resolvedOrder,
+                            driverProfile = if (current.order?.driverId == resolvedOrder.driverId) current.driverProfile else null,
+                            errorMessage = null, canRetry = true
                         )
                     }
                     loadDriverProfile(result.order.driverId)
                     enrichOrderWithRestaurantData(result.order)
+                    if (!isRefresh && result.order.paymentMethod != PaymentMethod.CASH && result.order.isPaid != true && _uiState.value.order?.isPaid != true) {
+                        pollPaymentStatus(result.order.id, maxAttempts = 3, showPendingNotice = false)
+                    }
                 }
                 is GetFoodOrderDetailResult.Error -> {
-                    val errorUiText = result.message?.takeIf(String::isNotBlank)?.let(UiText::DynamicString)
-                        ?: result.error.asUiText()
-                    _uiState.update {
-                        it.copy(isLoading = false, isRefreshing = false, errorMessage = errorUiText, canRetry = true)
-                    }
+                    val errorUiText = result.message?.takeIf(String::isNotBlank)?.let(UiText::DynamicString) ?: result.error.asUiText()
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false, errorMessage = errorUiText, canRetry = true) }
                 }
             }
         }
@@ -154,9 +144,7 @@ class FoodOrderDetailViewModel @Inject constructor(
             when (val result = getDriverProfileUseCase(driverId)) {
                 is GetDriverProfileResult.Success -> {
                     _uiState.update {
-                        if (it.order?.driverId == driverId) {
-                            it.copy(driverProfile = result.profile, isDriverProfileLoading = false, driverProfileError = null)
-                        } else it
+                        if (it.order?.driverId == driverId) it.copy(driverProfile = result.profile, isDriverProfileLoading = false, driverProfileError = null) else it
                     }
                 }
                 is GetDriverProfileResult.Error -> {
@@ -181,13 +169,7 @@ class FoodOrderDetailViewModel @Inject constructor(
             when (val result = cancelFoodOrderUseCase(orderId, reasonCode, reason)) {
                 is CancelFoodOrderResult.Success -> {
                     voucherCoordinator?.rollbackVoucher(code = "", orderId = orderId.toString())
-                    _uiState.update {
-                        it.copy(
-                            isActionLoading = false,
-                            order = result.order,
-                            actionMessage = UiText.StringResource(R.string.order_cancel_success)
-                        )
-                    }
+                    _uiState.update { it.copy(isActionLoading = false, order = result.order, actionMessage = UiText.StringResource(R.string.order_cancel_success)) }
                 }
                 is CancelFoodOrderResult.Error -> {
                     val err = result.message?.takeIf(String::isNotBlank)?.let(UiText::DynamicString) ?: result.error.asUiText()
@@ -203,13 +185,7 @@ class FoodOrderDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isActionLoading = true) }
             when (val result = switchToCashUseCase(orderId)) {
                 is SwitchToCashResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isActionLoading = false,
-                            order = result.order,
-                            actionMessage = UiText.StringResource(R.string.order_switch_cash_success)
-                        )
-                    }
+                    _uiState.update { it.copy(isActionLoading = false, order = result.order, actionMessage = UiText.StringResource(R.string.order_switch_cash_success)) }
                 }
                 is SwitchToCashResult.Error -> {
                     val err = result.message?.takeIf(String::isNotBlank)?.let(UiText::DynamicString) ?: result.error.asUiText()
@@ -230,36 +206,70 @@ class FoodOrderDetailViewModel @Inject constructor(
                 method = order.paymentMethod?.name ?: "VNPAY",
                 type = "FOOD_PAYMENT"
             )?.onSuccess { payUrl ->
-                _uiState.update { it.copy(isActionLoading = false, openPaymentUrl = payUrl) }
-                loadOrderDetail(order.id, isRefresh = true)
-            }?.onFailure { err ->
-                _uiState.update {
-                    it.copy(isActionLoading = false, actionMessage = UiText.DynamicString(err.message ?: "Payment failed"))
+                when {
+                    payUrl.equals("WALLET_SUCCESS", ignoreCase = true) -> {
+                        _uiState.update {
+                            it.copy(isActionLoading = false, openPaymentUrl = null, actionMessage = UiText.StringResource(R.string.payment_sentinel_wallet_success))
+                        }
+                        pollPaymentStatus(order.id, maxAttempts = 3)
+                    }
+                    payUrl.equals("ALREADY_PAID", ignoreCase = true) -> {
+                        _uiState.update {
+                            it.copy(isActionLoading = false, openPaymentUrl = null, actionMessage = UiText.StringResource(R.string.payment_sentinel_already_paid))
+                        }
+                        loadOrderDetail(order.id, isRefresh = true)
+                    }
+                    !payUrl.isNullOrBlank() -> _uiState.update { it.copy(isActionLoading = false, openPaymentUrl = payUrl) }
+                    else -> _uiState.update { it.copy(isActionLoading = false) }
                 }
+            }?.onFailure { err ->
+                _uiState.update { it.copy(isActionLoading = false, actionMessage = UiText.DynamicString(err.message ?: "Payment failed")) }
             } ?: _uiState.update { it.copy(isActionLoading = false) }
         }
     }
 
-    fun onCheckPaymentStatus() {
+    fun onCheckPaymentStatus(autoPolling: Boolean = false) {
         val id = _uiState.value.order?.id ?: orderId
         if (id <= 0) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isActionLoading = true) }
-            getFoodOrderPaymentStatusUseCase?.invoke(id)
-                ?.onSuccess { statusDto ->
-                    val msg = if (statusDto.paid) {
-                        UiText.StringResource(R.string.order_payment_status_paid)
-                    } else {
-                        UiText.StringResource(R.string.order_payment_status_unpaid, statusDto.paymentStatus ?: "UNPAID")
+        pollPaymentStatus(id, maxAttempts = if (autoPolling) 3 else 1, showPendingNotice = !autoPolling)
+    }
+
+    private fun pollPaymentStatus(id: Long, maxAttempts: Int, showPendingNotice: Boolean = true) {
+        paymentPollingJob?.cancel()
+        paymentPollingJob = viewModelScope.launch {
+            if (showPendingNotice) _uiState.update { it.copy(isActionLoading = true) }
+            var attempts = 0
+            var isSuccess = false
+
+            while (attempts < maxAttempts && !isSuccess) {
+                if (attempts > 0) delay(2000)
+                attempts++
+                getFoodOrderPaymentStatusUseCase?.invoke(id)?.onSuccess { statusDto ->
+                    if (statusDto.paid) {
+                        isSuccess = true
+                        _uiState.update { current ->
+                            current.copy(
+                                isActionLoading = false,
+                                actionMessage = UiText.StringResource(R.string.order_payment_status_paid),
+                                order = current.order?.copy(isPaid = true)
+                            )
+                        }
+                        delay(1200)
+                        loadOrderDetail(id, isRefresh = true)
                     }
-                    _uiState.update { it.copy(isActionLoading = false, actionMessage = msg) }
-                    if (statusDto.paid) loadOrderDetail(id, isRefresh = true)
                 }
-                ?.onFailure { err ->
-                    _uiState.update {
-                        it.copy(isActionLoading = false, actionMessage = UiText.DynamicString(err.message ?: "Check failed"))
-                    }
-                } ?: _uiState.update { it.copy(isActionLoading = false) }
+            }
+
+            if (!isSuccess && showPendingNotice) {
+                val finalMsg = if (maxAttempts > 1) {
+                    UiText.StringResource(R.string.payment_status_pending_hint)
+                } else {
+                    UiText.StringResource(R.string.order_payment_status_unpaid, "PENDING")
+                }
+                _uiState.update { it.copy(isActionLoading = false, actionMessage = finalMsg) }
+            } else if (!isSuccess) {
+                _uiState.update { it.copy(isActionLoading = false) }
+            }
         }
     }
 
@@ -277,9 +287,7 @@ class FoodOrderDetailViewModel @Inject constructor(
                 is RetryDriverResult.Success -> {
                     _uiState.update {
                         it.copy(
-                            isActionLoading = false,
-                            order = result.order,
-                            retryDriverCount = it.retryDriverCount + 1,
+                            isActionLoading = false, order = result.order, retryDriverCount = it.retryDriverCount + 1,
                             actionMessage = UiText.StringResource(R.string.order_retry_driver_success)
                         )
                     }
@@ -348,6 +356,7 @@ class FoodOrderDetailViewModel @Inject constructor(
         super.onCleared()
         trackingStateJob?.cancel()
         driverProfileJob?.cancel()
+        paymentPollingJob?.cancel()
         viewModelScope.launch { activeTrackingRepository.clear() }
     }
 }

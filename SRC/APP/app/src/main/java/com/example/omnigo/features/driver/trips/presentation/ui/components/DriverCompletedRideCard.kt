@@ -70,7 +70,7 @@ fun DriverCompletedRideCard(
     }
 
     val timeStr = DriverTripsTimelineHelper.parseTime(booking.completedAt ?: booking.createdAt)
-    val netEarnings = booking.price * 0.80
+    val netEarnings = booking.actualEarnings
 
     Card(
         onClick = onClick,

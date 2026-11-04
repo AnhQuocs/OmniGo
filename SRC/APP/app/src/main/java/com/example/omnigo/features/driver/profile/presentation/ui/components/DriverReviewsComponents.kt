@@ -158,6 +158,7 @@ fun StarFilterRow(
                 "$star ★"
             }
             Card(
+                onClick = { onSelectStar(star) },
                 shape = RoundedCornerShape(AppShape.PillShape),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isSelected) PrimaryColor else SurfaceLight
@@ -169,7 +170,6 @@ fun StarFilterRow(
                         color = if (isSelected) PrimaryColor else CardBorderColor,
                         shape = RoundedCornerShape(AppShape.PillShape)
                     )
-                    .clickable { onSelectStar(star) }
             ) {
                 Text(
                     text = label,

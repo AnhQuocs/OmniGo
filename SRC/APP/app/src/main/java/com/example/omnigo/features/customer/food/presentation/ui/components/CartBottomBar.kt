@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +54,8 @@ fun CartBottomBar(
     totalQuantity: Int,
     totalAmount: Double,
     onCheckoutClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCartClick: (() -> Unit)? = null
 ) {
     AnimatedVisibility(
         visible = totalQuantity > 0,
@@ -78,7 +80,12 @@ fun CartBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Cart Icon with Badge and Total Amount
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(enabled = onCartClick != null) { onCartClick?.invoke() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(Dimen.SizeXLPlus)

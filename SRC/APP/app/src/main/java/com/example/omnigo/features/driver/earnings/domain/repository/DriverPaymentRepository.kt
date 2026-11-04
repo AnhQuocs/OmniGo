@@ -18,4 +18,5 @@ interface DriverPaymentRepository {
     suspend fun getTransactions(): Result<List<DriverWalletTransaction>>
     suspend fun getBookingPaymentStatus(bookingId: Long): Result<PaymentStatusResponseDto>
     suspend fun getFoodOrderPaymentStatus(orderId: Long): Result<PaymentStatusResponseDto>
+    suspend fun getPlatformFeePercentage(): Result<Int>
 }

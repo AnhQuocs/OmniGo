@@ -268,10 +268,7 @@ fun DriverInAppNavigationMap(
                 exit = fadeOut()
             ) {
                 Card(
-                    shape = RoundedCornerShape(AppShape.PillShape),
-                    colors = CardDefaults.cardColors(containerColor = PrimaryColor),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimen.PaddingXS),
-                    modifier = Modifier.clickable {
+                    onClick = {
                         cameraMode = NavigationCameraMode.FOLLOW_3D
                         effectiveDriverCoord?.let { (lat, lng) ->
                             coroutineScope.launch {
@@ -283,7 +280,10 @@ fun DriverInAppNavigationMap(
                                 )
                             }
                         }
-                    }
+                    },
+                    shape = RoundedCornerShape(AppShape.PillShape),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimen.PaddingXS)
                 ) {
                     Row(
                         modifier = Modifier.padding(

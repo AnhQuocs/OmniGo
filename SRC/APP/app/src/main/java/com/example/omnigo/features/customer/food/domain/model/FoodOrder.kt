@@ -1,18 +1,10 @@
 package com.example.omnigo.features.customer.food.domain.model
 
-
-
 enum class PaymentMethod(val code: String) {
-
     CASH("CASH"),
-
     WALLET("WALLET"),
-
     MOMO("MOMO"),
-
     VNPAY("VNPAY");
-
-
 
     companion object {
         fun fromCode(code: String?): PaymentMethod? =
@@ -20,23 +12,21 @@ enum class PaymentMethod(val code: String) {
     }
 }
 
-
-
 data class FoodOrderItem(
-    val id: Long,
+    val id: Long = 0L,
     val menuItemId: Long,
     val itemName: String,
     val itemPrice: Double,
     val quantity: Int,
-    val subtotal: Double,
-    val note: String,
+    val subtotal: Double = itemPrice * quantity,
+    val note: String = "",
     val imageUrl: String? = null
 )
 
 data class FoodOrder(
     val id: Long,
-    val customerId: Long?,
-    val driverId: Long?,
+    val customerId: Long? = null,
+    val driverId: Long? = null,
     val driverName: String? = null,
     val driverPhone: String? = null,
     val driverVehiclePlate: String? = null,
@@ -47,17 +37,17 @@ data class FoodOrder(
     val restaurantLatitude: Double? = null,
     val restaurantLongitude: Double? = null,
     val restaurantImageUrl: String? = null,
-    val status: String,
-    val paymentMethod: PaymentMethod?,
-    val isPaid: Boolean?,
-    val itemsPrice: Double,
-    val deliveryFee: Double?,
-    val totalPrice: Double?,
-    val dropOffAddress: String,
-    val dropOffLatitude: Double?,
-    val dropOffLongitude: Double?,
-    val note: String,
-    val items: List<FoodOrderItem>,
-    val estimatedDeliveryMinutes: Int?,
-    val createdAt: String
+    val status: String = "PENDING",
+    val paymentMethod: PaymentMethod? = PaymentMethod.CASH,
+    val isPaid: Boolean? = false,
+    val itemsPrice: Double = 0.0,
+    val deliveryFee: Double? = 0.0,
+    val totalPrice: Double? = 0.0,
+    val dropOffAddress: String = "",
+    val dropOffLatitude: Double? = null,
+    val dropOffLongitude: Double? = null,
+    val note: String = "",
+    val items: List<FoodOrderItem> = emptyList(),
+    val estimatedDeliveryMinutes: Int? = null,
+    val createdAt: String = ""
 )

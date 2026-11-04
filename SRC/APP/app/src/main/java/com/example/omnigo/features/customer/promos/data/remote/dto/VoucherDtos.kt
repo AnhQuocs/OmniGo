@@ -56,15 +56,19 @@ data class VoucherUsageDto(
 )
 
 data class DeliveryFeeRequestDto(
-    @SerializedName("pickupLat") val pickupLat: Double,
-    @SerializedName("pickupLng") val pickupLng: Double,
-    @SerializedName("dropoffLat") val dropoffLat: Double,
-    @SerializedName("dropoffLng") val dropoffLng: Double,
-    @SerializedName("orderAmount") val orderAmount: Double = 0.0
+    @SerializedName(value = "restaurantLatitude", alternate = ["pickupLat", "startLatitude"])
+    val restaurantLatitude: Double,
+    @SerializedName(value = "restaurantLongitude", alternate = ["pickupLng", "startLongitude"])
+    val restaurantLongitude: Double,
+    @SerializedName(value = "customerLatitude", alternate = ["dropoffLat", "endLatitude"])
+    val customerLatitude: Double,
+    @SerializedName(value = "customerLongitude", alternate = ["dropoffLng", "endLongitude"])
+    val customerLongitude: Double
 )
 
 data class DeliveryFeeResponseDto(
     @SerializedName("distanceKm") val distanceKm: Double? = null,
     @SerializedName("deliveryFee") val deliveryFee: Double? = null,
-    @SerializedName("estimatedMinutes") val estimatedMinutes: Int? = null
+    @SerializedName(value = "durationMinutes", alternate = ["estimatedMinutes"]) val durationMinutes: Int? = null,
+    @SerializedName("calculationSource") val calculationSource: String? = null
 )

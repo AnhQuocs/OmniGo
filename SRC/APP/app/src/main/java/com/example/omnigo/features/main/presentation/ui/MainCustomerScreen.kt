@@ -96,7 +96,8 @@ fun MainCustomerScreen(
                             }
                         },
                         onNavigateToSearch = {
-                            // Future: Navigate to Search Screen
+                            val intent = android.content.Intent(context, com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity::class.java)
+                            context.startActivity(intent)
                         },
                         onNavigateToNotifications = {
                             // Future: Navigate to Notifications Screen

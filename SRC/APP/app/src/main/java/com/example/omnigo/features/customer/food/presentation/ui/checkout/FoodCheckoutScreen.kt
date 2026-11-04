@@ -48,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.R
 import com.example.omnigo.features.customer.food.presentation.viewmodel.FoodCheckoutViewModel
+import com.example.omnigo.features.customer.wallet.presentation.ui.components.PaymentWebViewDialog
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
@@ -78,22 +79,10 @@ fun FoodCheckoutScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    LaunchedEffect(uiState.openPaymentUrl) {
-        val url = uiState.openPaymentUrl
-        if (!url.isNullOrBlank()) {
-            runCatching {
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
-                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
-            }
-            viewModel.clearOpenPaymentUrl()
-        }
-    }
-
     LaunchedEffect(uiState.createdOrderId) {
         val orderId = uiState.createdOrderId
         if (orderId != null) {
+            viewModel.onOrderCreatedHandled()
             onOrderCreated(orderId)
         }
     }
@@ -127,21 +116,22 @@ fun FoodCheckoutScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SurfaceLight
+                )
             )
         },
         bottomBar = {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
+                modifier = Modifier.fillMaxWidth(),
                 color = SurfaceLight,
-                shadowElevation = Dimen.PaddingSM
+                shadowElevation = AppSpacing.S
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
+                        .navigationBarsPadding()
+                        .padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingM),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -151,30 +141,41 @@ fun FoodCheckoutScreen(
                             style = MaterialTheme.typography.s13.normal(),
                             color = TextSecondary
                         )
+                        Spacer(modifier = Modifier.height(AppSpacing.XXS))
                         Text(
-                            text = com.example.omnigo.features.customer.food.presentation.format.formatFoodPrice(uiState.finalTotalAmount),
+                            text = String.format(Locale.getDefault(), "%,.0f đ", uiState.finalTotalAmount),
                             style = MaterialTheme.typography.s18.bold(),
                             color = PrimaryColor
                         )
+                        if (uiState.discountAmount > 0) {
+                            Text(
+                                text = "-${String.format(Locale.getDefault(), "%,.0f đ", uiState.discountAmount)}",
+                                style = MaterialTheme.typography.s13.normal(),
+                                color = PrimaryColor
+                            )
+                        }
                     }
 
                     Button(
                         onClick = viewModel::onPlaceOrder,
                         enabled = !uiState.isPlacingOrder && uiState.items.isNotEmpty(),
-                        shape = RoundedCornerShape(AppShape.ShapeXL),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        shape = RoundedCornerShape(AppShape.ShapeM),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            disabledContainerColor = PrimaryColor.copy(alpha = 0.5f)
+                        ),
                         modifier = Modifier.height(Dimen.HeightDefault)
                     ) {
                         if (uiState.isPlacingOrder) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(Dimen.SizeM),
                                 color = TextWhite,
-                                strokeWidth = Dimen.PaddingXXS
+                                modifier = Modifier.size(Dimen.SizeM),
+                                strokeWidth = AppSpacing.XXS
                             )
                         } else {
                             Text(
                                 text = stringResource(id = R.string.checkout_btn_place_order),
-                                style = MaterialTheme.typography.s14.bold(),
+                                style = MaterialTheme.typography.s16.bold(),
                                 color = TextWhite
                             )
                         }
@@ -188,34 +189,35 @@ fun FoodCheckoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(Dimen.PaddingM),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
+            contentPadding = PaddingValues(Dimen.PaddingL),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge)
         ) {
-            // 1. Delivery Address Section
+            // 1. Delivery Address Card
             item {
-                CheckoutDeliveryAddressSection(address = uiState.deliveryAddress)
+                CheckoutDeliveryAddressSection(
+                    address = uiState.deliveryAddress
+                )
             }
 
-            // 2. Order Summary Section
+            // 2. Order Summary Card
             item {
                 CheckoutOrderSummarySection(
                     restaurantName = uiState.restaurantName,
                     items = uiState.items,
                     itemsSubtotal = uiState.itemsSubtotal,
                     deliveryFee = uiState.deliveryFee,
-                    totalAmount = uiState.totalAmount,
-                    voucherCode = uiState.appliedVoucher?.voucherCode,
-                    discountAmount = uiState.discountAmount
+                    discountAmount = uiState.discountAmount,
+                    totalAmount = uiState.finalTotalAmount
                 )
             }
 
-            // 2.5 Voucher Selection Card
+            // 2.5 Voucher Selector Card
             item {
                 ElevatedCard(
-                    onClick = { viewModel.openVoucherSheet() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(AppShape.ShapeM),
                     colors = CardDefaults.elevatedCardColors(containerColor = SurfaceLight),
+                    onClick = { viewModel.openVoucherSheet() },
                     elevation = CardDefaults.elevatedCardElevation(defaultElevation = AppSpacing.XXS)
                 ) {
                     Row(
@@ -307,7 +309,10 @@ fun FoodCheckoutScreen(
             item {
                 CheckoutPaymentMethodSection(
                     selectedMethod = uiState.selectedPaymentMethod,
-                    onMethodSelected = viewModel::onPaymentMethodSelected
+                    onMethodSelected = viewModel::onPaymentMethodSelected,
+                    walletBalance = uiState.walletBalance,
+                    totalAmount = uiState.finalTotalAmount,
+                    onTopUpClick = { viewModel.openQuickTopUp(true) }
                 )
             }
         }
@@ -322,6 +327,39 @@ fun FoodCheckoutScreen(
             onApplyCode = { code -> viewModel.applyVoucherCode(code) },
             onRemoveVoucher = { viewModel.removeVoucher() },
             onDismiss = { viewModel.dismissVoucherSheet() }
+        )
+    }
+
+    // In-App Payment WebView for VNPay / MoMo
+    val webViewUrl = uiState.paymentWebViewUrl
+    if (!webViewUrl.isNullOrBlank()) {
+        PaymentWebViewDialog(
+            url = webViewUrl,
+            onPaymentSuccess = { viewModel.onPaymentWebViewSuccess() },
+            onPaymentFailed = { err -> viewModel.onPaymentWebViewFailed(err) },
+            onDismiss = { viewModel.onPaymentWebViewDismiss() }
+        )
+    }
+
+    // In-Checkout Quick Top-up BottomSheet
+    if (uiState.showQuickTopUp) {
+        val deficit = (uiState.finalTotalAmount - (uiState.walletBalance ?: 0.0)).coerceAtLeast(0.0)
+        QuickTopUpBottomSheet(
+            deficitAmount = deficit,
+            onConfirmTopUp = { amount -> viewModel.onQuickTopUpConfirm(amount) },
+            onDismiss = { viewModel.openQuickTopUp(false) },
+            isLoading = uiState.isTopUpLoading
+        )
+    }
+
+    if (uiState.showWalletPaymentConfirm) {
+        WalletPaymentConfirmBottomSheet(
+            amount = uiState.finalTotalAmount,
+            currentBalance = uiState.walletBalance ?: 0.0,
+            restaurantName = uiState.restaurantName,
+            onConfirm = viewModel::onConfirmWalletPayment,
+            onDismiss = viewModel::dismissWalletPaymentConfirm,
+            isLoading = uiState.isPlacingOrder
         )
     }
 }

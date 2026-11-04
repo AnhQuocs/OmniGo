@@ -169,6 +169,20 @@
     <string name="home_banner_desc_2">For orders from 50k</string>
     <string name="rating_count">%s reviews</string>
     <string name="home_popular_status_open">OPEN</string>
+    <string name="home_popular_status_closed">CLOSED</string>
+    <string name="home_wallet_loading">Updating...</string>
+    <string name="home_notifications_title">Notifications</string>
+    <string name="home_notifications_empty">No notifications yet</string>
+    <string name="home_notifications_mark_read">Mark all as read</string>
+    <string name="home_qr_dialog_title">OmniPay QR</string>
+    <string name="home_qr_dialog_desc">Scan at partner stores to pay instantly</string>
+    <string name="home_qr_my_code">My Payment Code</string>
+    <string name="home_notification_promo_title">Special Welcome Voucher</string>
+    <string name="home_notification_promo_desc">Get 30% discount with code OMIGO30 on your rides and meals!</string>
+    <string name="home_notification_ride_title">Safe Journey Guaranteed</string>
+    <string name="home_notification_ride_desc">OmniGo drivers are strictly verified for your safety and comfort.</string>
+    <string name="home_notification_wallet_title">OmniPay Activated</string>
+    <string name="home_notification_wallet_desc">Top up now for exclusive cashback and promotions.</string>
 
     <!-- ACTIVITY SCREEN -->
     <string name="activity_title">Activity &amp; History</string>
@@ -628,7 +642,9 @@
     <string name="ride_cancel_confirm_yes">Yes, Cancel</string>
     <string name="ride_cancel_confirm_no">Keep Searching</string>
     <string name="ride_search_timeout_message">No drivers responded in time. Please try booking again in a few moments.</string>
-    <string name="ride_booking_cancelled_success">Search cancelled successfully.</string>
+    <string name="ride_booking_cancelled_success">Trip cancelled successfully.</string>
+    <string name="ride_driver_cancelled_toast">Driver has cancelled this trip.</string>
+    <string name="ride_trip_cancelled_by_system">This trip has been cancelled.</string>
     <string name="ride_error_invalid_coordinates">Please select valid pickup and drop-off locations.</string>
     <string name="ride_error_same_locations">Pickup and drop-off locations cannot be identical.</string>
     <string name="ride_error_incomplete_locations">Please select both pickup and drop-off locations.</string>
@@ -750,8 +766,8 @@
     <string name="driver_trip_geofence_warning_dropoff">You must be within 50 meters of the dropoff location to complete the trip.</string>
     <string name="driver_trip_settlement_title">Trip Settlement</string>
     <string name="driver_trip_settlement_total_fare">Total Fare</string>
-    <string name="driver_trip_settlement_platform_fee">Platform Fee (20%)</string>
-    <string name="driver_trip_settlement_driver_income">Driver Earnings (80%)</string>
+    <string name="driver_trip_settlement_platform_fee">Platform Fee</string>
+    <string name="driver_trip_settlement_driver_income">Driver Earnings</string>
     <string name="driver_trip_settlement_cash_collect">Collect Cash: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Passenger paid via app (0 VND)</string>
     <string name="driver_trip_btn_finish_and_home">Continue Driving</string>
@@ -780,8 +796,8 @@
     <string name="driver_daily_report_trips_label">Completed Trips</string>
     <string name="driver_daily_report_trips_count_format">%1$d trips</string>
     <string name="driver_daily_report_gross_revenue">Gross Fare</string>
-    <string name="driver_daily_report_net_earnings">Driver Earnings (80%)</string>
-    <string name="driver_daily_report_platform_fee">Platform Fee (20%)</string>
+    <string name="driver_daily_report_net_earnings">Driver Earnings</string>
+    <string name="driver_daily_report_platform_fee">Platform Fee</string>
     <string name="driver_daily_report_cash">Cash: %1$s</string>
     <string name="driver_daily_report_app_paid">App: %1$s</string>
     <string name="driver_trips_active_trip_title">Ongoing Trip</string>
@@ -1055,8 +1071,8 @@
     <string name="driver_earnings_total_week">Total Earnings This Week</string>
     <string name="driver_earnings_total_month">Total Earnings This Month</string>
     <string name="driver_earnings_trips_count_fmt">%1$d trips</string>
-    <string name="driver_earnings_net_received_label">Net (80%)</string>
-    <string name="driver_earnings_platform_fee_label">Platform Fee (20%)</string>
+    <string name="driver_earnings_net_received_label">Net Earnings</string>
+    <string name="driver_earnings_platform_fee_label">Platform Fee</string>
     <string name="driver_earnings_gross_fare_label">Gross Fare</string>
     <string name="driver_earnings_quest_reward">+50,000 VND</string>
     <string name="driver_earnings_chart_title">Earnings Chart</string>
@@ -1094,7 +1110,7 @@
     <string name="driver_wallet_tab_income">Trip Income</string>
     <string name="driver_wallet_deposit_subtitle">Current Credit Balance</string>
     <string name="driver_wallet_income_subtitle">Net Earnings in Period</string>
-    <string name="driver_wallet_income_note">Earnings after 20% platform commission fee deduction.</string>
+    <string name="driver_wallet_income_note">Driver net earnings received after platform commission fee deduction.</string>
     <string name="driver_wallet_note_success_only">Only successful transactions affect your wallet balance.</string>
     <!-- Driver Account Redesign -->
     <string name="driver_account_subtitle">Manage personal info and settings</string>
@@ -1253,7 +1269,7 @@
     <string name="wallet_withdraw_success">Withdrawal completed successfully!</string>
     <string name="wallet_deposit_redirect_msg">Redirecting to payment gateway...</string>
     <string name="order_pay_now_btn">Pay Online Now</string>
-    <string name="order_check_payment_btn">Verify Payment Status</string>
+    <string name="order_check_payment_btn">Check Payment</string>
     <string name="order_payment_status_paid">Payment confirmed!</string>
     <string name="order_payment_status_unpaid">Payment is still pending (%1$s)</string>
 
@@ -1285,4 +1301,61 @@
     <string name="driver_resubmit_success">Profile resubmitted! Status is now Pending Approval.</string>
     <string name="common_back">Back</string>
     <string name="common_retry">Retry</string>
+    <!-- OmniGo Payment System & Quick Top-up -->
+    <string name="checkout_wallet_balance_format">Balance: %1$s</string>
+    <string name="checkout_wallet_insufficient">Insufficient balance (Need %1$s more)</string>
+    <string name="checkout_wallet_sufficient">Available balance</string>
+    <string name="checkout_wallet_top_up_btn">Top up</string>
+    <string name="checkout_error_insufficient_wallet">OmniPay wallet balance is insufficient. Please top up!</string>
+    <string name="checkout_quick_top_up_title">Quick OmniPay Wallet Top-up</string>
+    <string name="checkout_quick_top_up_subtitle">Top up to complete your order payment</string>
+    <string name="checkout_quick_top_up_deficit_option">Remaining deficit (%1$s)</string>
+    <string name="checkout_quick_top_up_custom_amount">Or choose another amount</string>
+    <string name="checkout_quick_top_up_btn">Confirm Top-up</string>
+    <string name="checkout_payment_gateway_title">OmniGo Payment Gateway</string>
+    <string name="checkout_payment_success_toast">Payment successful!</string>
+    <string name="checkout_payment_failed_toast">Payment incomplete or cancelled</string>
+    <string name="checkout_payment_loading">Connecting to payment gateway…</string>
+    <string name="checkout_wallet_payment_success">OmniPay wallet payment successful!</string>
+    <!-- Fintech Payment V4 & Idempotency Sentinels -->
+    <string name="payment_sentinel_wallet_success">OmniPay wallet payment successful!</string>
+    <string name="payment_sentinel_already_paid">This order has already been paid.</string>
+    <string name="payment_verifying_status">Verifying payment status with gateway…</string>
+    <string name="payment_status_pending_hint">Payment is awaiting confirmation from the gateway. Please tap Check Payment in a few moments.</string>
+    <string name="order_admission_blocked_food">You have an unpaid food order (%1$s). Please complete it before placing a new order.</string>
+    <string name="order_admission_blocked_ride">You have an ongoing ride booking. Please complete it before booking a new one.</string>
+    <string name="order_admission_view_order_btn">View Order</string>
+    <!-- Food Cart Bottom Sheet -->
+    <string name="food_cart_sheet_title">Cart</string>
+    <string name="food_cart_sheet_clear_all">Clear all</string>
+    <string name="food_cart_sheet_total">Total</string>
+    <string name="food_cart_sheet_checkout">Checkout</string>
+    <string name="food_cart_sheet_empty">Your cart is currently empty</string>
+    <string name="food_cart_sheet_view_restaurant">View restaurant menu</string>
+    <string name="food_cart_sheet_note_prefix">Note: %1$s</string>
+    <string name="food_cd_clear_cart">Clear entire cart</string>
+    <string name="food_cd_close_cart">Close cart</string>
+    <!-- Wallet Payment Confirmation -->
+    <string name="checkout_wallet_confirm_title">Confirm Payment</string>
+    <string name="checkout_wallet_confirm_amount_label">Payment Amount</string>
+    <string name="checkout_wallet_confirm_restaurant">Restaurant</string>
+    <string name="checkout_wallet_confirm_source">Payment Method</string>
+    <string name="checkout_wallet_confirm_current_balance">Current Balance</string>
+    <string name="checkout_wallet_confirm_remaining_balance">Remaining Balance</string>
+    <string name="checkout_wallet_confirm_btn_pay">Confirm &amp; Pay</string>
+    <string name="checkout_wallet_confirm_btn_cancel">Cancel</string>
+    <!-- Wallet Modern Dialog Strings -->
+    <string name="wallet_deposit_dialog_subtitle">Fast and secure top-up via VNPay Gateway</string>
+    <string name="wallet_withdraw_dialog_subtitle">Transfer funds 24/7 to linked bank account</string>
+    <string name="wallet_method_vnpay_title">VNPay Payment Gateway</string>
+    <string name="wallet_method_vnpay_subtitle">Supports VietQR, Domestic ATM, Visa/Mastercard</string>
+    <string name="wallet_withdraw_bank_title">Linked Bank Account</string>
+    <string name="wallet_withdraw_bank_subtitle">Fast 24/7 interbank transfer</string>
+    <string name="wallet_deposit_btn_confirm">Confirm Top Up</string>
+    <string name="wallet_withdraw_btn_confirm">Confirm Withdrawal</string>
+    <string name="wallet_withdraw_all">Withdraw all</string>
+    <string name="wallet_available_balance">Available: %1$s</string>
+    <string name="wallet_amount_min_error">Minimum amount is 10,000 ₫</string>
+    <string name="wallet_withdraw_max_error">Amount exceeds available balance</string>
+    <string name="wallet_btn_cancel">Cancel</string>
 </resources>

@@ -140,11 +140,10 @@ fun VoucherDetailDialog(
 
                 // Promo Code Copy Card
                 Surface(
+                    onClick = { onCopyCode(voucher.code) },
                     shape = RoundedCornerShape(AppShape.ShapeM),
                     color = badgeBg,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCopyCode(voucher.code) }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier

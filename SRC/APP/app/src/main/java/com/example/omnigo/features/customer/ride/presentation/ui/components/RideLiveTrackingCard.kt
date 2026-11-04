@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.presentation.ui.components
 
+import com.example.omnigo.utils.showToast
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -423,11 +424,7 @@ private fun openGoogleMapsNavigation(
         try {
             context.startActivity(fallbackIntent)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(
-                context,
-                context.getString(R.string.ride_live_tracking_nav_not_supported),
-                Toast.LENGTH_SHORT
-            ).show()
+            context.showToast(R.string.ride_live_tracking_nav_not_supported)
         }
     }
 }

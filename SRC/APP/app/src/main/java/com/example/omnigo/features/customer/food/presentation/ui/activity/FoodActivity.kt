@@ -11,15 +11,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.omnigo.BaseComponentActivity
+import com.example.omnigo.features.customer.food.domain.manager.CartManager
 import com.example.omnigo.features.customer.food.presentation.ui.checkout.FoodCheckoutScreen
 import com.example.omnigo.features.customer.food.presentation.ui.detail.RestaurantDetailScreen
 import com.example.omnigo.features.customer.food.presentation.ui.history.FoodOrderHistoryScreen
 import com.example.omnigo.features.customer.food.presentation.ui.home.FoodHomeScreen
 import com.example.omnigo.features.customer.food.presentation.ui.order.FoodOrderDetailScreen
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class FoodActivity : BaseComponentActivity() {
+
+    @Inject
+    lateinit var cartManager: CartManager
 
     companion object {
         const val EXTRA_RESTAURANT_ID = "extra_restaurant_id"
@@ -59,10 +64,19 @@ class FoodActivity : BaseComponentActivity() {
                     FoodHomeScreen(
                         onBackClick = { finish() },
                         onRestaurantClick = { restaurantId ->
-                            navController.navigate("restaurant_detail/$restaurantId")
+                            navController.navigate("restaurant_detail/$restaurantId") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onCheckoutClick = {
+                            navController.navigate("food_checkout") {
+                                launchSingleTop = true
+                            }
                         },
                         onHistoryClick = {
-                            navController.navigate("food_order_history")
+                            navController.navigate("food_order_history") {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
@@ -82,7 +96,9 @@ class FoodActivity : BaseComponentActivity() {
                             }
                         },
                         onCheckoutClick = {
-                            navController.navigate("food_checkout")
+                            navController.navigate("food_checkout") {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
@@ -92,7 +108,18 @@ class FoodActivity : BaseComponentActivity() {
                         onBackClick = { navController.popBackStack() },
                         onOrderCreated = { orderId ->
                             navController.navigate("food_order_detail/$orderId") {
-                                popUpTo("food_home") { inclusive = false }
+                                val hasHome = runCatching { navController.getBackStackEntry("food_home") }.isSuccess
+                                if (hasHome) {
+                                    popUpTo("food_home") { inclusive = false }
+                                } else {
+                                    val hasRestaurant = runCatching { navController.getBackStackEntry("restaurant_detail/{restaurantId}") }.isSuccess
+                                    if (hasRestaurant) {
+                                        popUpTo("restaurant_detail/{restaurantId}") { inclusive = true }
+                                    } else {
+                                        popUpTo("food_checkout") { inclusive = true }
+                                    }
+                                }
+                                launchSingleTop = true
                             }
                         }
                     )
@@ -106,13 +133,20 @@ class FoodActivity : BaseComponentActivity() {
                             }
                         },
                         onOrderClick = { orderId ->
-                            navController.navigate("food_order_detail/$orderId")
+                            navController.navigate("food_order_detail/$orderId") {
+                                launchSingleTop = true
+                            }
                         },
                         onReorderClick = { order ->
-                            navController.navigate("restaurant_detail/${order.restaurantId}")
+                            cartManager.restoreCartFromOrder(order)
+                            navController.navigate("restaurant_detail/${order.restaurantId}") {
+                                launchSingleTop = true
+                            }
                         },
                         onReviewClick = { order ->
-                            navController.navigate("food_order_review/${order.id}")
+                            navController.navigate("food_order_review/${order.id}") {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
@@ -130,10 +164,16 @@ class FoodActivity : BaseComponentActivity() {
                             }
                         },
                         onReorderClick = { order ->
-                            navController.navigate("restaurant_detail/${order.restaurantId}")
+                            cartManager.restoreCartFromOrder(order)
+                            navController.navigate("restaurant_detail/${order.restaurantId}") {
+                                popUpTo("food_order_detail/{orderId}") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         },
                         onReviewClick = { order ->
-                            navController.navigate("food_order_review/${order.id}")
+                            navController.navigate("food_order_review/${order.id}") {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }

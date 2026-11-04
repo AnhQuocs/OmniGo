@@ -78,9 +78,8 @@ fun CustomerHeroProfileCard(
     val context = LocalContext.current
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onProfileClick),
+        onClick = onProfileClick,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SurfaceLight),
         elevation = CardDefaults.cardElevation(defaultElevation = Dimen.ElevationM),

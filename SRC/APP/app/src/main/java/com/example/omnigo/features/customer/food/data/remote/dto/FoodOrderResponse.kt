@@ -100,7 +100,7 @@ data class FoodOrderResponse(
 
     val paymentMethod: String? = null,
 
-    @SerializedName("isPaid")
+    @SerializedName(value = "isPaid", alternate = ["paid", "is_paid"])
 
     val isPaid: Boolean? = null,
 
@@ -137,7 +137,11 @@ data class FoodOrderResponse(
     val estimatedDeliveryMinutes: Int? = null,
 
     @SerializedName("createdAt")
-
-    val createdAt: String? = null
-
+    val createdAt: String? = null,
+    @SerializedName(value = "platformFee", alternate = ["commissionFee", "serviceFee", "commission"])
+    val platformFee: Double? = null,
+    @SerializedName(value = "driverEarnings", alternate = ["netEarnings", "driverIncome"])
+    val driverEarnings: Double? = null,
+    @SerializedName(value = "commissionRate", alternate = ["platformFeeRate", "feeRate", "commissionPercentage"])
+    val commissionRate: Double? = null
 )

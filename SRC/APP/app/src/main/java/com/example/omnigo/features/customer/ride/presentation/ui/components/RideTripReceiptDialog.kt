@@ -63,6 +63,9 @@ import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s13
+import com.example.omnigo.utils.s22
+import com.example.omnigo.utils.formatVnd
+import com.example.omnigo.utils.lineThrough
 import com.example.omnigo.utils.s14
 import com.example.omnigo.utils.s16
 import com.example.omnigo.utils.s20
@@ -130,16 +133,53 @@ fun RideTripReceiptDialog(
 
                 Spacer(modifier = Modifier.height(AppSpacing.S))
 
-                val formattedFare = DecimalFormat("#,###").format(booking.price) + " đ"
-                Text(
-                    text = formattedFare,
-                    style = MaterialTheme.typography.s20.bold(),
-                    color = PrimaryColor,
-                    textAlign = TextAlign.Center
-                )
+                val isDiscounted = booking.discountAmount > 0.0
+                val paymentMethodLabel = if (booking.paymentMethod?.uppercase() == "WALLET") {
+                    stringResource(id = R.string.checkout_payment_wallet)
+                } else {
+                    stringResource(id = R.string.active_trip_sheet_payment_cash)
+                }
+
+                if (isDiscounted) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.XXS)
+                    ) {
+                        Text(
+                            text = booking.finalPrice.formatVnd(),
+                            style = MaterialTheme.typography.s22.bold(),
+                            color = PrimaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.XS)
+                        ) {
+                            Text(
+                                text = booking.price.formatVnd(),
+                                style = MaterialTheme.typography.s13.normal().lineThrough(),
+                                color = TextTertiary
+                            )
+                            if (!booking.voucherCode.isNullOrBlank()) {
+                                Text(
+                                    text = "-${booking.discountAmount.formatVnd()}",
+                                    style = MaterialTheme.typography.s13.semiBold(),
+                                    color = SuccessColor
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = booking.price.formatVnd(),
+                        style = MaterialTheme.typography.s20.bold(),
+                        color = PrimaryColor,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 Text(
-                    text = stringResource(id = R.string.active_trip_sheet_payment_cash),
+                    text = paymentMethodLabel,
                     style = MaterialTheme.typography.s12.medium(),
                     color = TextTertiary
                 )

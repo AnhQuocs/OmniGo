@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.wallet.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -87,31 +88,15 @@ fun CustomerWalletScreen(
     val context = LocalContext.current
     val vndFormat = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
 
-    LaunchedEffect(uiState.openPaymentUrl) {
-        uiState.openPaymentUrl?.let { url ->
-            Toast.makeText(
-                context,
-                context.getString(R.string.wallet_deposit_redirect_msg),
-                Toast.LENGTH_SHORT
-            ).show()
-            runCatching {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
-            }
-            viewModel.clearOpenPaymentUrl()
-        }
-    }
+
 
     LaunchedEffect(uiState.toastMessage) {
         uiState.toastMessage?.let { msg ->
-            val display = if (msg == "OK") {
-                context.getString(R.string.wallet_withdraw_success)
+            if (msg == "OK") {
+                context.showToast(R.string.wallet_withdraw_success)
             } else {
-                msg
+                context.showToast(msg)
             }
-            Toast.makeText(context, display, Toast.LENGTH_SHORT).show()
             viewModel.clearToastMessage()
         }
     }
@@ -287,7 +272,27 @@ fun CustomerWalletScreen(
             showMethodSelector = true,
             isSubmitting = uiState.isActionLoading,
             onDismiss = { viewModel.setShowDepositDialog(false) },
-            onConfirm = { amount, method -> viewModel.deposit(amount, method) }
+            onConfirm = { amount, method -> viewModel.deposit(amount, method) },
+            currentBalance = uiState.balance
+        )
+    }
+
+        val depositUrl = uiState.openPaymentUrl
+    if (!depositUrl.isNullOrBlank()) {
+        com.example.omnigo.features.customer.wallet.presentation.ui.components.PaymentWebViewDialog(
+            url = depositUrl,
+            onPaymentSuccess = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.refresh()
+            },
+            onPaymentFailed = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.refresh()
+            },
+            onDismiss = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.refresh()
+            }
         )
     }
 
@@ -297,7 +302,8 @@ fun CustomerWalletScreen(
             showMethodSelector = false,
             isSubmitting = uiState.isActionLoading,
             onDismiss = { viewModel.setShowWithdrawDialog(false) },
-            onConfirm = { amount, _ -> viewModel.withdraw(amount) }
+            onConfirm = { amount, _ -> viewModel.withdraw(amount) },
+            currentBalance = uiState.balance
         )
     }
 }

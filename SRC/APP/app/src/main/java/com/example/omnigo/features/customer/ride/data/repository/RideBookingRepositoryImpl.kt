@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.data.repository
 
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
 import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.customer.ride.data.mapper.toDomain
 import com.example.omnigo.features.customer.ride.data.mapper.toRideOfferEvent
@@ -34,7 +35,8 @@ import javax.inject.Inject
 
 class RideBookingRepositoryImpl @Inject constructor(
     private val rideBookingApi: RideBookingApi,
-    private val rideStompSubscriptionSource: RideStompSubscriptionSource
+    private val rideStompSubscriptionSource: RideStompSubscriptionSource,
+    private val idempotencyKeyManager: IdempotencyKeyManager
 ) : RideBookingRepository {
 
     internal var clock: () -> Long = { System.currentTimeMillis() }
@@ -54,6 +56,8 @@ class RideBookingRepositoryImpl @Inject constructor(
         pickupAddress: String?,
         dropoffAddress: String?
     ): CreateRideBookingResult {
+        val fingerprint = "BOOKING_${startLatitude}_${startLongitude}_${endLatitude}_${endLongitude}_${vehicleType}"
+        val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_BOOKING, fingerprint)
         return try {
             val request = BookingRequest(
                 startLongitude = startLongitude,
@@ -64,10 +68,15 @@ class RideBookingRepositoryImpl @Inject constructor(
                 pickupAddress = pickupAddress,
                 dropoffAddress = dropoffAddress
             )
-            CreateRideBookingResult.Success(rideBookingApi.createBooking(request).toDomain())
+            val response = rideBookingApi.createBooking(idempotencyKey = key, request = request)
+            idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_BOOKING)
+            CreateRideBookingResult.Success(response.toDomain())
         } catch (e: IOException) {
             CreateRideBookingResult.Error(error = RideError.NETWORK_ERROR, message = e.message)
         } catch (e: HttpException) {
+            if (e.code() == 422) {
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_BOOKING)
+            }
             CreateRideBookingResult.Error(error = RideError.SERVER_ERROR, message = e.toBackendMessage())
         } catch (e: Exception) {
             CreateRideBookingResult.Error(error = RideError.UNKNOWN_ERROR, message = e.message)

@@ -1,5 +1,6 @@
 package com.example.omnigo.features.driver.profile.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.Toast
@@ -97,9 +98,9 @@ fun DriverAccountScreen(
             when (event) {
                 is AccountUiEvent.NavigateToLogin -> onNavigateToLogin()
                 is AccountUiEvent.ShowToast ->
-                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    context.showToast(event.message)
                 is AccountUiEvent.ShowStringResToast ->
-                    Toast.makeText(context, context.getString(event.resId), Toast.LENGTH_SHORT).show()
+                    context.showToast(event.resId)
             }
         }
     }
@@ -110,11 +111,7 @@ fun DriverAccountScreen(
         header = {
             DriverAccountTopBar(
                 onNotificationClick = {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.notifications_title),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    context.showToast(R.string.notifications_title)
                 },
                 onSettingsClick = {
                     context.startActivity(PersonalProfileActivity.createIntent(context))
@@ -174,11 +171,7 @@ fun DriverAccountScreen(
                 context.startActivity(TermsAndPrivacyActivity.createIntent(context))
             },
             onHelpCenter = {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.driver_account_menu_support_title),
-                    Toast.LENGTH_SHORT
-                ).show()
+                context.showToast(R.string.driver_account_menu_support_title)
             },
             onOpenReviews = onNavigateToReviews
         )

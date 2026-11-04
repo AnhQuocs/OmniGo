@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.food.data.repository
 
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
 import com.example.omnigo.core.network.dto.ApiResponse
 import com.example.omnigo.features.customer.food.data.remote.api.FoodApi
 import com.example.omnigo.features.customer.food.data.remote.dto.DriverProfileResponse
@@ -74,7 +75,8 @@ class FoodRepositoryImplTest {
     @Before
     fun setUp() {
         foodApi = mockk()
-        repository = FoodRepositoryImpl(foodApi)
+        val idempotencyKeyManager: IdempotencyKeyManager = mockk(relaxed = true)
+        repository = FoodRepositoryImpl(foodApi, idempotencyKeyManager)
     }
 
     @Test
@@ -154,7 +156,7 @@ class FoodRepositoryImplTest {
             note = null,
             paymentMethod = PaymentMethod.CASH
         )
-        coEvery { foodApi.createFoodOrder(any()) } returns ApiResponse(
+        coEvery { foodApi.createFoodOrder(any(), any()) } returns ApiResponse(
             success = true,
             message = "Created",
             data = FoodOrderResponse(
@@ -175,7 +177,8 @@ class FoodRepositoryImplTest {
         assertEquals(12_345.0, order.deliveryFee!!, 0.001)
         io.mockk.coVerify(exactly = 1) {
             foodApi.createFoodOrder(
-                match {
+                idempotencyKey = any(),
+                request = match {
                     it.restaurantId == 1L &&
                         it.deliveryAddress == "Delivery address" &&
                         it.paymentMethod == "CASH"
@@ -191,7 +194,7 @@ class FoodRepositoryImplTest {
         val httpResponse = Response.error<FoodOrderResponse>(400, responseBody)
         val httpException = HttpException(httpResponse)
 
-        coEvery { foodApi.createFoodOrder(any()) } throws httpException
+        coEvery { foodApi.createFoodOrder(any(), any()) } throws httpException
 
         val command = FoodOrderCreateCommand(
             restaurantId = 7L,

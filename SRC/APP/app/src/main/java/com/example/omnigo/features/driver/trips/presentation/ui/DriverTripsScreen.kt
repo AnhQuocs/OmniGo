@@ -92,6 +92,7 @@ fun DriverTripsScreen(
         Column(
             modifier = contentModifier
                 .fillMaxSize()
+                .background(BackgroundLight)
                 .padding(horizontal = Dimen.PaddingM)
         ) {
             Spacer(modifier = Modifier.height(AppSpacing.S))
@@ -182,6 +183,8 @@ fun DriverTripsScreen(
                                     totalEarnings = group.totalEarnings
                                 )
 
+                                Spacer(modifier = Modifier.height(AppSpacing.SPlus))
+
                                 group.items.forEach { item ->
                                     when (item) {
                                         is DriverHistoryItem.Ride -> {
@@ -199,6 +202,7 @@ fun DriverTripsScreen(
                                             )
                                         }
                                     }
+                                    Spacer(modifier = Modifier.height(AppSpacing.M))
                                 }
 
                                 Spacer(modifier = Modifier.height(AppSpacing.S))

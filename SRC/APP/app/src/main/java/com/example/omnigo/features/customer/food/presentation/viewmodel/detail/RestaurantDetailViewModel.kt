@@ -44,6 +44,8 @@ class RestaurantDetailViewModel @Inject constructor(
             cartManager.cartState.collect { cart ->
                 _uiState.update { current ->
                     current.copy(
+                        cartRestaurantId = cart.restaurantId,
+                        cartRestaurantName = cart.restaurantName,
                         cartItems = cart.items,
                         totalCartAmount = cart.totalAmount,
                         totalCartQuantity = cart.totalQuantity
@@ -235,6 +237,10 @@ class RestaurantDetailViewModel @Inject constructor(
 
     fun onUpdateItemNote(menuItemId: Long, note: String) {
         cartManager.updateNote(menuItemId, note)
+    }
+
+    fun onUpdateCartQuantity(menuItemId: Long, quantity: Int) {
+        cartManager.updateQuantity(menuItemId, quantity)
     }
 
     fun onClearCart() {

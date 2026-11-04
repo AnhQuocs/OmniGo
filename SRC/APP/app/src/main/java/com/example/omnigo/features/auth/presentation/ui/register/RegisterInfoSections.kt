@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -316,6 +317,7 @@ private fun ModernVehicleTypeSelector(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(AppShape.ShapeM))
                             .background(
                                 color = if (isSelected) RoleCardSelectedBg else RoleCardUnselectedBg,
                                 shape = RoundedCornerShape(AppShape.ShapeM)

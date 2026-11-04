@@ -43,4 +43,5 @@ interface FoodRepository {
 
     suspend fun getDriverProfile(driverId: Long): GetDriverProfileResult
 
+    suspend fun calculateDeliveryFee(restaurantLat: Double, restaurantLng: Double, customerLat: Double, customerLng: Double): Result<Double>
 }

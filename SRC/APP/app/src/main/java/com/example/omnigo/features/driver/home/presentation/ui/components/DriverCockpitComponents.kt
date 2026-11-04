@@ -337,9 +337,10 @@ fun DriverCockpitBottomPanel(
 @Composable
 private fun ActiveTaskBannerCard(label: String, actionText: String, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(AppShape.ShapeL),
         colors = CardDefaults.cardColors(containerColor = SecondaryColor),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingSM),

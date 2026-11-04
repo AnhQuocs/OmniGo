@@ -238,9 +238,9 @@ fun VoucherItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Surface(
+                        onClick = { onCopyCode?.invoke(voucher.code) },
                         shape = RoundedCornerShape(AppShape.ShapeXS),
-                        color = if (isFood) SecondaryContainer else PrimaryContainer,
-                        modifier = Modifier.clickable { onCopyCode?.invoke(voucher.code) }
+                        color = if (isFood) SecondaryContainer else PrimaryContainer
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

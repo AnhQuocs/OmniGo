@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.promos.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,7 +57,7 @@ fun PromosScreen(
 
     LaunchedEffect(uiState.statusMessage) {
         uiState.statusMessage?.let { msg ->
-            Toast.makeText(context, msg.asString(context), Toast.LENGTH_SHORT).show()
+            context.showToast(msg)
             viewModel.clearStatusMessage()
         }
     }

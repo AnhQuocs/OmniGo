@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.food.data.repository
 
+import com.example.omnigo.core.network.idempotency.IdempotencyKeyManager
 import com.example.omnigo.core.network.toBackendMessage
 import com.example.omnigo.features.customer.food.data.mapper.toDomain
 import com.example.omnigo.features.customer.food.data.mapper.toRequest
@@ -23,7 +24,8 @@ import java.io.IOException
 import javax.inject.Inject
 
 class FoodRepositoryImpl @Inject constructor(
-    private val foodApi: FoodApi
+    private val foodApi: FoodApi,
+    private val idempotencyKeyManager: IdempotencyKeyManager
 ) : FoodRepository {
 
     override suspend fun getRestaurants(search: String?): GetRestaurantsResult {
@@ -81,9 +83,13 @@ class FoodRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createFoodOrder(command: FoodOrderCreateCommand): CreateFoodOrderResult {
+        val itemsFingerprint = command.items.map { "${it.menuItemId}x${it.quantity}" }.sorted().joinToString()
+        val fingerprint = "FOOD_${command.restaurantId}_${itemsFingerprint}_${command.dropOffLatitude}_${command.dropOffLongitude}"
+        val key = idempotencyKeyManager.getOrCreateKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER, fingerprint)
         return try {
-            val response = foodApi.createFoodOrder(command.toRequest())
+            val response = foodApi.createFoodOrder(idempotencyKey = key, request = command.toRequest())
             if (response.success && response.data != null) {
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER)
                 CreateFoodOrderResult.Success(response.data.toDomain())
             } else {
                 CreateFoodOrderResult.Error(
@@ -92,6 +98,9 @@ class FoodRepositoryImpl @Inject constructor(
                 )
             }
         } catch (e: HttpException) {
+            if (e.code() == 422) {
+                idempotencyKeyManager.clearKey(IdempotencyKeyManager.SCOPE_FOOD_ORDER)
+            }
             val backendMessage = e.toBackendMessage()
             CreateFoodOrderResult.Error(
                 error = FoodError.SERVER_ERROR,
@@ -239,6 +248,34 @@ class FoodRepositoryImpl @Inject constructor(
             GetDriverProfileResult.Error(FoodError.NETWORK_ERROR, e.message)
         } catch (e: Exception) {
             GetDriverProfileResult.Error(FoodError.UNKNOWN_ERROR, e.message)
+        }
+    }
+
+    override suspend fun calculateDeliveryFee(
+        restaurantLat: Double,
+        restaurantLng: Double,
+        customerLat: Double,
+        customerLng: Double
+    ): Result<Double> {
+        return try {
+            val request = com.example.omnigo.features.customer.promos.data.remote.dto.DeliveryFeeRequestDto(
+                restaurantLatitude = restaurantLat,
+                restaurantLongitude = restaurantLng,
+                customerLatitude = customerLat,
+                customerLongitude = customerLng
+            )
+            val responseBody = foodApi.calculateDeliveryFee(request)
+            val jsonString = responseBody.string()
+            val jsonObject = com.google.gson.JsonParser.parseString(jsonString).asJsonObject
+            val fee = if (jsonObject.has("data") && jsonObject.get("data").isJsonObject) {
+                jsonObject.getAsJsonObject("data").get("deliveryFee")?.asDouble
+            } else if (jsonObject.has("deliveryFee")) {
+                jsonObject.get("deliveryFee")?.asDouble
+            } else null
+
+            if (fee != null) Result.success(fee) else Result.failure(Exception("Cannot parse delivery fee"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

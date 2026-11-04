@@ -1,5 +1,6 @@
 package com.example.omnigo.features.customer.ride.presentation.ui
 
+import com.example.omnigo.utils.showToast
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -103,11 +104,11 @@ fun RideBookingScreen(
             if (isGpsEnabled) {
                 viewModel.autoDetectPickupLocation()
             } else {
-                Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
+                context.showToast(R.string.ride_gps_required_msg)
                 context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             }
         } else {
-            Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
+            context.showToast(R.string.ride_gps_required_msg)
             onBackClick()
         }
     }
@@ -126,7 +127,7 @@ fun RideBookingScreen(
             if (isGpsEnabled) {
                 viewModel.autoDetectPickupLocation()
             } else {
-                Toast.makeText(context, context.getString(R.string.ride_gps_required_msg), Toast.LENGTH_LONG).show()
+                context.showToast(R.string.ride_gps_required_msg)
                 context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             }
         }
@@ -143,23 +144,23 @@ fun RideBookingScreen(
     LaunchedEffect(Unit) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is RideBookingEvent.ShowToast -> Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                is RideBookingEvent.BookingCreated -> Toast.makeText(context, context.getString(R.string.ride_booking_in_progress), Toast.LENGTH_SHORT).show()
-                is RideBookingEvent.BookingCancelled -> Toast.makeText(context, context.getString(R.string.ride_booking_cancelled_success), Toast.LENGTH_SHORT).show()
+                is RideBookingEvent.ShowToast -> context.showToast(event.message)
+                is RideBookingEvent.BookingCreated -> context.showToast(R.string.ride_booking_in_progress)
+                is RideBookingEvent.BookingCancelled -> context.showToast(R.string.ride_booking_cancelled_success)
             }
         }
     }
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
-            Toast.makeText(context, it.asString(context), Toast.LENGTH_LONG).show()
+            context.showToast(it)
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
-            Toast.makeText(context, it.asString(context), Toast.LENGTH_SHORT).show()
+            context.showToast(it)
             viewModel.clearMessages()
         }
     }

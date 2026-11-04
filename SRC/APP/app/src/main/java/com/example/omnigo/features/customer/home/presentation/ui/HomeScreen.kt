@@ -27,6 +27,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.omnigo.core.components.OmniGoMainLayout
 import com.example.omnigo.features.customer.food.presentation.ui.activity.FoodActivity
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerBottomSheet
+import com.example.omnigo.features.customer.home.presentation.ui.components.CustomerNotificationsBottomSheet
+import com.example.omnigo.features.customer.home.presentation.ui.components.CustomerQrScanDialog
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeFilterChipsSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeHeaderSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomePopularPlacesSection
@@ -35,6 +37,7 @@ import com.example.omnigo.features.customer.home.presentation.ui.components.Home
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeSearchSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.HomeServicesGridSection
 import com.example.omnigo.features.customer.home.presentation.ui.components.LocationPromptDialog
+import com.example.omnigo.features.customer.ride.presentation.ui.activity.RideActivity
 import com.example.omnigo.features.customer.home.presentation.viewmodel.HomeUiEvent
 import com.example.omnigo.features.customer.home.presentation.viewmodel.HomeViewModel
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -101,8 +104,9 @@ fun HomeScreen(
                 HomeHeaderSection(
                     currentAddress = uiState.displayAddress,
                     isLocating = uiState.isLocationLoading,
+                    hasUnreadNotifications = uiState.hasUnreadNotifications,
                     onLocationClick = viewModel::onLocationHeaderClick,
-                    onNotificationClick = onNavigateToNotifications,
+                    onNotificationClick = viewModel::openNotifications,
                     modifier = Modifier.height(TOP_BAR_HEIGHT)
                 )
             }
@@ -118,8 +122,9 @@ fun HomeScreen(
 
                 HomeQuickWalletSection(
                     balanceText = uiState.walletBalanceFormatted,
+                    isWalletLoading = uiState.isWalletLoading,
                     onTopUpClick = onOpenWallet,
-                    onScanQrClick = onOpenWallet
+                    onScanQrClick = viewModel::openQrDialog
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))
@@ -130,7 +135,10 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))
 
-                HomeFilterChipsSection()
+                HomeFilterChipsSection(
+                    selectedFilter = uiState.selectedFilter,
+                    onFilterSelect = viewModel::selectFilter
+                )
 
                 Spacer(modifier = Modifier.height(AppSpacing.L))
 
@@ -141,16 +149,42 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(AppSpacing.LPlus))
 
                 HomePromoBannersSection(
-                    onBannerClick = { promoCode ->
-                        // Handle promo click
+                    vouchers = uiState.vouchers,
+                    onBannerClick = { voucher ->
+                        when (voucher.applicableService.uppercase()) {
+                            "RIDE" -> {
+                                val intent = Intent(context, RideActivity::class.java).apply {
+                                    if (voucher.code.isNotBlank()) putExtra("EXTRA_PROMO_CODE", voucher.code)
+                                }
+                                context.startActivity(intent)
+                            }
+                            "FOOD" -> {
+                                val intent = Intent(context, FoodActivity::class.java).apply {
+                                    if (voucher.code.isNotBlank()) putExtra("EXTRA_PROMO_CODE", voucher.code)
+                                }
+                                context.startActivity(intent)
+                            }
+                            else -> {
+                                if (voucher.code.isNotBlank()) {
+                                    val intent = Intent(context, RideActivity::class.java).apply {
+                                        putExtra("EXTRA_PROMO_CODE", voucher.code)
+                                    }
+                                    context.startActivity(intent)
+                                } else {
+                                    onNavigateToService("ride")
+                                }
+                            }
+                        }
                     }
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.LPlus))
 
                 HomePopularPlacesSection(
-                    popularRestaurants = uiState.popularPlaces,
+                    popularRestaurants = uiState.filteredPopularPlaces.ifEmpty { uiState.popularPlaces.take(3) },
                     userLocation = uiState.userLocation,
+                    favoriteRestaurantIds = uiState.favoriteRestaurantIds,
+                    onToggleFavorite = viewModel::toggleFavoriteRestaurant,
                     onPlaceClick = { placeId ->
                         val restaurantId = placeId.toLongOrNull() ?: return@HomePopularPlacesSection
                         val intent = Intent(context, FoodActivity::class.java).apply {
@@ -213,6 +247,19 @@ fun HomeScreen(
             onStepChange = viewModel::onStepChange,
             onConfirmAddress = viewModel::onConfirmCustomAddress,
             onDismissRequest = viewModel::dismissAddressPicker
+        )
+    }
+
+    if (uiState.showNotificationsSheet) {
+        CustomerNotificationsBottomSheet(
+            onDismissRequest = viewModel::dismissNotifications,
+            onMarkAllAsRead = viewModel::markNotificationsAsRead
+        )
+    }
+
+    if (uiState.showQrDialog) {
+        CustomerQrScanDialog(
+            onDismissRequest = viewModel::dismissQrDialog
         )
     }
 }

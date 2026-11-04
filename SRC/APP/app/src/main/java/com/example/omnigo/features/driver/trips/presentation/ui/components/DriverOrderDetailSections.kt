@@ -268,8 +268,9 @@ fun DriverOrderDetailFareCard(
                 color = TextPrimary
             )
 
-            val fare = foodOrder?.deliveryFee ?: booking?.price ?: 0.0
-            val netEarnings = fare * 0.80
+            val fare = foodOrder?.grossFee ?: booking?.price ?: 0.0
+            val netEarnings = foodOrder?.actualEarnings ?: booking?.actualEarnings ?: fare
+            val platformFee = foodOrder?.actualPlatformFee ?: booking?.actualPlatformFee ?: 0.0
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -297,7 +298,7 @@ fun DriverOrderDetailFareCard(
                     color = TextSecondary
                 )
                 Text(
-                    text = "-${(fare * 0.20).formatVnd()}",
+                    text = "-${platformFee.formatVnd()}",
                     style = MaterialTheme.typography.s13.normal(),
                     color = TextSecondary
                 )

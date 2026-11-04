@@ -18,6 +18,7 @@ import com.example.omnigo.features.customer.home.domain.usecase.GetSavedAddresse
 import com.example.omnigo.features.customer.home.domain.usecase.GetWardsByDistrictUseCase
 import com.example.omnigo.features.customer.home.domain.usecase.SaveAddressUseCase
 import com.example.omnigo.features.customer.home.presentation.ui.components.AddressPickerStep
+import com.example.omnigo.features.customer.promos.domain.usecase.GetVouchersUseCase
 import com.example.omnigo.features.customer.ride.data.local.RideTrackingSessionManager
 import com.example.omnigo.features.customer.ride.domain.model.ActiveRideState
 import com.example.omnigo.features.customer.ride.domain.model.Booking
@@ -58,6 +59,7 @@ class HomeViewModelTest {
     private lateinit var deleteSavedAddressUseCase: DeleteSavedAddressUseCase
     private lateinit var userLocationManager: com.example.omnigo.core.location.manager.UserLocationManager
     private lateinit var cancelRideBookingUseCase: CancelRideBookingUseCase
+    private lateinit var getVouchersUseCase: GetVouchersUseCase
     private lateinit var sessionManager: com.example.omnigo.core.datastore.SessionManager
     private lateinit var rideTrackingSessionManager: RideTrackingSessionManager
     private val activeRideStateFlow = MutableStateFlow<ActiveRideState?>(null)
@@ -78,6 +80,7 @@ class HomeViewModelTest {
         userLocationManager = com.example.omnigo.core.location.manager.UserLocationManager()
         sessionManager = mockk(relaxed = true)
         cancelRideBookingUseCase = mockk(relaxed = true)
+        getVouchersUseCase = mockk(relaxed = true)
 
         rideTrackingSessionManager = mockk(relaxed = true)
         every { rideTrackingSessionManager.activeRideState } returns activeRideStateFlow
@@ -85,6 +88,7 @@ class HomeViewModelTest {
         coEvery { getRestaurantsUseCase(any()) } returns GetRestaurantsResult.Success(emptyList())
         coEvery { getProvincesUseCase(any()) } returns listOf(Province("01", "Thành phố Hà Nội"))
         coEvery { detectCurrentLocationUseCase() } returns DetectLocationResult.LocationUnavailable
+        coEvery { getVouchersUseCase(any()) } returns Result.success(emptyList())
         coEvery { getSavedAddressesUseCase() } returns flowOf(
             listOf(SavedAddress("1", "Nhà", "14D Nguyễn Hy Quang", 21.0, 105.8))
         )
@@ -107,8 +111,10 @@ class HomeViewModelTest {
             userLocationManager = userLocationManager,
             sessionManager = sessionManager,
             homeAddressCoordinator = coordinator,
+            homeFilterCoordinator = HomeFilterCoordinator(),
             rideTrackingSessionManager = rideTrackingSessionManager,
-            cancelRideBookingUseCase = cancelRideBookingUseCase
+            cancelRideBookingUseCase = cancelRideBookingUseCase,
+            getVouchersUseCase = getVouchersUseCase
         )
     }
 
@@ -305,5 +311,51 @@ class HomeViewModelTest {
 
         viewModel.onResume()
         coVerify(atLeast = 2) { rideTrackingSessionManager.restoreSessionIfAvailable() }
+    }
+
+    @Test
+    fun `selectFilter updates selectedFilter in uiState`() = runTest {
+        assertEquals(HomeFilter.ALL, viewModel.uiState.value.selectedFilter)
+
+        viewModel.selectFilter(HomeFilter.TOP_RATED)
+        assertEquals(HomeFilter.TOP_RATED, viewModel.uiState.value.selectedFilter)
+
+        viewModel.selectFilter(HomeFilter.NEARBY)
+        assertEquals(HomeFilter.NEARBY, viewModel.uiState.value.selectedFilter)
+    }
+
+    @Test
+    fun `toggleFavoriteRestaurant toggles restaurantId in favorite set`() = runTest {
+        assertTrue(viewModel.uiState.value.favoriteRestaurantIds.isEmpty())
+
+        viewModel.toggleFavoriteRestaurant(101L)
+        assertTrue(viewModel.uiState.value.favoriteRestaurantIds.contains(101L))
+
+        viewModel.toggleFavoriteRestaurant(101L)
+        assertFalse(viewModel.uiState.value.favoriteRestaurantIds.contains(101L))
+    }
+
+    @Test
+    fun `notifications sheet and unread badge state transitions correctly`() = runTest {
+        assertTrue(viewModel.uiState.value.hasUnreadNotifications)
+        assertFalse(viewModel.uiState.value.showNotificationsSheet)
+
+        viewModel.openNotifications()
+        assertTrue(viewModel.uiState.value.showNotificationsSheet)
+
+        viewModel.markNotificationsAsRead()
+        assertFalse(viewModel.uiState.value.hasUnreadNotifications)
+        assertFalse(viewModel.uiState.value.showNotificationsSheet)
+    }
+
+    @Test
+    fun `qr dialog toggles state correctly`() = runTest {
+        assertFalse(viewModel.uiState.value.showQrDialog)
+
+        viewModel.openQrDialog()
+        assertTrue(viewModel.uiState.value.showQrDialog)
+
+        viewModel.dismissQrDialog()
+        assertFalse(viewModel.uiState.value.showQrDialog)
     }
 }

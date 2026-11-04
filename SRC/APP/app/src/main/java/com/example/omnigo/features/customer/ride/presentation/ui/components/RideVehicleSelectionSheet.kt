@@ -53,6 +53,7 @@ import com.example.omnigo.ui.theme.TextSecondary
 import com.example.omnigo.ui.theme.TextTertiary
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.formatVnd
+import com.example.omnigo.utils.lineThrough
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s10
@@ -145,6 +146,7 @@ fun RideVehicleSelectionSheet(
                         estimate = estimate,
                         isSelected = isSelected,
                         isCalculating = isCalculating,
+                        appliedVoucher = appliedVoucher,
                         onClick = { onSelectVehicle(config.type) }
                     )
                 }
@@ -271,6 +273,7 @@ private fun VehicleItemCard(
     estimate: PricingEstimate?,
     isSelected: Boolean,
     isCalculating: Boolean,
+    appliedVoucher: AppliedVoucherResult?,
     onClick: () -> Unit
 ) {
     val containerBg = if (isSelected) PrimaryColor.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent
@@ -357,12 +360,28 @@ private fun VehicleItemCard(
                         strokeWidth = Dimen.PaddingXXS
                     )
                 } else if (estimate != null) {
-                    val formatted = DecimalFormat("#,###").format(estimate.totalPrice) + " đ"
-                    Text(
-                        text = formatted,
-                        style = MaterialTheme.typography.s16.bold(),
-                        color = if (isSelected) PrimaryColor else TextPrimary
-                    )
+                    val discount = if (isSelected) (appliedVoucher?.discountAmount ?: 0.0) else 0.0
+                    val finalPrice = (estimate.totalPrice - discount).coerceAtLeast(0.0)
+                    if (discount > 0.0) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = finalPrice.formatVnd(),
+                                style = MaterialTheme.typography.s16.bold(),
+                                color = PrimaryColor
+                            )
+                            Text(
+                                text = estimate.totalPrice.formatVnd(),
+                                style = MaterialTheme.typography.s12.normal().lineThrough(),
+                                color = TextTertiary
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = estimate.totalPrice.formatVnd(),
+                            style = MaterialTheme.typography.s16.bold(),
+                            color = if (isSelected) PrimaryColor else TextPrimary
+                        )
+                    }
                 }
             }
         }

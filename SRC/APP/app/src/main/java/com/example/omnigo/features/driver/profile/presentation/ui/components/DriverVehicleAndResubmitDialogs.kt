@@ -360,15 +360,14 @@ private fun VehicleTypeSelectorRow(
         VEHICLE_TYPES.forEach { type ->
             val isSelected = selectedType.equals(type, ignoreCase = true)
             Surface(
+                onClick = { onSelectType(type) },
                 shape = RoundedCornerShape(AppShape.ShapeM),
                 color = if (isSelected) PrimaryContainer else SurfaceLight,
                 border = BorderStroke(
                     width = Dimen.BorderThin,
                     color = if (isSelected) PrimaryColor else CardBorderColor
                 ),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSelectType(type) }
+                modifier = Modifier.weight(1f)
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = Dimen.PaddingS),

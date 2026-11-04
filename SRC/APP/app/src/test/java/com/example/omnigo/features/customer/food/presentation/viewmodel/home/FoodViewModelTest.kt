@@ -166,5 +166,18 @@ class FoodViewModelTest {
         assertEquals(2, state.totalCartQuantity)
         assertEquals(100000.0, state.totalCartAmount, 0.01)
         assertEquals(1L, state.cartRestaurantId)
+        assertEquals("Phở Thìn", state.cartRestaurantName)
+        assertEquals(2, state.cartItems[101L]?.quantity)
+
+        viewModel.onUpdateCartQuantity(101L, 1)
+        val updatedState = viewModel.uiState.value
+        assertEquals(1, updatedState.totalCartQuantity)
+        assertEquals(50000.0, updatedState.totalCartAmount, 0.01)
+
+        viewModel.onClearCart()
+        val clearedState = viewModel.uiState.value
+        assertEquals(0, clearedState.totalCartQuantity)
+        assertEquals(0.0, clearedState.totalCartAmount, 0.01)
+        assertTrue(clearedState.cartItems.isEmpty())
     }
 }

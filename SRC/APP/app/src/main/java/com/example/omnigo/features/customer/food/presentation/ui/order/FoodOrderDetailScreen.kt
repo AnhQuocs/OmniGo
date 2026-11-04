@@ -65,18 +65,7 @@ fun FoodOrderDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    LaunchedEffect(uiState.openPaymentUrl) {
-        val url = uiState.openPaymentUrl
-        if (!url.isNullOrBlank()) {
-            runCatching {
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
-                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
-            }
-            viewModel.clearOpenPaymentUrl()
-        }
-    }
+
 
     LaunchedEffect(uiState.errorMessage) {
         val err = uiState.errorMessage
@@ -241,7 +230,7 @@ fun FoodOrderDetailScreen(
                         }
 
                         // 6. Payment Information Card
-                        item {
+                        item(key = "payment_and_pricing_${order.id}_${order.isPaid}") {
                             OrderDetailPaymentAndPricingSection(
                                 paymentMethod = order.paymentMethod,
                                 isPaid = order.isPaid,
@@ -302,6 +291,25 @@ fun FoodOrderDetailScreen(
         CancelOrderDialog(
             onDismiss = { viewModel.onDismissCancelDialog() },
             onConfirm = { reasonCode, reason -> viewModel.onCancelOrder(reasonCode, reason) }
+        )
+    }
+
+    val orderPaymentUrl = uiState.openPaymentUrl
+    if (!orderPaymentUrl.isNullOrBlank()) {
+        com.example.omnigo.features.customer.wallet.presentation.ui.components.PaymentWebViewDialog(
+            url = orderPaymentUrl,
+            onPaymentSuccess = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.onCheckPaymentStatus(autoPolling = true)
+            },
+            onPaymentFailed = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.onCheckPaymentStatus()
+            },
+            onDismiss = {
+                viewModel.clearOpenPaymentUrl()
+                viewModel.onCheckPaymentStatus(autoPolling = true)
+            }
         )
     }
 }

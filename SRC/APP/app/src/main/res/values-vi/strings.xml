@@ -657,7 +657,9 @@
     <string name="ride_cancel_confirm_no">Tiếp tục tìm</string>
     <string name="ride_search_timeout_message">Chưa tìm thấy tài xế phù hợp trong khu vực. Vui lòng
         thử lại sau ít phút.</string>
-    <string name="ride_booking_cancelled_success">Đã hủy tìm chuyến xe thành công.</string>
+    <string name="ride_booking_cancelled_success">Đã hủy chuyến xe thành công.</string>
+    <string name="ride_driver_cancelled_toast">Tài xế đã hủy chuyến xe này.</string>
+    <string name="ride_trip_cancelled_by_system">Chuyến xe đã bị hủy.</string>
     <string name="ride_error_invalid_coordinates">Vui lòng chọn điểm đón và điểm đến hợp lệ.</string>
     <string name="ride_error_same_locations">Điểm đón và điểm đến không thể trùng nhau.</string>
     <string name="ride_error_incomplete_locations">Vui lòng chọn đầy đủ điểm đón và điểm đến.</string>
@@ -789,8 +791,8 @@
         để hoàn thành chuyến đi.</string>
     <string name="driver_trip_settlement_title">Quyết toán chuyến đi</string>
     <string name="driver_trip_settlement_total_fare">Tổng cước phí</string>
-    <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn (20%)</string>
-    <string name="driver_trip_settlement_driver_income">Thu nhập thực nhận (80%)</string>
+    <string name="driver_trip_settlement_platform_fee">Chiết khấu sàn</string>
+    <string name="driver_trip_settlement_driver_income">Thu nhập thực nhận</string>
     <string name="driver_trip_settlement_cash_collect">Thu tiền mặt: %1$s</string>
     <string name="driver_trip_settlement_app_paid">Khách đã thanh toán qua ứng dụng (0 đ)</string>
     <string name="driver_trip_btn_finish_and_home">Tiếp tục nhận cuốc</string>
@@ -819,8 +821,8 @@
     <string name="driver_daily_report_trips_label">Số chuyến hoàn thành</string>
     <string name="driver_daily_report_trips_count_format">%1$d chuyến</string>
     <string name="driver_daily_report_gross_revenue">Tổng cước phí</string>
-    <string name="driver_daily_report_net_earnings">Thực nhận (80%)</string>
-    <string name="driver_daily_report_platform_fee">Chiết khấu sàn (20%)</string>
+    <string name="driver_daily_report_net_earnings">Thực nhận</string>
+    <string name="driver_daily_report_platform_fee">Chiết khấu sàn</string>
     <string name="driver_daily_report_cash">Tiền mặt: %1$s</string>
     <string name="driver_daily_report_app_paid">Qua ứng dụng: %1$s</string>
     <string name="driver_trips_active_trip_title">Chuyến xe đang thực hiện</string>
@@ -1123,8 +1125,8 @@
     <string name="driver_earnings_total_week">Tổng thu nhập tuần này</string>
     <string name="driver_earnings_total_month">Tổng thu nhập tháng này</string>
     <string name="driver_earnings_trips_count_fmt">%1$d chuyến</string>
-    <string name="driver_earnings_net_received_label">Thực nhận (80%)</string>
-    <string name="driver_earnings_platform_fee_label">Chiết khấu sàn (20%)</string>
+    <string name="driver_earnings_net_received_label">Thực nhận</string>
+    <string name="driver_earnings_platform_fee_label">Chiết khấu sàn</string>
     <string name="driver_earnings_gross_fare_label">Tổng cước phí</string>
     <string name="driver_earnings_quest_reward">+50.000 đ</string>
     <string name="driver_earnings_chart_title">Biểu đồ thu nhập</string>
@@ -1162,7 +1164,7 @@
     <string name="driver_wallet_tab_income">Thu nhập cuốc xe</string>
     <string name="driver_wallet_deposit_subtitle">Số dư ví ký quỹ hiện tại</string>
     <string name="driver_wallet_income_subtitle">Tổng thu nhập thực nhận trong kỳ</string>
-    <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ 20% chiết khấu sàn.</string>
+    <string name="driver_wallet_income_note">Doanh thu tài xế thực nhận sau khi đã trừ chiết khấu sàn.</string>
     <string name="driver_wallet_note_success_only">Chỉ giao dịch đã thành công mới được cộng/trừ vào số dư ví.</string>
 
     <!-- Driver Account Redesign -->
@@ -1321,8 +1323,8 @@
     <string name="wallet_amount_hint">Nhập số tiền (tối thiểu 10.000đ)</string>
     <string name="wallet_withdraw_success">Rút tiền thành công!</string>
     <string name="wallet_deposit_redirect_msg">Đang chuyển hướng sang cổng thanh toán...</string>
-    <string name="order_pay_now_btn">Thanh toán trực tuyến ngay</string>
-    <string name="order_check_payment_btn">Kiểm tra trạng thái thanh toán</string>
+    <string name="order_pay_now_btn">Thanh toán ngay</string>
+    <string name="order_check_payment_btn">Kiểm tra thanh toán</string>
     <string name="order_payment_status_paid">Đã thanh toán thành công!</string>
     <string name="order_payment_status_unpaid">Giao dịch đang chờ thanh toán (%1$s)</string>
 
@@ -1354,4 +1356,61 @@
     <string name="driver_resubmit_success">Đã nộp lại hồ sơ! Trạng thái đã chuyển sang Chờ duyệt.</string>
     <string name="common_back">Quay lại</string>
     <string name="common_retry">Thử lại</string>
+    <!-- OmniGo Payment System & Quick Top-up -->
+    <string name="checkout_wallet_balance_format">Số dư: %1$s</string>
+    <string name="checkout_wallet_insufficient">Số dư không đủ (Thiếu %1$s)</string>
+    <string name="checkout_wallet_sufficient">Số dư khả dụng</string>
+    <string name="checkout_wallet_top_up_btn">Nạp thêm</string>
+    <string name="checkout_error_insufficient_wallet">Số dư ví OmniPay không đủ. Vui lòng nạp thêm tiền!</string>
+    <string name="checkout_quick_top_up_title">Nạp tiền nhanh vào Ví OmniPay</string>
+    <string name="checkout_quick_top_up_subtitle">Nạp thêm để hoàn tất thanh toán đơn hàng</string>
+    <string name="checkout_quick_top_up_deficit_option">Số tiền còn thiếu (%1$s)</string>
+    <string name="checkout_quick_top_up_custom_amount">Hoặc chọn số tiền khác</string>
+    <string name="checkout_quick_top_up_btn">Xác nhận nạp tiền</string>
+    <string name="checkout_payment_gateway_title">Cổng thanh toán OmniGo</string>
+    <string name="checkout_payment_success_toast">Thanh toán thành công!</string>
+    <string name="checkout_payment_failed_toast">Thanh toán chưa hoàn tất hoặc đã bị hủy</string>
+    <string name="checkout_payment_loading">Đang kết nối cổng thanh toán…</string>
+    <string name="checkout_wallet_payment_success">Thanh toán qua ví OmniPay thành công!</string>
+    <!-- Fintech Payment V4 & Idempotency Sentinels -->
+    <string name="payment_sentinel_wallet_success">Thanh toán qua ví OmniPay thành công!</string>
+    <string name="payment_sentinel_already_paid">Đơn hàng này đã được thanh toán trước đó.</string>
+    <string name="payment_verifying_status">Đang xác thực kết quả thanh toán từ cổng…</string>
+    <string name="payment_status_pending_hint">Hệ thống đang chờ xác nhận từ cổng thanh toán. Vui lòng bấm kiểm tra lại sau ít phút.</string>
+    <string name="order_admission_blocked_food">Bạn có đơn đồ ăn chưa thanh toán (%1$s). Vui lòng hoàn tất trước khi đặt đơn mới.</string>
+    <string name="order_admission_blocked_ride">Bạn đang có chuyến xe chưa hoàn tất. Vui lòng xử lý trước khi đặt chuyến mới.</string>
+    <string name="order_admission_view_order_btn">Xem đơn ngay</string>
+    <!-- Food Cart Bottom Sheet -->
+    <string name="food_cart_sheet_title">Giỏ hàng</string>
+    <string name="food_cart_sheet_clear_all">Xóa tất cả</string>
+    <string name="food_cart_sheet_total">Tổng cộng</string>
+    <string name="food_cart_sheet_checkout">Thanh toán</string>
+    <string name="food_cart_sheet_empty">Giỏ hàng của bạn đang trống</string>
+    <string name="food_cart_sheet_view_restaurant">Xem thực đơn nhà hàng</string>
+    <string name="food_cart_sheet_note_prefix">Ghi chú: %1$s</string>
+    <string name="food_cd_clear_cart">Xóa toàn bộ giỏ hàng</string>
+    <string name="food_cd_close_cart">Đóng giỏ hàng</string>
+    <!-- Wallet Payment Confirmation -->
+    <string name="checkout_wallet_confirm_title">Xác nhận thanh toán</string>
+    <string name="checkout_wallet_confirm_amount_label">Số tiền thanh toán</string>
+    <string name="checkout_wallet_confirm_restaurant">Đơn hàng tại</string>
+    <string name="checkout_wallet_confirm_source">Nguồn tiền</string>
+    <string name="checkout_wallet_confirm_current_balance">Số dư hiện tại</string>
+    <string name="checkout_wallet_confirm_remaining_balance">Số dư còn lại</string>
+    <string name="checkout_wallet_confirm_btn_pay">Xác nhận &amp; Thanh toán</string>
+    <string name="checkout_wallet_confirm_btn_cancel">Hủy</string>
+    <!-- Wallet Modern Dialog Strings -->
+    <string name="wallet_deposit_dialog_subtitle">Nạp tiền an toàn và nhanh chóng qua Cổng VNPay</string>
+    <string name="wallet_withdraw_dialog_subtitle">Rút tiền về tài khoản ngân hàng liên kết 24/7</string>
+    <string name="wallet_method_vnpay_title">Cổng thanh toán VNPay</string>
+    <string name="wallet_method_vnpay_subtitle">Hỗ trợ VietQR, Thẻ ATM nội địa, Visa/Mastercard</string>
+    <string name="wallet_withdraw_bank_title">Tài khoản ngân hàng liên kết</string>
+    <string name="wallet_withdraw_bank_subtitle">Chuyển khoản nhanh liên ngân hàng 24/7</string>
+    <string name="wallet_deposit_btn_confirm">Xác nhận nạp tiền</string>
+    <string name="wallet_withdraw_btn_confirm">Xác nhận rút tiền</string>
+    <string name="wallet_withdraw_all">Rút tất cả</string>
+    <string name="wallet_available_balance">Khả dụng: %1$s</string>
+    <string name="wallet_amount_min_error">Số tiền tối thiểu là 10.000 ₫</string>
+    <string name="wallet_withdraw_max_error">Số tiền vượt quá số dư khả dụng</string>
+    <string name="wallet_btn_cancel">Hủy</string>
 </resources>

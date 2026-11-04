@@ -1,6 +1,8 @@
 package com.example.omnigo.features.customer.food.domain.manager
 
 import com.example.omnigo.features.customer.food.domain.model.CartAddResult
+import com.example.omnigo.features.customer.food.domain.model.FoodOrder
+import com.example.omnigo.features.customer.food.domain.model.FoodOrderItem
 import com.example.omnigo.features.customer.food.domain.model.MenuItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -260,5 +262,95 @@ class CartManagerTest {
         cartManager.addItem(itemRestaurant1A, quantity = 3)
         assertEquals(3, cartManager.getItemQuantity(101L))
         assertEquals(0, cartManager.getItemQuantity(999L))
+    }
+
+    @Test
+    fun `restoreCartFromOrder restores items, quantities, notes, and restaurant info correctly`() {
+        val order = FoodOrder(
+            id = 5001L,
+            restaurantId = 1L,
+            restaurantName = "Phở Thìn 1955",
+            status = "CANCELLED",
+            items = listOf(
+                FoodOrderItem(
+                    id = 1L,
+                    menuItemId = 101L,
+                    itemName = "Phở Tái",
+                    quantity = 2,
+                    itemPrice = 50000.0,
+                    note = "Ít hành",
+                    imageUrl = "https://example.com/pho.jpg"
+                ),
+                FoodOrderItem(
+                    id = 2L,
+                    menuItemId = 102L,
+                    itemName = "Trà Đá",
+                    quantity = 3,
+                    itemPrice = 5000.0,
+                    note = "Nhiều đá"
+                )
+            )
+        )
+
+        cartManager.restoreCartFromOrder(order)
+
+        val state = cartManager.cartState.value
+        assertEquals(1L, state.restaurantId)
+        assertEquals("Phở Thìn 1955", state.restaurantName)
+        assertEquals(5, state.totalQuantity)
+        assertEquals(115000.0, state.totalAmount, 0.001)
+
+        val item1 = state.items[101L]
+        assertEquals(2, item1?.quantity)
+        assertEquals("Ít hành", item1?.note)
+        assertEquals("Phở Tái", item1?.menuItem?.name)
+
+        val item2 = state.items[102L]
+        assertEquals(3, item2?.quantity)
+        assertEquals("Nhiều đá", item2?.note)
+    }
+
+    @Test
+    fun `restoreCartFromOrder with empty order items does not change cart`() {
+        cartManager.addItem(itemRestaurant1A, quantity = 2, restaurantName = "Phở Thìn")
+        val order = FoodOrder(
+            id = 5002L,
+            restaurantId = 2L,
+            restaurantName = "Quán Khác",
+            items = emptyList()
+        )
+
+        cartManager.restoreCartFromOrder(order)
+
+        assertEquals(1L, cartManager.cartState.value.restaurantId)
+        assertEquals(2, cartManager.cartState.value.totalQuantity)
+    }
+
+    @Test
+    fun `restoreCartFromOrder replaces existing items from another restaurant without conflict error`() {
+        cartManager.addItem(itemRestaurant2, quantity = 1, restaurantName = "Bún Chả Hà Nội")
+        assertEquals(2L, cartManager.cartState.value.restaurantId)
+
+        val order = FoodOrder(
+            id = 5003L,
+            restaurantId = 1L,
+            restaurantName = "Phở Thìn 1955",
+            items = listOf(
+                FoodOrderItem(
+                    id = 10L,
+                    menuItemId = 101L,
+                    itemName = "Phở Tái",
+                    quantity = 1,
+                    itemPrice = 50000.0
+                )
+            )
+        )
+
+        cartManager.restoreCartFromOrder(order)
+
+        assertEquals(1L, cartManager.cartState.value.restaurantId)
+        assertEquals("Phở Thìn 1955", cartManager.cartState.value.restaurantName)
+        assertEquals(1, cartManager.cartState.value.totalQuantity)
+        assertNull(cartManager.cartState.value.items[201L])
     }
 }
