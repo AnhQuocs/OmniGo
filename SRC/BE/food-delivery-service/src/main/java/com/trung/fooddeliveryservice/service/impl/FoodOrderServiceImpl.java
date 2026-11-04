@@ -498,8 +498,12 @@ public class FoodOrderServiceImpl implements FoodOrderService {
             throw new BadRequestException("Chỉ hoàn thành đơn đang giao");
         if (newStatus == OrderStatus.COMPLETED && !"CASH".equalsIgnoreCase(order.getPaymentMethod()) && !Boolean.TRUE.equals(order.getIsPaid()))
             throw new BadRequestException("Đơn online chưa xác nhận thanh toán");
-        if (newStatus == OrderStatus.DELIVERING && order.getStatus() != OrderStatus.READY_FOR_PICKUP)
+        if (newStatus == OrderStatus.DELIVERING &&
+                order.getStatus() != OrderStatus.READY_FOR_PICKUP &&
+                order.getStatus() != OrderStatus.PREPARING &&
+                order.getStatus() != OrderStatus.ACCEPTED) {
             throw new BadRequestException("Đơn chưa sẵn sàng giao (Hiện tại: " + order.getStatus() + ")");
+        }
 
         if (newStatus == OrderStatus.DELIVERING) {
             order.setStatus(OrderStatus.DELIVERING);
