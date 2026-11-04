@@ -45,7 +45,8 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/reset-password",
             "/api/v1/users/register/customer",
             "/api/v1/drivers/register",
-            "/api/v1/restaurants/partner"
+            "/api/v1/restaurants/partner",
+            "/api/v1/payments/platform-fee"
     );
 
     @Override

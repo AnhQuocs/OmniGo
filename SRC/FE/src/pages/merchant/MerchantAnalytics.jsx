@@ -476,36 +476,30 @@ export const MerchantAnalytics = () => {
               <Typography variant="caption" sx={{ fontWeight: 800, color: '#0F172A', mr: 0.5 }}>
                 Chọn khoảng ngày:
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
-                  Từ ngày:
-                </Typography>
-                <TextField
-                  size="small"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => {
-                    setCustomStartDate(e.target.value);
-                    setTimeFilter('CUSTOM');
-                  }}
-                  sx={{ width: 145, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
-                />
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
-                  Đến ngày:
-                </Typography>
-                <TextField
-                  size="small"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => {
-                    setCustomEndDate(e.target.value);
-                    setTimeFilter('CUSTOM');
-                  }}
-                  sx={{ width: 145, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
-                />
-              </Box>
+              <TextField
+                label="Từ ngày"
+                size="small"
+                type="date"
+                value={customStartDate}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) => {
+                  setCustomStartDate(e.target.value);
+                  setTimeFilter('CUSTOM');
+                }}
+                sx={{ width: 155, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
+              />
+              <TextField
+                label="Đến ngày"
+                size="small"
+                type="date"
+                value={customEndDate}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) => {
+                  setCustomEndDate(e.target.value);
+                  setTimeFilter('CUSTOM');
+                }}
+                sx={{ width: 155, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
+              />
               {(customStartDate || customEndDate) && (
                 <Button
                   size="small"

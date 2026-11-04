@@ -64,6 +64,7 @@ export const MerchantWallet = () => {
   // State
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [restaurantOrders, setRestaurantOrders] = useState([]);
   const [platformFeeRate, setPlatformFeeRate] = useState(20);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,10 +105,19 @@ export const MerchantWallet = () => {
       if (isManualRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const [walletRes, txRes, feeRes] = await Promise.allSettled([
+      let currentResId = restaurant?.id;
+      if (!currentResId) {
+        try {
+          const myRes = await foodService.getMyRestaurant();
+          currentResId = myRes?.data?.id || myRes?.id;
+        } catch (e) {}
+      }
+
+      const [walletRes, txRes, feeRes, ordersRes] = await Promise.allSettled([
         paymentService.getMyWallet(),
         paymentService.getMyTransactions(),
         paymentService.getPublicPlatformFee(),
+        currentResId ? foodService.getRestaurantOrders(currentResId) : Promise.resolve([]),
       ]);
 
       if (walletRes.status === 'fulfilled') {
@@ -127,6 +137,11 @@ export const MerchantWallet = () => {
         }
       }
 
+      if (ordersRes && ordersRes.status === 'fulfilled') {
+        const oData = ordersRes.value?.data || ordersRes.value;
+        setRestaurantOrders(Array.isArray(oData) ? oData : []);
+      }
+
       if (isManualRefresh) {
         toast.success('Đã cập nhật dữ liệu ví mới nhất!');
       }
@@ -142,6 +157,17 @@ export const MerchantWallet = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Orders Map for accurate payment methods
+  const ordersMap = useMemo(() => {
+    const map = {};
+    if (Array.isArray(restaurantOrders)) {
+      restaurantOrders.forEach((o) => {
+        if (o && o.id) map[o.id] = o;
+      });
+    }
+    return map;
+  }, [restaurantOrders]);
 
   // Filter Transactions
   const filteredTransactions = useMemo(() => {
@@ -318,8 +344,10 @@ export const MerchantWallet = () => {
       };
     }
 
-    // Determine actual method (checking tx.paymentMethod or orderId prefix or matched booking payment)
-    let m = tx.paymentMethod;
+    // Determine actual method (from matched order or tx)
+    const order = tx.bookingId ? ordersMap[tx.bookingId] : null;
+    let m = order?.paymentMethod || tx.paymentMethod;
+    if (m) m = String(m).toUpperCase();
     if (!m || m === 'WALLET') {
       if (
         tx.orderId?.startsWith('VNP') ||
@@ -626,30 +654,24 @@ export const MerchantWallet = () => {
               <Typography variant="caption" sx={{ fontWeight: 800, color: '#0F172A', mr: 0.5 }}>
                 Khoảng ngày:
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
-                  Từ ngày:
-                </Typography>
-                <TextField
-                  type="date"
-                  size="small"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
-                />
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>
-                  Đến ngày:
-                </Typography>
-                <TextField
-                  type="date"
-                  size="small"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
-                />
-              </Box>
+              <TextField
+                label="Từ ngày"
+                type="date"
+                size="small"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
+              />
+              <TextField
+                label="Đến ngày"
+                type="date"
+                size="small"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#FFFFFF' } }}
+              />
               {(customStartDate || customEndDate) && (
                 <Button
                   size="small"
