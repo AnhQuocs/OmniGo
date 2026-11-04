@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omnigo.R
+import com.example.omnigo.features.customer.food.data.local.FoodOrderVoucherStore
 import com.example.omnigo.features.customer.food.domain.model.*
 import com.example.omnigo.features.customer.food.domain.repository.ActiveFoodOrderTrackingRepository
 import com.example.omnigo.features.customer.food.domain.usecase.*
@@ -35,7 +36,8 @@ class FoodOrderDetailViewModel @Inject constructor(
     private val getRestaurantItemsUseCase: GetRestaurantItemsUseCase,
     private val voucherCoordinator: RideVoucherReviewCoordinator? = null,
     private val createOrderPaymentUseCase: CreateOrderPaymentUseCase? = null,
-    private val getFoodOrderPaymentStatusUseCase: GetFoodOrderPaymentStatusUseCase? = null
+    private val getFoodOrderPaymentStatusUseCase: GetFoodOrderPaymentStatusUseCase? = null,
+    private val voucherStore: FoodOrderVoucherStore? = null
 ) : ViewModel() {
 
     private val orderId: Long = savedStateHandle.get<Long>("orderId") ?: 0L
@@ -107,11 +109,14 @@ class FoodOrderDetailViewModel @Inject constructor(
                     _uiState.update { current ->
                         val wasPaid = current.order?.isPaid == true
                         val isPaidNow = result.order.isPaid == true || wasPaid
-                        val resolvedOrder = if (isPaidNow && result.order.isPaid != true) {
+                        val paidOrder = if (isPaidNow && result.order.isPaid != true) {
                             result.order.copy(isPaid = true)
                         } else {
                             result.order
                         }
+                        val resolvedOrder = voucherStore?.get(paidOrder.id)?.let { (code, discount) ->
+                            paidOrder.copy(voucherCode = code, voucherDiscount = discount)
+                        } ?: paidOrder
                         current.copy(
                             isLoading = false, isRefreshing = false, order = resolvedOrder,
                             driverProfile = if (current.order?.driverId == resolvedOrder.driverId) current.driverProfile else null,

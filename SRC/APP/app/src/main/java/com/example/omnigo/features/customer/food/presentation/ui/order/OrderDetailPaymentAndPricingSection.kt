@@ -59,7 +59,9 @@ fun OrderDetailPaymentAndPricingSection(
     modifier: Modifier = Modifier,
     itemsPrice: Double? = null,
     deliveryFee: Double? = null,
-    totalPrice: Double? = null
+    totalPrice: Double? = null,
+    voucherCode: String? = null,
+    voucherDiscount: Double = 0.0
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -243,6 +245,14 @@ fun OrderDetailPaymentAndPricingSection(
                     value = formatFoodOrderPrice(deliveryFee ?: 0.0)
                 )
 
+                if (voucherDiscount > 0.0) {
+                    Spacer(modifier = Modifier.height(AppSpacing.S))
+                    PricingRow(
+                        label = stringResource(id = R.string.voucher_discount_row, voucherCode.orEmpty()),
+                        value = "-" + formatFoodOrderPrice(voucherDiscount)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(AppSpacing.M))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 Spacer(modifier = Modifier.height(AppSpacing.M))
@@ -258,7 +268,9 @@ fun OrderDetailPaymentAndPricingSection(
                         color = TextPrimary
                     )
                     Text(
-                        text = formatFoodOrderPrice(totalPrice ?: ((itemsPrice ?: 0.0) + (deliveryFee ?: 0.0))),
+                        text = formatFoodOrderPrice(
+                            ((totalPrice ?: ((itemsPrice ?: 0.0) + (deliveryFee ?: 0.0))) - voucherDiscount).coerceAtLeast(0.0)
+                        ),
                         style = MaterialTheme.typography.s16.bold(),
                         color = PrimaryColor
                     )

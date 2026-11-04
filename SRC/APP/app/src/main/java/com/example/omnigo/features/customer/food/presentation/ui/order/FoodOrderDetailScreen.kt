@@ -237,7 +237,9 @@ fun FoodOrderDetailScreen(
                                 createdAt = order.createdAt,
                                 itemsPrice = order.itemsPrice,
                                 deliveryFee = order.deliveryFee,
-                                totalPrice = order.totalPrice
+                                totalPrice = order.totalPrice,
+                        voucherCode = order.voucherCode,
+                        voucherDiscount = order.voucherDiscount
                             )
                         }
 
