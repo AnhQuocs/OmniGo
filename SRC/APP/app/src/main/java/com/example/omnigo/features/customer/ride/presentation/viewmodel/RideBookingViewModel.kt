@@ -297,14 +297,16 @@ class RideBookingViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = UiText.StringResource(R.string.ride_error_incomplete_locations)) }
             return
         }
-        if (_uiState.value.isCreatingBooking || _uiState.value.isSearchingDriver) return
+        if (_uiState.value.isCreatingBooking || _uiState.value.isSearchingDriver || _uiState.value.isCalculatingPrice) return
+        val expectedPrice = _uiState.value.pricingEstimate?.totalPrice ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCreatingBooking = true, errorMessage = null) }
             val selectedType = _uiState.value.selectedVehicleType
             val result = createRideBookingUseCase(
                 startLatitude = pickup.latitude, startLongitude = pickup.longitude, endLatitude = dropoff.latitude, endLongitude = dropoff.longitude,
-                vehicleType = selectedType.name, pickupAddress = pickup.name.ifBlank { pickup.address }, dropoffAddress = dropoff.name.ifBlank { dropoff.address }
+                vehicleType = selectedType.name, pickupAddress = pickup.name.ifBlank { pickup.address }, dropoffAddress = dropoff.name.ifBlank { dropoff.address },
+                expectedPrice = expectedPrice
             )
             when (result) {
                 is CreateRideBookingResult.Success -> {
@@ -324,6 +326,7 @@ class RideBookingViewModel @Inject constructor(
                 is CreateRideBookingResult.Error -> {
                     val errorUi = result.message?.takeIf { it.isNotBlank() }?.let { UiText.DynamicString(it) } ?: UiText.StringResource(R.string.ride_error_create_failed)
                     _uiState.update { it.copy(isCreatingBooking = false, errorMessage = errorUi) }
+                    recalculatePricingIfNeeded()
                 }
             }
         }

@@ -119,15 +119,13 @@ public class BookingServiceImpl implements BookingService {
         try {
             pricingInfo = pricingClient.calculatePrice(pricingRequest, supplyCount);
         } catch (Exception e) {
-            log.error("Lỗi khi gọi pricing-service, tự động áp dụng giá cơ sở fallback. Chi tiết: {}", e.getMessage());
-            double distanceFallback = LocationUtils.calculateDistance(
-                    request.getStartLatitude(), request.getStartLongitude(),
-                    request.getEndLatitude(), request.getEndLongitude()
-            );
-            pricingInfo = new PricingResponse();
-            pricingInfo.setTotalPrice(Math.round(distanceFallback * 20000.0));
-            pricingInfo.setDistanceInKm(distanceFallback);
-            pricingInfo.setSurgeMultiplier(1.0);
+            log.error("Không thể xác nhận giá chuyến xe: {}", e.getMessage());
+            throw new BadRequestException("Không thể xác nhận giá chuyến xe. Vui lòng thử lại.");
+        }
+
+        if (request.getExpectedPrice() != null &&
+                Double.compare(request.getExpectedPrice(), pricingInfo.getTotalPrice()) != 0) {
+            throw new BadRequestException("Giá chuyến xe đã thay đổi. Vui lòng xem giá mới và đặt lại.");
         }
 
         Booking booking = Booking.builder()

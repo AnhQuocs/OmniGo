@@ -133,7 +133,7 @@ class RideBookingViewModelTest {
         viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
         advanceUntilIdle()
 
-        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any()) } returns CreateRideBookingResult.Success(sampleBooking)
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any(), 45000.0) } returns CreateRideBookingResult.Success(sampleBooking)
 
         viewModel.createBooking()
         testScheduler.runCurrent()
@@ -145,6 +145,27 @@ class RideBookingViewModelTest {
     }
 
     @Test
+    fun `changed price refreshes estimate without starting a ride`() = runTest {
+        initViewModel()
+        advanceUntilIdle()
+        viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
+        advanceUntilIdle()
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any(), 45000.0) } returns
+            CreateRideBookingResult.Error(com.example.omnigo.features.customer.ride.domain.error.RideError.SERVER_ERROR, "Price changed")
+        coEvery { calculateRidePricingUseCase(any(), any(), any(), any(), any(), any()) } returns
+            CalculateRidePricingResult.Success(sampleEstimate.copy(totalPrice = 48000.0))
+
+        viewModel.createBooking()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.currentBooking)
+        assertFalse(viewModel.uiState.value.isSearchingDriver)
+        assertFalse(viewModel.uiState.value.isCreatingBooking)
+        assertNotNull(viewModel.uiState.value.errorMessage)
+        assertEquals(48000.0, viewModel.uiState.value.pricingEstimate!!.totalPrice, 0.0)
+    }
+
+    @Test
     fun `cancelBooking resets searching and booking state`() = runTest {
         initViewModel()
         advanceUntilIdle()
@@ -152,7 +173,7 @@ class RideBookingViewModelTest {
         viewModel.setDropoffLocation(LocationPoint("Office", "456 Ba Trieu", 21.0100, 105.8500))
         advanceUntilIdle()
 
-        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any()) } returns CreateRideBookingResult.Success(sampleBooking)
+        coEvery { createRideBookingUseCase(any(), any(), any(), any(), any(), any(), any(), 45000.0) } returns CreateRideBookingResult.Success(sampleBooking)
         coEvery { cancelRideBookingUseCase(sampleBooking.bookingId) } returns CancelRideBookingResult.Success(sampleBooking.copy(status = BookingStatus.CANCELLED))
 
         viewModel.createBooking()
