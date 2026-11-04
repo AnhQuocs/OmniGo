@@ -32,6 +32,24 @@ test('network and invalid history data fail closed', async () => {
     await assert.rejects(flow(async () => response({ data: null })).outstanding());
     await assert.rejects(flow(async () => ({ ok: false })).paid('FOOD', 1));
 });
+
+test('cash matching is case insensitive; active cash blocks without online payment buttons', async () => {
+    const api = flow(async url => {
+        if (url.endsWith('my-orders')) return response([
+            { id: 1, status: 'COMPLETED', paymentMethod: 'cash' },
+            { id: 2, status: 'DELIVERING', paymentMethod: 'Cash' }
+        ]);
+        if (url.endsWith('/customer')) return response([
+            { bookingId: 3, status: 'COMPLETED', paymentMethod: 'cash' }
+        ]);
+        assert.fail('Cash orders must not require online payment verification');
+    });
+    const orders = await api.outstanding();
+    assert.equal(orders.length, 1);
+    assert.equal(orders[0].id, 2);
+    assert.equal(orders[0].method, 'CASH');
+    assert.equal(orders[0].payable, false);
+});
 test('rapid repeated action is rejected and lock releases after failure', async () => {
     const api = flow(() => {});
     let finish;
