@@ -130,21 +130,29 @@ export const MerchantMenu = () => {
   const handleToggleAvailable = async (item) => {
     try {
       const updated = !item.isAvailable;
-      await foodService.updateMenuItem(item.id, {
-        restaurantId: restaurant.id,
-        name: item.name,
-        category: item.category,
-        price: item.price,
-        description: item.description,
-        imageUrl: item.imageUrl,
-        isAvailable: updated,
-      });
+      try {
+        await foodService.updateItemAvailability(item.id, updated);
+      } catch (patchErr) {
+        if (patchErr.response?.status === 404 || patchErr.response?.status === 405) {
+          await foodService.updateMenuItem(item.id, {
+            restaurantId: restaurant.id,
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            isAvailable: updated,
+          });
+        } else {
+          throw patchErr;
+        }
+      }
       toast.success(`Đã chuyển món sang: ${updated ? 'Còn món' : 'Hết món'}`);
       setMenuItems((prev) =>
         prev.map((m) => (m.id === item.id ? { ...m, isAvailable: updated } : m))
       );
-    } catch {
-      toast.error('Lỗi đổi trạng thái món ăn');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi đổi trạng thái món ăn');
     }
   };
 
@@ -185,7 +193,7 @@ export const MerchantMenu = () => {
         category: formData.category.trim() || 'Món chính',
         price: parseFloat(formData.price),
         description: formData.description.trim(),
-        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+        imageUrl: imageUrl || (editingItem ? editingItem.imageUrl : null),
         isAvailable: formData.isAvailable,
       };
 

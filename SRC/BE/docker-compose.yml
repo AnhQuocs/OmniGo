@@ -184,6 +184,8 @@ services:
   payment-service:
     <<: *java-app
     image: vmt1609/payment-service:latest
+    build:
+      context: ./payment-service
     deploy:
       resources:
         limits:

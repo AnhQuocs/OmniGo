@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -87,6 +88,26 @@ public class MenuItemController {
         Long ownerId = SecurityUtils.getCurrentUserId();
         MenuItemResponse response = menuItemService.updateMenuItem(itemId, request, ownerId);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật món ăn thành công"));
+    }
+
+    @PatchMapping({"/items/{itemId}/availability", "/items/{itemId}/status"})
+    public ResponseEntity<ApiResponse<MenuItemResponse>> updateItemAvailability(
+            @PathVariable Long itemId,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestParam(required = false) Boolean isAvailable) throws ResourceNotFoundException, UnauthorizedException {
+        Long ownerId = SecurityUtils.getCurrentUserId();
+        Boolean available = isAvailable;
+        if (available == null && body != null) {
+            if (body.containsKey("isAvailable")) {
+                Object val = body.get("isAvailable");
+                available = val instanceof Boolean ? (Boolean) val : Boolean.parseBoolean(String.valueOf(val));
+            } else if (body.containsKey("available")) {
+                Object val = body.get("available");
+                available = val instanceof Boolean ? (Boolean) val : Boolean.parseBoolean(String.valueOf(val));
+            }
+        }
+        MenuItemResponse response = menuItemService.updateItemAvailability(itemId, available, ownerId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật trạng thái món ăn thành công"));
     }
 
     @DeleteMapping("/items/{itemId}")

@@ -42,7 +42,7 @@ public class FinancialOrderClient {
     public static Long id(Map<String,Object> order, String key) {
         Object value = order.get(key); return value == null ? null : ((Number)value).longValue();
     }
-    public static BigDecimal money(Map<String,Object> order, String key) { return new BigDecimal(order.get(key).toString()); }
+    public static BigDecimal money(Map<String,Object> order, String key) { Object val = order.get(key); return (val == null || val.toString().isBlank()) ? BigDecimal.ZERO : new BigDecimal(val.toString()); }
     public static boolean cancelled(Map<String,Object> order) { return Set.of("CANCELLED", "CANCELED", "REJECTED").contains(order.get("status")); }
     public static boolean cash(Map<String,Object> order) { return "CASH".equalsIgnoreCase(String.valueOf(order.get("paymentMethod"))); }
 }
