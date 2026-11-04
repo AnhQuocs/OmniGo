@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class WalletCommissionTest {
     @Test void onlinePaysBothPartiesAfterConfiguredFees() { verifyPayout("WALLET", "87500"); }
+    @Test void vnpayPaysBothPartiesAfterConfiguredFees() { verifyPayout("VNPAY", "87500"); }
+    @Test void momoPaysBothPartiesAfterConfiguredFees() { verifyPayout("MOMO", "87500"); }
     @Test void cashOnlyDebitsRestaurantFee() { verifyPayout("CASH", "-12500"); }
     private void verifyPayout(String method, String expectedRestaurantBalance) {
         WalletRepository wallets = mock(WalletRepository.class);
