@@ -30,7 +30,7 @@ class VoucherRedemptionTest {
     }
     @AfterEach void clear() { TransactionSynchronizationManager.clearSynchronization(); }
     CommitVoucherRequest request() { return CommitVoucherRequest.builder().code("SAVE30").userId("1").orderId("FOOD:35")
-            .serviceType("FOOD_DELIVERY").originalAmount(120000).discountAmount(999999).finalAmount(1).build(); }
+            .serviceType("FOOD_DELIVERY").originalAmount(120000.0).discountAmount(999999.0).finalAmount(1.0).build(); }
     @Test void recalculatesTotalsAndIgnoresClientDiscount() {
         var result=service.commitVoucher(request()); assertTrue(result.isValid()); assertEquals(30000,result.getDiscountAmount()); assertEquals(90000,result.getFinalAmount());
         verify(usages).save(argThat(u -> u.getFinalAmount()==90000 && u.getOriginalAmount()==120000));

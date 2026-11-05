@@ -24,7 +24,7 @@ public class InternalVoucherController {
     public ApplyVoucherResponse redeem(@RequestHeader(value="X-Internal-Token",required=false) String supplied,
             @Valid @RequestBody CommitVoucherRequest request) {
         authorize(supplied);
-        if (!Double.isFinite(request.getOriginalAmount()) || request.getOriginalAmount() <= 0 || request.getOrderId() == null ||
+        if (request.getOriginalAmount() == null || !Double.isFinite(request.getOriginalAmount()) || request.getOriginalAmount() <= 0 || request.getOrderId() == null ||
             !(request.getOrderId().startsWith("FOOD:") || request.getOrderId().startsWith("RIDE:")))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         return vouchers.commitVoucher(request);
