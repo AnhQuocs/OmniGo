@@ -6,3 +6,8 @@ spring:
 
 app:
   internal-api-token: ${INTERNAL_API_TOKEN:omnipay-internal-shared-secret-token-32bytes-min}
+  pricing-service-url: ${PRICING_SERVICE_URL:http://localhost:8084}
+  payment-service-url: ${APP_PAYMENT_SERVICE_URL:http://localhost:8085}
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}

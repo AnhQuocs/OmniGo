@@ -129,6 +129,7 @@ services:
       PRICING_SERVICE_URL: http://pricing-service:${PRICING_SERVICE_PORT:-8084}
       APP_PAYMENT_SERVICE_URL: http://payment-service:8085
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-omnipay-internal-shared-secret-token-32bytes-min}
+      JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh -Xms160m -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
       SERVER_PORT: ${BOOKING_SERVICE_PORT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}

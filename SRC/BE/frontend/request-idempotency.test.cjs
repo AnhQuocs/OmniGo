@@ -64,6 +64,14 @@ test('complete rejection body releases key only for definitive failure', async (
     assert.equal(api.pendingCreation('CUSTOMER:1'), null);
 });
 
+test('unauthorized or forbidden rejection releases key immediately', async () => {
+    for (const status of [401, 403]) {
+        const { make } = setup(); const api = make();
+        const intent = api.prepare('CUSTOMER:1', '/api/v1/bookings', {method:'POST',body:'{}'});
+        await assert.rejects(api.completeResponse(intent, new Response('', {status})), /không có quyền|phiên đăng nhập/);
+        assert.equal(api.pendingCreation('CUSTOMER:1'), null);
+    }
+});
 test('empty responses show a recovery message and preserve the original order key', async () => {
     for (const status of [200, 502]) {
         const { make } = setup(); const api = make();

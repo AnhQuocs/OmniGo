@@ -23,7 +23,7 @@
         function finish(intent, response) {
             if (!intent) return;
             // Payment keys remain stable while retrying the same order, even after a gateway URL is returned.
-            const clear = (intent.clearOnSuccess && response.ok) || [400, 422].includes(response.status);
+            const clear = (intent.clearOnSuccess && response.ok) || [400, 401, 403, 404, 422].includes(response.status);
             if (clear) {
                 const stored = JSON.parse(storage.getItem(intent.slot) || 'null');
                 if (stored?.key === intent.key) storage.removeItem(intent.slot);
@@ -36,6 +36,14 @@
             try {
                 body = await response.clone().json();
             } catch (error) {
+                if ([401, 403].includes(response.status)) {
+                    finish(intent, response);
+                    throw new Error('Bạn không có quyền thực hiện yêu cầu hoặc phiên đăng nhập không hợp lệ (HTTP ' + response.status + ').');
+                }
+                if ([400, 404, 422].includes(response.status)) {
+                    finish(intent, response);
+                    throw new Error('Yêu cầu không hợp lệ (HTTP ' + response.status + '). Vui lòng thử lại.');
+                }
                 throw new Error('Chưa xác nhận được kết quả từ máy chủ (HTTP ' + response.status + '). Hãy dùng nút kiểm tra / gửi lại yêu cầu; hệ thống giữ nguyên mã yêu cầu để tránh tạo đơn trùng.');
             }
             if (response.ok) {

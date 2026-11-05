@@ -36,7 +36,14 @@ function refreshOutstanding() {
                 } catch (error) { alert(error.message); }
                 finally { retry.disabled = false; refreshOutstanding().catch(() => {}); }
             };
-            debtPanel.append(retry);
+                        const discard = document.createElement('button');
+            discard.textContent = 'Hủy lưu yêu cầu cũ';
+            discard.style.marginLeft = '8px';
+            discard.onclick = () => {
+                localStorage.removeItem('omni:intent:CUSTOMER:' + customerId + ':order');
+                refreshOutstanding().catch(() => {});
+            };
+            debtPanel.append(retry, discard);
         }
         if (orders.length) {
             const title = document.createElement('strong');
