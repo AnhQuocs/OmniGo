@@ -25,8 +25,8 @@ export default function MenuItemImageField({ value, file, onChange, onFileChange
       setError('Vui lòng chọn ảnh JPG, PNG hoặc WebP.');
       return;
     }
-    if (selected.size > 5 * 1024 * 1024) {
-      setError('Dung lượng ảnh tối đa là 5MB.');
+    if (selected.size > 20 * 1024 * 1024) {
+      setError('Dung lượng ảnh tối đa là 20MB.');
       return;
     }
     setError('');
@@ -56,7 +56,7 @@ export default function MenuItemImageField({ value, file, onChange, onFileChange
             <input hidden type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled} onChange={selectFile} />
           </Button>
           <Typography variant="caption" display="block" sx={{ mt: 1, overflowWrap: 'anywhere' }}>
-            {file ? file.name : 'JPG, PNG, WebP • Tối đa 5MB'}
+            {file ? file.name : 'JPG, PNG, WebP • Tối đa 20MB'}
           </Typography>
         </Box>
       ) : (
