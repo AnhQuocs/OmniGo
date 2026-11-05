@@ -1,6 +1,8 @@
 package com.trung.pricingservice.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,9 +24,11 @@ public class CommitVoucherRequest {
 
     private String serviceType;
 
-    private double originalAmount;
+    @NotNull(message = "Số tiền gốc không được để trống")
+    @Positive(message = "Số tiền gốc phải lớn hơn 0")
+    private Double originalAmount;
 
-    private double discountAmount;
+    private Double discountAmount;
 
-    private double finalAmount;
+    private Double finalAmount;
 }

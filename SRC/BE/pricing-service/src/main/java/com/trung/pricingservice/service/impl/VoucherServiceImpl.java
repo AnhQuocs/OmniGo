@@ -217,7 +217,7 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional
     public ApplyVoucherResponse applyVoucher(ApplyVoucherRequest request) {
         String code = request.getCode().trim().toUpperCase();
-        double orderAmount = request.getOrderAmount();
+        double orderAmount = request.getOrderAmount() != null ? request.getOrderAmount() : 0.0;
         String serviceType = request.getServiceType();
         String userId = request.getUserId();
 
@@ -350,7 +350,7 @@ public class VoucherServiceImpl implements VoucherService {
         String userId = request.getUserId();
         String orderId = request.getOrderId();
         String serviceType = request.getServiceType();
-        double orderAmount = request.getOriginalAmount();
+        double orderAmount = request.getOriginalAmount() != null ? request.getOriginalAmount() : 0.0;
         entityManager.createNativeQuery("select 1 from pg_advisory_xact_lock(hashtextextended(:key,0))")
                 .setParameter("key", "VOUCHER:" + code).getResultList();
         if (orderId != null && !orderId.isBlank()) {
