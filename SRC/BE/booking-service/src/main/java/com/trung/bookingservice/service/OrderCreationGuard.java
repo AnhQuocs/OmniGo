@@ -27,8 +27,8 @@ public class OrderCreationGuard {
         .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
         .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
     private final RestTemplate http;
-    @Value("${app.payment-service-url:http://localhost:8085}") private String paymentUrl;
-    @Value("${app.internal-api-token:}") private String token;
+    @Value("${app.payment-service-url:${APP_PAYMENT_SERVICE_URL:http://payment-service:8085}}") private String paymentUrl;
+    @Value("${app.internal-api-token:${INTERNAL_API_TOKEN:omnipay-internal-shared-secret-token-32bytes-min}}") private String token;
     public OrderCreationGuard(JdbcTemplate jdbc, PlatformTransactionManager manager) {
         this.jdbc = jdbc; this.tx = new TransactionTemplate(manager);
         var factory = new SimpleClientHttpRequestFactory();

@@ -1,31 +1,34 @@
 package com.trung.bookingservice.controller;
 
-import com.trung.bookingservice.service.RidePrepaymentWorker;
 import com.trung.bookingservice.dto.request.BookingRequest;
 import com.trung.bookingservice.dto.response.ApiResponse;
-import com.trung.bookingservice.dto.response.BookingResponse;
 import com.trung.bookingservice.dto.response.BookingDriverResponse;
-import com.trung.bookingservice.service.BookingDriverService;
-import org.springframework.security.access.prepost.PreAuthorize;
+import com.trung.bookingservice.dto.response.BookingResponse;
 import com.trung.bookingservice.entity.Booking;
 import com.trung.bookingservice.exception.BadRequestException;
 import com.trung.bookingservice.exception.ResourceNotFoundException;
+import com.trung.bookingservice.security.UserPrincipal;
+import com.trung.bookingservice.service.BookingDriverService;
 import com.trung.bookingservice.service.FoodDeliveryDispatchService;
+import com.trung.bookingservice.service.OrderCreationGuard;
+import com.trung.bookingservice.service.RidePrepaymentWorker;
 import com.trung.bookingservice.service.impl.BookingServiceImpl;
 import com.trung.bookingservice.util.enums.BookingStatus;
-
+import com.trung.bookingservice.util.enums.ReportPeriod;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import com.trung.bookingservice.util.enums.ReportPeriod;
-import org.springframework.format.annotation.DateTimeFormat;
 import java.util.List;
 import java.util.Map;
-import com.trung.bookingservice.service.OrderCreationGuard;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -38,15 +41,37 @@ public class BookingController {
     private final FoodDeliveryDispatchService foodDeliveryDispatchService;
     private final BookingDriverService bookingDriverService;
 
+    private Long resolveCustomerId(Long customerId) {
+        if (customerId != null) {
+            return customerId;
+        }
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            if (auth.getPrincipal() instanceof UserPrincipal p && p.getUserId() != null) {
+                return p.getUserId();
+            }
+            if (auth.getPrincipal() != null) {
+                try {
+                    return Long.parseLong(auth.getPrincipal().toString());
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return null;
+    }
+
     @GetMapping("/{bookingId}/driver")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<BookingDriverResponse>> getBookingDriver(
-            @RequestHeader("X-User-Id") Long customerId,
+            @RequestHeader(name = "X-User-Id", required = false) Long customerId,
             @PathVariable Long bookingId) {
+        Long resolvedId = resolveCustomerId(customerId);
+        if (resolvedId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu định danh người dùng (X-User-Id)");
+        }
         return ResponseEntity.ok(ApiResponse.<BookingDriverResponse>builder()
                 .success(true)
                 .message("Lấy thông tin tài xế thành công")
-                .data(bookingDriverService.getDriver(bookingId, customerId))
+                .data(bookingDriverService.getDriver(bookingId, resolvedId))
                 .timestamp(LocalDateTime.now())
                 .build());
     }
@@ -55,11 +80,16 @@ public class BookingController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> createBooking(
             @RequestHeader("Idempotency-Key") String key,
-            @RequestHeader("X-User-Id") Long customerId,
+            @RequestHeader(name = "X-User-Id", required = false) Long customerId,
             @Valid @RequestBody BookingRequest request) throws BadRequestException {
 
-        BookingResponse created = creationGuard.create(customerId, key, request, BookingResponse.class,
-                BookingResponse::getBookingId, () -> bookingService.createBooking(customerId, request));
+        Long resolvedId = resolveCustomerId(customerId);
+        if (resolvedId == null) {
+            throw new BadRequestException("Thiếu định danh người dùng (X-User-Id)");
+        }
+
+        BookingResponse created = creationGuard.create(resolvedId, key, request, BookingResponse.class,
+                BookingResponse::getBookingId, () -> bookingService.createBooking(resolvedId, request));
         prepayments.pay(created.getBookingId());
         return ResponseEntity.ok(bookingService.currentResponse(created.getBookingId()));
     }
@@ -97,9 +127,13 @@ public class BookingController {
 
     @RequestMapping(value = "/{bookingId}/cancel", method = {RequestMethod.PUT, RequestMethod.POST})
     public ResponseEntity<BookingResponse> cancelBooking(
-            @RequestHeader("X-User-Id") Long customerId,
+            @RequestHeader(name = "X-User-Id", required = false) Long customerId,
             @PathVariable Long bookingId) throws ResourceNotFoundException, BadRequestException {
-        return ResponseEntity.ok(bookingService.cancelBooking(customerId, bookingId));
+        Long resolvedId = resolveCustomerId(customerId);
+        if (resolvedId == null) {
+            throw new BadRequestException("Thiếu định danh người dùng (X-User-Id)");
+        }
+        return ResponseEntity.ok(bookingService.cancelBooking(resolvedId, bookingId));
     }
 
     @PutMapping("/{bookingId}/driver-cancel")
@@ -130,8 +164,13 @@ public class BookingController {
     }
 
     @GetMapping("/customer")
-    public ResponseEntity<ApiResponse<List<Booking>>> getCustomerBookings(@RequestHeader("X-User-Id") Long customerId) {
-        return ResponseEntity.ok(bookingService.getCustomerBookings(customerId));
+    public ResponseEntity<ApiResponse<List<Booking>>> getCustomerBookings(
+            @RequestHeader(name = "X-User-Id", required = false) Long customerId) {
+        Long resolvedId = resolveCustomerId(customerId);
+        if (resolvedId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(bookingService.getCustomerBookings(resolvedId));
     }
 
     @GetMapping("/driver/daily-report")

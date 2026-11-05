@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/internal/**").permitAll()
                         .requestMatchers("/ws-booking/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/actuator/**", "/error").permitAll()
                         .requestMatchers("/api/v1/bookings/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/bookings/**").authenticated()
                         .anyRequest().authenticated()
