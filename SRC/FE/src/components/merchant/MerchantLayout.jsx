@@ -232,22 +232,23 @@ export const MerchantLayout = () => {
             onClick={() => navigate('/merchant/orders')}
             sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}
           >
-          <Box
+          <Avatar
+            src={restaurant?.imageUrl}
+            alt={restaurant?.name || 'OmniFood'}
+            variant="rounded"
             sx={{
               width: 42,
               height: 42,
               borderRadius: 3,
               background: '#F97316',
               color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               fontSize: '1.4rem',
               boxShadow: '0 4px 10px rgba(249, 115, 22, 0.3)',
+              '& img': { objectFit: 'cover' },
             }}
           >
             🍲
-          </Box>
+          </Avatar>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1, color: '#0F172A', fontSize: '1.1rem' }}>
               OmniFood
@@ -513,8 +514,20 @@ export const MerchantLayout = () => {
               '&:hover': { bgcolor: '#E2E8F0' },
             }}
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#F97316', fontSize: '0.85rem', fontWeight: 700 }}>
-              {user?.fullName ? user.fullName[0] : 'U'}
+            <Avatar
+              src={restaurant?.imageUrl || user?.avatarUrl}
+              alt={restaurant?.name || user?.fullName || 'Avatar'}
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: '#F97316',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                border: '1.5px solid #CBD5E1',
+                '& img': { objectFit: 'cover' },
+              }}
+            >
+              {restaurant?.name ? restaurant.name[0] : user?.fullName ? user.fullName[0] : 'U'}
             </Avatar>
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700, color: '#1E293B', fontSize: '0.85rem', maxWidth: 120 }} noWrap>
               {user?.fullName || 'Chủ quán'}
@@ -671,21 +684,22 @@ export const MerchantLayout = () => {
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-            <Box
+            <Avatar
+              src={restaurant?.imageUrl}
+              alt={restaurant?.name || 'OmniFood'}
+              variant="rounded"
               sx={{
                 width: 38,
                 height: 38,
                 borderRadius: 2.5,
                 background: '#F97316',
                 color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 fontSize: '1.3rem',
+                '& img': { objectFit: 'cover' },
               }}
             >
               🍲
-            </Box>
+            </Avatar>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>
               OmniFood Merchant
             </Typography>
