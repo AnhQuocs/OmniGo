@@ -481,11 +481,7 @@ export const Payments = () => {
 
         <Grid size={{ xs: 6, sm: 3 }} sx={{ display: 'flex' }}>
           <Tooltip
-            title={
-              platformFeeRate != null
-                ? `Tổng phí sàn (${platformFeeRate}%) đã ghi nhận, trừ chi phí voucher do sàn tài trợ`
-                : 'Tổng phí sàn đã ghi nhận, trừ chi phí voucher do sàn tài trợ'
-            }
+            title={`Doanh thu thực nhận = Phí sàn (${commissionRevenue.toLocaleString('vi-VN')} đ) - Chi phí voucher (${voucherExpense.toLocaleString('vi-VN')} đ)`}
             arrow
             placement="top"
           >
@@ -551,9 +547,44 @@ export const Payments = () => {
                 >
                   {netRevenue.toLocaleString('vi-VN')} đ
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', display: 'block', fontSize: { xs: '0.68rem', sm: '0.75rem' }, mt: 0.2 }}>
-                  Phí sàn: {commissionRevenue.toLocaleString('vi-VN')} đ · Voucher: -{voucherExpense.toLocaleString('vi-VN')} đ
-                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    columnGap: 0.8,
+                    rowGap: 0.2,
+                    mt: 0.3,
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      fontSize: { xs: '0.68rem', sm: '0.72rem' },
+                      lineHeight: 1.25,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Phí sàn: <strong>{commissionRevenue.toLocaleString('vi-VN')}&nbsp;đ</strong>
+                  </Typography>
+                  {voucherExpense > 0 && (
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      sx={{
+                        color: '#dc2626',
+                        fontSize: { xs: '0.68rem', sm: '0.72rem' },
+                        lineHeight: 1.25,
+                        whiteSpace: 'nowrap',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Voucher: -{voucherExpense.toLocaleString('vi-VN')}&nbsp;đ
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             </Card>
           </Tooltip>
