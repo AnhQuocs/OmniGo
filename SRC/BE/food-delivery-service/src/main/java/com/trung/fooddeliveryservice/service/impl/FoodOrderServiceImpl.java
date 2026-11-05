@@ -47,11 +47,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import com.trung.fooddeliveryservice.service.OrderVoucherService;
+import java.util.Locale;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FoodOrderServiceImpl implements FoodOrderService {
+    @Autowired
+    private OrderVoucherService orderVouchers;
+
 
     private final FinancialOutbox financialOutbox;
     private final TransactionTemplate transactionTemplate;
@@ -180,6 +188,14 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setTotalPrice(itemsTotal.add(deliveryFee));
         order.setOrderItems(orderItems);
 
+        order.setOriginalAmount(order.getTotalPrice());
+        order.setDiscountAmount(BigDecimal.ZERO);
+        if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
+            order = foodOrderRepository.saveAndFlush(order);
+            order.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), order.getCustomerId(), order.getId(), order.getOriginalAmount()));
+            order.setVoucherCode(request.getVoucherCode().trim().toUpperCase(Locale.ROOT));
+            order.setTotalPrice(order.getOriginalAmount().subtract(order.getDiscountAmount()));
+        }
         FoodOrder savedOrder = saveAndNotifyStatus(order);
         log.info("Tạo thành công đơn hàng ID {} cho khách hàng ID {}, tổng tiền: {} đ (chờ nhà hàng duyệt)", savedOrder.getId(), customerId, savedOrder.getTotalPrice());
 
@@ -338,6 +354,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                         .dropOffLatitude(saved.getDeliveryLatitude())
                         .dropOffLongitude(saved.getDeliveryLongitude())
                         .totalPrice(saved.getTotalPrice())
+                .originalAmount(saved.getOriginalAmount())
                         .deliveryFee(saved.getDeliveryFee())
                         .paymentMethod(saved.getPaymentMethod())
                         .isPaid(saved.getIsPaid())
@@ -456,7 +473,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 });
 
         if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.REJECTED)
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Không thể gán tài xế cho đơn đã kết thúc");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Không thể gán tài xế cho đơn đã kết thúc");
         order.setDriverId(driverId);
         // Không tự ý đổi trạng thái sang DELIVERING tại đây vì tài xế còn phải di chuyển đến quán lấy món.
         // Trạng thái DELIVERING sẽ do tài xế xác nhận khi bấm "ĐÃ LẤY MÓN & BẮT ĐẦU ĐI GIAO".
@@ -653,6 +670,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 .dropOffLatitude(saved.getDeliveryLatitude())
                 .dropOffLongitude(saved.getDeliveryLongitude())
                 .totalPrice(saved.getTotalPrice())
+                .originalAmount(saved.getOriginalAmount())
                 .deliveryFee(saved.getDeliveryFee())
                 .paymentMethod(saved.getPaymentMethod())
                 .isPaid(saved.getIsPaid())
@@ -715,6 +733,8 @@ public class FoodOrderServiceImpl implements FoodOrderService {
     }
 
     private void triggerVoucherRollback(Long customerId, Long orderId) {
+        // New vouchers are released by the durable compensation worker after the cancellation commits.
+        if (foodOrderRepository.findById(orderId).map(o -> o.getVoucherCode() != null).orElse(false)) return;
         try {
             List<String> targetUrls = new ArrayList<>();
             String paramStr = String.format("?userId=%s&orderId=%s",

@@ -62,7 +62,7 @@ data class DriverDeliveryOrder(
      * Cước giao hàng gộp (gross) của đơn đồ ăn.
      */
     val grossFee: Double
-        get() = if (deliveryFee > 0.0) deliveryFee else totalPrice
+        get() = deliveryFee.coerceAtLeast(0.0)
 
     /**
      * Thu nhập thực tế của tài xế từ đơn đồ ăn.

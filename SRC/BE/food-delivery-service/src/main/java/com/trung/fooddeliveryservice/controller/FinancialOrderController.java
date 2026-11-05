@@ -6,11 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
+import com.trung.fooddeliveryservice.service.OrderCreationGuard;
 @RestController @RequiredArgsConstructor
 @RequestMapping("/api/v1/internal/financial")
 public class FinancialOrderController {
     private final FoodOrderRepository repository;
-    private final com.trung.fooddeliveryservice.service.OrderCreationGuard creationGuard;
+    private final OrderCreationGuard creationGuard;
     @GetMapping("/attempts/{customer}/{key}")
     public Map<String,Object> attempt(@PathVariable Long customer, @PathVariable String key) { return creationGuard.attempt(customer, key); }
     @GetMapping("/customers/{customer}/orders") @Transactional(readOnly = true)
@@ -25,6 +26,8 @@ public class FinancialOrderController {
         data.put("driverId", order.getDriverId()); data.put("status", order.getStatus().name());
         data.put("paymentMethod", order.getPaymentMethod());
         data.put("amount", order.getTotalPrice());
+        data.put("originalAmount", order.getOriginalAmount() == null ? order.getTotalPrice() : order.getOriginalAmount());
+        data.put("discountAmount", order.getDiscountAmount());
         data.put("deliveryFee", order.getDeliveryFee());
         data.put("restaurantOwnerId", order.getRestaurant().getOwnerId());
         data.put("paid", order.getIsPaid());

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.core.ParameterizedTypeReference;
 @Service
 public class FinancialOrderClient {
     @Value("${app.food-delivery-url:http://localhost:8086}") private String foodUrl;
@@ -32,7 +33,7 @@ public class FinancialOrderClient {
     }
     public List<Map<String,Object>> customerOrders(boolean food, Long customer) {
         var result = http.exchange((food ? foodUrl : rideUrl) + "/api/v1/internal/financial/customers/" + customer + "/orders",
-            HttpMethod.GET, new HttpEntity<>(headers()), new org.springframework.core.ParameterizedTypeReference<List<Map<String,Object>>>() {}).getBody();
+            HttpMethod.GET, new HttpEntity<>(headers()), new ParameterizedTypeReference<List<Map<String,Object>>>() {}).getBody();
         if (result == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Chưa kiểm tra được đơn cũ");
         return result;
     }

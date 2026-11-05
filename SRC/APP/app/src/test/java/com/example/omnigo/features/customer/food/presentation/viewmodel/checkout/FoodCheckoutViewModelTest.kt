@@ -333,4 +333,24 @@ class FoodCheckoutViewModelTest {
         viewModel.dismissWalletPaymentConfirm()
         assertFalse(viewModel.uiState.value.showWalletPaymentConfirm)
     }
+
+    @Test
+    fun `voucher includes delivery and is cleared when address changes`() = runTest {
+        val coordinator = mockk<com.example.omnigo.features.customer.ride.presentation.viewmodel.RideVoucherReviewCoordinator>()
+        val checkout = FoodCheckoutViewModel(cartManager, userLocationManager, createFoodOrderUseCase,
+            getRestaurantDetailUseCase, voucherCoordinator = coordinator)
+        userLocationManager.updateLocation(UserLocation(21.0150, 105.8520, "Home", "Address"))
+        cartManager.addItem(mockMenuItem, quantity = 2, restaurantName = "Test")
+        advanceUntilIdle()
+        val amount = checkout.uiState.value.totalAmount
+        assertTrue(amount > checkout.uiState.value.itemsSubtotal)
+        coEvery { coordinator.applyVoucher("OMNI8", amount, "FOOD_DELIVERY") } returns Result.success(
+            com.example.omnigo.features.customer.promos.domain.model.AppliedVoucherResult(
+                "OMNI8", "Test", amount, 8000.0, amount - 8000.0, null))
+        checkout.applyVoucherCode("OMNI8")
+        advanceUntilIdle()
+        assertEquals(amount - 8000.0, checkout.uiState.value.finalTotalAmount, 0.001)
+        checkout.onDeliveryAddressChanged("New address", 21.03, 105.81)
+        assertNull(checkout.uiState.value.appliedVoucher)
+    }
 }

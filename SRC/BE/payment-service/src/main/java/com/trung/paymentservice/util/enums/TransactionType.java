@@ -9,5 +9,6 @@ public enum TransactionType {
     FOOD_PAYMENT,
     FOOD_DELIVERY_INCOME,
     FOOD_RESTAURANT_INCOME,
+    PLATFORM_VOUCHER_EXPENSE,
     REFUND
 }

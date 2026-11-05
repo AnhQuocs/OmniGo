@@ -12,6 +12,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.time.LocalDateTime;
 @Service @RequiredArgsConstructor
 public class PaymentWorkflowService {
     private final EntityManager entityManager;
@@ -28,7 +29,7 @@ public class PaymentWorkflowService {
         };
     }
     @Transactional
-    public void expire(String orderId, java.time.LocalDateTime cutoff) {
+    public void expire(String orderId, LocalDateTime cutoff) {
         Transaction initial = transactions.findByOrderId(orderId).orElseThrow();
         locks.lock(key(initial));
         Transaction tx = transactions.findByOrderIdForUpdate(orderId).orElseThrow();
@@ -97,15 +98,17 @@ public class PaymentWorkflowService {
             if (!"COMPLETED".equals(order.get("status"))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Cuốc xe chưa hoàn thành");
             Long driverId = FinancialOrderClient.id(order, "driverId");
             if (driverId == null || (!prepaid && !Objects.equals(driverId, tx.getDriverId()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Sai tài xế nhận tiền");
+            BigDecimal gross = grossAmount(order);
             String incomeId = "RIDE_INCOME_" + tx.getBookingId();
             if (transactions.findByOrderId(incomeId).isEmpty()) {
-                Wallet driver = walletService.creditWallet(driverId, UserType.DRIVER, tx.getAmount().doubleValue());
+                Wallet driver = walletService.creditWallet(driverId, UserType.DRIVER, gross.doubleValue());
                 transactions.save(Transaction.builder().walletId(driver.getId()).bookingId(tx.getBookingId()).orderId(incomeId)
-                        .amount(tx.getAmount()).transactionType(TransactionType.TRIP_INCOME).paymentMethod(PaymentMethod.WALLET)
+                        .amount(gross).transactionType(TransactionType.TRIP_INCOME).paymentMethod(PaymentMethod.WALLET)
                         .status(TransactionStatus.SUCCESS).fulfillmentDone(true).build());
-                walletService.deductCommission(BookingCompletedEvent.builder().driverId(driverId).bookingId(tx.getBookingId()).amount(tx.getAmount().doubleValue()).build());
+                walletService.deductCommission(BookingCompletedEvent.builder().driverId(driverId).bookingId(tx.getBookingId()).amount(gross.doubleValue()).build());
             }
         }
+        if (!food) recordVoucherExpense(false, tx.getBookingId(), order);
         tx.setFulfillmentDone(true); transactions.save(tx);
     }
     @Transactional
@@ -123,16 +126,44 @@ public class PaymentWorkflowService {
             walletService.processFoodOrderPayout(FoodOrderPayoutRequest.builder().orderId(id)
                     .driverId(FinancialOrderClient.id(order, "driverId")).restaurantOwnerId(FinancialOrderClient.id(order, "restaurantOwnerId"))
                     .deliveryFee(FinancialOrderClient.money(order, "deliveryFee"))
-                    .foodAmount(FinancialOrderClient.money(order, "amount").subtract(FinancialOrderClient.money(order, "deliveryFee")).max(BigDecimal.ZERO))
+                    .foodAmount(grossAmount(order).subtract(FinancialOrderClient.money(order, "deliveryFee")).max(BigDecimal.ZERO))
+                    .discountAmount(FinancialOrderClient.money(order, "discountAmount"))
                     .paymentMethod(String.valueOf(order.get("paymentMethod"))).build());
+            recordVoucherExpense(true, id, order);
         } else if (Boolean.TRUE.equals(order.get("prepaid"))) {
             for (Transaction payment : payments) {
                 if (payment.getStatus() == TransactionStatus.SUCCESS && transactions.findByOrderId("REFUND_PAYMENT_" + payment.getId()).isEmpty()) fulfill(payment.getId());
             }
         } else if (FinancialOrderClient.cash(order)) {
+            creditCashVoucher(order, id);
             walletService.deductCommission(BookingCompletedEvent.builder().bookingId(id).driverId(FinancialOrderClient.id(order, "driverId"))
-                    .amount(FinancialOrderClient.money(order, "amount").doubleValue()).build());
+                    .amount(grossAmount(order).doubleValue()).build());
+            recordVoucherExpense(false, id, order);
         }
+    }
+    // Platform-funded discounts are an expense, not another credit to recipient wallets.
+    // Called under the order lock in the same transaction as the successful settlement.
+    private void recordVoucherExpense(boolean food, Long id, Map<String,Object> order) {
+        BigDecimal discount = FinancialOrderClient.money(order, "discountAmount");
+        if (discount.signum() <= 0) return;
+        String reference = "PLATFORM_VOUCHER_" + (food ? "FOOD_" : "RIDE_") + id;
+        if (transactions.findByOrderId(reference).isPresent()) return;
+        transactions.save(Transaction.builder().bookingId(id).orderId(reference)
+                .amount(discount).transactionType(TransactionType.PLATFORM_VOUCHER_EXPENSE)
+                .paymentMethod(PaymentMethod.WALLET).status(TransactionStatus.SUCCESS)
+                .fulfillmentDone(true).build());
+    }
+    private BigDecimal grossAmount(Map<String,Object> order) {
+        return FinancialOrderClient.money(order, order.get("originalAmount") == null ? "amount" : "originalAmount");
+    }
+    private void creditCashVoucher(Map<String,Object> order, Long id) {
+        BigDecimal discount = FinancialOrderClient.money(order, "discountAmount");
+        String reference = "RIDE_VOUCHER_" + id;
+        if (discount.signum() <= 0 || transactions.findByOrderId(reference).isPresent()) return;
+        Wallet driver = walletService.creditWallet(FinancialOrderClient.id(order, "driverId"), UserType.DRIVER, discount.doubleValue());
+        transactions.save(Transaction.builder().walletId(driver.getId()).bookingId(id).orderId(reference)
+                .amount(discount).transactionType(TransactionType.TRIP_INCOME).paymentMethod(PaymentMethod.WALLET)
+                .status(TransactionStatus.SUCCESS).fulfillmentDone(true).build());
     }
     private void refund(Transaction payment) {
         String reference = "REFUND_PAYMENT_" + payment.getId();
@@ -140,7 +171,7 @@ public class PaymentWorkflowService {
         if (payment.getWalletId() == null) return;
         Wallet customer = wallets.findById(payment.getWalletId()).orElse(null);
         if (customer == null) return;
-        walletService.creditWallet(customer.getUserId(), customer.getUserType(), payment.getAmount().doubleValue());
+        if (payment.getAmount().signum() > 0) walletService.creditWallet(customer.getUserId(), customer.getUserType(), payment.getAmount().doubleValue());
         transactions.save(Transaction.builder().walletId(customer.getId()).bookingId(payment.getBookingId()).orderId(reference)
                 .amount(payment.getAmount()).transactionType(TransactionType.REFUND).paymentMethod(PaymentMethod.WALLET)
                 .status(TransactionStatus.SUCCESS).fulfillmentDone(true).build());

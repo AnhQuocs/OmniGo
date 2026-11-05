@@ -27,12 +27,13 @@ class GetDriverBookingsUseCase @Inject constructor(
             val transactions = paymentApi.getTransactions()
             val commissionMap = transactions
                 .filter { it.transactionType?.uppercase() == "COMMISSION_FEE" && it.bookingId != null }
+                .filter { it.orderId?.startsWith("FOOD_") != true && (it.status == null || it.status.equals("SUCCESS", ignoreCase = true)) }
                 .associate { it.bookingId!! to Math.abs(it.amount ?: 0.0) }
 
             val enrichedBookings = bookings.map { booking ->
                 val actualFee = booking.platformFee ?: commissionMap[booking.bookingId]
                 val actualEarnings = booking.driverEarnings ?: actualFee?.let { fee ->
-                    (booking.price - fee).coerceAtLeast(0.0)
+                    (booking.grossPrice - fee).coerceAtLeast(0.0)
                 }
 
                 booking.copy(

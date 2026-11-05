@@ -21,7 +21,7 @@ public class WalletPaymentStrategy implements PaymentStrategy {
     @Transactional
     public PaymentUrlResponse createPayment(Long userId, Long driverId, Long bookingId, BigDecimal amount, String type) {
         boolean food = "FOOD_PAYMENT".equals(type);
-        if (bookingId == null || amount == null || amount.signum() <= 0 || (!food && !"TRIP_PAYMENT".equals(type))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        if (bookingId == null || amount == null || amount.signum() < 0 || (!food && !"TRIP_PAYMENT".equals(type))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         locks.lock((food ? "FOOD:" : "RIDE:") + bookingId);
         TransactionType txType = food ? TransactionType.FOOD_PAYMENT : TransactionType.TRIP_PAYMENT;
         for (Transaction tx : transactions.findByBookingIdAndTransactionTypeOrderByIdDesc(bookingId, txType)) {

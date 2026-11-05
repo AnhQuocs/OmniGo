@@ -24,6 +24,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.server.ResponseStatusException;
 
 @EnabledIfEnvironmentVariable(named = "TEST_POSTGRES_URL", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -68,7 +75,7 @@ class PaymentConcurrencyTest {
     @BeforeEach void resetData() {
         txs.deleteAll(); wallets.deleteAll(); reset(orders, fees);
         doReturn(new BigDecimal("20")).when(fees).getPercentage();
-        when(fees.calculate(any(), any())).thenAnswer(i -> ((BigDecimal)i.getArgument(0)).multiply(i.getArgument(1)).divide(new BigDecimal("100"),0,java.math.RoundingMode.HALF_UP));
+        when(fees.calculate(any(), any())).thenAnswer(i -> ((BigDecimal)i.getArgument(0)).multiply(i.getArgument(1)).divide(new BigDecimal("100"),0,RoundingMode.HALF_UP));
     }
     private Wallet wallet(long user, UserType type, String balance) {
         return wallets.save(Wallet.builder().userId(user).userType(type).balance(new BigDecimal(balance)).build());
@@ -90,6 +97,65 @@ class PaymentConcurrencyTest {
         } finally { pool.shutdownNow(); }
     }
     private void balance(Long walletId, String amount) { assertEquals(0, wallets.findById(walletId).orElseThrow().getBalance().compareTo(new BigDecimal(amount))); }
+    private void voucherExpense(String kind, String amount) {
+        var expense = txs.findByOrderId("PLATFORM_VOUCHER_" + kind + "_99").orElseThrow();
+        assertEquals(TransactionType.PLATFORM_VOUCHER_EXPENSE, expense.getTransactionType());
+        assertEquals(0, expense.getAmount().compareTo(new BigDecimal(amount)));
+        assertNull(expense.getWalletId(), "Platform expense must not debit a recipient wallet");
+        assertEquals(1, txs.findAll().stream().filter(t -> t.getTransactionType() == TransactionType.PLATFORM_VOUCHER_EXPENSE).count());
+    }
+    @Test void discountedOnlineFoodDebitsNetButSettlesGrossExactlyOnce() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        var state=order("COMPLETED","WALLET"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(true,99L)).thenReturn(state);
+        parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("90000"),"FOOD_PAYMENT"));
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(customer.getId(),"110000"); balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
+        voucherExpense("FOOD", "30000");
+        state.put("status","CANCELLED"); parallel(() -> workflow.reconcile(true,99L));
+        balance(customer.getId(),"200000");
+        assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.REFUND).count());
+    }
+    @Test void discountedCashFoodReimbursesDriverOnceAndKeepsRestaurantFee() throws Exception {
+        Wallet driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
+        var state=order("COMPLETED","CASH"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(true,99L)).thenReturn(state);
+        parallel(() -> workflow.reconcile(true,99L));
+        balance(driver.getId(),"26000"); balance(restaurant.getId(),"-20000");
+        assertTrue(txs.findByOrderId("FOOD_VOUCHER_99").isPresent());
+        voucherExpense("FOOD", "30000");
+    }
+    @Test void discountedCashRidePaysVoucherAndChargesGrossCommissionOnce() throws Exception {
+        Wallet driver=wallet(11,UserType.DRIVER,"0");
+        var state=order("COMPLETED","CASH"); state.put("originalAmount",new BigDecimal("120000"));
+        state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
+        when(orders.get(false,99L)).thenReturn(state);
+        parallel(() -> workflow.reconcile(false,99L)); balance(driver.getId(),"6000");
+        voucherExpense("RIDE", "30000");
+    }
+    @Test void fullyDiscountedCancellationFinishesWithoutCreditingZero() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"0");
+        var state=order("CANCELLED","WALLET"); state.put("prepaid",true); state.put("amount",BigDecimal.ZERO);
+        state.put("originalAmount",new BigDecimal("120000")); state.put("discountAmount",new BigDecimal("120000"));
+        when(orders.get(false,99L)).thenReturn(state);
+        context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,BigDecimal.ZERO,"TRIP_PAYMENT");
+        var payment=txs.findByBookingIdAndTransactionTypeOrderByIdDesc(99L,TransactionType.TRIP_PAYMENT).get(0);
+        parallel(() -> workflow.fulfill(payment.getId()));
+        assertTrue(txs.findById(payment.getId()).orElseThrow().isFulfillmentDone()); balance(customer.getId(),"0");
+        assertTrue(txs.findByOrderId("PLATFORM_VOUCHER_RIDE_99").isEmpty());
+    }
+    @Test void fullyDiscountedPrepaidRideDebitsZeroAndSettlesGrossOnce() throws Exception {
+        Wallet customer=wallet(1,UserType.CUSTOMER,"0"), driver=wallet(11,UserType.DRIVER,"0");
+        var state=order("COMPLETED","WALLET"); state.put("prepaid",true);
+        state.put("originalAmount",new BigDecimal("120000")); state.put("discountAmount",new BigDecimal("120000")); state.put("amount",BigDecimal.ZERO);
+        when(orders.get(false,99L)).thenReturn(state);
+        parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,BigDecimal.ZERO,"TRIP_PAYMENT"));
+        parallel(() -> workflow.reconcile(false,99L));
+        balance(customer.getId(),"0"); balance(driver.getId(),"96000");
+        voucherExpense("RIDE", "120000");
+    }
     @Test void prepaidRideDebitsOnceBeforeDispatchAndPaysAssignedDriverOnlyOnCompletion() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0");
         var strategy=context.getBean(WalletPaymentStrategy.class);
@@ -123,7 +189,7 @@ class PaymentConcurrencyTest {
     }
     @Test void insufficientPrepaidBalanceLeavesWalletAndLedgerUntouched() {
         Wallet customer=wallet(1,UserType.CUSTOMER,"10000");
-        assertThrows(org.springframework.web.server.ResponseStatusException.class, () ->
+        assertThrows(ResponseStatusException.class, () ->
             context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT"));
         balance(customer.getId(),"10000"); assertEquals(0,txs.count());
         verifyNoInteractions(orders);
@@ -136,14 +202,14 @@ class PaymentConcurrencyTest {
         jdbc.execute("alter table transactions add constraint transactions_transaction_type_check check (transaction_type in ('DEPOSIT','TRIP_PAYMENT','TRIP_INCOME','COMMISSION_FEE','WITHDRAWAL','FOOD_PAYMENT','FOOD_DELIVERY_INCOME','REFUND'))");
         try {
             when(orders.get(true,99L)).thenReturn(order("COMPLETED","MOMO"));
-            var failure=assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> workflow.reconcile(true,99L));
+            var failure=assertThrows(DataIntegrityViolationException.class, () -> workflow.reconcile(true,99L));
             assertTrue(failure.getMostSpecificCause().getMessage().contains("transactions_transaction_type_check"));
             balance(driver.getId(),"0"); balance(restaurant.getId(),"0");
             assertEquals(1,txs.count());
         } finally {
             // Apply the real upgrade to the legacy schema, not Hibernate's fresh schema.
-            try (var input=new org.springframework.core.io.ClassPathResource("db/migration/V6__update_transaction_type_check.sql").getInputStream()) {
-                String sql=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+            try (var input=new ClassPathResource("db/migration/V7__platform_voucher_expense.sql").getInputStream()) {
+                String sql=new String(input.readAllBytes(),StandardCharsets.UTF_8);
                 context.getBean(TransactionTemplate.class).executeWithoutResult(status -> jdbc.execute(sql));
             }
         }
@@ -151,7 +217,7 @@ class PaymentConcurrencyTest {
         balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
         assertEquals(5,txs.count());
         assertEquals(2,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.COMMISSION_FEE).count());
-        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+        assertThrows(DataIntegrityViolationException.class,
                 () -> jdbc.update("update transactions set transaction_type='INVALID' where order_id='paid'"));
     }
     @Test void vnpayFoodPaidBeforeDriverAssignmentSettlesAfterDelivery() throws Exception {
@@ -215,14 +281,14 @@ class PaymentConcurrencyTest {
     @Test void distinctConcurrentDepositsNeverLoseWalletUpdates() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0");
         for(int i=0;i<8;i++) payment(customer,"deposit-"+i,TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
-        java.util.concurrent.atomic.AtomicInteger index=new java.util.concurrent.atomic.AtomicInteger();
+        AtomicInteger index=new AtomicInteger();
         parallel(() -> { int i=index.getAndIncrement(); workflow.accept("deposit-"+i,PaymentMethod.MOMO,new BigDecimal("100000"),"g-"+i,true); });
         balance(customer.getId(),"800000");
     }
     @Test void signedWrongAmountOrWrongGatewayCannotCreditWallet() {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0"); payment(customer,"deposit",TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
-        assertThrows(org.springframework.web.server.ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.MOMO,new BigDecimal("1"),"g",true));
-        assertThrows(org.springframework.web.server.ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.VNPAY,new BigDecimal("100000"),"g",true));
+        assertThrows(ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.MOMO,new BigDecimal("1"),"g",true));
+        assertThrows(ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.VNPAY,new BigDecimal("100000"),"g",true));
         balance(customer.getId(),"0"); assertEquals(TransactionStatus.PENDING,txs.findByOrderId("deposit").orElseThrow().getStatus());
     }
     @Test void lateSecondSuccessfulAttemptIsRefundedWithoutSecondPayout() throws Exception {
@@ -245,7 +311,7 @@ class PaymentConcurrencyTest {
     @Test void expiringPendingCannotOverwriteConcurrentSuccessfulPayment() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0");payment(customer,"expiry",TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
         parallel(() -> {
-            workflow.expire("expiry",java.time.LocalDateTime.now().plusMinutes(1));
+            workflow.expire("expiry",LocalDateTime.now().plusMinutes(1));
             workflow.accept("expiry",PaymentMethod.MOMO,new BigDecimal("100000"),"g",true);
         });
         balance(customer.getId(),"100000");assertEquals(TransactionStatus.SUCCESS,txs.findByOrderId("expiry").orElseThrow().getStatus());

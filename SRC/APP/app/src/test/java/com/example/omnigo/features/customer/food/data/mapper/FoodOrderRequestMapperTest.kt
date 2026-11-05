@@ -17,7 +17,8 @@ class FoodOrderRequestMapperTest {
             dropOffLongitude = 105.5,
             items = listOf(FoodOrderCreateItemCommand(44L, 3, "No chili")),
             note = "Call first",
-            paymentMethod = PaymentMethod.MOMO
+            paymentMethod = PaymentMethod.WALLET,
+            voucherCode = "SAVE30"
         ).toRequest()
 
         assertEquals(20L, request.restaurantId)
@@ -25,7 +26,9 @@ class FoodOrderRequestMapperTest {
         assertEquals(21.5, request.deliveryLatitude, 0.001)
         assertEquals(105.5, request.deliveryLongitude, 0.001)
         assertEquals("Call first", request.note)
-        assertEquals("MOMO", request.paymentMethod)
+        assertEquals("WALLET", request.paymentMethod)
+        assertEquals("SAVE30", request.voucherCode)
+        assertEquals("SAVE30", com.google.gson.Gson().toJsonTree(request).asJsonObject["voucherCode"].asString)
         assertEquals(44L, request.items.single().menuItemId)
         assertEquals(3, request.items.single().quantity)
         assertEquals("No chili", request.items.single().note)

@@ -12,6 +12,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import com.trung.bookingservice.exception.BadRequestException;
+import java.math.BigDecimal;
+import org.springframework.test.util.ReflectionTestUtils;
 class RidePrepaymentTest {
     final BookingRepository repository=mock(BookingRepository.class);
     final LocationClient location=mock(LocationClient.class);
@@ -31,6 +34,26 @@ class RidePrepaymentTest {
         BookingRequest request=new BookingRequest(); request.setPaymentMethod("WALLET");
         request.setStartLatitude(21.0);request.setStartLongitude(105.0);request.setEndLatitude(21.1);request.setEndLongitude(105.1);
         var result=service.createBooking(1L,request);
+        assertEquals(BookingStatus.AWAITING_PAYMENT,result.getStatus());
+        assertTrue(result.isPrepaid()); assertFalse(result.isPaid()); assertEquals("WALLET",result.getPaymentMethod());
+        verifyNoInteractions(messaging,outbox);
+    }
+    @Test void voucherIsRedeemedBeforePrepaymentWithDiscountedPrice() throws Exception {
+        when(dispatch.getMaxRideDistanceKm()).thenReturn(5.0);
+        when(location.getNearbyDrivers(anyDouble(),anyDouble(),anyDouble())).thenReturn(List.of());
+        PricingResponse quote=new PricingResponse(); quote.setTotalPrice(50000); quote.setDistanceInKm(2.0);
+        when(pricing.calculatePrice(any(),anyInt())).thenReturn(quote);
+        when(repository.save(any())).thenAnswer(i -> { Booking b=i.getArgument(0); b.setId(99L); return b; });
+        BookingRequest request=new BookingRequest(); request.setPaymentMethod("WALLET");
+        request.setStartLatitude(21.0);request.setStartLongitude(105.0);request.setEndLatitude(21.1);request.setEndLongitude(105.1);
+        var vouchers=mock(OrderVoucherService.class);
+        ReflectionTestUtils.setField(service,"orderVouchers",vouchers);
+        request.setVoucherCode("SAVE20"); request.setExpectedPrice(50000.0);
+        when(vouchers.redeem("SAVE20",1L,99L,new BigDecimal("50000.0"))).thenReturn(new BigDecimal("20000"));
+        var result=service.createBooking(1L,request);
+        assertEquals(30000.0,result.getPrice()); assertEquals("SAVE20",result.getVoucherCode());
+        assertEquals(0,result.getOriginalAmount().compareTo(new BigDecimal("50000")));
+        assertEquals(0,result.getDiscountAmount().compareTo(new BigDecimal("20000")));
         assertEquals(BookingStatus.AWAITING_PAYMENT,result.getStatus());
         assertTrue(result.isPrepaid()); assertFalse(result.isPaid()); assertEquals("WALLET",result.getPaymentMethod());
         verifyNoInteractions(messaging,outbox);
@@ -63,7 +86,7 @@ class RidePrepaymentTest {
     }
     @Test void unpaidWalletRideCannotComplete() {
         active("WALLET",true,false);
-        assertThrows(com.trung.bookingservice.exception.BadRequestException.class,()->service.completeTrip(11L,99L,"CASH"));
+        assertThrows(BadRequestException.class,()->service.completeTrip(11L,99L,"CASH"));
         verifyNoInteractions(outbox);
     }
 }

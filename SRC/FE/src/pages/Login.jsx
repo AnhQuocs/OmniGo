@@ -271,7 +271,7 @@ export const Login = () => {
         sx={{
           maxWidth: 420,
           width: '100%',
-          p: { xs: 2.5, sm: 4 },
+          p: { xs: 2, sm: 3.5 },
           bgcolor: 'background.paper',
           border: 1,
           borderColor: 'divider',
@@ -633,7 +633,7 @@ export const Login = () => {
         onClose={() => !registerSubmitting && setOpenRegisterModal(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3.5, overflow: 'hidden' } }}
+        PaperProps={{ sx: { borderRadius: 3.5, overflow: 'hidden', m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)' } }}
       >
         <DialogTitle
           component="div"

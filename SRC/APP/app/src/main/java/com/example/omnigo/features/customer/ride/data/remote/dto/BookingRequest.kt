@@ -20,5 +20,7 @@ data class BookingRequest(
     @SerializedName("expectedPrice")
     val expectedPrice: Double? = null,
     @SerializedName("paymentMethod")
-    val paymentMethod: String = "CASH"
+    val paymentMethod: String = "CASH",
+    @SerializedName("voucherCode")
+    val voucherCode: String? = null
 )

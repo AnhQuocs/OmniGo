@@ -396,7 +396,7 @@ export const Vouchers = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Box>
@@ -438,7 +438,7 @@ export const Vouchers = () => {
 
       {/* Stat Cards */}
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(249, 115, 22, 0.1)', color: '#f97316' }}>
               <VoucherIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
@@ -450,7 +450,7 @@ export const Vouchers = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
               <ActiveIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
@@ -462,7 +462,7 @@ export const Vouchers = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
               <UpcomingIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
@@ -474,7 +474,7 @@ export const Vouchers = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
               <ExpiredIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
@@ -486,7 +486,7 @@ export const Vouchers = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 12, sm: 4, lg: 2.4 }}>
           <Card sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 2.5, bgcolor: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
               <TimeIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />
@@ -599,7 +599,7 @@ export const Vouchers = () => {
                   }}
                 >
                   {/* Top Bar: Code & Actions */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                     <Box
                       onClick={() => handleCopyCode(v.code)}
                       sx={{
@@ -858,7 +858,7 @@ export const Vouchers = () => {
       </Dialog>
 
       {/* Modal Tạo / Chỉnh sửa Voucher */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)', borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5, pb: 1.5 }}>
           <TicketIcon sx={{ color: '#f97316' }} />
           {editingVoucher ? `Chỉnh Sửa Mã Khuyến Mãi: ${editingVoucher.code}` : 'Thêm Mã Khuyến Mãi Mới (Lưu DB & Redis)'}

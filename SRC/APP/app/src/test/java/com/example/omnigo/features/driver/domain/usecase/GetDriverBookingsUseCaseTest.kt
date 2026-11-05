@@ -75,5 +75,18 @@ class GetDriverBookingsUseCaseTest {
         assertEquals(30000.0, enriched.actualPlatformFee, 0.01)
         assertEquals(170000.0, enriched.actualEarnings, 0.01)
     }
+
+    @Test
+    fun `voucher does not reduce driver earnings and food fee with same id is ignored`() = runTest {
+        val booking = Booking(bookingId = 99L, price = 68080.0, originalPrice = 74000.0, discountAmount = 5920.0)
+        coEvery { rideBookingRepository.getDriverBookings() } returns GetDriverBookingsResult.Success(listOf(booking))
+        coEvery { paymentApi.getTransactions() } returns listOf(
+            TransactionResponseDto(bookingId = 99L, orderId = "FEE_KAFKA_99_SETTLED", transactionType = "COMMISSION_FEE", amount = 14800.0, status = "SUCCESS"),
+            TransactionResponseDto(bookingId = 99L, orderId = "FOOD_FEE_99_SETTLED", transactionType = "COMMISSION_FEE", amount = 5000.0, status = "SUCCESS")
+        )
+        val bookingResult = (useCase() as GetDriverBookingsResult.Success).bookings.single()
+        assertEquals(68080.0, bookingResult.finalPrice, 0.001)
+        assertEquals(59200.0, bookingResult.actualEarnings, 0.001)
+    }
 }
 

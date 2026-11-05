@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/pricing/vouchers")
@@ -66,6 +68,7 @@ public class VoucherController {
             request.setUserId(headerUserId);
         }
 
+        rejectBackendOrder(request.getOrderId());
         ApplyVoucherResponse response = voucherService.commitVoucher(request);
         return ResponseEntity.ok(ApiResponse.<ApplyVoucherResponse>builder()
                 .success(response.isValid())
@@ -101,6 +104,8 @@ public class VoucherController {
             @RequestParam(required = false) String orderId) {
 
         String effectiveUserId = (userId != null && !userId.isBlank()) ? userId : headerUserId;
+        rejectBackendOrder(orderId);
+        if (orderId == null || orderId.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu mã đơn hàng");
         voucherService.rollbackVoucherUsage(code, effectiveUserId, orderId);
 
         return ResponseEntity.ok(ApiResponse.<Void>builder()
@@ -132,5 +137,9 @@ public class VoucherController {
                 .data(usages)
                 .timestamp(LocalDateTime.now())
                 .build());
+    }
+    private void rejectBackendOrder(String orderId) {
+        if (orderId != null && (orderId.startsWith("FOOD:") || orderId.startsWith("RIDE:")))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 }

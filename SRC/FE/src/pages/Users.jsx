@@ -209,7 +209,7 @@ export const Users = () => {
   );
 
   return (
-    <Box className="page-enter-animation" sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
+    <Box className="page-enter-animation" sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
@@ -408,13 +408,25 @@ export const Users = () => {
               setPage(0);
             }}
             labelRowsPerPage="Số dòng mỗi trang:"
-            sx={{ mt: 'auto', pt: 1.5 }}
+            sx={{
+              mt: 'auto',
+              pt: 1.5,
+              '& .MuiTablePagination-toolbar': {
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'center', sm: 'flex-end' },
+                gap: 0.5,
+                px: { xs: 0.5, sm: 2 },
+              },
+              '& .MuiTablePagination-displayedRows': {
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              },
+            }}
           />
         </CardContent>
       </Card>
 
       {/* Dialog: Lock / Unlock User */}
-      <Dialog open={openLockDialog} onClose={handleCloseLockModal} maxWidth="xs" fullWidth>
+      <Dialog open={openLockDialog} onClose={handleCloseLockModal} maxWidth="xs" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, borderRadius: 3 } }}>
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             {selectedUserForLock?.isLocked ? 'Xác nhận mở khóa tài khoản' : 'Khóa tài khoản người dùng'}

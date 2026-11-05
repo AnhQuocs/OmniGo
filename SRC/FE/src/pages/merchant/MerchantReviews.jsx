@@ -43,7 +43,7 @@ export const MerchantReviews = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 2, md: 3 } }}>
+    <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', minWidth: 0 }}>
       {/* Header */}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}

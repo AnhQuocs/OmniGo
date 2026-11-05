@@ -6,14 +6,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
+import com.trung.bookingservice.exception.ResourceNotFoundException;
+import com.trung.bookingservice.service.OrderCreationGuard;
+import com.trung.bookingservice.service.impl.BookingServiceImpl;
 @RestController @RequiredArgsConstructor
 @RequestMapping("/api/v1/internal/financial")
 public class FinancialOrderController {
     private final BookingRepository repository;
-    private final com.trung.bookingservice.service.impl.BookingServiceImpl bookings;
+    private final BookingServiceImpl bookings;
     @PostMapping("/orders/{id}/paid")
-    public void paid(@PathVariable Long id) throws com.trung.bookingservice.exception.ResourceNotFoundException { bookings.markPrepaid(id); }
-    private final com.trung.bookingservice.service.OrderCreationGuard creationGuard;
+    public void paid(@PathVariable Long id) throws ResourceNotFoundException { bookings.markPrepaid(id); }
+    private final OrderCreationGuard creationGuard;
     @GetMapping("/attempts/{customer}/{key}")
     public Map<String,Object> attempt(@PathVariable Long customer, @PathVariable String key) { return creationGuard.attempt(customer, key); }
     @GetMapping("/customers/{customer}/orders") @Transactional(readOnly = true)
@@ -28,6 +31,8 @@ public class FinancialOrderController {
         data.put("driverId", order.getDriverId()); data.put("status", order.getStatus().name());
         data.put("paymentMethod", order.getPaymentMethod());
         data.put("amount", order.getPrice());
+        data.put("originalAmount", order.getOriginalAmount() == null ? order.getPrice() : order.getOriginalAmount());
+        data.put("discountAmount", order.getDiscountAmount());
         data.put("prepaid", order.isPrepaid()); data.put("paid", order.isPaid());
         return data;
     }

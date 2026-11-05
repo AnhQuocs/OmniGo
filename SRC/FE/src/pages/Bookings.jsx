@@ -260,7 +260,7 @@ export const Bookings = () => {
   );
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header bar with Realtime Indicator & Refresh */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -701,7 +701,7 @@ export const Bookings = () => {
         onClose={() => setSelectedBooking(null)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ sx: { borderRadius: 3, m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)' } }}
       >
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -726,7 +726,7 @@ export const Bookings = () => {
         </DialogTitle>
         <Divider />
 
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: { xs: 1.5, sm: 3 } }}>
           {selectedBooking && (() => {
             const customer = usersMap[selectedBooking.customerId];
             const driver = driverProfilesMap[selectedBooking.driverId] || usersMap[selectedBooking.driverId];
@@ -1095,7 +1095,7 @@ export const Bookings = () => {
           })()}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #E2E8F0', justifyContent: 'space-between' }}>
+        <DialogActions sx={{ p: { xs: 1.5, sm: 2 }, px: { xs: 2, sm: 3 }, borderTop: '1px solid #E2E8F0', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
           {selectedBooking && selectedBooking.status === 'COMPLETED' ? (
             <Button
               onClick={() => {

@@ -7,7 +7,8 @@ data class FoodOrderCreateCommand(
     val dropOffLongitude: Double,
     val items: List<FoodOrderCreateItemCommand>,
     val note: String?,
-    val paymentMethod: PaymentMethod
+    val paymentMethod: PaymentMethod,
+    val voucherCode: String? = null
 )
 
 data class FoodOrderCreateItemCommand(

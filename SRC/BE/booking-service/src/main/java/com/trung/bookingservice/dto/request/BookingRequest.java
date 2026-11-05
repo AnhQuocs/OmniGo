@@ -25,6 +25,7 @@ public class BookingRequest {
     private String paymentMethod = "CASH";
     @PositiveOrZero
     private Double expectedPrice;
+    private String voucherCode;
 
     private String vehicleType;
     private String pickupAddress;

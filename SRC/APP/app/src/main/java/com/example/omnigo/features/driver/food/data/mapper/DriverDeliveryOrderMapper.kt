@@ -31,7 +31,7 @@ object DriverDeliveryOrderMapper {
             status = DriverDeliveryStatus.fromString(dto.status),
             paymentMethod = dto.paymentMethod ?: "CASH",
             isPaid = dto.isPaid ?: false,
-            itemsPrice = dto.itemsPrice ?: 0.0,
+            itemsPrice = dto.itemsPrice ?: mappedItems.sumOf { it.subtotal },
             deliveryFee = dto.deliveryFee ?: 0.0,
             totalPrice = dto.totalPrice ?: 0.0,
             items = mappedItems,
@@ -73,7 +73,7 @@ object DriverDeliveryOrderMapper {
             status = DriverDeliveryStatus.ACCEPTED,
             paymentMethod = offer.paymentMethod ?: if (offer.isPaid) "ONLINE" else "CASH",
             isPaid = offer.isPaid,
-            itemsPrice = (offer.totalPrice - offer.deliveryFee).coerceAtLeast(0.0),
+            itemsPrice = ((offer.originalAmount ?: offer.totalPrice) - offer.deliveryFee).coerceAtLeast(0.0),
             deliveryFee = offer.deliveryFee,
             totalPrice = offer.totalPrice,
             items = emptyList()

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -76,8 +77,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(ApiResponse.<Object>builder()
                 .success(false).message(ex.getMessage()).error("IMAGE_UPLOAD_FAILED").build());
     }
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<ApiResponse<Object>> handleResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResponseStatus(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode())
                 .body(ApiResponse.error(ex.getReason(), "REQUEST_REJECTED"));
     }

@@ -269,7 +269,7 @@ fun OrderDetailPaymentAndPricingSection(
                     )
                     Text(
                         text = formatFoodOrderPrice(
-                            ((totalPrice ?: ((itemsPrice ?: 0.0) + (deliveryFee ?: 0.0))) - voucherDiscount).coerceAtLeast(0.0)
+                            (totalPrice ?: ((itemsPrice ?: 0.0) + (deliveryFee ?: 0.0))).coerceAtLeast(0.0)
                         ),
                         style = MaterialTheme.typography.s16.bold(),
                         color = PrimaryColor

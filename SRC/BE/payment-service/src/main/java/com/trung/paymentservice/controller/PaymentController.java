@@ -40,6 +40,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 import java.util.Set;
+import com.trung.paymentservice.service.OrderAdmissionService;
+import com.trung.paymentservice.service.PaymentIdempotency;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -47,7 +49,7 @@ import java.util.Set;
 @Slf4j
 public class PaymentController {
 
-    private final com.trung.paymentservice.service.OrderAdmissionService admission;
+    private final OrderAdmissionService admission;
     public record AdmissionRequest(Long customerId, String kind, String key, String fingerprint) {}
     @PostMapping("/internal/order-admission")
     public ResponseEntity<Void> reserveOrder(@RequestBody AdmissionRequest request) {
@@ -57,7 +59,7 @@ public class PaymentController {
 
     private final PlatformFeeService platformFeeService;
     private final PaymentRequestService paymentRequests;
-    private final com.trung.paymentservice.service.PaymentIdempotency paymentIdempotency;
+    private final PaymentIdempotency paymentIdempotency;
     private final PaymentWorkflowService workflow;
 
     private final FinancialOrderClient financialOrders;
@@ -295,7 +297,8 @@ public class PaymentController {
         long total = all.size();
         long successCount = all.stream().filter(t -> t.getStatus() == TransactionStatus.SUCCESS).count();
         BigDecimal totalVolume = all.stream()
-                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount() != null)
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount() != null
+                        && t.getTransactionType() != TransactionType.PLATFORM_VOUCHER_EXPENSE)
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -303,9 +306,15 @@ public class PaymentController {
         map.put("totalTransactions", total);
         map.put("successTransactions", successCount);
         map.put("totalVolume", totalVolume);
-        map.put("netRevenue", all.stream()
+        BigDecimal commissionRevenue = all.stream()
                 .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.COMMISSION_FEE)
-                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal voucherExpense = all.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.PLATFORM_VOUCHER_EXPENSE)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        map.put("commissionRevenue", commissionRevenue);
+        map.put("voucherExpense", voucherExpense);
+        map.put("netRevenue", commissionRevenue.subtract(voucherExpense));
 
         return ResponseEntity.ok(map);
     }

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import org.mockito.AdditionalMatchers;
 
 class CloudinaryUploadTest {
     private static final String URL = "https://res.cloudinary.com/demo/image/upload/v1/photo.png";
@@ -70,6 +71,6 @@ class CloudinaryUploadTest {
     void multipartSuccessUploadsBytesAndReturnsUrl() throws Exception {
         when(cloud.uploader().upload(any(), anyMap())).thenReturn(Map.of("secure_url", URL));
         assertEquals(URL, service.uploadImage(image()));
-        verify(cloud.uploader()).upload(org.mockito.AdditionalMatchers.aryEq(new byte[]{1,2,3}), argThat(options -> "image".equals(options.get("resource_type"))));
+        verify(cloud.uploader()).upload(AdditionalMatchers.aryEq(new byte[]{1,2,3}), argThat(options -> "image".equals(options.get("resource_type"))));
     }
 }

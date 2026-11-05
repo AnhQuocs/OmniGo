@@ -20,17 +20,21 @@ object DriverPaymentMapper {
 
     fun mapToDomain(dto: TransactionResponseDto): DriverWalletTransaction {
         val type = dto.transactionType.orEmpty().uppercase()
-        val isIncome = type in listOf("DEPOSIT", "TRIP_INCOME", "REFUND")
+        val isIncome = type in listOf("DEPOSIT", "TRIP_INCOME", "FOOD_DELIVERY_INCOME", "FOOD_RESTAURANT_INCOME", "REFUND")
         val amount = dto.amount ?: 0.0
         val prefix = if (isIncome) "+" else "-"
         val formattedAmount = String.format(Locale.getDefault(), "%s%,.0f ₫", prefix, amount)
 
-        val description = when (type) {
+        val description = if (dto.orderId?.startsWith("RIDE_VOUCHER_") == true || dto.orderId?.startsWith("FOOD_VOUCHER_") == true) {
+            "Sàn bù voucher đơn #${dto.bookingId ?: ""}"
+        } else when (type) {
             "DEPOSIT" -> "Nạp tiền ví ký quỹ"
             "TRIP_INCOME" -> "Thu nhập chuyến xe ${dto.bookingId?.let { "#$it" } ?: ""}".trim()
             "TRIP_PAYMENT" -> "Thanh toán cước phí ${dto.bookingId?.let { "#$it" } ?: ""}".trim()
             "COMMISSION_FEE" -> "Khấu trừ phí nền tảng"
-            "WITHDRAW" -> "Rút tiền về ngân hàng"
+            "FOOD_DELIVERY_INCOME" -> "Thu nhập giao món #${dto.bookingId ?: ""}"
+            "FOOD_RESTAURANT_INCOME" -> "Doanh thu món ăn #${dto.bookingId ?: ""}"
+            "WITHDRAW", "WITHDRAWAL" -> "Rút tiền về ngân hàng"
             else -> "Giao dịch ví ${dto.orderId.orEmpty()}".trim()
         }
 

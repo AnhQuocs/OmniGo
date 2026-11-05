@@ -406,7 +406,7 @@ export const MerchantWallet = () => {
   }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ width: '100%', maxWidth: 1400, mx: 'auto', minWidth: 0 }}>
       {/* HEADER SECTION */}
       <Box
         sx={{
@@ -476,7 +476,7 @@ export const MerchantWallet = () => {
       {/* METRIC SUMMARY CARDS */}
       <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
         {/* Card 1: Số dư ví hiện tại */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             elevation={0}
             sx={{
@@ -507,7 +507,7 @@ export const MerchantWallet = () => {
         </Grid>
 
         {/* Card 2: Tổng Doanh Thu Tiền Món */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             elevation={0}
             sx={{
@@ -536,7 +536,7 @@ export const MerchantWallet = () => {
         </Grid>
 
         {/* Card 3: Khấu Trừ Phí Sàn */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             elevation={0}
             sx={{
@@ -565,7 +565,7 @@ export const MerchantWallet = () => {
         </Grid>
 
         {/* Card 4: Thực Nhận Về Quán */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card
             elevation={0}
             sx={{
@@ -692,7 +692,7 @@ export const MerchantWallet = () => {
 
           {/* Bottom row: Type, Status, Search */}
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <FormControl size="small" fullWidth>
                 <InputLabel>Loại giao dịch</InputLabel>
                 <Select
@@ -709,7 +709,7 @@ export const MerchantWallet = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <FormControl size="small" fullWidth>
                 <InputLabel>Trạng thái</InputLabel>
                 <Select
@@ -726,7 +726,7 @@ export const MerchantWallet = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={4} md={6}>
+            <Grid size={{ xs: 12, sm: 4, md: 6 }}>
               <TextField
                 size="small"
                 fullWidth
