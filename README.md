@@ -269,18 +269,30 @@ OmniGo/
 │   │
 │   ├── APP/                            # Ứng dụng Android Native 100% Kotlin (Jetpack Compose)
 │   │   ├── app/src/main/java/com/example/omnigo/
-│   │   │   ├── core/                   # Mạng (Retrofit, OkHttp Mutex), WebSocket STOMP, DataStore
-│   │   │   ├── features/               # Các phân hệ nghiệp vụ tổ chức chuẩn Clean Architecture
-│   │   │   │   ├── auth/               # Xác thực, đăng ký, đăng nhập OTP/Mật khẩu
-│   │   │   │   ├── home/               # Màn hình chính, chuyển đổi dịch vụ Ride / Food
-│   │   │   │   ├── booking/            # Chọn tuyến đường, ước tính cước, theo dõi chuyến xe
-│   │   │   │   ├── food/               # Tìm kiếm quán, thực đơn, giỏ hàng, theo dõi đơn món
-│   │   │   │   ├── payment/            # Nạp ví, rút tiền, lịch sử biến động số dư, liên kết thẻ
-│   │   │   │   ├── driver/             # Chế độ tài xế, nhận chuyến xe, nhận đơn giao đồ ăn
-│   │   │   │   ├── profile/            # Thông tin cá nhân, cài đặt bảo mật, đổi ngôn ngữ
-│   │   │   │   └── rating/             # Đánh giá chuyến đi, đánh giá quán ăn và tài xế
-│   │   │   └── ui/                     # Design System (Dimen, AppSpacing, AppShape, Color, Theme)
-│   │   └── app/src/test/               # Bộ kiểm thử Unit Test cho Use Cases, ViewModels, Repositories
+│   │   │   ├── core/                   # Hạ tầng cốt lõi (Network Mutex, WebSocket STOMP, DataStore, Location, DI)
+│   │   │   ├── features/               # Các module nghiệp vụ tổ chức chuẩn Clean Architecture
+│   │   │   │   ├── auth/               # Đăng nhập, đăng ký, xác thực OTP, khôi phục mật khẩu
+│   │   │   │   ├── customer/           # Trải nghiệm Khách hàng
+│   │   │   │   │   ├── ride/           # Đặt xe công nghệ, chọn lộ trình, ước tính cước H3, theo dõi xe
+│   │   │   │   │   ├── food/           # Đặt đồ ăn, thực đơn quán ăn, giỏ hàng, theo dõi đơn 3 bên
+│   │   │   │   │   ├── wallet/         # Ví điện tử OmniPay, nạp/rút tiền, lịch sử biến động số dư
+│   │   │   │   │   ├── activity/       # Lịch sử cuốc xe và đơn hàng đồ ăn, đánh giá dịch vụ
+│   │   │   │   │   ├── home/           # Màn hình chính khách hàng, định vị GPS, danh mục dịch vụ
+│   │   │   │   │   ├── address/        # Quản lý sổ địa chỉ, vị trí ghim và địa điểm ưa thích
+│   │   │   │   │   ├── promos/         # Kho voucher ưu đãi và áp mã giảm giá
+│   │   │   │   │   └── profile/        # Hồ sơ cá nhân khách hàng và cài đặt tài khoản
+│   │   │   │   ├── driver/             # Nghiệp vụ Tài xế đối tác
+│   │   │   │   │   ├── home/           # Bảng điều khiển tài xế, bật/tắt nhận chuyến, bản đồ trực tiếp
+│   │   │   │   │   ├── ride/           # Tiếp nhận và thực hiện cuốc xe chở khách
+│   │   │   │   │   ├── food/           # Tiếp nhận đơn, lấy món tại quán và giao cho khách
+│   │   │   │   │   ├── earnings/       # Quản lý doanh thu cuốc xe, ví tài xế, biểu đồ thu nhập
+│   │   │   │   │   ├── trips/          # Lịch sử chi tiết các chuyến đi và đơn giao thành công
+│   │   │   │   │   └── service/        # Foreground Service phát tọa độ GPS ngầm liên tục
+│   │   │   │   ├── language/           # Cài đặt đa ngôn ngữ giao diện (i18n)
+│   │   │   │   └── onboarding/         # Màn hình giới thiệu và khởi động lần đầu
+│   │   │   ├── ui/                     # Tokenized Design System (Dimen, AppSpacing, AppShape, Color, Theme)
+│   │   │   └── utils/                  # Tiện ích hệ thống, Typography extensions, định dạng tiền tệ
+│   │   └── app/src/test/               # Bộ 133 test suites kiểm thử Use Cases, ViewModels, Repositories
 │   │
 │   └── FE/                             # Cổng Web Portal (React 19, Vite, Material UI v9)
 │       ├── src/
@@ -365,10 +377,3 @@ Dự án áp dụng chặt chẽ chuẩn kiểm thử hướng hành vi (Behavio
 * **EFK Stack**: Fluentd thu thập toàn bộ log có cấu trúc từ các container microservices và chuyển tiếp vào Elasticsearch để tra cứu tập trung qua giao diện Kibana.
 * **Prometheus & Grafana**: Tự động thu thập chỉ số hiệu năng (CPU, dung lượng bộ nhớ Heap JVM, số lượng luồng, độ trễ phản hồi HTTP, lưu lượng tin nhắn Kafka) từ Spring Boot Actuator để trực quan hóa trên bảng điều khiển Grafana.
 
----
-
-## 8. Kết Quả Trình Diễn Đồ Án
-
-Hệ thống đã được hiện thực hóa hoàn chỉnh, vượt qua các bài kiểm thử tích hợp thực địa và được bảo vệ thành công trước hội đồng chuyên môn:
-* **Video Trình Diễn Vận Hành Hệ Thống**: Thời lượng **20 phút 02 giây** ghi lại toàn bộ luồng hoạt động trực tiếp giữa ứng dụng khách hàng Android, ứng dụng tài xế Android, cổng đối tác nhà hàng và bảng điều khiển quản trị viên.
-* **Các kịch bản thực tế đã chứng minh**: Đặt chuyến xe công nghệ có áp dụng Surge Pricing và Voucher, tài xế nhận cuốc và dẫn đường GPS thời gian thực, đặt đơn đồ ăn 3 bên với quy trình chế biến - giao hàng đồng bộ, thanh toán ví điện tử tích hợp và xử lý an toàn khi mất kết nối mạng.
