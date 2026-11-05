@@ -1267,6 +1267,8 @@ export const MerchantOrders = () => {
                 const foodSubtotal = items.reduce((sum, it) => sum + (Number(it.subtotal) || (Number(it.price) * (Number(it.quantity) || 1)) || 0), 0);
                 const dFee = Number(selectedOrder.deliveryFee) || 0;
                 const total = Number(selectedOrder.totalPrice) || Number(selectedOrder.totalAmount) || (foodSubtotal + dFee);
+                const discount = Number(selectedOrder.discountAmount) || Math.max(0, (foodSubtotal + dFee) - total);
+                const voucherCode = selectedOrder.voucherCode;
 
                 return (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
@@ -1275,7 +1277,7 @@ export const MerchantOrders = () => {
                         Tiền món (Tạm tính quán nhận):
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
-                        {formatPrice(foodSubtotal > 0 ? foodSubtotal : total - dFee)}
+                        {formatPrice(foodSubtotal > 0 ? foodSubtotal : Math.max(0, total - dFee + discount))}
                       </Typography>
                     </Box>
 
@@ -1287,6 +1289,34 @@ export const MerchantOrders = () => {
                         {formatPrice(dFee)}
                       </Typography>
                     </Box>
+
+                    {(discount > 0 || voucherCode) && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                          <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 700 }}>
+                            Voucher giảm giá:
+                          </Typography>
+                          {voucherCode && (
+                            <Chip
+                              label={voucherCode}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                bgcolor: '#FEF2F2',
+                                color: '#DC2626',
+                                border: '1px solid #FECACA',
+                                '& .MuiChip-label': { px: 0.8 },
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#DC2626' }}>
+                          -{formatPrice(discount)}
+                        </Typography>
+                      </Box>
+                    )}
 
                     <Divider sx={{ my: 0.5 }} />
 
@@ -1664,9 +1694,26 @@ const OrderKanbanCard = ({ order, accentColor, formatTime, formatPrice, onClick 
           </Typography>
         </Box>
 
-        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>
-          {formatPrice(totalPrice)}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+          {order.voucherCode && (
+            <Chip
+              label={order.voucherCode}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                bgcolor: '#FEF2F2',
+                color: '#DC2626',
+                border: '1px solid #FECACA',
+                '& .MuiChip-label': { px: 0.6 },
+              }}
+            />
+          )}
+          <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>
+            {formatPrice(totalPrice)}
+          </Typography>
+        </Box>
       </Box>
     </Card>
   );

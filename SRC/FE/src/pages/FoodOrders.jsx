@@ -1118,6 +1118,36 @@ export const FoodOrders = () => {
                     {Number(selectedOrder.deliveryFee || 0).toLocaleString('vi-VN')} đ
                   </Typography>
                 </Box>
+                {(() => {
+                  const discount = Number(selectedOrder.discountAmount) || 0;
+                  const voucher = selectedOrder.voucherCode;
+                  if (discount <= 0 && !voucher) return null;
+                  return (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, fontSize: '0.88rem' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                        <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>Giảm giá voucher:</Typography>
+                        {voucher && (
+                          <Chip
+                            label={voucher}
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              bgcolor: '#fef2f2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              '& .MuiChip-label': { px: 0.8 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#dc2626' }}>
+                        -{discount.toLocaleString('vi-VN')} đ
+                      </Typography>
+                    </Box>
+                  );
+                })()}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, fontSize: '0.88rem' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>Phương thức:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: '#0284c7' }}>
