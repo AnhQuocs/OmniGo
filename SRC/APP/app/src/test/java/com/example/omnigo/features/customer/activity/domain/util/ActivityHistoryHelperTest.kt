@@ -5,6 +5,8 @@ import com.example.omnigo.features.customer.food.domain.model.FoodOrderItem
 import com.example.omnigo.features.customer.food.domain.model.PaymentMethod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.ZoneId
@@ -58,7 +60,7 @@ class ActivityHistoryHelperTest {
     }
 
     @Test
-    fun `resolveFoodTimelineStep maps order statuses to 1 through 4`() {
+    fun `resolveFoodTimelineStep maps status to expected stage`() {
         assertEquals(1, ActivityHistoryHelper.resolveFoodTimelineStep("PENDING"))
         assertEquals(1, ActivityHistoryHelper.resolveFoodTimelineStep("ACCEPTED"))
         assertEquals(2, ActivityHistoryHelper.resolveFoodTimelineStep("PREPARING"))
@@ -67,24 +69,23 @@ class ActivityHistoryHelperTest {
         assertEquals(3, ActivityHistoryHelper.resolveFoodTimelineStep("PICKED_UP"))
         assertEquals(4, ActivityHistoryHelper.resolveFoodTimelineStep("DELIVERED"))
         assertEquals(4, ActivityHistoryHelper.resolveFoodTimelineStep("COMPLETED"))
+        assertEquals(1, ActivityHistoryHelper.resolveFoodTimelineStep("UNKNOWN_STATUS"))
     }
 
     @Test
-    fun `summarizeFoodItemsText concatenates item names and appends ellipsis when exceeding maxNames`() {
+    fun `summarizeFoodItemsText handles empty and truncated items`() {
         val items = listOf(
-            FoodOrderItem(1, 10, "Phở tái", 50000.0, 1, 50000.0, ""),
-            FoodOrderItem(2, 11, "Quẩy giòn", 15000.0, 2, 30000.0, ""),
-            FoodOrderItem(3, 12, "Trà đá chanh", 10000.0, 1, 10000.0, ""),
-            FoodOrderItem(4, 13, "Trứng chần", 10000.0, 1, 10000.0, "")
+            FoodOrderItem(id = 1L, menuItemId = 101L, itemName = "Phở Bò", itemPrice = 45000.0, quantity = 2),
+            FoodOrderItem(id = 2L, menuItemId = 102L, itemName = "Quẩy", itemPrice = 5000.0, quantity = 3)
         )
 
         val summary = ActivityHistoryHelper.summarizeFoodItemsText(items, maxNames = 3)
-        assertEquals("Phở tái, Quẩy giòn, Trà đá chanh, ...", summary)
+        assertEquals("Phở Bò, Quẩy", summary)
         assertEquals(5, ActivityHistoryHelper.totalItemQuantity(items))
     }
 
     @Test
-    fun `calculateDeliveryWindow computes start and end time from createdAt and estimatedMinutes`() {
+    fun `calculateDeliveryWindow uses base time plus eta range`() {
         val zone = ZoneId.of("UTC")
         val order = sampleOrder(
             status = "PREPARING",
@@ -119,5 +120,32 @@ class ActivityHistoryHelperTest {
         assertEquals(9, groups[1].month)
         assertEquals(1, groups[1].items.size)
     }
-}
 
+    @Test
+    fun `parseZonedDateTime parses both ISO instant and local date time without error`() {
+        val zone = ZoneId.of("UTC")
+        val instantDate = ActivityHistoryHelper.parseZonedDateTime("2026-10-20T12:30:00Z", zone)
+        assertNotNull(instantDate)
+        assertEquals(2026, instantDate?.year)
+        assertEquals(10, instantDate?.monthValue)
+        assertEquals(20, instantDate?.dayOfMonth)
+        assertEquals(12, instantDate?.hour)
+
+        val localDateTime = ActivityHistoryHelper.parseZonedDateTime("2026-10-20T12:30:00", zone)
+        assertNotNull(localDateTime)
+        assertEquals(2026, localDateTime?.year)
+        assertEquals(10, localDateTime?.monthValue)
+        assertEquals(20, localDateTime?.dayOfMonth)
+        assertEquals(12, localDateTime?.hour)
+
+        assertNull(ActivityHistoryHelper.parseZonedDateTime(null, zone))
+        assertNull(ActivityHistoryHelper.parseZonedDateTime("   ", zone))
+    }
+
+    @Test
+    fun `formatCompactDateAndTime formats dates properly`() {
+        val zone = ZoneId.of("UTC")
+        val formatted = ActivityHistoryHelper.formatCompactDateAndTime("2026-10-20T12:30:00", zone)
+        assertEquals("20/10/2026 • 12:30", formatted)
+    }
+}

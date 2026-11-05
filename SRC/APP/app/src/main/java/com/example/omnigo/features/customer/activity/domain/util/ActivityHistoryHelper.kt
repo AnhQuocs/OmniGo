@@ -145,15 +145,28 @@ object ActivityHistoryHelper {
     ): ZonedDateTime? {
         if (rawDate.isNullOrBlank()) return null
         val trimmed = rawDate.trim()
-        return try {
-            Instant.parse(trimmed).atZone(zoneId)
-        } catch (_: Exception) {
+        val hasZoneOffset = trimmed.endsWith("Z", ignoreCase = true) ||
+            trimmed.matches(Regex(".*[+-]\\d{2}:?\\d{2}$"))
+        return if (hasZoneOffset) {
+            try {
+                Instant.parse(trimmed).atZone(zoneId)
+            } catch (_: Exception) {
+                try {
+                    ZonedDateTime.parse(trimmed).withZoneSameInstant(zoneId)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        } else {
             try {
                 LocalDateTime.parse(trimmed).atZone(zoneId)
             } catch (_: Exception) {
-                null
+                try {
+                    Instant.parse(trimmed).atZone(zoneId)
+                } catch (_: Exception) {
+                    null
+                }
             }
         }
     }
 }
-

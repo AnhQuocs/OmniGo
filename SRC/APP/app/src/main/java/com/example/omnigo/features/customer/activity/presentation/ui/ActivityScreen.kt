@@ -5,12 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PendingActions
@@ -110,50 +106,41 @@ fun ActivityScreen(
                     }
                 )
             } else {
-                val scrollState = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                ) {
-                    if (isHistory) {
-                        ActivityHistoryListSection(
-                            selectedService = uiState.selectedHistoryService,
-                            historyFoodOrders = uiState.historyFoodOrders,
-                            historyBookings = uiState.historyBookings,
-                            onFoodOrderClick = { order ->
-                                context.startActivity(
-                                    FoodActivity.createOrderDetailIntent(context, order.id)
-                                )
-                            },
-                            onRideBookingClick = { booking ->
-                                viewModel.openHistoryBookingDetail(booking)
-                            }
-                        )
-                    } else {
-                        ActivityOngoingListSection(
-                            ongoingFoodOrders = uiState.ongoingFoodOrders,
-                            ongoingBookings = uiState.ongoingBookings,
-                            driverProfiles = uiState.driverProfiles,
-                            activeRideState = uiState.activeRideState,
-                            onFoodOrderClick = { order ->
-                                context.startActivity(
-                                    FoodActivity.createOrderDetailIntent(context, order.id)
-                                )
-                            },
-                            onRideBookingClick = { booking ->
-                                context.startActivity(
-                                    TripMapActivity.createIntent(context, booking.bookingId)
-                                )
-                            },
-                            onCallDriver = { phone -> launchDialer(context, phone) },
-                            onMessageDriver = { phone -> launchSms(context, phone) },
-                            onCancelRideClick = { booking ->
-                                viewModel.promptCancelBooking(booking.bookingId)
-                            }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Dimen.HeightBottomNavPadding))
+                if (isHistory) {
+                    ActivityHistoryListSection(
+                        selectedService = uiState.selectedHistoryService,
+                        historyFoodOrders = uiState.historyFoodOrders,
+                        historyBookings = uiState.historyBookings,
+                        onFoodOrderClick = { order ->
+                            context.startActivity(
+                                FoodActivity.createOrderDetailIntent(context, order.id)
+                            )
+                        },
+                        onRideBookingClick = { booking ->
+                            viewModel.openHistoryBookingDetail(booking)
+                        }
+                    )
+                } else {
+                    ActivityOngoingListSection(
+                        ongoingFoodOrders = uiState.ongoingFoodOrders,
+                        ongoingBookings = uiState.ongoingBookings,
+                        driverProfiles = uiState.driverProfiles,
+                        activeRideState = uiState.activeRideState,
+                        onFoodOrderClick = { order ->
+                            context.startActivity(
+                                FoodActivity.createOrderDetailIntent(context, order.id)
+                            )
+                        },
+                        onRideBookingClick = { booking ->
+                            context.startActivity(
+                                TripMapActivity.createIntent(context, booking.bookingId)
+                            )
+                        },
+                        onCallDriver = { phone -> launchDialer(context, phone) },
+                        onCancelRideClick = { booking ->
+                            viewModel.promptCancelBooking(booking.bookingId)
+                        }
+                    )
                 }
             }
         }
@@ -216,17 +203,6 @@ private fun launchDialer(context: Context, phone: String?) {
     try {
         val intent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:$phone")
-        }
-        context.startActivity(intent)
-    } catch (_: Exception) {
-    }
-}
-
-private fun launchSms(context: Context, phone: String?) {
-    if (phone.isNullOrBlank()) return
-    try {
-        val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("smsto:$phone")
         }
         context.startActivity(intent)
     } catch (_: Exception) {

@@ -21,14 +21,11 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,7 +45,6 @@ import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
 import com.example.omnigo.ui.dimens.Dimen
 import com.example.omnigo.ui.theme.CardBorderColor
-import com.example.omnigo.ui.theme.ErrorColor
 import com.example.omnigo.ui.theme.PrimaryColor
 import com.example.omnigo.ui.theme.PrimaryContainer
 import com.example.omnigo.ui.theme.SecondaryColor
@@ -71,20 +67,17 @@ fun HomeHeaderSection(
     currentAddress: String?,
     isLocating: Boolean,
     onLocationClick: () -> Unit,
-    onNotificationClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    hasUnreadNotifications: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingS),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
             onClick = onLocationClick,
-            modifier = Modifier.weight(1f, fill = false),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(AppShape.ShapeXL2),
             color = SurfaceLight,
             border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor),
@@ -133,37 +126,6 @@ fun HomeHeaderSection(
                     contentDescription = null,
                     tint = TextSecondary,
                     modifier = Modifier.size(Dimen.SizeS)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(AppSpacing.SPlus))
-
-        Box {
-            IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier
-                    .size(Dimen.SizeXLPlus)
-                    .clip(CircleShape)
-                    .background(SurfaceLight)
-                    .border(1.dp, CardBorderColor, CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Notifications",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(Dimen.SizeM)
-                )
-            }
-
-            if (hasUnreadNotifications) {
-                Box(
-                    modifier = Modifier
-                        .size(9.dp)
-                        .align(Alignment.TopEnd)
-                        .padding(top = 2.dp, end = 2.dp)
-                        .clip(CircleShape)
-                        .background(ErrorColor)
                 )
             }
         }
@@ -219,11 +181,12 @@ fun HomeQuickWalletSection(
                         style = MaterialTheme.typography.s10.medium(),
                         color = TextSecondary
                     )
+                    Spacer(modifier = Modifier.height(AppSpacing.XXS))
                     Text(
                         text = when {
                             isWalletLoading -> stringResource(id = R.string.home_wallet_loading)
                             !balanceText.isNullOrBlank() -> balanceText
-                            else -> "0 đ"
+                            else -> stringResource(id = R.string.home_wallet_default_amount)
                         },
                         style = MaterialTheme.typography.s16.bold(),
                         color = TextPrimary
@@ -297,38 +260,24 @@ fun HomeSearchSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Dimen.PaddingM, vertical = Dimen.PaddingSM),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = null,
-                    tint = PrimaryColor,
-                    modifier = Modifier.size(Dimen.SizeM)
-                )
-
-                Spacer(modifier = Modifier.width(AppSpacing.SPlus))
-
-                Text(
-                    text = stringResource(id = R.string.home_search_placeholder),
-                    style = MaterialTheme.typography.s14.normal(),
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
             Icon(
-                imageVector = Icons.Filled.Tune,
+                imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = PrimaryColor,
                 modifier = Modifier.size(Dimen.SizeM)
+            )
+
+            Spacer(modifier = Modifier.width(AppSpacing.SPlus))
+
+            Text(
+                text = stringResource(id = R.string.home_search_placeholder),
+                style = MaterialTheme.typography.s14.normal(),
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
-

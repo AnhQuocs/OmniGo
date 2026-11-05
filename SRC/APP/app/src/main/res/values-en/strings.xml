@@ -142,6 +142,7 @@
     <string name="location_empty_result">No matching locations found</string>
     <string name="home_search_placeholder">Where to or what to eat?</string>
     <string name="home_wallet_balance">OmniPay Balance</string>
+    <string name="home_wallet_default_amount">0 đ</string>
     <string name="home_wallet_balance_mock">250,000 đ</string>
     <string name="home_wallet_topup">Top Up</string>
     <string name="home_wallet_qr">Scan QR</string>

@@ -1,11 +1,12 @@
 package com.example.omnigo.features.customer.activity.presentation.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,36 +36,41 @@ fun ActivityOngoingListSection(
     onFoodOrderClick: (FoodOrder) -> Unit,
     onRideBookingClick: (Booking) -> Unit,
     onCallDriver: (String?) -> Unit,
-    onMessageDriver: (String?) -> Unit,
     onCancelRideClick: (Booking) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimen.PaddingSM, vertical = Dimen.PaddingSM),
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = Dimen.PaddingSM, vertical = Dimen.PaddingSM),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.MediumLarge)
     ) {
-        ongoingFoodOrders.forEach { order ->
+        items(
+            items = ongoingFoodOrders,
+            key = { "ongoing_food_${it.id}" }
+        ) { order ->
             OngoingFoodActivityCard(
                 order = order,
                 onClick = { onFoodOrderClick(order) }
             )
         }
 
-        ongoingBookings.forEach { booking ->
+        items(
+            items = ongoingBookings,
+            key = { "ongoing_ride_${it.bookingId}" }
+        ) { booking ->
             OngoingRideActivityCard(
                 booking = booking,
                 driverProfile = driverProfiles[booking.bookingId],
                 activeRideState = activeRideState,
                 onCardClick = { onRideBookingClick(booking) },
                 onCallDriver = onCallDriver,
-                onMessageDriver = onMessageDriver,
                 onCancelRideClick = { onCancelRideClick(booking) }
             )
         }
 
-        Spacer(modifier = Modifier.height(AppSpacing.Ultra))
+        item(key = "ongoing_bottom_spacer") {
+            Spacer(modifier = Modifier.height(Dimen.HeightBottomNavPadding))
+        }
     }
 }
 
@@ -77,33 +83,38 @@ fun ActivityHistoryListSection(
     onRideBookingClick: (Booking) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimen.PaddingSM, vertical = Dimen.PaddingS),
+    val monthGroups = remember(historyFoodOrders) {
+        ActivityHistoryHelper.groupFoodOrdersByMonth(historyFoodOrders)
+    }
+    val now = remember { LocalDate.now() }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = Dimen.PaddingSM, vertical = Dimen.PaddingS),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.M)
     ) {
         when (selectedService) {
             HistoryServiceFilter.OMNI_FOOD -> {
-                val monthGroups = remember(historyFoodOrders) {
-                    ActivityHistoryHelper.groupFoodOrdersByMonth(historyFoodOrders)
-                }
-
-                monthGroups.forEachIndexed { index, group ->
-                    if (index > 0) {
-                        Spacer(modifier = Modifier.height(AppSpacing.XS))
+                monthGroups.forEachIndexed { groupIndex, group ->
+                    item(key = "food_header_${group.year}_${group.month}") {
+                        if (groupIndex > 0) {
+                            Spacer(modifier = Modifier.height(AppSpacing.XS))
+                        }
+                        Text(
+                            text = stringResource(
+                                R.string.activity_history_month_header,
+                                group.month,
+                                group.year
+                            ),
+                            style = MaterialTheme.typography.s14.bold(),
+                            color = TextPrimary
+                        )
                     }
-                    Text(
-                        text = stringResource(
-                            R.string.activity_history_month_header,
-                            group.month,
-                            group.year
-                        ),
-                        style = MaterialTheme.typography.s14.bold(),
-                        color = TextPrimary
-                    )
 
-                    group.items.forEach { order ->
+                    items(
+                        items = group.items,
+                        key = { "food_order_${it.id}" }
+                    ) { order ->
                         ActivityCompactFoodHistoryCard(
                             order = order,
                             onClick = { onFoodOrderClick(order) }
@@ -113,18 +124,22 @@ fun ActivityHistoryListSection(
             }
 
             HistoryServiceFilter.OMNI_RIDE -> {
-                val now = remember { LocalDate.now() }
-                Text(
-                    text = stringResource(
-                        R.string.activity_history_month_header,
-                        now.monthValue,
-                        now.year
-                    ),
-                    style = MaterialTheme.typography.s14.bold(),
-                    color = TextPrimary
-                )
+                item(key = "ride_header_now") {
+                    Text(
+                        text = stringResource(
+                            R.string.activity_history_month_header,
+                            now.monthValue,
+                            now.year
+                        ),
+                        style = MaterialTheme.typography.s14.bold(),
+                        color = TextPrimary
+                    )
+                }
 
-                historyBookings.forEach { booking ->
+                items(
+                    items = historyBookings,
+                    key = { "ride_booking_${it.bookingId}" }
+                ) { booking ->
                     ActivityCompactRideHistoryCard(
                         booking = booking,
                         onClick = { onRideBookingClick(booking) }
@@ -133,6 +148,8 @@ fun ActivityHistoryListSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(AppSpacing.Ultra))
+        item(key = "history_bottom_spacer") {
+            Spacer(modifier = Modifier.height(Dimen.HeightBottomNavPadding))
+        }
     }
 }

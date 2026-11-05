@@ -66,10 +66,10 @@ data class FoodOrderResponse(
 
     val driverPhone: String? = null,
 
-    @SerializedName(value = "vehiclePlate", alternate = ["driverVehiclePlate"])
+    @SerializedName(value = "vehiclePlate", alternate = ["driverVehiclePlate", "driverLicensePlate", "licensePlate"])
     val driverVehiclePlate: String? = null,
 
-    @SerializedName("avatarUrl")
+    @SerializedName(value = "avatarUrl", alternate = ["driverAvatarUrl", "driverAvatar", "avatar"])
     val driverAvatarUrl: String? = null,
 
     @SerializedName("restaurantId")

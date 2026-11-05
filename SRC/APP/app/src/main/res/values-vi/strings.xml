@@ -145,6 +145,7 @@
     <string name="location_empty_result">Không tìm thấy địa điểm phù hợp</string>
     <string name="home_search_placeholder">Bạn muốn đi đâu hay ăn gì hôm nay?</string>
     <string name="home_wallet_balance">Số dư OmniPay</string>
+    <string name="home_wallet_default_amount">0 đ</string>
     <string name="home_wallet_balance_mock">250.000 đ</string>
     <string name="home_wallet_topup">Nạp tiền</string>
     <string name="home_wallet_qr">Quét mã</string>

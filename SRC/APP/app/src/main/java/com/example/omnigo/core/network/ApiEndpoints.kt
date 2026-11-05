@@ -28,7 +28,7 @@ object ApiEndpoints {
     const val FOOD_ORDER_CANCEL = "$API_V1/food-orders/{orderId}/cancel"
     const val FOOD_ORDER_SWITCH_TO_CASH = "$API_V1/food-orders/{orderId}/switch-to-cash"
     const val FOOD_ORDER_RETRY_DRIVER = "$API_V1/food-orders/{orderId}/retry-driver"
-    const val DRIVER_PROFILE = "$API_V1/drivers/{id}"
+    const val DRIVER_PROFILE = "$API_V1/drivers/{id}/profile"
 
     // --- FOOD REVIEWS ---
     const val FOOD_REVIEW_UPLOAD_IMAGE = "$API_V1/food-reviews/upload-image"

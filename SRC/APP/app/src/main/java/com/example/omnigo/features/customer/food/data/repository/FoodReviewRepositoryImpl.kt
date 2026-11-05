@@ -35,7 +35,16 @@ class FoodReviewRepositoryImpl @Inject constructor(
                     Result.failure(Exception(apiResponse?.message ?: "Upload image failed: URL is empty"))
                 }
             } else {
-                Result.failure(Exception("Upload image failed with HTTP ${response.code()}"))
+                val errorBody = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                val serverMsg = errorBody?.let {
+                    try {
+                        val json = com.google.gson.JsonParser.parseString(it).asJsonObject
+                        json.get("message")?.asString
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                Result.failure(Exception(serverMsg ?: "Upload image failed with HTTP ${response.code()}"))
             }
         } catch (e: Exception) {
             Log.e(TAG, "uploadReviewImage: failed", e)

@@ -104,9 +104,7 @@ fun HomeScreen(
                 HomeHeaderSection(
                     currentAddress = uiState.displayAddress,
                     isLocating = uiState.isLocationLoading,
-                    hasUnreadNotifications = uiState.hasUnreadNotifications,
                     onLocationClick = viewModel::onLocationHeaderClick,
-                    onNotificationClick = viewModel::openNotifications,
                     modifier = Modifier.height(TOP_BAR_HEIGHT)
                 )
             }
@@ -216,6 +214,8 @@ fun HomeScreen(
                 locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
 
         LocationPromptDialog(
+            currentAddress = uiState.displayAddress,
+            isLocating = uiState.isLocationLoading,
             savedAddresses = uiState.savedAddresses,
             onEnableGpsClick = {
                 viewModel.onEnableGpsClicked(hasPermission, isGpsOn)

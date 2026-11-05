@@ -27,6 +27,7 @@ import com.example.omnigo.features.customer.ride.domain.usecase.GetCustomerBooki
 import com.example.omnigo.features.customer.ride.domain.usecase.SubmitBookingReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -239,53 +240,70 @@ class ActivityViewModel @Inject constructor(
     }
 
     private fun applyCachedEnrichment(orders: List<FoodOrder>): List<FoodOrder> {
-        return orders.map { order ->
-            val restaurant = restaurantCache[order.restaurantId]
-            val catalog = menuCatalogCache[order.restaurantId].orEmpty()
-            if (restaurant != null || catalog.isNotEmpty()) {
-                FoodOrderHistoryHelper.enrichOrder(order, restaurant, catalog)
-            } else order
+        return synchronized(restaurantCache) {
+            orders.map { order ->
+                val restaurant = restaurantCache[order.restaurantId]
+                val catalog = synchronized(menuCatalogCache) { menuCatalogCache[order.restaurantId].orEmpty() }
+                if (restaurant != null || catalog.isNotEmpty()) {
+                    FoodOrderHistoryHelper.enrichOrder(order, restaurant, catalog)
+                } else order
+            }
         }
     }
 
     private fun enrichOrdersWithRestaurantData(orders: List<FoodOrder>) {
-        val restaurantIdsToFetch = orders
-            .map { it.restaurantId }
-            .filter { it > 0L }
-            .distinct()
-            .filter { id ->
-                !restaurantCache.containsKey(id) ||
-                    orders.any { o ->
-                        o.restaurantId == id &&
-                            (o.restaurantImageUrl.isNullOrBlank() ||
-                                o.restaurantAddress.isNullOrBlank() ||
-                                o.items.any { it.imageUrl.isNullOrBlank() })
-                    }
-            }
+        val restaurantIdsToFetch = synchronized(restaurantCache) {
+            orders
+                .map { it.restaurantId }
+                .filter { it > 0L }
+                .distinct()
+                .filter { id ->
+                    !restaurantCache.containsKey(id) ||
+                        orders.any { o ->
+                            o.restaurantId == id &&
+                                (o.restaurantImageUrl.isNullOrBlank() ||
+                                    o.restaurantAddress.isNullOrBlank() ||
+                                    o.items.any { it.imageUrl.isNullOrBlank() })
+                        }
+                }
+        }
 
         if (restaurantIdsToFetch.isEmpty()) return
 
         viewModelScope.launch {
-            for (restaurantId in restaurantIdsToFetch) {
-                if (!restaurantCache.containsKey(restaurantId)) {
-                    when (val res = getRestaurantDetailUseCase(restaurantId)) {
-                        is GetRestaurantDetailResult.Success -> {
-                            restaurantCache[restaurantId] = res.restaurant
-                            if (res.restaurant.menuItems.isNotEmpty()) {
-                                menuCatalogCache[restaurantId] = res.restaurant.menuItems
+            coroutineScope {
+                restaurantIdsToFetch.map { restaurantId ->
+                    async {
+                        val needRestaurantDetail = synchronized(restaurantCache) { !restaurantCache.containsKey(restaurantId) }
+                        if (needRestaurantDetail) {
+                            when (val res = getRestaurantDetailUseCase(restaurantId)) {
+                                is GetRestaurantDetailResult.Success -> {
+                                    synchronized(restaurantCache) {
+                                        restaurantCache[restaurantId] = res.restaurant
+                                    }
+                                    if (res.restaurant.menuItems.isNotEmpty()) {
+                                        synchronized(menuCatalogCache) {
+                                            menuCatalogCache[restaurantId] = res.restaurant.menuItems
+                                        }
+                                    }
+                                }
+                                else -> Unit
                             }
                         }
-                        else -> Unit
-                    }
-                }
 
-                val currentCatalog = menuCatalogCache[restaurantId].orEmpty()
-                if (currentCatalog.isEmpty() || currentCatalog.none { it.imageUrl.isNotBlank() }) {
-                    when (val menuRes = getRestaurantItemsUseCase(restaurantId, availableOnly = false)) {
-                        is GetMenuItemsResult.Success -> menuCatalogCache[restaurantId] = menuRes.items
-                        else -> Unit
+                        val currentCatalog = synchronized(menuCatalogCache) { menuCatalogCache[restaurantId].orEmpty() }
+                        if (currentCatalog.isEmpty() || currentCatalog.none { it.imageUrl.isNotBlank() }) {
+                            when (val menuRes = getRestaurantItemsUseCase(restaurantId, availableOnly = false)) {
+                                is GetMenuItemsResult.Success -> {
+                                    synchronized(menuCatalogCache) {
+                                        menuCatalogCache[restaurantId] = menuRes.items
+                                    }
+                                }
+                                else -> Unit
+                            }
+                        }
                     }
-                }
+                }.awaitAll()
             }
 
             _uiState.update { current ->

@@ -16,6 +16,7 @@ import com.example.omnigo.features.customer.food.domain.usecase.UploadReviewImag
 import com.example.omnigo.utils.ImageUploadUtils
 import com.example.omnigo.utils.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -160,22 +161,28 @@ class FoodReviewViewModel @Inject constructor(
             return
         }
 
-        val part = ImageUploadUtils.uriToMultipart(
-            context = context,
-            uri = uri,
-            partName = "file",
-            fileName = "review_image_${System.currentTimeMillis()}.jpg"
-        )
+        val appContext = context.applicationContext
 
-        if (part == null) {
-            _uiState.update {
-                it.copy(errorMessage = UiText.StringResource(R.string.food_review_image_invalid))
-            }
-            return
-        }
-
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isUploadingImage = true, errorMessage = null) }
+
+            val part = ImageUploadUtils.uriToMultipart(
+                context = appContext,
+                uri = uri,
+                partName = "file",
+                fileName = "review_image_${System.currentTimeMillis()}.jpg"
+            )
+
+            if (part == null) {
+                _uiState.update {
+                    it.copy(
+                        isUploadingImage = false,
+                        errorMessage = UiText.StringResource(R.string.food_review_image_invalid)
+                    )
+                }
+                return@launch
+            }
+
             val result = uploadReviewImageUseCase(part)
             result.fold(
                 onSuccess = { url ->

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,8 +64,6 @@ fun FoodOrderDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-
-
     LaunchedEffect(uiState.errorMessage) {
         val err = uiState.errorMessage
         if (err != null && uiState.order != null) {
@@ -105,15 +102,6 @@ fun FoodOrderDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(id = R.string.order_detail_action_back),
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.loadOrderDetail(isRefresh = true) }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null,
                             tint = TextPrimary
                         )
                     }
@@ -238,8 +226,8 @@ fun FoodOrderDetailScreen(
                                 itemsPrice = order.itemsPrice,
                                 deliveryFee = order.deliveryFee,
                                 totalPrice = order.totalPrice,
-                        voucherCode = order.voucherCode,
-                        voucherDiscount = order.voucherDiscount
+                                voucherCode = order.voucherCode,
+                                voucherDiscount = order.voucherDiscount
                             )
                         }
 

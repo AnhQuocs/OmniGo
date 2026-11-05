@@ -60,6 +60,7 @@ import com.example.omnigo.ui.theme.TextWhite
 import com.example.omnigo.utils.bold
 import com.example.omnigo.utils.medium
 import com.example.omnigo.utils.normal
+import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s13
 import com.example.omnigo.utils.s14
@@ -74,7 +75,9 @@ fun LocationPromptDialog(
     onEditSavedAddress: (SavedAddress) -> Unit,
     onDeleteSavedAddress: (SavedAddress) -> Unit,
     onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentAddress: String? = null,
+    isLocating: Boolean = false
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -116,6 +119,60 @@ fun LocationPromptDialog(
                             tint = TextSecondary,
                             modifier = Modifier.size(Dimen.SizeS)
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+
+                // Current Selected / GPS Location Box
+                Surface(
+                    shape = RoundedCornerShape(AppShape.ShapeM),
+                    color = PrimaryContainer.copy(alpha = 0.5f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimen.PaddingSM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(Dimen.SizeL)
+                                .clip(CircleShape)
+                                .background(PrimaryColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.LocationOn,
+                                contentDescription = null,
+                                tint = TextWhite,
+                                modifier = Modifier.size(Dimen.SizeSM)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(AppSpacing.SPlus))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(id = R.string.home_location_label),
+                                style = MaterialTheme.typography.s10.bold(),
+                                color = PrimaryColor
+                            )
+                            Spacer(modifier = Modifier.height(AppSpacing.XXS))
+                            Text(
+                                text = when {
+                                    isLocating -> stringResource(id = R.string.home_location_locating)
+                                    !currentAddress.isNullOrBlank() -> currentAddress
+                                    else -> stringResource(id = R.string.home_location_default)
+                                },
+                                style = MaterialTheme.typography.s13.bold(),
+                                color = TextPrimary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
