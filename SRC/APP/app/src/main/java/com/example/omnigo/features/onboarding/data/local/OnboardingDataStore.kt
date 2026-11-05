@@ -1,10 +1,13 @@
 package com.example.omnigo.features.onboarding.data.local
 
+import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
@@ -13,13 +16,17 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.onboardingPreferencesDataStore by preferencesDataStore(name = "onboarding_preferences")
+
 @Singleton
 class OnboardingDataStore @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
+
+    private val dataStore: DataStore<Preferences> = context.onboardingPreferencesDataStore
 
     val isOnboardingDoneFlow: Flow<Boolean> = dataStore.data
         .catch { exception ->

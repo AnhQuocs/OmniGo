@@ -50,6 +50,8 @@ import com.example.omnigo.utils.normal
 import com.example.omnigo.utils.s10
 import com.example.omnigo.utils.s12
 import com.example.omnigo.utils.s16
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.omnigo.utils.formatVnd
 
 @Composable
 fun HomePromoBannersSection(
@@ -83,11 +85,17 @@ fun HomePromoBannersSection(
                 items(vouchers.size, key = { index -> "${vouchers[index].id}_${vouchers[index].code}_$index" }) { index ->
                     val voucher = vouchers[index]
                     val isPercent = voucher.discountType == VoucherDiscountType.PERCENTAGE
-                    val title = if (isPercent) "Giảm ${voucher.discountValue.toInt()}%" else voucher.name
+                    val title = if (isPercent) {
+                        stringResource(id = R.string.home_promo_discount_percent, voucher.discountValue.toInt())
+                    } else {
+                        voucher.name.ifBlank {
+                            stringResource(id = R.string.home_promo_discount_amount, voucher.discountValue.formatVnd())
+                        }
+                    }
                     val badge = when (voucher.applicableService.uppercase()) {
-                        "RIDE" -> "ĐẶT XE"
-                        "FOOD" -> "ĐỒ ĂN"
-                        else -> "TOÀN SÀN"
+                        "RIDE" -> stringResource(id = R.string.promos_service_ride)
+                        "FOOD" -> stringResource(id = R.string.promos_service_food)
+                        else -> stringResource(id = R.string.promos_service_all)
                     }
                     val gradient = when (voucher.applicableService.uppercase()) {
                         "RIDE" -> listOf(PrimaryColor, PrimaryVariant)
@@ -99,9 +107,19 @@ fun HomePromoBannersSection(
                         "FOOD" -> Icons.Filled.Fastfood
                         else -> Icons.Filled.LocalOffer
                     }
+                    val minOrderPart = if (voucher.minOrderAmount > 0) {
+                        stringResource(id = R.string.voucher_min_order_label, voucher.minOrderAmount.formatVnd())
+                    } else null
+                    val maxDiscountPart = if (voucher.maxDiscountAmount != null && voucher.maxDiscountAmount > 0) {
+                        stringResource(id = R.string.voucher_max_discount_label, voucher.maxDiscountAmount.formatVnd())
+                    } else null
+                    val desc = listOfNotNull(minOrderPart, maxDiscountPart)
+                        .joinToString(" • ")
+                        .ifBlank { voucher.description.ifBlank { "Mã: ${voucher.code}" } }
+
                     PromoBannerCard(
                         title = title,
-                        desc = voucher.description.ifBlank { "Mã: ${voucher.code}" },
+                        desc = desc,
                         badge = badge,
                         cta = stringResource(id = R.string.home_banner_cta),
                         gradientColors = gradient,
@@ -201,7 +219,9 @@ private fun PromoBannerCard(
                     text = title,
                     style = MaterialTheme.typography.s16.bold(),
                     color = TextWhite,
-                    maxLines = 1
+                    minLines = 1,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.XXS))
@@ -209,7 +229,10 @@ private fun PromoBannerCard(
                 Text(
                     text = desc,
                     style = MaterialTheme.typography.s12.normal(),
-                    color = TextWhite.copy(alpha = 0.9f)
+                    color = TextWhite.copy(alpha = 0.9f),
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.M))

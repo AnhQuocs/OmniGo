@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.omnigo.core.datastore.SessionManager
 import com.example.omnigo.core.location.manager.UserLocationManager
 import com.example.omnigo.core.location.tracker.LocationTracker
+import com.example.omnigo.features.onboarding.domain.usecase.CompleteOnboardingUseCase
 import com.example.omnigo.features.onboarding.domain.usecase.IsOnboardingCompletedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -15,18 +16,21 @@ class SplashViewModel @Inject constructor(
     private val isOnboardingCompletedUseCase: IsOnboardingCompletedUseCase,
     private val sessionManager: SessionManager,
     private val locationTracker: LocationTracker,
-    private val userLocationManager: UserLocationManager
+    private val userLocationManager: UserLocationManager,
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase? = null
 ) : ViewModel() {
 
     fun decideStartDestination(onResult: (String) -> Unit) {
         viewModelScope.launch {
-            val isOnboardingDone = isOnboardingCompletedUseCase()
+            val token = sessionManager.getAccessToken()
+            val isOnboardingDone = isOnboardingCompletedUseCase() || !token.isNullOrBlank()
             if (!isOnboardingDone) {
                 onResult("onboarding_root")
                 return@launch
             }
-
-            val token = sessionManager.getAccessToken()
+            if (!token.isNullOrBlank()) {
+                completeOnboardingUseCase?.invoke()
+            }
             val role = sessionManager.getRole()
 
             if (!token.isNullOrBlank()) {

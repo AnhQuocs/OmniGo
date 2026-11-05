@@ -1382,4 +1382,6 @@
 
     <string name="ride_payment_wallet_prepaid">OmniPay wallet · prepaid</string>
 
+    <string name="home_promo_discount_percent">%1$d%% Off</string>
+    <string name="home_promo_discount_amount">%1$s Off</string>
 </resources>

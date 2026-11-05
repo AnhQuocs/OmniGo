@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.omnigo.R
 import com.example.omnigo.ui.dimens.AppShape
 import com.example.omnigo.ui.dimens.AppSpacing
@@ -75,16 +76,21 @@ fun ChangePasswordDialog(
     val passTooShortMsg = stringResource(id = R.string.error_password_too_short)
     val emptyOldMsg = stringResource(id = R.string.error_empty_password)
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(AppShape.ShapeL),
             color = SurfaceLight,
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimen.PaddingML)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Dimen.PaddingL)
+                    .padding(Dimen.PaddingML)
             ) {
                 Text(
                     text = stringResource(id = R.string.account_change_password),
@@ -240,7 +246,8 @@ fun ChangePasswordDialog(
                             Text(
                                 text = stringResource(id = R.string.account_change_password_submit),
                                 style = MaterialTheme.typography.s14.bold(),
-                                color = OnPrimaryColor
+                                color = OnPrimaryColor,
+                                maxLines = 1
                             )
                         }
                     }

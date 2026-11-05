@@ -132,11 +132,7 @@ fun LanguageActionMenu(
                         if (currentLang != lang) {
                             LangUtils.updateLocale(context, lang.code)
                             languageViewModel.changeLanguage(lang)
-
-                            val intent = Intent(context, MainActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            context.startActivity(intent)
-                            activity?.overridePendingTransition(0, 0)
+                            activity?.recreate()
                         }
                     }
                 )

@@ -32,6 +32,8 @@ open class BaseComponentActivity : ComponentActivity() {
         }
     }
 
+    private var currentLocaleCode: String? = null
+
     override fun attachBaseContext(newBase: Context) {
         val updatedContext = runBlocking {
             val manager = LanguagePreferenceManager(newBase)
@@ -39,9 +41,21 @@ open class BaseComponentActivity : ComponentActivity() {
             val contextWithLocale = LanguageManager.setAppLocale(newBase, lang)
 
             LangUtils.currentLang = lang.code
+            currentLocaleCode = lang.code
 
             contextWithLocale
         }
         super.attachBaseContext(updatedContext)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val savedLang = runBlocking {
+            LanguagePreferenceManager(this@BaseComponentActivity).languageFlow.firstOrNull()?.code
+        }
+        if (savedLang != null && currentLocaleCode != null && savedLang != currentLocaleCode) {
+            currentLocaleCode = savedLang
+            recreate()
+        }
     }
 }

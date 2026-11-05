@@ -1437,4 +1437,6 @@
 
     <string name="ride_payment_wallet_prepaid">Ví OmniPay · trả trước</string>
 
+    <string name="home_promo_discount_percent">Giảm %1$d%%</string>
+    <string name="home_promo_discount_amount">Giảm %1$s</string>
 </resources>

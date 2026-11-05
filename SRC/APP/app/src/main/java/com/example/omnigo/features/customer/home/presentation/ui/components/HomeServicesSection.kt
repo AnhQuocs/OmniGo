@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -74,7 +78,9 @@ fun HomeServicesGridSection(
         Spacer(modifier = Modifier.height(AppSpacing.M))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.M)
         ) {
             HeroServiceCard(
@@ -86,7 +92,9 @@ fun HomeServicesGridSection(
                 iconColor = PrimaryColor,
                 badgeColor = WarningColor,
                 onClick = { onServiceClick("ride") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
 
             HeroServiceCard(
@@ -98,7 +106,9 @@ fun HomeServicesGridSection(
                 iconColor = SecondaryColor,
                 badgeColor = SecondaryColor,
                 onClick = { onServiceClick("food") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
     }
@@ -118,6 +128,7 @@ private fun HeroServiceCard(
 ) {
     Surface(
         modifier = modifier
+            .fillMaxHeight()
             .clip(RoundedCornerShape(AppShape.ShapeL))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(AppShape.ShapeL),
@@ -127,51 +138,55 @@ private fun HeroServiceCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimen.PaddingM)
+                .fillMaxHeight()
+                .padding(Dimen.PaddingM),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(Dimen.SizeXXL)
-                        .clip(CircleShape)
-                        .background(containerColor)
-                        .border(Dimen.PaddingXXS, containerColor.copy(alpha = 0.5f), CircleShape),
-                    contentAlignment = Alignment.Center
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconColor,
-                        modifier = Modifier.size(Dimen.SizeL)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(Dimen.SizeXXL)
+                            .clip(CircleShape)
+                            .background(containerColor)
+                            .border(Dimen.PaddingXXS, containerColor.copy(alpha = 0.5f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = iconColor,
+                            modifier = Modifier.size(Dimen.SizeL)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(AppShape.ShapeXXS),
+                        color = badgeColor
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.s10.bold(),
+                            color = TextWhite,
+                            modifier = Modifier.padding(horizontal = Dimen.PaddingXSPlus, vertical = Dimen.PaddingXXS)
+                        )
+                    }
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(AppShape.ShapeXXS),
-                    color = badgeColor
-                ) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.s10.bold(),
-                        color = TextWhite,
-                        modifier = Modifier.padding(horizontal = Dimen.PaddingXSPlus, vertical = Dimen.PaddingXXS)
-                    )
-                }
+                Spacer(modifier = Modifier.height(AppSpacing.M))
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.s16.bold(),
+                    color = TextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(AppSpacing.XXS))
             }
-
-            Spacer(modifier = Modifier.height(AppSpacing.M))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.s16.bold(),
-                color = TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(AppSpacing.XXS))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -182,8 +197,13 @@ private fun HeroServiceCard(
                     text = subtitle,
                     style = MaterialTheme.typography.s12.normal(),
                     color = TextSecondary,
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+
+                Spacer(modifier = Modifier.width(AppSpacing.XS))
 
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,

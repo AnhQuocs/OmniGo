@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -81,13 +84,14 @@ fun LoginScreen(
     OmniGoTheme(darkTheme = false) {
         Scaffold(
             containerColor = BackgroundLight,
+            contentWindowInsets = WindowInsets.safeDrawing,
             modifier = modifier.fillMaxSize()
         ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .imePadding()
+                    .consumeWindowInsets(paddingValues)
                     .verticalScroll(scrollState)
                     .padding(horizontal = Dimen.PaddingL, vertical = Dimen.PaddingM),
                 horizontalAlignment = Alignment.CenterHorizontally,

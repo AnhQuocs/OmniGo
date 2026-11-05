@@ -142,10 +142,8 @@ fun ChangeLanguageScreen(
                 LangUtils.updateLocale(context, code)
                 languageViewModel.changeLanguage(selectedLang)
 
-                val intent = Intent(context, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-                activity?.overridePendingTransition(0, 0)
+                activity?.setResult(Activity.RESULT_OK)
+                activity?.finish()
             },
             shape = RoundedCornerShape(AppShape.ShapeL),
             modifier = Modifier
