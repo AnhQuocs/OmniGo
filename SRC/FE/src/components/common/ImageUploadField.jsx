@@ -33,7 +33,7 @@ export const ImageUploadField = ({
   onChange,
   uploadFn = null,
   deferUpload = false,
-  helperText = 'Tải lên ảnh chụp rõ nét (JPG, PNG, WebP tối đa 5MB) hoặc dán link ảnh',
+  helperText = 'Tải lên ảnh chụp rõ nét (JPG, PNG, WebP tối đa 20MB) hoặc dán link ảnh',
   placeholder = 'Hoặc dán liên kết ảnh (URL)...',
 }) => {
   const theme = useTheme();
@@ -57,8 +57,8 @@ export const ImageUploadField = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Dung lượng ảnh tối đa là 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh tối đa là 20MB');
       return;
     }
 

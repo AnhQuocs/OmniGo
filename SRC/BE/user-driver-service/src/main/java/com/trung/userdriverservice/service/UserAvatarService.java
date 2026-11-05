@@ -17,7 +17,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class UserAvatarService {
-    private static final long MAX_AVATAR_BYTES = 1024 * 1024;
+    private static final long MAX_AVATAR_BYTES = 20L * 1024 * 1024;
     private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -32,7 +32,7 @@ public class UserAvatarService {
             throw new BadRequestException("Vui lòng chọn ảnh đại diện");
         }
         if (file.getSize() > MAX_AVATAR_BYTES) {
-            throw new BadRequestException("Ảnh đại diện không được vượt quá 1 MB");
+            throw new BadRequestException("Ảnh đại diện không được vượt quá 20 MB");
         }
         if (file.getContentType() == null || !IMAGE_TYPES.contains(file.getContentType())) {
             throw new BadRequestException("Ảnh đại diện phải có định dạng JPEG, PNG hoặc WEBP");

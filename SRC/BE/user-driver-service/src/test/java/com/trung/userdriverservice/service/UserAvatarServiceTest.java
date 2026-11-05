@@ -83,7 +83,7 @@ class UserAvatarServiceTest {
     void rejectsOversizedImage() {
         user(Role.CUSTOMER);
         assertThrows(BadRequestException.class, () -> service.updateAvatar(1L,
-                new MockMultipartFile("file", "big.png", "image/png", new byte[1024 * 1024 + 1])));
+                new MockMultipartFile("file", "big.png", "image/png", new byte[20 * 1024 * 1024 + 1])));
         verifyNoInteractions(cloudinary);
     }
 

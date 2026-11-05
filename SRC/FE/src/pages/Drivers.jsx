@@ -274,6 +274,10 @@ export const Drivers = () => {
 
   const handleUploadDoc = async (file, key) => {
     if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh tối đa là 20MB');
+      return;
+    }
     setUploadingDocKeys((prev) => ({ ...prev, [key]: true }));
     try {
       // 1. Show immediate preview
@@ -402,6 +406,10 @@ export const Drivers = () => {
 
   const handleUploadEditDoc = async (file, key) => {
     if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh tối đa là 20MB');
+      return;
+    }
     setUploadingEditDocKeys((prev) => ({ ...prev, [key]: true }));
     try {
       // 1. Show immediate preview
@@ -1633,7 +1641,7 @@ export const Drivers = () => {
                         {uploadingDocKeys.cccdFrontImage ? 'Đang tải lên...' : 'Chọn ảnh CCCD mặt trước'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -1675,7 +1683,7 @@ export const Drivers = () => {
                         {uploadingDocKeys.cccdBackImage ? 'Đang tải lên...' : 'Chọn ảnh CCCD mặt sau'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -1733,7 +1741,7 @@ export const Drivers = () => {
                         {uploadingDocKeys.gplxFrontImage ? 'Đang tải lên...' : 'Chọn ảnh GPLX mặt trước'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -1775,7 +1783,7 @@ export const Drivers = () => {
                         {uploadingDocKeys.gplxBackImage ? 'Đang tải lên...' : 'Chọn ảnh GPLX mặt sau'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -2010,7 +2018,7 @@ export const Drivers = () => {
                         {uploadingEditDocKeys.cccdFrontImage ? 'Đang tải lên...' : 'Chọn ảnh CCCD mặt trước'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -2052,7 +2060,7 @@ export const Drivers = () => {
                         {uploadingEditDocKeys.cccdBackImage ? 'Đang tải lên...' : 'Chọn ảnh CCCD mặt sau'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -2110,7 +2118,7 @@ export const Drivers = () => {
                         {uploadingEditDocKeys.gplxFrontImage ? 'Đang tải lên...' : 'Chọn ảnh GPLX mặt trước'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
@@ -2152,7 +2160,7 @@ export const Drivers = () => {
                         {uploadingEditDocKeys.gplxBackImage ? 'Đang tải lên...' : 'Chọn ảnh GPLX mặt sau'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'none' }}>
-                        PNG, JPG, WEBP tối đa 5MB
+                        PNG, JPG, WEBP tối đa 20MB
                       </Typography>
                       <input
                         type="file"
