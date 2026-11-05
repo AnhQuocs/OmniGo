@@ -1,29 +1,39 @@
+<div align="center">
+
 # OmniGo - Nền Tảng Siêu Ứng Dụng Đa Dịch Vụ Thông Minh
 ### Smart Super-App Platform for Ride-Hailing, Food Delivery & Digital Payments
 
-![OmniGo Platform](https://img.shields.io/badge/OMNIGO-PLATFORM-FF5722?style=for-the-badge)
-![Android 14+](https://img.shields.io/badge/ANDROID-10%2B%20%7C%2014%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Kotlin 2.0](https://img.shields.io/badge/KOTLIN-2.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
-![Jetpack Compose M3](https://img.shields.io/badge/JETPACK%20COMPOSE-M3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
-![Clean Architecture](https://img.shields.io/badge/ARCH-CLEAN%20MVVM-009688?style=for-the-badge)
-![Hilt DI](https://img.shields.io/badge/DI-HILT%20KSP-4CAF50?style=for-the-badge)
+<p align="center">
+  <img src="https://img.shields.io/badge/OMNIGO-PLATFORM-FF5722?style=for-the-badge" alt="OmniGo Platform" />
+  <img src="https://img.shields.io/badge/ANDROID-10%2B%20%7C%2014%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 14+" />
+  <img src="https://img.shields.io/badge/KOTLIN-2.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.0" />
+  <img src="https://img.shields.io/badge/JETPACK%20COMPOSE-M3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose M3" />
+  <img src="https://img.shields.io/badge/ARCH-CLEAN%20MVVM-009688?style=for-the-badge" alt="Clean Architecture" />
+  <img src="https://img.shields.io/badge/DI-HILT%20KSP-4CAF50?style=for-the-badge" alt="Hilt DI" />
+</p>
 
-![Java 17](https://img.shields.io/badge/JAVA-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot 3](https://img.shields.io/badge/SPRING%20BOOT-3.X-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![Spring Cloud Gateway](https://img.shields.io/badge/SPRING%20CLOUD-GATEWAY-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/APACHE%20KAFKA-7.6-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
-![PostgreSQL 16](https://img.shields.io/badge/POSTGRESQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Redis 7.0 Geo](https://img.shields.io/badge/REDIS-7.0%20GEO-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Uber H3](https://img.shields.io/badge/UBER%20H3-SPATIAL%20GRID-000000?style=for-the-badge&logo=uber&logoColor=white)
-![OSRM Routing](https://img.shields.io/badge/OSRM-DUAL%20ROUTING-008080?style=for-the-badge&logo=openstreetmap&logoColor=white)
+<p align="center">
+  <img src="https://img.shields.io/badge/JAVA-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
+  <img src="https://img.shields.io/badge/SPRING%20BOOT-3.X-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3" />
+  <img src="https://img.shields.io/badge/SPRING%20CLOUD-GATEWAY-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Cloud Gateway" />
+  <img src="https://img.shields.io/badge/APACHE%20KAFKA-7.6-231F20?style=for-the-badge&logo=apachekafka&logoColor=white" alt="Apache Kafka" />
+  <img src="https://img.shields.io/badge/POSTGRESQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 16" />
+  <img src="https://img.shields.io/badge/REDIS-7.0%20GEO-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis 7.0 Geo" />
+  <img src="https://img.shields.io/badge/UBER%20H3-SPATIAL%20GRID-000000?style=for-the-badge&logo=uber&logoColor=white" alt="Uber H3" />
+  <img src="https://img.shields.io/badge/OSRM-DUAL%20ROUTING-008080?style=for-the-badge&logo=openstreetmap&logoColor=white" alt="OSRM Routing" />
+</p>
 
-![React 19](https://img.shields.io/badge/REACT-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Vite 8](https://img.shields.io/badge/VITE-8.X-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Material UI v9](https://img.shields.io/badge/MUI-V9.4-007FFF?style=for-the-badge&logo=mui&logoColor=white)
-![Docker Compose](https://img.shields.io/badge/DOCKER-COMPOSE-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Prometheus](https://img.shields.io/badge/PROMETHEUS-METRICS-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
-![Grafana](https://img.shields.io/badge/GRAFANA-DASHBOARDS-F46800?style=for-the-badge&logo=grafana&logoColor=white)
-![EFK Stack](https://img.shields.io/badge/EFK%20STACK-LOGGING-005571?style=for-the-badge&logo=elastic&logoColor=white)
+<p align="center">
+  <img src="https://img.shields.io/badge/REACT-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/VITE-8.X-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 8" />
+  <img src="https://img.shields.io/badge/MUI-V9.4-007FFF?style=for-the-badge&logo=mui&logoColor=white" alt="Material UI v9" />
+  <img src="https://img.shields.io/badge/DOCKER-COMPOSE-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Compose" />
+  <img src="https://img.shields.io/badge/PROMETHEUS-METRICS-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus" />
+  <img src="https://img.shields.io/badge/GRAFANA-DASHBOARDS-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana" />
+  <img src="https://img.shields.io/badge/EFK%20STACK-LOGGING-005571?style=for-the-badge&logo=elastic&logoColor=white" alt="EFK Stack" />
+</p>
+
+</div>
 
 Nền tảng công nghệ toàn diện cung cấp hệ sinh thái dịch vụ đặt xe trực tuyến (**OmniRide**), giao nhận đồ ăn ẩm thực (**OmniFood**) và ví điện tử tích hợp (**OmniPay**). Dự án được thiết kế và hiện thực hóa theo mô hình kiến trúc Microservices hướng sự kiện (Event-Driven Architecture) tại Backend, kết hợp ứng dụng di động Native Android hiện đại sử dụng Jetpack Compose tuân thủ chuẩn Clean Architecture.
 
@@ -31,8 +41,8 @@ Nền tảng công nghệ toàn diện cung cấp hệ sinh thái dịch vụ đ
 
 ## Thành Viên Phát Triển Dự Án
 
-* **Vũ Minh Trung** (MSV: `23010361`) — Kỹ sư Kiến trúc & Phát triển Hệ thống Backend Microservices
-* **Bùi Anh Quốc** (MSV: `23010328`) — Kỹ sư Phát triển Ứng dụng Di động Android (Mobile Native & UI/UX)
+* **Vũ Minh Trung** (MSV: `23010361`) — Kiến trúc & Phát triển Hệ thống Backend Microservices
+* **Bùi Anh Quốc** (MSV: `23010328`) — Phát triển Ứng dụng Di động Android (Mobile Native & UI/UX)
 
 ---
 
