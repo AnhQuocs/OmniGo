@@ -15,7 +15,7 @@ export const API_BASE_URL = getBaseURL();
 // Create configured Axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 120000, // 120s hỗ trợ upload file lớn và mạng chậm
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

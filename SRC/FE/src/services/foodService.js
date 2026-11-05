@@ -135,6 +135,7 @@ export const foodService = {
       formData.append('file', file);
       const res = await post('/api/v1/restaurants/upload-image', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 180000,
       });
       return res?.data?.url || res?.url || '';
     } catch (error) {

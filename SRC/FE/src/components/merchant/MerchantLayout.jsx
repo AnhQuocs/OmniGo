@@ -148,11 +148,14 @@ export const MerchantLayout = () => {
     }
     try {
       setUpdatingStatus(true);
-      await foodService.updateRestaurantStatus(restaurant.id, newStatus);
-      setRestaurant((prev) => ({ ...prev, status: newStatus }));
+      const res = await foodService.updateRestaurantStatus(restaurant.id, newStatus);
+      const updated = res?.data || res;
+      setRestaurant((prev) => ({ ...prev, ...(updated?.id ? updated : { status: newStatus }) }));
       toast.success(`Đã đổi trạng thái quán sang: ${newStatus === 'OPEN' ? 'Mở cửa' : newStatus === 'BUSY' ? 'Đang bận' : 'Tạm đóng cửa'}`);
-    } catch {
-      toast.error('Lỗi khi đổi trạng thái quán');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi đổi trạng thái quán';
+      toast.error(msg);
+      console.error('Lỗi khi đổi trạng thái quán:', err);
     } finally {
       setUpdatingStatus(false);
     }

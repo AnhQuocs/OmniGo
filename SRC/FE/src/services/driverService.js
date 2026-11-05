@@ -66,6 +66,7 @@ export const driverService = {
     formData.append('file', file);
     return await post('/api/v1/drivers/upload-document', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
     });
   },
 };
