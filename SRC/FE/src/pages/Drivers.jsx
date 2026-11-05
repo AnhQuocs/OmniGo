@@ -799,7 +799,7 @@ export const Drivers = () => {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -1411,7 +1411,7 @@ export const Drivers = () => {
       </Card>
 
       {/* DIALOG: Thêm Tài Xế Mới */}
-      <Dialog open={openCreateDialog} onClose={handleCloseCreate} maxWidth="md" fullWidth>
+      <Dialog open={openCreateDialog} onClose={handleCloseCreate} maxWidth="md" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)', borderRadius: 3 } }}>
         <form onSubmit={handleCreateSubmit} noValidate>
           <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1809,7 +1809,7 @@ export const Drivers = () => {
       </Dialog>
 
       {/* DIALOG: Chỉnh Sửa Thông Tin Tài Xế */}
-      <Dialog open={openEditDialog} onClose={handleCloseEdit} maxWidth="md" fullWidth>
+      <Dialog open={openEditDialog} onClose={handleCloseEdit} maxWidth="md" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)', borderRadius: 3 } }}>
         <form onSubmit={handleEditSubmit} noValidate>
           <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2186,7 +2186,7 @@ export const Drivers = () => {
       </Dialog>
 
       {/* DIALOG: Từ Chối Hồ Sơ Tài Xế */}
-      <Dialog open={openRejectDialog} onClose={handleCloseRejectDialog} maxWidth="xs" fullWidth>
+      <Dialog open={openRejectDialog} onClose={handleCloseRejectDialog} maxWidth="xs" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, borderRadius: 3 } }}>
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, color: '#ef4444' }}>
             Từ chối duyệt hồ sơ tài xế
@@ -2227,7 +2227,7 @@ export const Drivers = () => {
       </Dialog>
 
       {/* DIALOG: Khóa / Mở Khóa Tài Xế */}
-      <Dialog open={openLockDialog} onClose={handleCloseLockDriver} maxWidth="xs" fullWidth>
+      <Dialog open={openLockDialog} onClose={handleCloseLockDriver} maxWidth="xs" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, borderRadius: 3 } }}>
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             {selectedDriverForLock?.isLocked ? 'Xác nhận mở khóa tài xế' : 'Khóa tài khoản tài xế'}

@@ -29,6 +29,7 @@ public class OrderVoucherService {
     private HttpHeaders headers() { var headers=new HttpHeaders(); headers.set("X-Internal-Token",token); return headers; }
     public BigDecimal redeem(String code, Long customer, Long id, BigDecimal original) {
         if (code == null || code.isBlank()) return BigDecimal.ZERO;
+        if (id == null) throw new IllegalStateException("Order must be persisted before redeeming a voucher");
         code=code.trim().toUpperCase(Locale.ROOT);
         if (!code.matches("[A-Z0-9_-]{1,50}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Mã voucher không hợp lệ");
         final String normalized=code;

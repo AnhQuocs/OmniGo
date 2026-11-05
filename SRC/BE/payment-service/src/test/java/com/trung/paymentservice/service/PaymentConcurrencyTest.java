@@ -90,6 +90,13 @@ class PaymentConcurrencyTest {
         } finally { pool.shutdownNow(); }
     }
     private void balance(Long walletId, String amount) { assertEquals(0, wallets.findById(walletId).orElseThrow().getBalance().compareTo(new BigDecimal(amount))); }
+    private void voucherExpense(String kind, String amount) {
+        var expense = txs.findByOrderId("PLATFORM_VOUCHER_" + kind + "_99").orElseThrow();
+        assertEquals(TransactionType.PLATFORM_VOUCHER_EXPENSE, expense.getTransactionType());
+        assertEquals(0, expense.getAmount().compareTo(new BigDecimal(amount)));
+        assertNull(expense.getWalletId(), "Platform expense must not debit a recipient wallet");
+        assertEquals(1, txs.findAll().stream().filter(t -> t.getTransactionType() == TransactionType.PLATFORM_VOUCHER_EXPENSE).count());
+    }
     @Test void discountedOnlineFoodDebitsNetButSettlesGrossExactlyOnce() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0"), restaurant=wallet(22,UserType.RESTAURANT,"0");
         var state=order("COMPLETED","WALLET"); state.put("originalAmount",new BigDecimal("120000"));
@@ -98,6 +105,7 @@ class PaymentConcurrencyTest {
         parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("90000"),"FOOD_PAYMENT"));
         parallel(() -> workflow.reconcile(true,99L));
         balance(customer.getId(),"110000"); balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
+        voucherExpense("FOOD", "30000");
         state.put("status","CANCELLED"); parallel(() -> workflow.reconcile(true,99L));
         balance(customer.getId(),"200000");
         assertEquals(1,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.REFUND).count());
@@ -110,6 +118,7 @@ class PaymentConcurrencyTest {
         parallel(() -> workflow.reconcile(true,99L));
         balance(driver.getId(),"26000"); balance(restaurant.getId(),"-20000");
         assertTrue(txs.findByOrderId("FOOD_VOUCHER_99").isPresent());
+        voucherExpense("FOOD", "30000");
     }
     @Test void discountedCashRidePaysVoucherAndChargesGrossCommissionOnce() throws Exception {
         Wallet driver=wallet(11,UserType.DRIVER,"0");
@@ -117,6 +126,7 @@ class PaymentConcurrencyTest {
         state.put("discountAmount",new BigDecimal("30000")); state.put("amount",new BigDecimal("90000"));
         when(orders.get(false,99L)).thenReturn(state);
         parallel(() -> workflow.reconcile(false,99L)); balance(driver.getId(),"6000");
+        voucherExpense("RIDE", "30000");
     }
     @Test void fullyDiscountedCancellationFinishesWithoutCreditingZero() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0");
@@ -127,6 +137,7 @@ class PaymentConcurrencyTest {
         var payment=txs.findByBookingIdAndTransactionTypeOrderByIdDesc(99L,TransactionType.TRIP_PAYMENT).get(0);
         parallel(() -> workflow.fulfill(payment.getId()));
         assertTrue(txs.findById(payment.getId()).orElseThrow().isFulfillmentDone()); balance(customer.getId(),"0");
+        assertTrue(txs.findByOrderId("PLATFORM_VOUCHER_RIDE_99").isEmpty());
     }
     @Test void fullyDiscountedPrepaidRideDebitsZeroAndSettlesGrossOnce() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0"), driver=wallet(11,UserType.DRIVER,"0");
@@ -136,6 +147,7 @@ class PaymentConcurrencyTest {
         parallel(() -> context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,BigDecimal.ZERO,"TRIP_PAYMENT"));
         parallel(() -> workflow.reconcile(false,99L));
         balance(customer.getId(),"0"); balance(driver.getId(),"96000");
+        voucherExpense("RIDE", "120000");
     }
     @Test void prepaidRideDebitsOnceBeforeDispatchAndPaysAssignedDriverOnlyOnCompletion() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"200000"), driver=wallet(11,UserType.DRIVER,"0");
@@ -189,7 +201,7 @@ class PaymentConcurrencyTest {
             assertEquals(1,txs.count());
         } finally {
             // Apply the real upgrade to the legacy schema, not Hibernate's fresh schema.
-            try (var input=new org.springframework.core.io.ClassPathResource("db/migration/V6__update_transaction_type_check.sql").getInputStream()) {
+            try (var input=new org.springframework.core.io.ClassPathResource("db/migration/V7__platform_voucher_expense.sql").getInputStream()) {
                 String sql=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
                 context.getBean(TransactionTemplate.class).executeWithoutResult(status -> jdbc.execute(sql));
             }

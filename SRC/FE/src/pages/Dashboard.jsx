@@ -346,7 +346,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header bar with Realtime Controls */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -465,8 +465,8 @@ export const Dashboard = () => {
                 <MoneyIcon sx={{ color: '#ff3366', fontSize: 26 }} />
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: 1.5 }}>
-              <Box sx={{ width: 90, height: 24 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'flex-end' }, mt: 1.5, flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ width: 90, height: 24, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sparklineRevenue}><Bar dataKey="v" fill="#ff3366" radius={[2, 2, 0, 0]} /></BarChart>
                 </ResponsiveContainer>
@@ -475,7 +475,7 @@ export const Dashboard = () => {
                 <Chip
                   label={`Phí sàn (${stats.platformFeeRate || 20}%): ${Number(stats.platformCommission).toLocaleString('vi-VN')} đ`}
                   size="small"
-                  sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem' }}
+                  sx={{ bgcolor: 'rgba(21, 202, 32, 0.15)', color: '#15ca20', fontWeight: 700, fontSize: '0.72rem', maxWidth: '100%', height: 'auto', py: 0.3, '& .MuiChip-label': { whiteSpace: 'normal', wordBreak: 'break-word' } }}
                 />
               </Tooltip>
             </Box>
@@ -843,9 +843,9 @@ export const Dashboard = () => {
         </Grid>
 
         {/* Live Recent Bookings Table */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Grid size={{ xs: 12, lg: 8 }} sx={{ minWidth: 0 }}>
+          <Card sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', minWidth: 0 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: 'text.primary' }}>
                   Chuyến xe mới nhất

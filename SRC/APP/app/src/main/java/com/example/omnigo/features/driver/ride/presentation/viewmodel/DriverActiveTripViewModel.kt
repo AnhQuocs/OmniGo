@@ -295,7 +295,7 @@ class DriverActiveTripViewModel @Inject constructor(
                         status = BookingStatus.COMPLETED,
                         isUpdatingStatus = false,
                         showSettlementDialog = true,
-                        price = if (result.booking.price > 0.0) result.booking.price else it.price
+                        price = result.booking.price.coerceAtLeast(0.0)
                     )
                 }
                 syncNavigationDestination()
@@ -356,7 +356,7 @@ class DriverActiveTripViewModel @Inject constructor(
             it.copy(
                 status = newStatus,
                 isUpdatingStatus = false,
-                price = if (booking.price > 0.0) booking.price else it.price
+                price = booking.price.coerceAtLeast(0.0)
             )
         }
         syncNavigationDestination()

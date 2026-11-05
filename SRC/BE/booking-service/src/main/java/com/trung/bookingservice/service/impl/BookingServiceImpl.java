@@ -165,8 +165,7 @@ public class BookingServiceImpl implements BookingService {
                 .build();
         booking.setOriginalAmount(java.math.BigDecimal.valueOf(booking.getPrice()));
         booking.setDiscountAmount(java.math.BigDecimal.ZERO);
-        bookingRepository.save(booking);
-        bookingRepository.flush();
+        booking = bookingRepository.saveAndFlush(booking);
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             booking.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), customerId, booking.getId(), booking.getOriginalAmount()));
             booking.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));

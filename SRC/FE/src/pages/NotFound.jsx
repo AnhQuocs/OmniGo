@@ -14,7 +14,7 @@ export const NotFound = () => {
         justifyContent: 'center',
       }}
     >
-      <Card sx={{ maxWidth: 480, textAlign: 'center', p: 4, bgcolor: '#111827' }}>
+      <Card sx={{ maxWidth: 480, width: 'calc(100% - 32px)', mx: 2, textAlign: 'center', p: { xs: 2.5, sm: 4 }, bgcolor: '#111827' }}>
         <CardContent>
           <Typography variant="h2" sx={{ fontWeight: 900, color: '#38BDF8', mb: 1 }}>
             404

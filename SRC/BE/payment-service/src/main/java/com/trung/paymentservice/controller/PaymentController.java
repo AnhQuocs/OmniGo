@@ -295,7 +295,8 @@ public class PaymentController {
         long total = all.size();
         long successCount = all.stream().filter(t -> t.getStatus() == TransactionStatus.SUCCESS).count();
         BigDecimal totalVolume = all.stream()
-                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount() != null)
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getAmount() != null
+                        && t.getTransactionType() != TransactionType.PLATFORM_VOUCHER_EXPENSE)
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -303,9 +304,15 @@ public class PaymentController {
         map.put("totalTransactions", total);
         map.put("successTransactions", successCount);
         map.put("totalVolume", totalVolume);
-        map.put("netRevenue", all.stream()
+        BigDecimal commissionRevenue = all.stream()
                 .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.COMMISSION_FEE)
-                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal voucherExpense = all.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.SUCCESS && t.getTransactionType() == TransactionType.PLATFORM_VOUCHER_EXPENSE)
+                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        map.put("commissionRevenue", commissionRevenue);
+        map.put("voucherExpense", voucherExpense);
+        map.put("netRevenue", commissionRevenue.subtract(voucherExpense));
 
         return ResponseEntity.ok(map);
     }

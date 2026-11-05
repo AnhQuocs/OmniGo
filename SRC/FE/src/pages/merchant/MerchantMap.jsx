@@ -832,6 +832,7 @@ export const MerchantMap = () => {
             top: 14,
             right: 14,
             zIndex: 1000,
+            display: { xs: 'none', sm: 'flex' },
             bgcolor: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(4px)',
             border: '1px solid #E2E8F0',

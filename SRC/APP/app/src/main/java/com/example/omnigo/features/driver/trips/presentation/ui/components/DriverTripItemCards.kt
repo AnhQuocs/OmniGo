@@ -124,7 +124,7 @@ fun DriverActiveBookingCard(
             Spacer(modifier = Modifier.height(AppSpacing.XS))
 
             Text(
-                text = String.format(Locale.getDefault(), "%,.0f ₫", booking.price),
+                text = String.format(Locale.getDefault(), "%,.0f ₫", booking.grossPrice),
                 style = MaterialTheme.typography.s14.bold(),
                 color = PrimaryColor
             )
@@ -268,7 +268,7 @@ fun DriverFoodOrderCard(
                 text = String.format(
                     Locale.getDefault(),
                     "%,.0f ₫",
-                    if (order.deliveryFee > 0) order.deliveryFee else order.totalPrice
+                    order.grossFee
                 ),
                 style = MaterialTheme.typography.s14.bold(),
                 color = PrimaryColor

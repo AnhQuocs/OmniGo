@@ -186,7 +186,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setOriginalAmount(order.getTotalPrice());
         order.setDiscountAmount(BigDecimal.ZERO);
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
-            foodOrderRepository.saveAndFlush(order);
+            order = foodOrderRepository.saveAndFlush(order);
             order.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), order.getCustomerId(), order.getId(), order.getOriginalAmount()));
             order.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));
             order.setTotalPrice(order.getOriginalAmount().subtract(order.getDiscountAmount()));

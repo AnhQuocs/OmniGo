@@ -131,6 +131,7 @@ export const Payments = () => {
     let color = '#475569';
     let bg = '#f1f5f9';
     switch (type) {
+      case 'PLATFORM_VOUCHER_EXPENSE':
       case 'COMMISSION_FEE':
         color = '#475569';
         bg = '#f1f5f9';
@@ -225,11 +226,13 @@ export const Payments = () => {
     return formatVietnamDateTime(dateStr);
   };
 
-  const netRevenue = transactions.filter((t) => t.status === 'SUCCESS' && t.transactionType === 'COMMISSION_FEE').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const commissionRevenue = transactions.filter((t) => t.status === 'SUCCESS' && t.transactionType === 'COMMISSION_FEE').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const voucherExpense = transactions.filter((t) => t.status === 'SUCCESS' && t.transactionType === 'PLATFORM_VOUCHER_EXPENSE').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const netRevenue = commissionRevenue - voucherExpense;
   const totalCount = transactions.length;
   const successCount = transactions.filter((t) => t.status === 'SUCCESS').length;
   const totalVolume = transactions
-    .filter((t) => t.status === 'SUCCESS' && t.amount)
+    .filter((t) => t.status === 'SUCCESS' && t.amount && t.transactionType !== 'PLATFORM_VOUCHER_EXPENSE')
     .reduce((sum, t) => sum + Number(t.amount), 0);
   const tripPaymentsCount = transactions.filter((t) => t.transactionType === 'TRIP_PAYMENT').length;
   const foodPaymentsCount = transactions.filter((t) => t.transactionType === 'FOOD_PAYMENT').length;
@@ -263,7 +266,7 @@ export const Payments = () => {
   );
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -480,8 +483,8 @@ export const Payments = () => {
           <Tooltip
             title={
               platformFeeRate != null
-                ? `Tổng phí sàn (${platformFeeRate}%) đã ghi nhận từ các giao dịch thành công`
-                : 'Tổng phí sàn đã ghi nhận từ các giao dịch thành công'
+                ? `Tổng phí sàn (${platformFeeRate}%) đã ghi nhận, trừ chi phí voucher do sàn tài trợ`
+                : 'Tổng phí sàn đã ghi nhận, trừ chi phí voucher do sàn tài trợ'
             }
             arrow
             placement="top"
@@ -547,6 +550,9 @@ export const Payments = () => {
                   }}
                 >
                   {netRevenue.toLocaleString('vi-VN')} đ
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', display: 'block', fontSize: { xs: '0.68rem', sm: '0.75rem' }, mt: 0.2 }}>
+                  Phí sàn: {commissionRevenue.toLocaleString('vi-VN')} đ · Voucher: -{voucherExpense.toLocaleString('vi-VN')} đ
                 </Typography>
               </Box>
             </Card>

@@ -63,3 +63,12 @@ test('complete rejection body releases key only for definitive failure', async (
     await api.completeResponse(first, new Response('{"message":"failed"}', { status: 422 }));
     assert.equal(api.pendingCreation('CUSTOMER:1'), null);
 });
+
+test('empty responses show a recovery message and preserve the original order key', async () => {
+    for (const status of [200, 502]) {
+        const { make } = setup(); const api = make();
+        const intent = api.prepare('CUSTOMER:1', '/api/v1/bookings', {method:'POST',body:'{}'});
+        await assert.rejects(api.completeResponse(intent, new Response('', {status})), /Chưa xác nhận được kết quả/);
+        assert.equal(api.pendingCreation('CUSTOMER:1').key, intent.key);
+    }
+});

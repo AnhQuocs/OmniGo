@@ -413,7 +413,7 @@ export const MerchantMenu = () => {
       )}
 
       {/* Add / Edit Dialog */}
-      <Dialog open={openModal} onClose={() => !submitting && setOpenModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3.5, p: 1 } }}>
+      <Dialog open={openModal} onClose={() => !submitting && setOpenModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3.5, p: 1, m: { xs: 1.5, sm: 2 }, maxHeight: 'calc(100% - 32px)' } }}>
         <form onSubmit={handleSubmitForm}>
           <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', pb: 1 }}>
             {editingItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}

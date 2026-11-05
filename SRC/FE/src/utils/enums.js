@@ -3,6 +3,7 @@
  */
 
 export const TRANSACTION_TYPE_MAP = {
+  PLATFORM_VOUCHER_EXPENSE: 'Chi phí voucher của sàn',
   COMMISSION_FEE: 'Phí hoa hồng sàn',
   DEPOSIT: 'Nạp tiền ví',
   TRIP_PAYMENT: 'Thanh toán cuốc xe',

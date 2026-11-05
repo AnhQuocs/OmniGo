@@ -116,7 +116,7 @@ object EarningsDataHelper {
                     id = b.bookingId,
                     title = "Chuyến xe #${b.bookingId}",
                     time = timeStr,
-                    grossAmount = b.price,
+                    grossAmount = b.grossPrice,
                     netAmount = b.actualEarnings,
                     isCash = b.paymentMethod?.uppercase() == "CASH"
                 )
@@ -128,7 +128,7 @@ object EarningsDataHelper {
         val completedOrders = orders.filter { !it.status.isActive }
         if (completedOrders.isNotEmpty()) {
             val foodItems = completedOrders.map { order ->
-                val gross = if (order.deliveryFee > 0) order.deliveryFee else order.totalPrice
+                val gross = order.grossFee
                 val timeStr = DriverTripsTimelineHelper.parseTime(order.createdAt)
                 EarningsTripItem(
                     id = order.orderId,

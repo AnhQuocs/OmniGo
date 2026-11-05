@@ -347,7 +347,7 @@ export const Pricing = () => {
   const calculatedFare = calculateSimulatedFare();
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Top Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -417,7 +417,9 @@ export const Pricing = () => {
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           TabIndicatorProps={{ style: { display: 'none' } }}
           sx={{
             minHeight: { xs: 46, sm: 52 },

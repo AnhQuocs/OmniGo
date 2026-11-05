@@ -107,6 +107,7 @@ public class PaymentWorkflowService {
                 walletService.deductCommission(BookingCompletedEvent.builder().driverId(driverId).bookingId(tx.getBookingId()).amount(gross.doubleValue()).build());
             }
         }
+        if (!food) recordVoucherExpense(false, tx.getBookingId(), order);
         tx.setFulfillmentDone(true); transactions.save(tx);
     }
     @Transactional
@@ -127,15 +128,29 @@ public class PaymentWorkflowService {
                     .foodAmount(grossAmount(order).subtract(FinancialOrderClient.money(order, "deliveryFee")).max(BigDecimal.ZERO))
                     .discountAmount(FinancialOrderClient.money(order, "discountAmount"))
                     .paymentMethod(String.valueOf(order.get("paymentMethod"))).build());
+            recordVoucherExpense(true, id, order);
         } else if (Boolean.TRUE.equals(order.get("prepaid"))) {
             for (Transaction payment : payments) {
                 if (payment.getStatus() == TransactionStatus.SUCCESS && transactions.findByOrderId("REFUND_PAYMENT_" + payment.getId()).isEmpty()) fulfill(payment.getId());
             }
         } else if (FinancialOrderClient.cash(order)) {
+            creditCashVoucher(order, id);
             walletService.deductCommission(BookingCompletedEvent.builder().bookingId(id).driverId(FinancialOrderClient.id(order, "driverId"))
                     .amount(grossAmount(order).doubleValue()).build());
-            creditCashVoucher(order, id);
+            recordVoucherExpense(false, id, order);
         }
+    }
+    // Platform-funded discounts are an expense, not another credit to recipient wallets.
+    // Called under the order lock in the same transaction as the successful settlement.
+    private void recordVoucherExpense(boolean food, Long id, Map<String,Object> order) {
+        BigDecimal discount = FinancialOrderClient.money(order, "discountAmount");
+        if (discount.signum() <= 0) return;
+        String reference = "PLATFORM_VOUCHER_" + (food ? "FOOD_" : "RIDE_") + id;
+        if (transactions.findByOrderId(reference).isPresent()) return;
+        transactions.save(Transaction.builder().bookingId(id).orderId(reference)
+                .amount(discount).transactionType(TransactionType.PLATFORM_VOUCHER_EXPENSE)
+                .paymentMethod(PaymentMethod.WALLET).status(TransactionStatus.SUCCESS)
+                .fulfillmentDone(true).build());
     }
     private BigDecimal grossAmount(Map<String,Object> order) {
         return FinancialOrderClient.money(order, order.get("originalAmount") == null ? "amount" : "originalAmount");

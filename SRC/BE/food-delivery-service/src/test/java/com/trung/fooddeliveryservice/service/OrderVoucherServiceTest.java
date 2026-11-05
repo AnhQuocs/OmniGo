@@ -20,6 +20,11 @@ class OrderVoucherServiceTest {
         ReflectionTestUtils.setField(service,"url","http://pricing"); ReflectionTestUtils.setField(service,"token","secret");
         server=MockRestServiceServer.createServer((RestTemplate)ReflectionTestUtils.getField(service,"http"));
     }
+    @Test void missingOrderIdCannotReserveVoucher() {
+        assertThrows(IllegalStateException.class, () -> service.redeem("OMNI8", 42L, null, new BigDecimal("144000")));
+        verifyNoInteractions(jdbc);
+        server.verify();
+    }
     @Test void noVoucherDoesNotConsumeOrCallAnotherService() {
         assertEquals(BigDecimal.ZERO,service.redeem(null,1L,99L,new BigDecimal("120000"))); verifyNoInteractions(jdbc); server.verify();
     }
