@@ -48,6 +48,8 @@ class FoodCheckoutViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FoodCheckoutUiState())
     val uiState: StateFlow<FoodCheckoutUiState> = _uiState.asStateFlow()
     private var pendingOrderId: Long? = null
+    private var deliveryFeeRevision = 0
+    private var voucherRevision = 0
 
     init {
         observeCartState()
@@ -113,19 +115,22 @@ class FoodCheckoutViewModel @Inject constructor(
     }
 
     private fun updateDeliveryFee(restaurant: Restaurant?, lat: Double, lng: Double) {
+        val revision = ++deliveryFeeRevision
+        ++voucherRevision
         val subtotal = _uiState.value.itemsSubtotal
         val localFee = DeliveryFeeCalculator.calculate(restaurant, lat, lng)
         _uiState.update { current ->
             val finalFee = if (localFee > 0.0 || (lat != 0.0 && lng != 0.0)) localFee else current.deliveryFee
-            current.copy(deliveryFee = finalFee, totalAmount = subtotal + finalFee)
+            current.copy(deliveryFee = finalFee, totalAmount = subtotal + finalFee, appliedVoucher = null, isApplyingVoucher = false)
         }
 
         if (restaurant != null && restaurant.hasCoordinates && lat != 0.0 && lng != 0.0) {
             viewModelScope.launch {
                 val remoteFee = calculateFoodDeliveryFeeUseCase?.invoke(restaurant, lat, lng)
-                if (remoteFee != null && remoteFee > 0.0) {
+                if (revision == deliveryFeeRevision && remoteFee != null && remoteFee >= 0.0) {
                     _uiState.update { current ->
-                        current.copy(deliveryFee = remoteFee, totalAmount = current.itemsSubtotal + remoteFee)
+                        current.copy(deliveryFee = remoteFee, totalAmount = current.itemsSubtotal + remoteFee,
+                            appliedVoucher = current.appliedVoucher?.takeIf { it.originalAmount == current.itemsSubtotal + remoteFee })
                     }
                 }
             }
@@ -209,20 +214,28 @@ class FoodCheckoutViewModel @Inject constructor(
     fun dismissVoucherSheet() = _uiState.update { it.copy(showVoucherSheet = false) }
 
     fun applyVoucherCode(code: String) {
+        val revision = ++voucherRevision
         val amount = _uiState.value.totalAmount
         viewModelScope.launch {
+            if (revision != voucherRevision) return@launch
             _uiState.update { it.copy(isApplyingVoucher = true) }
             voucherCoordinator?.applyVoucher(code = code, orderAmount = amount, serviceType = "FOOD_DELIVERY")
                 ?.onSuccess { res ->
-                    _uiState.update { it.copy(appliedVoucher = res, isApplyingVoucher = false, showVoucherSheet = false) }
+                    _uiState.update {
+                        if (revision != voucherRevision) it
+                        else it.copy(appliedVoucher = res.takeIf { result -> result.originalAmount == it.totalAmount }, isApplyingVoucher = false, showVoucherSheet = false)
+                    }
                 }
                 ?.onFailure { err ->
-                    _uiState.update { it.copy(isApplyingVoucher = false, errorMessage = UiText.DynamicString(err.message ?: "Invalid voucher")) }
+                    _uiState.update { if (revision != voucherRevision) it else it.copy(isApplyingVoucher = false, errorMessage = UiText.DynamicString(err.message ?: "Invalid voucher")) }
                 } ?: _uiState.update { it.copy(isApplyingVoucher = false) }
         }
     }
 
-    fun removeVoucher() = _uiState.update { it.copy(appliedVoucher = null, showVoucherSheet = false) }
+    fun removeVoucher() {
+        ++voucherRevision
+        _uiState.update { it.copy(appliedVoucher = null, showVoucherSheet = false, isApplyingVoucher = false) }
+    }
 
     fun onPlaceOrder() {
         if (_uiState.value.isPlacingOrder) return
@@ -300,7 +313,7 @@ class FoodCheckoutViewModel @Inject constructor(
                     var webViewUrl: String? = null
                     var paymentError: UiText? = null
                     if (state.selectedPaymentMethod != PaymentMethod.CASH) {
-                        val orderAmount = result.order.totalPrice ?: (result.order.itemsPrice + (result.order.deliveryFee ?: 0.0)).takeIf { it > 0.0 } ?: state.finalTotalAmount
+                        val orderAmount = result.order.payableTotal
                         val paymentResult = createOrderPaymentUseCase?.invoke(
                             bookingId = result.order.id,
                             amount = orderAmount,

@@ -9,6 +9,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
+import java.math.BigDecimal;
 
 @EnabledIfEnvironmentVariable(named="TEST_POSTGRES_URL", matches=".+")
 class FinancialMigrationIntegrationTest {
@@ -41,8 +42,8 @@ class FinancialMigrationIntegrationTest {
             flyway.baseline();
             assertEquals(3, flyway.migrate().migrationsExecuted);
             flyway.validate();
-            assertEquals(0, jdbc.queryForObject("select discount_amount from food_orders where id=1", java.math.BigDecimal.class).signum());
-            assertNull(jdbc.queryForObject("select original_amount from food_orders where id=1", java.math.BigDecimal.class));
+            assertEquals(0, jdbc.queryForObject("select discount_amount from food_orders where id=1", BigDecimal.class).signum());
+            assertNull(jdbc.queryForObject("select original_amount from food_orders where id=1", BigDecimal.class));
             assertEquals(0, flyway.migrate().migrationsExecuted);
             assertEquals(existing ? 1 : 0, jdbc.queryForObject("select count(*) from financial_outbox", Integer.class));
             assertEquals(existing ? 1 : 0, jdbc.queryForObject("select count(*) from order_idempotency", Integer.class));

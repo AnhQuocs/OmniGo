@@ -47,13 +47,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import com.trung.fooddeliveryservice.service.OrderVoucherService;
+import java.util.Locale;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FoodOrderServiceImpl implements FoodOrderService {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.trung.fooddeliveryservice.service.OrderVoucherService orderVouchers;
+    @Autowired
+    private OrderVoucherService orderVouchers;
 
 
     private final FinancialOutbox financialOutbox;
@@ -186,9 +191,9 @@ public class FoodOrderServiceImpl implements FoodOrderService {
         order.setOriginalAmount(order.getTotalPrice());
         order.setDiscountAmount(BigDecimal.ZERO);
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
-            foodOrderRepository.saveAndFlush(order);
+            order = foodOrderRepository.saveAndFlush(order);
             order.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), order.getCustomerId(), order.getId(), order.getOriginalAmount()));
-            order.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));
+            order.setVoucherCode(request.getVoucherCode().trim().toUpperCase(Locale.ROOT));
             order.setTotalPrice(order.getOriginalAmount().subtract(order.getDiscountAmount()));
         }
         FoodOrder savedOrder = saveAndNotifyStatus(order);
@@ -468,7 +473,7 @@ public class FoodOrderServiceImpl implements FoodOrderService {
                 });
 
         if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.REJECTED)
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Không thể gán tài xế cho đơn đã kết thúc");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Không thể gán tài xế cho đơn đã kết thúc");
         order.setDriverId(driverId);
         // Không tự ý đổi trạng thái sang DELIVERING tại đây vì tài xế còn phải di chuyển đến quán lấy món.
         // Trạng thái DELIVERING sẽ do tài xế xác nhận khi bấm "ĐÃ LẤY MÓN & BẮT ĐẦU ĐI GIAO".

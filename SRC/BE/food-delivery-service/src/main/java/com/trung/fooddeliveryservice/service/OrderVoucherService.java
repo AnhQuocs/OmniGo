@@ -2,6 +2,7 @@ package com.trung.fooddeliveryservice.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
+import java.util.Set;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestClientException;
 @Service
 public class OrderVoucherService {
     private final JdbcTemplate jdbc;
@@ -29,6 +31,7 @@ public class OrderVoucherService {
     private HttpHeaders headers() { var headers=new HttpHeaders(); headers.set("X-Internal-Token",token); return headers; }
     public BigDecimal redeem(String code, Long customer, Long id, BigDecimal original) {
         if (code == null || code.isBlank()) return BigDecimal.ZERO;
+        if (id == null) throw new IllegalStateException("Order must be persisted before redeeming a voucher");
         code=code.trim().toUpperCase(Locale.ROOT);
         if (!code.matches("[A-Z0-9_-]{1,50}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Mã voucher không hợp lệ");
         final String normalized=code;
@@ -39,7 +42,7 @@ public class OrderVoucherService {
             result=http.exchange(url + "/api/v1/pricing/internal/vouchers/redeem",HttpMethod.POST,
                 new HttpEntity<>(Map.of("code",code,"userId",customer.toString(),"orderId","FOOD:"+id,
                     "serviceType","FOOD_DELIVERY","originalAmount",original),headers()),Map.class).getBody();
-        } catch (org.springframework.web.client.RestClientException error) {
+        } catch (RestClientException error) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Chưa xác minh được voucher. Vui lòng thử lại.");
         }
         if (result == null || !Boolean.TRUE.equals(result.get("valid")))
@@ -59,7 +62,7 @@ public class OrderVoucherService {
                 try {
                     var orders = jdbc.queryForList("select status from food_orders where id=?", id);
                     String state = orders.isEmpty() ? "MISSING" : String.valueOf(orders.get(0).get("status"));
-                    if (java.util.Set.of("MISSING", "CANCELLED", "CANCELED", "REJECTED").contains(state)) {
+                    if (Set.of("MISSING", "CANCELLED", "CANCELED", "REJECTED").contains(state)) {
                         http.exchange(url+"/api/v1/pricing/internal/vouchers/release",HttpMethod.POST,
                             new HttpEntity<>(Map.of("code",row.get("code"),"userId",row.get("customer_id").toString(),"orderId","FOOD:"+id),headers()),Void.class);
                     } else if (!"COMPLETED".equals(state)) {

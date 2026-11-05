@@ -112,6 +112,7 @@ export const ConfirmDialog = ({
         sx: {
           borderRadius: 3.5,
           p: 1,
+          m: { xs: 1.5, sm: 2 },
           textAlign: 'center',
         },
       }}
@@ -139,13 +140,14 @@ export const ConfirmDialog = ({
         </Typography>
       </DialogContent>
 
-      <DialogActions sx={{ justifyContent: 'center', gap: 1.5, pb: 2, px: 2 }}>
+      <DialogActions sx={{ justifyContent: 'center', gap: 1.5, pb: 2, px: 2, flexWrap: 'wrap' }}>
         <Button
           variant="outlined"
           onClick={onClose}
           disabled={loading}
           sx={{
-            minWidth: 100,
+            minWidth: { xs: 90, sm: 100 },
+            flex: { xs: 1, sm: 'none' },
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 700,
@@ -161,7 +163,8 @@ export const ConfirmDialog = ({
           onClick={onConfirm}
           disabled={loading}
           sx={{
-            minWidth: 100,
+            minWidth: { xs: 90, sm: 100 },
+            flex: { xs: 1, sm: 'none' },
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 700,

@@ -386,13 +386,17 @@ export const AddressAutocomplete = ({
             <Chip
               size="small"
               icon={<CheckIcon sx={{ fontSize: '16px !important', color: '#059669 !important' }} />}
-              label={`Tọa độ tự động: Vĩ độ ${latitude}, Kinh độ ${longitude}`}
+              label={`Tọa độ: ${latitude}, ${longitude}`}
               sx={{
                 bgcolor: 'rgba(16, 185, 129, 0.1)',
                 color: '#059669',
                 fontWeight: 600,
                 fontSize: '0.78rem',
                 border: '1px solid rgba(16, 185, 129, 0.25)',
+                maxWidth: '100%',
+                height: 'auto',
+                py: 0.3,
+                '& .MuiChip-label': { whiteSpace: 'normal', wordBreak: 'break-word' },
               }}
             />
           ) : (

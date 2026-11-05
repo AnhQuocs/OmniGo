@@ -87,6 +87,7 @@ export default function PlatformFeeModal({ open, onClose }) {
       PaperProps={{
         sx: {
           borderRadius: 3,
+          m: { xs: 1.5, sm: 2 },
           boxShadow: '0 20px 45px rgba(0,0,0,0.18)',
         },
       }}

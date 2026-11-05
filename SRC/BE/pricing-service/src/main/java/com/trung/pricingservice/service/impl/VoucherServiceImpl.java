@@ -34,6 +34,11 @@ import com.trung.pricingservice.dto.request.CommitVoucherRequest;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Objects;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -352,8 +357,8 @@ public class VoucherServiceImpl implements VoucherService {
             var previous = voucherUsageRepository.findByVoucherCodeAndOrderId(code, orderId);
             if (previous.isPresent()) {
                 var usage = previous.get();
-                boolean same = usage.getStatus() == VoucherUsageStatus.USED && java.util.Objects.equals(userId, usage.getUserId())
-                        && java.util.Objects.equals(serviceType, usage.getServiceType()) && Double.compare(orderAmount, usage.getOriginalAmount()) == 0;
+                boolean same = usage.getStatus() == VoucherUsageStatus.USED && Objects.equals(userId, usage.getUserId())
+                        && Objects.equals(serviceType, usage.getServiceType()) && Double.compare(orderAmount, usage.getOriginalAmount()) == 0;
                 return ApplyVoucherResponse.builder().valid(same).message(same ? "Đã ghi nhận voucher" : "Voucher đã dùng cho yêu cầu khác hoặc đã hoàn")
                         .originalAmount(usage.getOriginalAmount()).discountAmount(usage.getDiscountAmount()).finalAmount(usage.getFinalAmount()).build();
             }
@@ -362,7 +367,7 @@ public class VoucherServiceImpl implements VoucherService {
                 .serviceType(serviceType).orderAmount(orderAmount).build());
         if (!quote.isValid()) return quote;
         // Never accept discount/final totals supplied by a caller.
-        double discountAmount = java.math.BigDecimal.valueOf(quote.getDiscountAmount()).setScale(0, java.math.RoundingMode.HALF_UP).doubleValue();
+        double discountAmount = BigDecimal.valueOf(quote.getDiscountAmount()).setScale(0, RoundingMode.HALF_UP).doubleValue();
         discountAmount = Math.min(orderAmount, Math.max(0, discountAmount));
         double finalAmount = orderAmount - discountAmount;
 
@@ -406,8 +411,8 @@ public class VoucherServiceImpl implements VoucherService {
             voucherRedisRepository.recordUserUsage(code, userId, ttl);
         }
 
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
                     @Override public void afterCompletion(int status) {
                         if (status != STATUS_COMMITTED) {
                             if (voucher.getTotalUsageLimit() > 0) voucherRedisRepository.incrementStock(code);

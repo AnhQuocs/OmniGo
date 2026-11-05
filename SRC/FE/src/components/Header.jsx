@@ -87,7 +87,7 @@ export const Header = ({ handleDrawerToggle }) => {
           ml: { md: `${DRAWER_WIDTH}px` },
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1.5, sm: 3 }, minHeight: { xs: '58px', sm: '62px' } }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1, sm: 2.5, md: 3 }, minHeight: { xs: '56px', sm: '62px' }, gap: 1 }}>
           {/* Left: Mobile Menu & Brand */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <IconButton
@@ -187,8 +187,8 @@ export const Header = ({ handleDrawerToggle }) => {
               >
                 {user?.fullName?.charAt(0) || user?.phoneNumber?.charAt(0) || 'A'}
               </Avatar>
-              <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left' }}>
-                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.1, color: 'text.primary', fontSize: '0.88rem' }}>
+              <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left', maxWidth: 160 }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 700, lineHeight: 1.1, color: 'text.primary', fontSize: '0.88rem' }}>
                   {user?.fullName || 'Administrator'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>

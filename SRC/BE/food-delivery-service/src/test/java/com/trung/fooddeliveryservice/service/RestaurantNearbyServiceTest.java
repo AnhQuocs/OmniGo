@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import com.trung.fooddeliveryservice.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantNearbyServiceTest {
@@ -149,39 +150,39 @@ class RestaurantNearbyServiceTest {
     @Test
     @DisplayName("Service kiểm tra thiếu tọa độ quăng BadRequestException")
     void testGetNearby_missingCoordinates_throwsBadRequest() {
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants(null, "105.7891", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21.0333", "", null));
     }
 
     @Test
     @DisplayName("Service kiểm tra tọa độ không phải số hoặc NaN/Infinity quăng BadRequestException")
     void testGetNearby_nonNumericOrNaN_throwsBadRequest() {
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("abc", "105.7891", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("NaN", "105.7891", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21.0333", "Infinity", null));
     }
 
     @Test
     @DisplayName("Service kiểm tra tọa độ vượt quá phạm vi [-90, 90], [-180, 180] quăng BadRequestException")
     void testGetNearby_outOfRangeCoordinates_throwsBadRequest() {
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("91.5", "105.7891", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("-95.0", "105.7891", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21.0333", "185.0", null));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21.0333", "-181.0", null));
     }
 
@@ -189,7 +190,7 @@ class RestaurantNearbyServiceTest {
     @DisplayName("Service kiểm tra bán kính không hợp lệ quăng BadRequestException")
     void testGetNearby_invalidRadius_throwsBadRequest() {
         for (String radius : List.of("0", "-1", "NaN", "Infinity", "abc")) {
-            assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+            assertThrows(BadRequestException.class, () ->
                     restaurantService.getNearbyRestaurants("21", "105", radius));
         }
     }
@@ -209,16 +210,16 @@ class RestaurantNearbyServiceTest {
     @Test
     @DisplayName("Service kiểm tra page hoặc limit không hợp lệ quăng BadRequestException")
     void testGetNearby_invalidPageOrLimit_throwsBadRequest() {
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21", "105", "5.0", "-1", "10"));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21", "105", "5.0", "abc", "10"));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21", "105", "5.0", "0", "0"));
 
-        assertThrows(com.trung.fooddeliveryservice.exception.BadRequestException.class, () ->
+        assertThrows(BadRequestException.class, () ->
                 restaurantService.getNearbyRestaurants("21", "105", "5.0", "0", "-5"));
     }
 

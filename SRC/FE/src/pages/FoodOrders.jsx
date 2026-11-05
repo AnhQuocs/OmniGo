@@ -332,7 +332,7 @@ export const FoodOrders = () => {
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }} className="page-enter-animation">
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>

@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
+import java.util.List;
+import java.util.Map;
 class OrderVoucherServiceTest {
     JdbcTemplate jdbc=mock(JdbcTemplate.class);
     OrderVoucherService service=new OrderVoucherService(jdbc,mock(PlatformTransactionManager.class));
@@ -19,6 +21,11 @@ class OrderVoucherServiceTest {
     @BeforeEach void setup() {
         ReflectionTestUtils.setField(service,"url","http://pricing"); ReflectionTestUtils.setField(service,"token","secret");
         server=MockRestServiceServer.createServer((RestTemplate)ReflectionTestUtils.getField(service,"http"));
+    }
+    @Test void missingOrderIdCannotReserveVoucher() {
+        assertThrows(IllegalStateException.class, () -> service.redeem("OMNI8", 42L, null, new BigDecimal("144000")));
+        verifyNoInteractions(jdbc);
+        server.verify();
     }
     @Test void noVoucherDoesNotConsumeOrCallAnotherService() {
         assertEquals(BigDecimal.ZERO,service.redeem(null,1L,99L,new BigDecimal("120000"))); verifyNoInteractions(jdbc); server.verify();
@@ -41,12 +48,12 @@ class OrderVoucherServiceTest {
         verify(jdbc).update(startsWith("insert into voucher_compensation"),eq(99L),eq("SAVE30"),eq(1L));
     }
     @Test void canceledOrderReleasesNamespacedVoucherButActiveOrderKeepsReservation() {
-        when(jdbc.queryForList(startsWith("select * from voucher_compensation"))).thenReturn(java.util.List.of(java.util.Map.of("order_id",99L,"code","SAVE30","customer_id",1L)));
+        when(jdbc.queryForList(startsWith("select * from voucher_compensation"))).thenReturn(List.of(Map.of("order_id",99L,"code","SAVE30","customer_id",1L)));
         when(jdbc.queryForObject(startsWith("select pg_try_advisory"),eq(Boolean.class),eq("VOUCHER_ORDER:99"))).thenReturn(true);
-        when(jdbc.queryForList(startsWith("select status"),eq(99L))).thenReturn(java.util.List.of(java.util.Map.of("status","IN_PROGRESS")));
+        when(jdbc.queryForList(startsWith("select status"),eq(99L))).thenReturn(List.of(Map.of("status","IN_PROGRESS")));
         service.compensateRolledBackOrders(); server.verify();
         verify(jdbc,never()).update(startsWith("delete from"),eq(99L));
-        when(jdbc.queryForList(startsWith("select status"),eq(99L))).thenReturn(java.util.List.of(java.util.Map.of("status","CANCELLED")));
+        when(jdbc.queryForList(startsWith("select status"),eq(99L))).thenReturn(List.of(Map.of("status","CANCELLED")));
         server.expect(requestTo("http://pricing/api/v1/pricing/internal/vouchers/release"))
             .andExpect(content().json("{\"orderId\":\"FOOD:99\",\"code\":\"SAVE30\"}" )).andRespond(withSuccess());
         service.compensateRolledBackOrders(); server.verify();

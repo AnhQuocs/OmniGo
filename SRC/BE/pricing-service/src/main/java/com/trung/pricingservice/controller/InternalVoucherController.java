@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import jakarta.validation.Valid;
+import java.util.Map;
 @RestController @RequiredArgsConstructor
 @RequestMapping("/api/v1/pricing/internal/vouchers")
 public class InternalVoucherController {
@@ -20,7 +22,7 @@ public class InternalVoucherController {
     }
     @PostMapping("/redeem")
     public ApplyVoucherResponse redeem(@RequestHeader(value="X-Internal-Token",required=false) String supplied,
-            @jakarta.validation.Valid @RequestBody CommitVoucherRequest request) {
+            @Valid @RequestBody CommitVoucherRequest request) {
         authorize(supplied);
         if (!Double.isFinite(request.getOriginalAmount()) || request.getOriginalAmount() <= 0 || request.getOrderId() == null ||
             !(request.getOrderId().startsWith("FOOD:") || request.getOrderId().startsWith("RIDE:")))
@@ -29,7 +31,7 @@ public class InternalVoucherController {
     }
     @PostMapping("/release")
     public void release(@RequestHeader(value="X-Internal-Token",required=false) String supplied,
-            @RequestBody java.util.Map<String,String> request) {
+            @RequestBody Map<String,String> request) {
         authorize(supplied);
         vouchers.rollbackVoucherUsage(request.get("code"), request.get("userId"), request.get("orderId"));
     }

@@ -19,17 +19,19 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.trung.fooddeliveryservice.service.OrderCreationGuard;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/food-orders")
 @RequiredArgsConstructor
 public class FoodOrderController {
 
-    private final com.trung.fooddeliveryservice.service.OrderCreationGuard creationGuard;
+    private final OrderCreationGuard creationGuard;
     private final FoodOrderService foodOrderService;
 
     @PostMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<FoodOrderResponse>> createOrder(
             @RequestHeader("Idempotency-Key") String key,
             @Valid @RequestBody FoodOrderCreateRequest request) throws ResourceNotFoundException, BadRequestException, UnauthorizedException {

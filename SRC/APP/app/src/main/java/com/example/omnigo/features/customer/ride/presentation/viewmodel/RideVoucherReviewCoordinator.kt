@@ -20,6 +20,9 @@ class RideVoucherReviewCoordinator @Inject constructor(
     private val rollbackVoucherUseCase: RollbackVoucherUseCase,
     private val submitBookingReviewUseCase: SubmitBookingReviewUseCase
 ) {
+    private var voucherRevision = 0
+
+    fun invalidateVoucherRequest() { ++voucherRevision }
 
     fun openVoucherSheet(
         scope: CoroutineScope,
@@ -45,6 +48,7 @@ class RideVoucherReviewCoordinator @Inject constructor(
         currentState: RideBookingUiState,
         updateState: ((RideBookingUiState) -> RideBookingUiState) -> Unit
     ) {
+        val revision = ++voucherRevision
         val baseFare = currentState.pricingEstimate?.totalPrice
         if (baseFare == null || baseFare <= 0.0) {
             updateState { it.copy(pendingPromoCode = code, showVoucherSheet = false) }
@@ -55,10 +59,11 @@ class RideVoucherReviewCoordinator @Inject constructor(
             applyVoucherUseCase(code = code, orderAmount = baseFare, serviceType = "RIDE")
                 .onSuccess { applied ->
                     updateState {
+                        if (revision != voucherRevision) return@updateState it
                         it.copy(
                             isLoadingVouchers = false,
                             showVoucherSheet = false,
-                            appliedVoucher = applied,
+                            appliedVoucher = applied.takeIf { voucher -> voucher.originalAmount == it.pricingEstimate?.totalPrice },
                             pendingPromoCode = null,
                             infoMessage = UiText.StringResource(
                                 R.string.promos_saved_code_msg,
@@ -70,6 +75,7 @@ class RideVoucherReviewCoordinator @Inject constructor(
                 }
                 .onFailure { err ->
                     updateState {
+                        if (revision != voucherRevision) return@updateState it
                         it.copy(
                             isLoadingVouchers = false,
                             errorMessage = err.message?.let(UiText::DynamicString)
@@ -85,12 +91,14 @@ class RideVoucherReviewCoordinator @Inject constructor(
         baseFare: Double,
         updateState: ((RideBookingUiState) -> RideBookingUiState) -> Unit
     ) {
+        val revision = ++voucherRevision
         scope.launch {
             applyVoucherUseCase(code = code, orderAmount = baseFare, serviceType = "RIDE")
                 .onSuccess { applied ->
                     updateState {
+                        if (revision != voucherRevision) return@updateState it
                         it.copy(
-                            appliedVoucher = applied,
+                            appliedVoucher = applied.takeIf { voucher -> voucher.originalAmount == it.pricingEstimate?.totalPrice },
                             pendingPromoCode = null,
                             infoMessage = UiText.StringResource(
                                 R.string.promos_saved_code_msg,

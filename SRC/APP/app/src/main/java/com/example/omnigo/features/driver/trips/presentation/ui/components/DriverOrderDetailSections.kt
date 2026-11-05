@@ -268,7 +268,7 @@ fun DriverOrderDetailFareCard(
                 color = TextPrimary
             )
 
-            val fare = foodOrder?.grossFee ?: booking?.price ?: 0.0
+            val fare = foodOrder?.grossFee ?: booking?.grossPrice ?: 0.0
             val netEarnings = foodOrder?.actualEarnings ?: booking?.actualEarnings ?: fare
             val platformFee = foodOrder?.actualPlatformFee ?: booking?.actualPlatformFee ?: 0.0
 

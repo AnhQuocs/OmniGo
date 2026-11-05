@@ -3269,6 +3269,9 @@
 
         document.getElementById('summary-shipping').innerHTML = `${currentFoodDeliveryFee.toLocaleString('vi-VN')} đ <span style="font-size:11px; color:#64748b; font-weight:normal;">(~${currentFoodDistanceKm.toFixed(1)} km - ${feeCalc.source})</span>`;
 
+        if (appliedFoodVoucher && Number(appliedFoodVoucher.originalAmount) !== subtotal + currentFoodDeliveryFee) {
+            removeAppliedVoucher('FOOD_DELIVERY', false);
+        }
         // Tính giảm giá nếu có voucher
         let discount = 0;
         if (appliedFoodVoucher && appliedFoodVoucher.valid) {
@@ -4908,6 +4911,9 @@
             }
 
             currentTripBasePrice = Math.round(data.totalPrice || 25000);
+            if (appliedRideVoucher && Number(appliedRideVoucher.originalAmount) !== currentTripBasePrice) {
+                removeAppliedVoucher('RIDE_HAILING');
+            }
             updateRidePricingDisplay();
 
             const btnBook = document.getElementById('btnBook');
@@ -4970,7 +4976,7 @@
 
         let amount = currentActiveServiceForVoucher === 'RIDE_HAILING'
             ? currentTripBasePrice
-            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0) + currentFoodDeliveryFee;
 
         try {
             let url = `${API_BASE_URL}/api/v1/pricing/vouchers/applicable?orderAmount=${amount}&serviceType=${currentActiveServiceForVoucher}&userId=${customerId || ''}`;
@@ -5064,7 +5070,7 @@
         const serviceType = currentActiveServiceForVoucher;
         let amount = (serviceType === 'RIDE_HAILING')
             ? currentTripBasePrice
-            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            : cart.reduce((sum, i) => sum + (i.price * i.quantity), 0) + currentFoodDeliveryFee;
 
         try {
             let res = await fetchWithAuth(`${API_BASE_URL}/api/v1/pricing/vouchers/apply`, {
@@ -5080,7 +5086,7 @@
 
             let json = await res.json();
             if (res.ok && json.success && json.data?.valid) {
-                let result = json.data;
+                let result = { ...json.data, originalAmount: amount };
                 if (serviceType === 'RIDE_HAILING') {
                     appliedRideVoucher = result;
                     const titleEl = document.getElementById('ride-voucher-title');
@@ -5125,7 +5131,7 @@
         }
     }
 
-    function removeAppliedVoucher(serviceType) {
+    function removeAppliedVoucher(serviceType, refresh = true) {
         if (serviceType === 'RIDE_HAILING') {
             appliedRideVoucher = null;
             const titleEl = document.getElementById('ride-voucher-title');
@@ -5157,7 +5163,7 @@
                     </button>
                 `;
             }
-            renderCartModalItems();
+            if (refresh) renderCartModalItems();
         }
     }
 

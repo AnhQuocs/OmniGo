@@ -31,8 +31,11 @@ data class Booking(
     val originalPrice: Double? = null
 ) {
     /**
-     * Giá cước thực tế khách hàng cần thanh toán sau khi trừ chiết khấu voucher/khuyến mãi.
+     * Giá cước gốc dùng để tính thu nhập tài xế và phí sàn.
      */
+    val grossPrice: Double
+        get() = (originalPrice ?: (price + discountAmount)).coerceAtLeast(0.0)
+
     val finalPrice: Double
         get() = price.coerceAtLeast(0.0)
 
@@ -42,11 +45,11 @@ data class Booking(
      * Tuyệt đối không dùng tỷ lệ cố định của hiện tại để tính lại đơn cũ.
      */
     val actualEarnings: Double
-        get() = driverEarnings ?: (platformFee?.let { ((originalPrice ?: (price + discountAmount)) - it).coerceAtLeast(0.0) } ?: (originalPrice ?: (price + discountAmount)))
+        get() = driverEarnings ?: (platformFee?.let { (grossPrice - it).coerceAtLeast(0.0) } ?: grossPrice)
 
     /**
      * Phí nền tảng (chiết khấu sàn) thực tế của cuốc xe.
      */
     val actualPlatformFee: Double
-        get() = platformFee ?: (driverEarnings?.let { ((originalPrice ?: (price + discountAmount)) - it).coerceAtLeast(0.0) } ?: 0.0)
+        get() = platformFee ?: (driverEarnings?.let { (grossPrice - it).coerceAtLeast(0.0) } ?: 0.0)
 }

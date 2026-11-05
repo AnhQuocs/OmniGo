@@ -415,7 +415,7 @@ export const Restaurants = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }} className="page-enter-animation">
       {/* Header bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
         <Box>
@@ -1507,7 +1507,7 @@ export const Restaurants = () => {
       </Dialog>
 
       {/* Modal: Khóa / Mở Khóa Gian Hàng */}
-      <Dialog open={openLockModal} onClose={handleCloseLockRestaurant} maxWidth="xs" fullWidth>
+      <Dialog open={openLockModal} onClose={handleCloseLockRestaurant} maxWidth="xs" fullWidth PaperProps={{ sx: { m: { xs: 1.5, sm: 2 }, borderRadius: 3 } }}>
         <DialogTitle component="div" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             {selectedRestaurantForLock?.isLocked ? 'Mở khóa gian hàng quán ăn' : 'Khóa gian hàng quán ăn'}

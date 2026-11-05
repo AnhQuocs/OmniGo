@@ -950,6 +950,8 @@ export const MerchantOrders = () => {
           sx: {
             borderRadius: 4,
             p: 1.5,
+            m: { xs: 1.5, sm: 2 },
+            maxHeight: 'calc(100% - 32px)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
           },
         }}

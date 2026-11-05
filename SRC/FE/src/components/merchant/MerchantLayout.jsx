@@ -202,10 +202,12 @@ export const MerchantLayout = () => {
       <Box
         component="header"
         sx={{
-          height: 72,
+          minHeight: { xs: 58, sm: 64, md: 72 },
+          height: 'auto',
+          py: { xs: 0.8, md: 0 },
           bgcolor: '#FFFFFF',
           borderBottom: '1px solid #E2E8F0',
-          px: { xs: 2, md: 3.5 },
+          px: { xs: 1.5, sm: 2.5, md: 3.5 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -258,7 +260,7 @@ export const MerchantLayout = () => {
         <Box
           onClick={(e) => setRestaurantAnchor(e.currentTarget)}
           sx={{
-            display: { xs: 'none', sm: 'flex' },
+            display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
             gap: 1.5,
             px: 2,
@@ -266,7 +268,7 @@ export const MerchantLayout = () => {
             borderRadius: 3,
             bgcolor: '#F8FAFC',
             border: '1px solid #E2E8F0',
-            maxWidth: 450,
+            maxWidth: 380,
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             '&:hover': {
@@ -500,7 +502,7 @@ export const MerchantLayout = () => {
               alignItems: 'center',
               gap: 1,
               p: 0.6,
-              pr: 1.5,
+              pr: { xs: 0.6, sm: 1.5 },
               borderRadius: 5,
               bgcolor: '#F1F5F9',
               cursor: 'pointer',
@@ -511,10 +513,10 @@ export const MerchantLayout = () => {
             <Avatar sx={{ width: 32, height: 32, bgcolor: '#F97316', fontSize: '0.85rem', fontWeight: 700 }}>
               {user?.fullName ? user.fullName[0] : 'U'}
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '0.85rem' }}>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700, color: '#1E293B', fontSize: '0.85rem', maxWidth: 120 }} noWrap>
               {user?.fullName || 'Chủ quán'}
             </Typography>
-            <ArrowDownIcon sx={{ fontSize: 16, color: '#64748B' }} />
+            <ArrowDownIcon sx={{ fontSize: 16, color: '#64748B', display: { xs: 'none', sm: 'block' } }} />
           </Box>
 
           <Menu
@@ -538,7 +540,7 @@ export const MerchantLayout = () => {
       </Box>
 
       {/* BODY: SIDEBAR + MAIN CONTENT */}
-      <Box sx={{ display: 'flex', flex: 1, p: { xs: 1.5, md: 3 }, gap: { xs: 1.5, md: 3 }, maxWidth: 1600, width: '100%', mx: 'auto' }}>
+      <Box sx={{ display: 'flex', flex: 1, p: { xs: 1.5, sm: 2, md: 3 }, gap: { xs: 1.5, sm: 2, md: 3 }, maxWidth: 1600, width: '100%', mx: 'auto', boxSizing: 'border-box' }}>
         {/* LEFT SIDEBAR */}
         <Box
           component="aside"
