@@ -993,6 +993,31 @@ export const Bookings = () => {
                         Cước Phí & Thanh Toán
                       </Typography>
                       <Box sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid #F1F5F9' }}>
+                        {(Number(selectedBooking.discountAmount) > 0 || selectedBooking.voucherCode) && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 600 }}>Voucher giảm giá:</Typography>
+                              {selectedBooking.voucherCode && (
+                                <Chip
+                                  label={selectedBooking.voucherCode}
+                                  size="small"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    bgcolor: '#FEF2F2',
+                                    color: '#DC2626',
+                                    border: '1px solid #FECACA',
+                                    '& .MuiChip-label': { px: 0.6 },
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#DC2626' }}>
+                              -{Number(selectedBooking.discountAmount || 0).toLocaleString('vi-VN')} đ
+                            </Typography>
+                          </Box>
+                        )}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
                           <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 600 }}>Thành tiền:</Typography>
                           <Typography variant="h5" sx={{ fontWeight: 800, color: '#008CFF' }}>
