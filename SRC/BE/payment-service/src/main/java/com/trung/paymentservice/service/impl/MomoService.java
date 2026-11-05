@@ -41,13 +41,17 @@ import java.security.MessageDigest;
 import java.util.Objects;
 import java.net.URI;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trung.paymentservice.service.PendingPaymentStore;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MomoService implements PaymentStrategy {
 
-    private final com.trung.paymentservice.service.PendingPaymentStore pendingPayments;
+    private final PendingPaymentStore pendingPayments;
     private final PaymentWorkflowService workflow;
     private final MomoConfig momoConfig;
     private final MomoEncoder momoEncoder;
@@ -109,7 +113,7 @@ public class MomoService implements PaymentStrategy {
 
         // Only explicit terminal rejections are safe to retry. Duplicate/processing/unknown codes stay pending.
         if (momoResponse != null && momoResponse.getResultCode() != null
-                && java.util.Set.of(20, 21, 22, 1001, 1006).contains(momoResponse.getResultCode())
+                && Set.of(20, 21, 22, 1001, 1006).contains(momoResponse.getResultCode())
                 && Objects.equals(orderId, momoResponse.getOrderId())
                 && Objects.equals(momoConfig.getPartnerCode(), momoResponse.getPartnerCode())) {
             pendingPayments.rejectCreation(orderId);
@@ -198,8 +202,8 @@ public class MomoService implements PaymentStrategy {
             log.error("MoMo API báo lỗi HTTP Status: {}, Response Body: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
             // A structured rejection can arrive with HTTP 4xx. Never interpret a bare HTTP error as a final result.
             try {
-                var response = new com.fasterxml.jackson.databind.ObjectMapper()
-                        .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                var response = new ObjectMapper()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                         .readValue(ex.getResponseBodyAsString(), MomoCreateResponse.class);
                 if (Objects.equals(orderId, response.getOrderId()) && Objects.equals(requestId, response.getRequestId())
                         && Objects.equals(momoConfig.getPartnerCode(), response.getPartnerCode())) return response;

@@ -7,9 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import org.springframework.jdbc.core.JdbcTemplate;
 @Service @RequiredArgsConstructor
 public class PendingPaymentStore {
-    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final JdbcTemplate jdbc;
     private final WalletService walletService;
     private final TransactionRepository transactions;
     // Commit before contacting the provider. A timeout must not erase the provider's reference.

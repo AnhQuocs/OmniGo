@@ -19,7 +19,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query(value = "select * from transactions where order_id = :orderId for update", nativeQuery = true)
     Optional<Transaction> findByOrderIdForUpdate(@Param("orderId") String orderId);
     List<Transaction> findByBookingIdAndTransactionTypeOrderByIdDesc(Long bookingId, TransactionType type);
-    @Query("select t.id from Transaction t where t.status = com.trung.paymentservice.util.enums.TransactionStatus.SUCCESS and t.fulfillmentDone = false and (t.fulfillmentNextAttemptAt is null or t.fulfillmentNextAttemptAt <= CURRENT_TIMESTAMP) and t.transactionType in (com.trung.paymentservice.util.enums.TransactionType.FOOD_PAYMENT, com.trung.paymentservice.util.enums.TransactionType.TRIP_PAYMENT) order by t.id")
+    @Query("select t.id from Transaction t where t.status = TransactionStatus.SUCCESS and t.fulfillmentDone = false and (t.fulfillmentNextAttemptAt is null or t.fulfillmentNextAttemptAt <= CURRENT_TIMESTAMP) and t.transactionType in (TransactionType.FOOD_PAYMENT, TransactionType.TRIP_PAYMENT) order by t.id")
     List<Long> findUnfulfilled(Pageable pageable);
     @Transactional
     @Modifying

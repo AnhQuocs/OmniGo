@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.function.Executable;
 
 class BookingDriverServiceTest {
     private final BookingRepository repository = mock(BookingRepository.class);
@@ -81,7 +82,7 @@ class BookingDriverServiceTest {
         assertStatus(HttpStatus.BAD_GATEWAY, () -> service.getDriver(1L, 2L));
     }
 
-    private void assertStatus(HttpStatus status, org.junit.jupiter.api.function.Executable action) {
+    private void assertStatus(HttpStatus status, Executable action) {
         assertEquals(status, assertThrows(ResponseStatusException.class, action).getStatusCode());
     }
 }

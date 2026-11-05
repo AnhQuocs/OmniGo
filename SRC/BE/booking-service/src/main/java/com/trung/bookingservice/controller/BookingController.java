@@ -25,13 +25,14 @@ import com.trung.bookingservice.util.enums.ReportPeriod;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.util.List;
 import java.util.Map;
+import com.trung.bookingservice.service.OrderCreationGuard;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
 @RequiredArgsConstructor
 public class BookingController {
 
-    private final com.trung.bookingservice.service.OrderCreationGuard creationGuard;
+    private final OrderCreationGuard creationGuard;
     private final BookingServiceImpl bookingService;
     private final RidePrepaymentWorker prepayments;
     private final FoodDeliveryDispatchService foodDeliveryDispatchService;
@@ -51,7 +52,7 @@ public class BookingController {
     }
 
     @PostMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> createBooking(
             @RequestHeader("Idempotency-Key") String key,
             @RequestHeader("X-User-Id") Long customerId,

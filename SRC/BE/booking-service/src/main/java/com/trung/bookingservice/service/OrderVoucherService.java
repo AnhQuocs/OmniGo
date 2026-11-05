@@ -14,6 +14,8 @@ import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.Set;
+import org.springframework.web.client.RestClientException;
 @Service
 public class OrderVoucherService {
     private final JdbcTemplate jdbc;
@@ -40,7 +42,7 @@ public class OrderVoucherService {
             result=http.exchange(url + "/api/v1/pricing/internal/vouchers/redeem",HttpMethod.POST,
                 new HttpEntity<>(Map.of("code",code,"userId",customer.toString(),"orderId","RIDE:"+id,
                     "serviceType","RIDE_HAILING","originalAmount",original),headers()),Map.class).getBody();
-        } catch (org.springframework.web.client.RestClientException error) {
+        } catch (RestClientException error) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Chưa xác minh được voucher. Vui lòng thử lại.");
         }
         if (result == null || !Boolean.TRUE.equals(result.get("valid")))
@@ -60,7 +62,7 @@ public class OrderVoucherService {
                 try {
                     var orders = jdbc.queryForList("select status from bookings where id=?", id);
                     String state = orders.isEmpty() ? "MISSING" : String.valueOf(orders.get(0).get("status"));
-                    if (java.util.Set.of("MISSING", "CANCELLED", "CANCELED", "REJECTED").contains(state)) {
+                    if (Set.of("MISSING", "CANCELLED", "CANCELED", "REJECTED").contains(state)) {
                         http.exchange(url+"/api/v1/pricing/internal/vouchers/release",HttpMethod.POST,
                             new HttpEntity<>(Map.of("code",row.get("code"),"userId",row.get("customer_id").toString(),"orderId","RIDE:"+id),headers()),Void.class);
                     } else if (!"COMPLETED".equals(state)) {

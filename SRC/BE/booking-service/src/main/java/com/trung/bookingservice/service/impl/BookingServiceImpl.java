@@ -54,13 +54,16 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.trung.bookingservice.service.client.PaymentClient;
+import com.trung.bookingservice.service.OrderVoucherService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BookingServiceImpl implements BookingService {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.trung.bookingservice.service.OrderVoucherService orderVouchers;
+    @Autowired
+    private OrderVoucherService orderVouchers;
 
 
     private final FinancialOutbox financialOutbox;
@@ -163,14 +166,16 @@ public class BookingServiceImpl implements BookingService {
                 .distanceInKm(pricingInfo.getDistanceInKm())
                 .createdAt(LocalDateTime.now())
                 .build();
-        booking.setOriginalAmount(java.math.BigDecimal.valueOf(booking.getPrice()));
-        booking.setDiscountAmount(java.math.BigDecimal.ZERO);
-        booking = bookingRepository.saveAndFlush(booking);
+        booking.setOriginalAmount(BigDecimal.valueOf(booking.getPrice()));
+        booking.setDiscountAmount(BigDecimal.ZERO);
+        booking = bookingRepository.save(booking);
+        bookingRepository.flush();
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             booking.setDiscountAmount(orderVouchers.redeem(request.getVoucherCode(), customerId, booking.getId(), booking.getOriginalAmount()));
-            booking.setVoucherCode(request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT));
+            booking.setVoucherCode(request.getVoucherCode().trim().toUpperCase(Locale.ROOT));
             booking.setPrice(booking.getOriginalAmount().subtract(booking.getDiscountAmount()).doubleValue());
-            bookingRepository.saveAndFlush(booking);
+            booking = bookingRepository.save(booking);
+            bookingRepository.flush();
         }
 
         log.info("Khách hàng {} đặt xe (Loại: {}). Quãng đường: {} km. Surge Multiplier: {}x. Thành tiền: {} VND. Bán kính quét: {} km",
@@ -271,7 +276,7 @@ public class BookingServiceImpl implements BookingService {
 
     private void afterBookingCommit(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override public void afterCommit() { action.run(); }
             });
         } else action.run();

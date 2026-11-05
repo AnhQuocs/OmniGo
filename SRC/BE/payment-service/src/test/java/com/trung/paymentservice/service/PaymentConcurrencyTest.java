@@ -24,6 +24,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.server.ResponseStatusException;
 
 @EnabledIfEnvironmentVariable(named = "TEST_POSTGRES_URL", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -68,7 +75,7 @@ class PaymentConcurrencyTest {
     @BeforeEach void resetData() {
         txs.deleteAll(); wallets.deleteAll(); reset(orders, fees);
         doReturn(new BigDecimal("20")).when(fees).getPercentage();
-        when(fees.calculate(any(), any())).thenAnswer(i -> ((BigDecimal)i.getArgument(0)).multiply(i.getArgument(1)).divide(new BigDecimal("100"),0,java.math.RoundingMode.HALF_UP));
+        when(fees.calculate(any(), any())).thenAnswer(i -> ((BigDecimal)i.getArgument(0)).multiply(i.getArgument(1)).divide(new BigDecimal("100"),0,RoundingMode.HALF_UP));
     }
     private Wallet wallet(long user, UserType type, String balance) {
         return wallets.save(Wallet.builder().userId(user).userType(type).balance(new BigDecimal(balance)).build());
@@ -182,7 +189,7 @@ class PaymentConcurrencyTest {
     }
     @Test void insufficientPrepaidBalanceLeavesWalletAndLedgerUntouched() {
         Wallet customer=wallet(1,UserType.CUSTOMER,"10000");
-        assertThrows(org.springframework.web.server.ResponseStatusException.class, () ->
+        assertThrows(ResponseStatusException.class, () ->
             context.getBean(WalletPaymentStrategy.class).createPayment(1L,null,99L,new BigDecimal("120000"),"TRIP_PAYMENT"));
         balance(customer.getId(),"10000"); assertEquals(0,txs.count());
         verifyNoInteractions(orders);
@@ -195,14 +202,14 @@ class PaymentConcurrencyTest {
         jdbc.execute("alter table transactions add constraint transactions_transaction_type_check check (transaction_type in ('DEPOSIT','TRIP_PAYMENT','TRIP_INCOME','COMMISSION_FEE','WITHDRAWAL','FOOD_PAYMENT','FOOD_DELIVERY_INCOME','REFUND'))");
         try {
             when(orders.get(true,99L)).thenReturn(order("COMPLETED","MOMO"));
-            var failure=assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> workflow.reconcile(true,99L));
+            var failure=assertThrows(DataIntegrityViolationException.class, () -> workflow.reconcile(true,99L));
             assertTrue(failure.getMostSpecificCause().getMessage().contains("transactions_transaction_type_check"));
             balance(driver.getId(),"0"); balance(restaurant.getId(),"0");
             assertEquals(1,txs.count());
         } finally {
             // Apply the real upgrade to the legacy schema, not Hibernate's fresh schema.
-            try (var input=new org.springframework.core.io.ClassPathResource("db/migration/V7__platform_voucher_expense.sql").getInputStream()) {
-                String sql=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+            try (var input=new ClassPathResource("db/migration/V7__platform_voucher_expense.sql").getInputStream()) {
+                String sql=new String(input.readAllBytes(),StandardCharsets.UTF_8);
                 context.getBean(TransactionTemplate.class).executeWithoutResult(status -> jdbc.execute(sql));
             }
         }
@@ -210,7 +217,7 @@ class PaymentConcurrencyTest {
         balance(driver.getId(),"16000"); balance(restaurant.getId(),"80000");
         assertEquals(5,txs.count());
         assertEquals(2,txs.findAll().stream().filter(t -> t.getTransactionType()==TransactionType.COMMISSION_FEE).count());
-        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+        assertThrows(DataIntegrityViolationException.class,
                 () -> jdbc.update("update transactions set transaction_type='INVALID' where order_id='paid'"));
     }
     @Test void vnpayFoodPaidBeforeDriverAssignmentSettlesAfterDelivery() throws Exception {
@@ -274,14 +281,14 @@ class PaymentConcurrencyTest {
     @Test void distinctConcurrentDepositsNeverLoseWalletUpdates() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0");
         for(int i=0;i<8;i++) payment(customer,"deposit-"+i,TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
-        java.util.concurrent.atomic.AtomicInteger index=new java.util.concurrent.atomic.AtomicInteger();
+        AtomicInteger index=new AtomicInteger();
         parallel(() -> { int i=index.getAndIncrement(); workflow.accept("deposit-"+i,PaymentMethod.MOMO,new BigDecimal("100000"),"g-"+i,true); });
         balance(customer.getId(),"800000");
     }
     @Test void signedWrongAmountOrWrongGatewayCannotCreditWallet() {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0"); payment(customer,"deposit",TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
-        assertThrows(org.springframework.web.server.ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.MOMO,new BigDecimal("1"),"g",true));
-        assertThrows(org.springframework.web.server.ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.VNPAY,new BigDecimal("100000"),"g",true));
+        assertThrows(ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.MOMO,new BigDecimal("1"),"g",true));
+        assertThrows(ResponseStatusException.class,() -> workflow.accept("deposit",PaymentMethod.VNPAY,new BigDecimal("100000"),"g",true));
         balance(customer.getId(),"0"); assertEquals(TransactionStatus.PENDING,txs.findByOrderId("deposit").orElseThrow().getStatus());
     }
     @Test void lateSecondSuccessfulAttemptIsRefundedWithoutSecondPayout() throws Exception {
@@ -304,7 +311,7 @@ class PaymentConcurrencyTest {
     @Test void expiringPendingCannotOverwriteConcurrentSuccessfulPayment() throws Exception {
         Wallet customer=wallet(1,UserType.CUSTOMER,"0");payment(customer,"expiry",TransactionType.DEPOSIT,TransactionStatus.PENDING,"100000");
         parallel(() -> {
-            workflow.expire("expiry",java.time.LocalDateTime.now().plusMinutes(1));
+            workflow.expire("expiry",LocalDateTime.now().plusMinutes(1));
             workflow.accept("expiry",PaymentMethod.MOMO,new BigDecimal("100000"),"g",true);
         });
         balance(customer.getId(),"100000");assertEquals(TransactionStatus.SUCCESS,txs.findByOrderId("expiry").orElseThrow().getStatus());

@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import jakarta.persistence.EntityManager;
 class WalletCommissionTest {
     @Test void onlinePaysBothPartiesAfterConfiguredFees() { verifyPayout("WALLET", "87500"); }
     @Test void vnpayPaysBothPartiesAfterConfiguredFees() { verifyPayout("VNPAY", "87500"); }
@@ -32,7 +33,7 @@ class WalletCommissionTest {
         when(transactions.save(any())).thenAnswer(inv -> { Transaction tx = inv.getArgument(0); ledger.add(tx); return tx; });
         when(transactions.findByOrderId(anyString())).thenAnswer(inv -> ledger.stream().filter(t -> t.getOrderId().equals(inv.getArgument(0))).findFirst());
         when(transactions.findByWalletIdOrderByCreatedAtDesc(1L)).thenAnswer(inv -> ledger.stream().filter(t -> t.getWalletId().equals(1L)).toList());
-        WalletServiceImpl service = new WalletServiceImpl(mock(jakarta.persistence.EntityManager.class), mock(PaymentLocks.class), new PlatformFeeService(configs, redis), wallets, transactions, mock(RestTemplate.class));
+        WalletServiceImpl service = new WalletServiceImpl(mock(EntityManager.class), mock(PaymentLocks.class), new PlatformFeeService(configs, redis), wallets, transactions, mock(RestTemplate.class));
         FoodOrderPayoutRequest request = FoodOrderPayoutRequest.builder().driverId(11L).restaurantOwnerId(22L).orderId(99L)
                 .foodAmount(new BigDecimal("100000")).deliveryFee(new BigDecimal("20000")).paymentMethod(method).build();
         service.processFoodOrderPayout(request);

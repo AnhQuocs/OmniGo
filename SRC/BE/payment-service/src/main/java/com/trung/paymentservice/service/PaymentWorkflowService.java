@@ -12,6 +12,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.*;
+import java.time.LocalDateTime;
 @Service @RequiredArgsConstructor
 public class PaymentWorkflowService {
     private final EntityManager entityManager;
@@ -28,7 +29,7 @@ public class PaymentWorkflowService {
         };
     }
     @Transactional
-    public void expire(String orderId, java.time.LocalDateTime cutoff) {
+    public void expire(String orderId, LocalDateTime cutoff) {
         Transaction initial = transactions.findByOrderId(orderId).orElseThrow();
         locks.lock(key(initial));
         Transaction tx = transactions.findByOrderIdForUpdate(orderId).orElseThrow();

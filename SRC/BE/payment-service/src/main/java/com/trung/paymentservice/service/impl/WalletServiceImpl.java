@@ -32,13 +32,14 @@ import java.util.List;
 
 import com.trung.paymentservice.service.PaymentLocks;
 import com.trung.paymentservice.service.PlatformFeeService;
+import jakarta.persistence.EntityManager;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class WalletServiceImpl implements WalletService {
 
-    private final jakarta.persistence.EntityManager entityManager;
+    private final EntityManager entityManager;
     private final PaymentLocks paymentLocks;
     private final PlatformFeeService platformFeeService;
     private final WalletRepository walletRepository;

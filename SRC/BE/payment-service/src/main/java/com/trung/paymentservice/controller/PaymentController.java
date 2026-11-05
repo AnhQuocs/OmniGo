@@ -40,6 +40,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 import java.util.Set;
+import com.trung.paymentservice.service.OrderAdmissionService;
+import com.trung.paymentservice.service.PaymentIdempotency;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -47,7 +49,7 @@ import java.util.Set;
 @Slf4j
 public class PaymentController {
 
-    private final com.trung.paymentservice.service.OrderAdmissionService admission;
+    private final OrderAdmissionService admission;
     public record AdmissionRequest(Long customerId, String kind, String key, String fingerprint) {}
     @PostMapping("/internal/order-admission")
     public ResponseEntity<Void> reserveOrder(@RequestBody AdmissionRequest request) {
@@ -57,7 +59,7 @@ public class PaymentController {
 
     private final PlatformFeeService platformFeeService;
     private final PaymentRequestService paymentRequests;
-    private final com.trung.paymentservice.service.PaymentIdempotency paymentIdempotency;
+    private final PaymentIdempotency paymentIdempotency;
     private final PaymentWorkflowService workflow;
 
     private final FinancialOrderClient financialOrders;

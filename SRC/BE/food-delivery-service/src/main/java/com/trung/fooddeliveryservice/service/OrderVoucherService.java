@@ -15,6 +15,7 @@ import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestClientException;
 @Service
 public class OrderVoucherService {
     private final JdbcTemplate jdbc;
@@ -41,7 +42,7 @@ public class OrderVoucherService {
             result=http.exchange(url + "/api/v1/pricing/internal/vouchers/redeem",HttpMethod.POST,
                 new HttpEntity<>(Map.of("code",code,"userId",customer.toString(),"orderId","FOOD:"+id,
                     "serviceType","FOOD_DELIVERY","originalAmount",original),headers()),Map.class).getBody();
-        } catch (org.springframework.web.client.RestClientException error) {
+        } catch (RestClientException error) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Chưa xác minh được voucher. Vui lòng thử lại.");
         }
         if (result == null || !Boolean.TRUE.equals(result.get("valid")))
